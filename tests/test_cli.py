@@ -21,31 +21,20 @@ class CliTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             cli.version_tuple("latest")
 
-    def test_latest_release_selects_exact_versioned_asset(self):
-        payload = {
-            "tag_name": "v1.0.1",
-            "assets": [{
-                "name": "LibreDisplay-v1.0.1.zip",
-                "browser_download_url": "https://github.com/Gubna-Tech/LibreDisplay/releases/download/v1.0.1/LibreDisplay-v1.0.1.zip",
-                "digest": "sha256:" + ("a" * 64),
-                "size": 12345,
-            }],
-        }
+    def test_latest_release_uses_github_tag_archive(self):
+        payload = {"tag_name": "v1.0.1", "assets": []}
         with mock.patch.object(cli, "github_request", return_value=json.dumps(payload).encode("utf-8")):
             release = cli.latest_release()
         self.assertEqual(release["version"], "1.0.1")
-        self.assertEqual(release["size"], 12345)
+        self.assertEqual(
+            release["url"],
+            "https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.0.1.zip",
+        )
+        self.assertEqual(release["size"], 0)
+        self.assertEqual(release["digest"], "")
 
-    def test_latest_release_rejects_unexpected_download_host(self):
-        payload = {
-            "tag_name": "v1.0.1",
-            "assets": [{
-                "name": "LibreDisplay-v1.0.1.zip",
-                "browser_download_url": "https://example.com/LibreDisplay-v1.0.1.zip",
-                "digest": "",
-                "size": 12345,
-            }],
-        }
+    def test_latest_release_rejects_invalid_tag(self):
+        payload = {"tag_name": "latest", "assets": []}
         with mock.patch.object(cli, "github_request", return_value=json.dumps(payload).encode("utf-8")):
             with self.assertRaises(SystemExit):
                 cli.latest_release()
@@ -61,13 +50,13 @@ class CliTests(unittest.TestCase):
 
             def fake_download(release, destination):
                 with zipfile.ZipFile(destination, "w") as zf:
-                    zf.writestr("VERSION", "1.0.1\n")
-                    zf.writestr("update.sh", "#!/bin/sh\nexit 0\n")
+                    zf.writestr("LibreDisplay-1.0.1/VERSION", "1.0.1\n")
+                    zf.writestr("LibreDisplay-1.0.1/update.sh", "#!/bin/sh\nexit 0\n")
                 return "0" * 64
 
             release = {
                 "version": "1.0.1",
-                "url": "https://github.com/Gubna-Tech/LibreDisplay/releases/download/v1.0.1/LibreDisplay-v1.0.1.zip",
+                "url": "https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.0.1.zip",
                 "digest": "",
                 "size": 1,
             }
@@ -80,7 +69,7 @@ class CliTests(unittest.TestCase):
             self.assertEqual(rc, 0)
             command = run.call_args.args[0]
             self.assertEqual(command[0], "/bin/sh")
-            self.assertTrue(str(command[1]).endswith("/release/update.sh"))
+            self.assertTrue(str(command[1]).endswith("/release/LibreDisplay-1.0.1/update.sh"))
             self.assertIn("--no-reboot", command)
 
     def test_safe_extract_rejects_traversal(self):

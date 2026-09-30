@@ -12,17 +12,27 @@ class ReleaseContractTests(unittest.TestCase):
         cli = (ROOT / "scripts" / "libredisplay").read_text(encoding="utf-8")
         server = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
         self.assertRegex(version, r"^\d+\.\d+\.\d+$")
-        self.assertIn(f"LibreDisplay-v{version}.zip", readme)
+        self.assertIn(f"/archive/refs/tags/v{version}.zip", readme)
         self.assertIn("Gubna-Tech/LibreDisplay", readme)
         self.assertIn('REPOSITORY = "Gubna-Tech/LibreDisplay"', cli)
         self.assertIn("repos/Gubna-Tech/LibreDisplay/releases/latest", server)
 
-    def test_public_quickstart_matches_flat_release_zip_layout(self):
+    def test_public_quickstart_matches_github_tag_zip_layout(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup", readme)
-        self.assertIn("cd ~/LibreDisplay-Setup", readme)
+        self.assertIn(f"cd ~/LibreDisplay-Setup/LibreDisplay-{(ROOT / 'VERSION').read_text(encoding='utf-8').strip()}", readme)
         self.assertFalse((ROOT / "SECURITY.md").exists())
         self.assertIn("Remote access, accounts, and privacy", readme)
+
+    def test_readme_commands_are_copy_friendly_and_license_is_linked(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        bash_blocks = re.findall(r"```bash\n(.*?)\n```", readme, re.S)
+        self.assertTrue(bash_blocks)
+        for block in bash_blocks:
+            commands = [line for line in block.splitlines() if line.strip()]
+            self.assertEqual(len(commands), 1)
+        self.assertIn("[MIT License](LICENSE)", readme)
+        self.assertTrue((ROOT / "LICENSE").is_file())
 
     def test_version_matches_dashboard_build(self):
         version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
@@ -54,6 +64,8 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('/usr/local/bin/libredisplay', update)
         self.assertIn('/usr/local/bin/libredisplay', uninstall)
         self.assertIn('API_URL = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"', cli)
+        self.assertIn('archive/refs/tags/v{latest}.zip', cli)
+        self.assertIn('release_root = release_dir', cli)
         self.assertIn('safe_extract', cli)
 
     def test_docker_image_carries_release_version(self):

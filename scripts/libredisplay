@@ -10,7 +10,6 @@ import subprocess
 import sys
 import tempfile
 import urllib.error
-import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -74,30 +73,11 @@ def latest_release():
     except ValueError:
         fail("GitHub returned an invalid LibreDisplay release version.")
 
-    expected_name = f"LibreDisplay-v{latest}.zip"
-    asset = next((item for item in payload.get("assets") or [] if item.get("name") == expected_name), None)
-    if not isinstance(asset, dict):
-        fail(f"The latest GitHub release does not contain the expected {expected_name} asset.")
-
-    url = str(asset.get("browser_download_url") or "")
-    parsed = urllib.parse.urlparse(url)
-    expected_prefix = f"/{REPOSITORY}/releases/download/"
-    if parsed.scheme != "https" or parsed.netloc.lower() != "github.com" or not parsed.path.startswith(expected_prefix):
-        fail("GitHub returned an unexpected release download URL.")
-
-    digest = str(asset.get("digest") or "").strip().lower()
-    if digest and not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
-        fail("GitHub returned an invalid release digest.")
-
-    size = int(asset.get("size") or 0)
-    if size < 1 or size > MAX_ARCHIVE_BYTES:
-        fail("The GitHub release archive size is outside LibreDisplay's safety limits.")
-
     return {
         "version": latest,
-        "url": url,
-        "digest": digest,
-        "size": size,
+        "url": f"https://github.com/{REPOSITORY}/archive/refs/tags/v{latest}.zip",
+        "digest": "",
+        "size": 0,
     }
 
 
@@ -193,8 +173,14 @@ def update(no_reboot=False):
         release_dir.mkdir()
         safe_extract(archive, release_dir)
 
-        version_path = release_dir / "VERSION"
-        updater = release_dir / "update.sh"
+        release_root = release_dir
+        if not (release_root / "VERSION").is_file():
+            children = [item for item in release_dir.iterdir() if item.is_dir()]
+            if len(children) == 1 and (children[0] / "VERSION").is_file():
+                release_root = children[0]
+
+        version_path = release_root / "VERSION"
+        updater = release_root / "update.sh"
         if not version_path.is_file() or not updater.is_file():
             fail("The downloaded release is missing required LibreDisplay files.")
         packaged_version = version_path.read_text(encoding="utf-8").strip()
@@ -204,7 +190,7 @@ def update(no_reboot=False):
         command = ["/bin/sh", str(updater)]
         if no_reboot:
             command.append("--no-reboot")
-        result = subprocess.run(command, cwd=str(release_dir), check=False)
+        result = subprocess.run(command, cwd=str(release_root), check=False)
         return int(result.returncode)
 
 
