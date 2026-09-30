@@ -186,6 +186,19 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("Google Photos provided another page", html)
         self.assertNotIn("Function('\"use strict\";return (", html)
 
+    def test_v123_settings_startup_cannot_strand_empty_shell(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        self.assertIn('<div id="setup" class="hidden">', html)
+        self.assertIn('id="settings-init-error"', html)
+        self.assertIn('function fetchWithTimeout', html)
+        self.assertIn("fetchWithTimeout(serverPath('/api/config')", html)
+        self.assertIn('Promise.allSettled([', html)
+        self.assertIn('function showSettingsInitializationError', html)
+        self.assertIn('switchSettingsTab(rememberedTab,false);', html)
+        self.assertLess(html.index('switchSettingsTab(rememberedTab,false);'), html.index("document.getElementById('s-city').value=cfg.city||'';"))
+        self.assertIn("init().catch(error=>{", html)
+        self.assertIn('showSettingsInitializationError(error);', html)
+
     def test_v121_layout_editor_customization_controls(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
         self.assertIn('id="settings-settings-button"', html)
