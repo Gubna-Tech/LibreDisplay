@@ -11,16 +11,53 @@ LibreDisplay brings calendars, weather, photos, family chores, tasks, media, cha
 
 **Best choice for a dedicated wall display.** Use a current Raspberry Pi OS **with Desktop**.
 
-Copy and paste this into Terminal:
+Open **Terminal**, then run these commands **one at a time, in order**. You can copy and paste each box separately.
+
+**1. Update Raspberry Pi OS package information:**
 
 ```bash
 sudo apt update
+```
+
+**2. Install the small tools needed for setup:**
+
+```bash
 sudo apt install -y curl unzip
+```
+
+**3. Create a clean LibreDisplay setup folder:**
+
+```bash
 rm -rf ~/LibreDisplay-Setup && mkdir -p ~/LibreDisplay-Setup
+```
+
+**4. Download the latest LibreDisplay release:**
+
+```bash
 curl -fL https://github.com/Gubna-Tech/LibreDisplay/releases/latest/download/LibreDisplay-v1.0.0.zip -o /tmp/LibreDisplay.zip
+```
+
+**5. Extract LibreDisplay:**
+
+```bash
 unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup
+```
+
+**6. Open the LibreDisplay setup folder:**
+
+```bash
 cd ~/LibreDisplay-Setup
+```
+
+**7. Allow the installer to run:**
+
+```bash
 chmod +x install.sh
+```
+
+**8. Start the installer:**
+
+```bash
 ./install.sh
 ```
 
@@ -53,7 +90,7 @@ Useful places to remember:
 
 ## Updating LibreDisplay
 
-After the first native Raspberry Pi installation, updating is one command:
+After the first native Raspberry Pi installation, updating is one command. Open **Terminal** and run:
 
 ```bash
 libredisplay update
@@ -61,7 +98,7 @@ libredisplay update
 
 LibreDisplay checks the official GitHub release, downloads the newest version, creates a safety backup, keeps your settings, media, and custom plugins, installs the update, and reboots.
 
-To check without installing anything:
+To check for an update without installing anything, run:
 
 ```bash
 libredisplay check
@@ -73,25 +110,41 @@ Settings also shows when a newer release is available and reminds you of the sam
 
 Docker is a good choice when LibreDisplay runs from a NAS, mini PC, or home server and your screens connect through a browser.
 
-From the extracted LibreDisplay folder:
+From the extracted LibreDisplay folder, run these commands **one at a time, in order**.
+
+**1. Allow the Docker setup helper to run:**
 
 ```bash
 chmod +x scripts/docker-setup.sh
+```
+
+**2. Start LibreDisplay for your home network:**
+
+```bash
 ./scripts/docker-setup.sh --lan
 ```
 
 Then open the address shown by the script on a trusted device on your home network.
 
-For a screen-only Raspberry Pi connected to a Docker-hosted LibreDisplay server, run:
+### Add a screen-only Raspberry Pi to a Docker server
+
+**1. On the LibreDisplay server, show the available Display Links:**
 
 ```bash
 ./scripts/docker-setup.sh links
 ```
 
-Copy the Display Link for that screen, then on the viewer Pi run:
+Copy the Display Link for the screen you want to use.
+
+**2. On the viewer Raspberry Pi, allow the viewer installer to run:**
 
 ```bash
 chmod +x scripts/viewer-setup.sh
+```
+
+**3. On the viewer Raspberry Pi, install the Display Link:**
+
+```bash
 ./scripts/viewer-setup.sh install 'PASTE_DISPLAY_LINK_HERE'
 ```
 
@@ -269,8 +322,15 @@ Remove LibreDisplay while preserving a copy of dashboard data and local project 
 
 Completely erase LibreDisplay-managed application data and backups:
 
+**1. Run the purge uninstall:**
+
 ```bash
 ~/libredisplay/uninstall.sh --purge
+```
+
+**2. After the uninstall finishes, reboot:**
+
+```bash
 sudo reboot
 ```
 
@@ -280,6 +340,6 @@ Photos stored outside LibreDisplay or on a NAS are not intentionally deleted.
 
 ## Open source
 
-LibreDisplay is released under the **MIT License**.
+LibreDisplay is released under the **[MIT License](LICENSE)**.
 
 Copyright (c) 2026 Gubna.
