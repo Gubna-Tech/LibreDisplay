@@ -1488,7 +1488,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.2.1</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.2.2</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -1876,7 +1876,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.2.1</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.2.2</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -2039,7 +2039,7 @@ html:not(.cursor-active) * {
 <div id="offline-pill">Offline · cached data</div>
 
 <script>
-const DASHBOARD_BUILD = '1.2.1';
+const DASHBOARD_BUILD = '1.2.2';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -3822,30 +3822,95 @@ function extractGooglePhotoUrls(html){
   return out;
 }
 
-function parseGoogleAlbumInits(html){
-  const rx=/AF_initDataCallback\((\{[\s\S]*?\})\);<\/script>/g;
-  const out=[];
-  for(const m of String(html||'').matchAll(rx)){
-    const candidate=m[1]||'';
-    if(!candidate.includes('data'))continue;
-    try{out.push(Function('"use strict";return ('+candidate+');')());}
-    catch(e){console.warn('Google Photos init-data parse failed',e);}
+function googleBalancedArrayAt(text,start){
+  text=String(text||'');
+  if(text[start]!=='[')return '';
+  let depth=0,quote='',escaped=false;
+  for(let i=start;i<text.length;i++){
+    const ch=text[i];
+    if(quote){
+      if(escaped){escaped=false;continue;}
+      if(ch==='\\'){escaped=true;continue;}
+      if(ch===quote)quote='';
+      continue;
+    }
+    if(ch==='"'||ch==="'"||ch==='`'){quote=ch;continue;}
+    if(ch==='[')depth++;
+    else if(ch===']'){
+      depth--;
+      if(depth===0)return text.slice(start,i+1);
+    }
   }
+  return '';
+}
+
+function googleTopLevelArrayItems(raw){
+  raw=String(raw||'').trim();
+  if(raw[0]!=='['||raw[raw.length-1]!==']')return [];
+  const out=[];
+  let start=1,square=0,curly=0,paren=0,quote='',escaped=false;
+  for(let i=1;i<raw.length-1;i++){
+    const ch=raw[i];
+    if(quote){
+      if(escaped){escaped=false;continue;}
+      if(ch==='\\'){escaped=true;continue;}
+      if(ch===quote)quote='';
+      continue;
+    }
+    if(ch==='"'||ch==="'"||ch==='`'){quote=ch;continue;}
+    if(ch==='[')square++;
+    else if(ch===']')square=Math.max(0,square-1);
+    else if(ch==='{')curly++;
+    else if(ch==='}')curly=Math.max(0,curly-1);
+    else if(ch==='(')paren++;
+    else if(ch===')')paren=Math.max(0,paren-1);
+    else if(ch===','&&!square&&!curly&&!paren){out.push(raw.slice(start,i).trim());start=i+1;}
+  }
+  out.push(raw.slice(start,-1).trim());
   return out;
 }
-function parseGoogleAlbumInit(html){
-  const all=parseGoogleAlbumInits(html);
-  return all.sort((a,b)=>JSON.stringify(b||{}).length-JSON.stringify(a||{}).length)[0]||null;
+
+function googleTokenFromDataArray(raw){
+  const parts=googleTopLevelArrayItems(raw);
+  if(parts.length<3)return null;
+  const m=/^["']([A-Za-z0-9_-]{1,4096})["']$/.exec(parts[2]||'');
+  return m?m[1]:null;
+}
+
+function extractGoogleInitialPageToken(html){
+  const text=String(html||'');
+  const callbackRx=/AF_initDataCallback\(/g;
+  for(const callback of text.matchAll(callbackRx)){
+    const callbackStart=(callback.index||0)+callback[0].length;
+    const callbackEnd=text.indexOf(');</script>',callbackStart);
+    const end=callbackEnd>=0?callbackEnd:Math.min(text.length,callbackStart+8*1024*1024);
+    const chunk=text.slice(callbackStart,end);
+    const dataMatch=/\bdata\s*:\s*/.exec(chunk);
+    if(!dataMatch)continue;
+    let pos=dataMatch.index+dataMatch[0].length;
+    const tail=chunk.slice(pos);
+    if(/^function\s*\(/.test(tail)){
+      const returnMatch=/\breturn\s*/.exec(tail.slice(0,512));
+      if(!returnMatch)continue;
+      pos+=returnMatch.index+returnMatch[0].length;
+    }
+    while(/\s/.test(chunk[pos]||''))pos++;
+    if(chunk[pos]!=='['){
+      const nextArray=chunk.indexOf('[',pos);
+      if(nextArray<0||nextArray-pos>256)continue;
+      pos=nextArray;
+    }
+    const dataArray=googleBalancedArrayAt(chunk,pos);
+    if(!dataArray||!dataArray.includes('googleusercontent.com'))continue;
+    const token=googleTokenFromDataArray(dataArray);
+    if(token)return token;
+  }
+  return null;
 }
 
 function extractGooglePageRequest(html){
   const m=/snAcKc[^}]*?request:\s*\[\s*"([A-Za-z0-9_-]+)"\s*,\s*null\s*,\s*null\s*,\s*"([A-Za-z0-9_-]+)"/s.exec(String(html||''));
   return m?{albumKey:m[1],authKey:m[2]}:null;
-}
-
-function googleNextPageToken(dataObj){
-  const data=dataObj&&Array.isArray(dataObj.data)?dataObj.data:null;
-  return data&&typeof data[2]==='string'&&data[2]?data[2]:null;
 }
 
 function extractGooglePhotoUrlsFromData(dataObj){
@@ -3905,7 +3970,6 @@ async function fetchGoogleAlbumPage(request,pageToken){
 }
 
 async function extractAllGooglePhotoUrls(html){
-  const inits=parseGoogleAlbumInits(html);
   const merged=[];
   const seen=new Set();
   const add=(items)=>{
@@ -3916,14 +3980,13 @@ async function extractAllGooglePhotoUrls(html){
     }
     return true;
   };
-  for(const init of inits){if(!add(extractGooglePhotoUrlsFromData(init)))break;}
-  if(!merged.length)add(extractGooglePhotoUrls(html));
+  add(extractGooglePhotoUrls(html));
   if(merged.length>=GOOGLE_PHOTOS_MAX_ITEMS)return {urls:merged,paginated:false,limitReached:true,pages:1};
 
-  let token=null;
-  for(const init of inits){token=googleNextPageToken(init);if(token)break;}
-  const request=token?extractGooglePageRequest(html):null;
-  if(!token||!request)return {urls:merged,paginated:false,limitReached:false,pages:1};
+  let token=extractGoogleInitialPageToken(html);
+  if(!token)return {urls:merged,paginated:false,limitReached:false,pages:1};
+  const request=extractGooglePageRequest(html);
+  if(!request)throw new Error('Google Photos provided another page, but LibreDisplay could not read the pagination request. Reload the album or update LibreDisplay.');
 
   let pages=1;
   const seenTokens=new Set();
@@ -4156,7 +4219,7 @@ async function loadPhotos(albumUrl){
 
     prepareBackgroundOrder(bgSourceImages,false);
     console.info('Google Photos background: '+bgSourceImages.length+' candidate images found'+(album.paginated?' across '+album.pages+' pages':''));
-    const albumNote=album.limitReached?` · ${GOOGLE_PHOTOS_MAX_ITEMS}-photo limit reached`:(album.paginated?' · large album fully paginated':'');
+    const albumNote=album.limitReached?` · ${GOOGLE_PHOTOS_MAX_ITEMS}-photo limit reached`:(album.paginated?` · ${album.pages} Google pages loaded`:'');
     setBackgroundStatus(`${bgSourceImages.length} photos found${albumNote} · ${cfg.photoOrder==='shuffle'?'shuffle cycle':cfg.photoOrder==='random'?'random no-repeat':'album order'} · ${cfg.photoIntervalSec?formatBackgroundInterval(cfg.photoIntervalSec):'rotation off'}`);
     showBg(bgIdx);
     scheduleBackgroundRotation();

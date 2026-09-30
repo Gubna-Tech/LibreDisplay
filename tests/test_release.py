@@ -179,6 +179,13 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("layoutContentScale", html)
         self.assertIn("_contentScale", html)
 
+    def test_v122_google_photos_pagination_is_csp_safe(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        self.assertIn("function extractGoogleInitialPageToken", html)
+        self.assertIn("let token=extractGoogleInitialPageToken(html)", html)
+        self.assertIn("Google Photos provided another page", html)
+        self.assertNotIn("Function('\"use strict\";return (", html)
+
     def test_v121_layout_editor_customization_controls(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
         self.assertIn('id="settings-settings-button"', html)
