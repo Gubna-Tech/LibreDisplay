@@ -68,6 +68,15 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('release_root = release_dir', cli)
         self.assertIn('safe_extract', cli)
 
+    def test_v111_update_handles_chromium_runtime_links_before_legacy_backup(self):
+        update = (ROOT / "update.sh").read_text(encoding="utf-8")
+        backup = (ROOT / "scripts" / "server-backup.py").read_text(encoding="utf-8")
+        self.assertIn('pkill -f -- "--user-data-dir=$DATA_DIR/chromium"', update)
+        self.assertIn('for name in SingletonCookie SingletonLock SingletonSocket', update)
+        self.assertLess(update.index("Stopping LibreDisplay and Chromium"), update.index("Creating a safety backup"))
+        self.assertIn('CHROMIUM_RUNTIME_LINKS = {"SingletonCookie", "SingletonLock", "SingletonSocket"}', backup)
+        self.assertIn('skip_symlink_rel=chromium_runtime_links', backup)
+
     def test_native_install_does_not_require_optional_dotfiles(self):
         install = (ROOT / "install.sh").read_text(encoding="utf-8")
         update = (ROOT / "update.sh").read_text(encoding="utf-8")
@@ -82,6 +91,24 @@ class ReleaseContractTests(unittest.TestCase):
     def test_docker_image_carries_release_version(self):
         dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
         self.assertIn("COPY --chown=libredisplay:libredisplay VERSION /VERSION", dockerfile)
+
+
+    def test_v120_docker_update_path_preserves_state_and_health_checks(self):
+        docker_setup = (ROOT / "scripts" / "docker-setup.sh").read_text(encoding="utf-8")
+        docker_release = (ROOT / "scripts" / "docker-release.py").read_text(encoding="utf-8")
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        env_example = (ROOT / ".env.example").read_text(encoding="utf-8")
+        self.assertIn("./scripts/docker-setup.sh update", docker_setup)
+        self.assertIn("Stopping LibreDisplay before the safety backup", docker_setup)
+        self.assertLess(docker_setup.index("Stopping LibreDisplay before the safety backup"), docker_setup.index("Creating a safety backup before Docker source files change"))
+        self.assertIn("wait_for_healthy", docker_setup)
+        self.assertIn("rollback --workspace /workspace", docker_setup)
+        for key in ("DASHBOARD_UID", "DASHBOARD_GID", "DASHBOARD_REMOTE_ENABLED", "DASHBOARD_REMOTE_NETWORKS", "DASHBOARD_ALLOWED_HOSTS", "DASHBOARD_CACHE_MAX_BYTES"):
+            self.assertIn(f': "${{{key}:=', docker_setup)
+        self.assertIn("DASHBOARD_CACHE_MAX_BYTES=536870912", env_example)
+        self.assertIn('MANAGED_DIRS = ("app", "scripts", "tests", ".github")', docker_release)
+        self.assertIn('Docker state in data/, media/, .env, backups/, and custom plugin', docker_release)
+        self.assertIn("./scripts/docker-setup.sh update", html)
 
     def test_settings_exposes_calm_update_status(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")

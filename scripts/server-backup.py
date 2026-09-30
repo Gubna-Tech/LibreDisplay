@@ -24,6 +24,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_HOST_SECRET_DIR = Path("/etc/libredisplay")
 FSTAB_PATH = Path("/etc/fstab")
 SKIP_DATA_DIRS = {"dashboard_cache", "broker"}
+CHROMIUM_RUNTIME_LINKS = {"SingletonCookie", "SingletonLock", "SingletonSocket"}
 MAX_FILES = 200_000
 CHUNK = 1024 * 1024
 
@@ -54,11 +55,12 @@ def safe_rel(value: str) -> PurePosixPath:
     return p
 
 
-def iter_regular_files(root: Path, prefix: str, *, skip_top=None):
+def iter_regular_files(root: Path, prefix: str, *, skip_top=None, skip_symlink_rel=None):
     if not root.exists():
         return
     if root.is_symlink() or not root.is_dir():
         raise RuntimeError(f"Backup source must be a real directory: {root}")
+    skip_symlink_rel = {str(value) for value in (skip_symlink_rel or ())}
     count = 0
     for current, dirs, files in os.walk(root, followlinks=False):
         cur = Path(current)
@@ -71,6 +73,9 @@ def iter_regular_files(root: Path, prefix: str, *, skip_top=None):
                 continue
             path = cur / name
             if path.is_symlink():
+                rel_path = path.relative_to(root).as_posix()
+                if rel_path in skip_symlink_rel:
+                    continue
                 raise RuntimeError(f"Refusing to back up symlink: {path}")
             mode = path.stat().st_mode
             if not stat.S_ISREG(mode):
@@ -125,7 +130,8 @@ def backup(args) -> int:
     media_dir = PROJECT_ROOT / "media"
     plugins_dir = PROJECT_ROOT / "plugins"
     if data_dir.exists():
-        sources.extend(iter_regular_files(data_dir, "payload/data", skip_top=SKIP_DATA_DIRS))
+        chromium_runtime_links = {f"chromium/{name}" for name in CHROMIUM_RUNTIME_LINKS}
+        sources.extend(iter_regular_files(data_dir, "payload/data", skip_top=SKIP_DATA_DIRS, skip_symlink_rel=chromium_runtime_links))
     if media_dir.exists():
         sources.extend(iter_regular_files(media_dir, "payload/media"))
     if plugins_dir.exists():

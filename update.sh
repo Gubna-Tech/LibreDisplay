@@ -38,12 +38,22 @@ printf '===================\n'
 printf 'Current version: %s\n' "$OLD_VERSION"
 printf 'New version:     %s\n' "$NEW_VERSION"
 
+printf 'Stopping LibreDisplay and Chromium...\n'
+pkill -f "$INSTALL_DIR/scripts/start.sh" 2>/dev/null || true
+pkill -f "$INSTALL_DIR/app/dashboard_server.py" 2>/dev/null || true
+pkill -f -- "--user-data-dir=$DATA_DIR/chromium" 2>/dev/null || true
+sleep 1
+
+# Chromium creates transient Singleton* symlinks while its profile is active.
+# Older LibreDisplay backup code rejected those links, so remove only those
+# known runtime links before invoking the installed backup during an upgrade.
+for name in SingletonCookie SingletonLock SingletonSocket; do
+  path="$DATA_DIR/chromium/$name"
+  [ -L "$path" ] && rm -f -- "$path"
+done
+
 printf 'Creating a safety backup...\n'
 "$INSTALL_DIR/scripts/backup.sh"
-
-printf 'Stopping LibreDisplay...\n'
-pkill -f "$INSTALL_DIR/app/dashboard_server.py" 2>/dev/null || true
-sleep 1
 
 printf 'Updating application files...\n'
 rm -rf "$INSTALL_DIR/app" "$INSTALL_DIR/scripts"

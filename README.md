@@ -32,7 +32,7 @@ rm -rf ~/LibreDisplay-Setup && mkdir -p ~/LibreDisplay-Setup
 **4. Download the latest LibreDisplay release:**
 
 ```bash
-curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.1.0.zip -o /tmp/LibreDisplay.zip
+curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.2.0.zip -o /tmp/LibreDisplay.zip
 ```
 
 **5. Extract LibreDisplay:**
@@ -44,7 +44,7 @@ unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup
 **6. Open the LibreDisplay setup folder:**
 
 ```bash
-cd ~/LibreDisplay-Setup/LibreDisplay-1.1.0
+cd ~/LibreDisplay-Setup/LibreDisplay-1.2.0
 ```
 
 **7. Allow the installer to run:**
@@ -124,6 +124,26 @@ chmod +x scripts/docker-setup.sh
 
 Then open the address shown by the script on a trusted device on your home network.
 
+### Updating a Docker installation
+
+From the existing LibreDisplay Docker folder, run:
+
+```bash
+./scripts/docker-setup.sh update
+```
+
+The Docker updater checks the latest GitHub release, stops LibreDisplay before taking a safety backup, preserves `data`, `media`, `.env`, and custom plugin folders, replaces only release-managed source files, rebuilds the container, and waits for its health check. If the new deployment cannot start cleanly, the previous source is restored automatically. Safety backups are kept under `./backups`.
+
+Docker self-update starts with v1.2.0. Docker installations older than v1.2.0 need one manual move to the v1.2.0 release files before this command is available; updates after that use the command above.
+
+To make a Docker backup without updating, run:
+
+```bash
+./scripts/docker-setup.sh backup
+```
+
+Rerunning `./scripts/docker-setup.sh start` keeps existing Docker UID/GID and advanced `.env` values instead of resetting them.
+
 ### Add a screen-only Raspberry Pi to a Docker server
 
 **1. On the LibreDisplay server, show the available Display Links:**
@@ -139,7 +159,7 @@ On the viewer Raspberry Pi, run the next commands **one at a time, in order**.
 **2. Download the viewer setup helper:**
 
 ```bash
-curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.1.0/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
+curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.2.0/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
 ```
 
 **3. Allow the viewer installer to run:**
@@ -253,15 +273,21 @@ Some providers require your own API key or OAuth credentials. LibreDisplay store
 <details>
 <summary><strong>Backup and restore</strong></summary>
 
-Create a full LibreDisplay backup:
+For a native Raspberry Pi installation, create a full LibreDisplay backup with:
 
 ```bash
 ~/libredisplay/scripts/backup.sh
 ```
 
-Backups are stored under `~/libredisplay-backups/` by default.
+Native backups are stored under `~/libredisplay-backups/` by default. For a Docker installation, use:
 
-Restore one with:
+```bash
+./scripts/docker-setup.sh backup
+```
+
+Docker backups are stored under `./backups` in the LibreDisplay Docker folder.
+
+For a native Raspberry Pi installation, restore one with:
 
 ```bash
 ~/libredisplay/scripts/restore.sh ~/libredisplay-backups/YOUR-BACKUP.ldbackup

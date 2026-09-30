@@ -53,6 +53,27 @@ class BackupTests(unittest.TestCase):
         with zipfile.ZipFile(archive) as zf:
             self.assertFalse(any("dashboard_cache" in name for name in zf.namelist()))
 
+    def test_chromium_runtime_symlinks_do_not_block_backup(self):
+        chromium = self.root / "data" / "chromium"
+        chromium.mkdir()
+        (chromium / "Default").mkdir()
+        (chromium / "Default" / "Preferences").write_text('{"ok":true}\n', encoding="utf-8")
+        for name in ("SingletonCookie", "SingletonLock", "SingletonSocket"):
+            (chromium / name).symlink_to(f"/tmp/libredisplay-{name}")
+        archive = Path(self.tmp.name) / "server.ldbackup"
+        backup_mod.backup(SimpleNamespace(archive=str(archive), include_host=False, host_secrets_dir="/does-not-exist"))
+        with zipfile.ZipFile(archive) as zf:
+            names = set(zf.namelist())
+            self.assertIn("payload/data/chromium/Default/Preferences", names)
+            for name in ("SingletonCookie", "SingletonLock", "SingletonSocket"):
+                self.assertNotIn(f"payload/data/chromium/{name}", names)
+
+    def test_unexpected_data_symlink_is_still_rejected(self):
+        (self.root / "data" / "unexpected-link").symlink_to("/tmp/not-allowed")
+        archive = Path(self.tmp.name) / "server.ldbackup"
+        with self.assertRaisesRegex(RuntimeError, "Refusing to back up symlink"):
+            backup_mod.backup(SimpleNamespace(archive=str(archive), include_host=False, host_secrets_dir="/does-not-exist"))
+
     def test_path_traversal_is_rejected(self):
         archive = Path(self.tmp.name) / "evil.ldbackup"
         payload = b"nope"
