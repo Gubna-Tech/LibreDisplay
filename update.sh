@@ -57,15 +57,21 @@ for src in "$SRC_DIR/plugins"/*; do
   cp -a "$src" "$INSTALL_DIR/plugins/$name"
 done
 
-for file in .env.example .gitignore Dockerfile LICENSE README.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
+for file in Dockerfile LICENSE README.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
   cp "$SRC_DIR/$file" "$INSTALL_DIR/$file"
+done
+for file in .env.example .gitignore; do
+  [ -f "$SRC_DIR/$file" ] && cp "$SRC_DIR/$file" "$INSTALL_DIR/$file"
 done
 
 printf '%s\n' "$NEW_VERSION" > "$DATA_DIR/.installed"
 chmod 600 "$DATA_DIR/.installed"
 chmod 755 "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh" "$INSTALL_DIR/uninstall.sh" "$INSTALL_DIR/scripts/"*.sh "$INSTALL_DIR/scripts/libredisplay" "$INSTALL_DIR/app/dashboard_server.py"
 sudo install -m 755 "$INSTALL_DIR/scripts/libredisplay" /usr/local/bin/libredisplay
-chmod 644 "$INSTALL_DIR/README.md" "$INSTALL_DIR/LICENSE" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.yml" "$INSTALL_DIR/.env.example" "$INSTALL_DIR/.gitignore"
+chmod 644 "$INSTALL_DIR/README.md" "$INSTALL_DIR/LICENSE" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.yml"
+for file in .env.example .gitignore; do
+  [ -f "$INSTALL_DIR/$file" ] && chmod 644 "$INSTALL_DIR/$file"
+done
 
 printf '\nLibreDisplay has been updated to %s.\n' "$NEW_VERSION"
 printf 'Your existing settings, display endpoints, media, and custom plugin folders were kept.\n'

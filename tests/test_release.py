@@ -68,6 +68,17 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('release_root = release_dir', cli)
         self.assertIn('safe_extract', cli)
 
+    def test_native_install_does_not_require_optional_dotfiles(self):
+        install = (ROOT / "install.sh").read_text(encoding="utf-8")
+        update = (ROOT / "update.sh").read_text(encoding="utf-8")
+        for source in (install, update):
+            self.assertIn('[ -f "$SRC_DIR/$file" ] && cp "$SRC_DIR/$file" "$INSTALL_DIR/$file"', source)
+            self.assertNotIn('for file in .env.example .gitignore Dockerfile', source)
+        self.assertNotIn('"$INSTALL_DIR/.env.example" "$INSTALL_DIR/.gitignore"', install)
+        self.assertNotIn('"$INSTALL_DIR/.env.example" "$INSTALL_DIR/.gitignore"', update)
+        self.assertIn('is_incomplete_first_install', install)
+        self.assertIn("Removing an incomplete previous LibreDisplay installation", install)
+
     def test_docker_image_carries_release_version(self):
         dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
         self.assertIn("COPY --chown=libredisplay:libredisplay VERSION /VERSION", dockerfile)

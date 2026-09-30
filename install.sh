@@ -40,6 +40,20 @@ is_installed_dir() {
   [ -f "$dir/data/.installed" ] || [ -f "$dir/data/dashboard_config.json" ] || [ -f "$dir/dashboard_config.json" ] || [ -f "$dir/dashboard.html" ] || [ -f "$dir/app/dashboard.html" ]
 }
 
+is_incomplete_first_install() {
+  dir=$1
+  [ -d "$dir" ] || return 1
+  [ ! -e "$dir/data" ] || return 1
+  [ -f "$dir/app/dashboard.html" ] || return 1
+  [ -d "$dir/scripts" ] || return 1
+  [ -d "$dir/plugins" ] || return 1
+}
+
+if [ "$SRC_DIR" != "$INSTALL_DIR" ] && is_incomplete_first_install "$INSTALL_DIR"; then
+  printf 'Removing an incomplete previous LibreDisplay installation...\n'
+  rm -rf "$INSTALL_DIR"
+fi
+
 if [ "$SRC_DIR" != "$INSTALL_DIR" ] && is_installed_dir "$INSTALL_DIR"; then
   printf '\nLibreDisplay is already installed at %s.\n' "$INSTALL_DIR" >&2
   printf 'Use `libredisplay update` to install the newest release, or uninstall LibreDisplay first for a fresh installation.\n' >&2
@@ -75,8 +89,11 @@ if [ "$SRC_DIR" != "$INSTALL_DIR" ]; then
   fi
   mkdir -p "$INSTALL_DIR"
   cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/plugins" "$INSTALL_DIR/"
-  for file in .env.example .gitignore Dockerfile LICENSE README.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
+  for file in Dockerfile LICENSE README.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
     cp "$SRC_DIR/$file" "$INSTALL_DIR/$file"
+  done
+  for file in .env.example .gitignore; do
+    [ -f "$SRC_DIR/$file" ] && cp "$SRC_DIR/$file" "$INSTALL_DIR/$file"
   done
 fi
 
@@ -124,7 +141,10 @@ chmod 755 "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh" "$INSTALL_DIR/unins
 
 sudo install -m 755 "$INSTALL_DIR/scripts/libredisplay" /usr/local/bin/libredisplay
 find "$INSTALL_DIR" -type f -name '*.md' -exec chmod 644 {} \;
-chmod 644 "$INSTALL_DIR/app/dashboard.html" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.yml" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/LICENSE" "$INSTALL_DIR/.env.example" "$INSTALL_DIR/.gitignore"
+chmod 644 "$INSTALL_DIR/app/dashboard.html" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.yml" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/LICENSE"
+for file in .env.example .gitignore; do
+  [ -f "$INSTALL_DIR/$file" ] && chmod 644 "$INSTALL_DIR/$file"
+done
 
 sudo raspi-config nonint do_boot_behaviour B4
 sudo raspi-config nonint do_blanking 1
