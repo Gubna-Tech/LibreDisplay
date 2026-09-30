@@ -1,7 +1,5 @@
 # LibreDisplay
 
-**by Gubna**
-
 **Your home. Your dashboard. Your data.**  
 A free, open-source home dashboard for Raspberry Pi, Docker, NAS, mini PCs, and browsers.
 
