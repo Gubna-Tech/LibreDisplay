@@ -139,6 +139,19 @@ class ReleaseContractTests(unittest.TestCase):
         for marker in ("cfg._schemaVersion=2", "function applyAccessibilityPreferences", "Intl.DateTimeFormat", "function undoLayoutEditor", "function redoLayoutEditor"):
             self.assertIn(marker, html)
 
+    def test_v110_calendar_background_and_element_size_fixes(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        self.assertIn("fetchCal(c,i,{preferFormUrl:true})", html)
+        self.assertIn("function testSingleCalendarSource", html)
+        self.assertIn("const GOOGLE_PHOTOS_MAX_ITEMS=1000", html)
+        self.assertNotIn("pages<20", html)
+        self.assertIn('id="settings-backgrounds"', html)
+        self.assertNotIn('id="settings-calendar-options"', html)
+        self.assertNotIn('id="settings-background-options"', html)
+        self.assertIn('id="layout-toolbar-scale"', html)
+        self.assertIn("layoutContentScale", html)
+        self.assertIn("_contentScale", html)
+
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
         for marker in ("bc-chart-area", "bc-chart-points", "bc-chart-grid", "function analyzeImportedSettings", "product:'LibreDisplay',format:2"):

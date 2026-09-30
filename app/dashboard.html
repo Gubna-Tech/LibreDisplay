@@ -705,6 +705,7 @@ body.layout-editing #calendar-legend {
 #layout-toolbar .layout-save { background:#fff;color:#000;font-weight:700; }
 #layout-toolbar .layout-cancel { color:rgba(255,255,255,.78); }
 #layout-toolbar .layout-toolbar-label { font-size:11px;color:rgba(255,255,255,.66);white-space:nowrap; }
+.layout-content-size-control{display:flex;align-items:center;gap:6px}.layout-content-size-control input[type=range]{width:92px;accent-color:#fff}.layout-content-size-control span{min-width:38px;font-size:11px;color:rgba(255,255,255,.78);text-align:right}.layout-content-size-control.disabled{opacity:.38;pointer-events:none}
 #layout-selected-info {
   min-width:118px;
   max-width:220px;
@@ -739,6 +740,8 @@ body.layout-editing #alert-zone:not(.show) + .layout-edit-placeholder { display:
   border-radius:14px; background:rgba(8,10,16,.48);
   border:1px solid rgba(255,255,255,.12); backdrop-filter:blur(7px);
   padding:14px 16px;
+  transform:scale(var(--ld-block-scale,1));transform-origin:0 0;
+  width:calc(100% * var(--ld-block-scale-inverse,1));height:calc(100% * var(--ld-block-scale-inverse,1));
 }
 .custom-block.no-card .custom-block-card { background:transparent; border-color:transparent; backdrop-filter:none; padding:0; }
 .custom-block-title { font-size:11px; font-weight:700; letter-spacing:1.1px; text-transform:uppercase; color:rgba(255,255,255,.58); margin-bottom:8px; }
@@ -943,6 +946,10 @@ body.layout-editing .custom-block { pointer-events:none !important; user-select:
 }
 .range-ends { display:flex; justify-content:space-between; margin-top:4px; font-size:10px; color:rgba(255,255,255,.32); }
 .range-value { float:right; color:rgba(255,255,255,.82); font-variant-numeric:tabular-nums; }
+.settings-inline-group{margin-top:16px;padding-top:14px;border-top:1px solid var(--ld-border)}
+.settings-inline-group:first-of-type{margin-top:12px}.settings-inline-group .s-subhead{margin-top:0}
+.settings-inline-help{font-size:11px;line-height:1.45;color:var(--ld-subtle);margin:4px 0 10px}
+
 .s-subhead {
   margin:15px 0 9px;
   padding-top:12px;
@@ -1458,7 +1465,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.0.0</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.1.0</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -1557,16 +1564,30 @@ html:not(.cursor-active) * {
   </div>
 
   <div class="s-section" id="settings-calendars" data-settings-tab="content">
-   <h3>Calendar sources</h3>
+   <h3>Calendars</h3>
    <div class="howto">Add as many calendars as you need. LibreDisplay accepts standard iCalendar/ICS subscription links from Google Calendar, Proton Calendar, Outlook/Microsoft 365, iCloud shared calendars, Nextcloud, Fastmail, and other providers that expose an ICS feed. You can also import a local <code>.ics</code> file.</div>
    <div class="calendar-slot-tools">
     <button class="btn-util" type="button" onclick="addCalendarSource()">+ Add calendar</button>
     <button class="btn-util" type="button" onclick="document.getElementById('calendar-file-input').click()">Import .ics file</button>
+    <button class="btn-util" type="button" onclick="testCalendarInputs()">Check all feeds</button>
     <input id="calendar-file-input" type="file" accept=".ics,text/calendar" multiple hidden onchange="importCalendarFile(this)">
-    <span class="settings-note" style="align-self:center;margin:0;">Add only the feeds you use. Each can be renamed, colored, reordered, disabled, duplicated, or removed.</span>
+    <span class="settings-note" style="align-self:center;margin:0;">Add only the feeds you use. Each can be renamed, checked, colored, reordered, disabled, duplicated, or removed.</span>
    </div>
    <div id="calendar-source-list"></div>
    <div id="cal-status" class="howto" style="display:none;margin-top:10px;"></div>
+   <div class="settings-inline-group">
+    <div class="s-subhead">Calendar preferences</div>
+    <div class="settings-grid">
+     <div class="s-row"><label>Calendar refresh</label><select id="s-calendar-refresh"><option value="5">Every 5 minutes</option><option value="15">Every 15 minutes</option><option value="30">Every 30 minutes</option><option value="60">Every 60 minutes</option></select></div>
+     <div class="s-row"><label>Event time display</label><select id="s-calendar-time-style" onchange="previewAppearance()"><option value="start">Start time</option><option value="range">Start – end</option><option value="none">Hide times</option></select></div>
+    </div>
+    <div class="settings-grid" style="margin-top:4px;">
+     <label class="checkline"><input id="s-calendar-legend" type="checkbox" onchange="previewAppearance()"> Show calendar legend below the calendar band</label>
+     <label class="checkline"><input id="s-calendar-show-continuation" type="checkbox" onchange="previewAppearance()" checked> Mark multi-day carry-over as “Continues”</label>
+    </div>
+    <div class="settings-inline-help">Opacity affects events from that feed only. Display priority is used for the legend and as a tie-breaker when events start at the same time.</div>
+    <div id="calendar-order-list" class="calendar-order-list"></div>
+   </div>
   </div>
 
   <div class="s-section" id="settings-alerts" data-settings-tab="content">
@@ -1597,9 +1618,9 @@ html:not(.cursor-active) * {
    </div>
   </div>
 
-  <div class="s-section" id="settings-background-source" data-settings-tab="content">
-   <h3>Background source</h3>
-   <div class="howto">Use Google Photos, built-in stock categories, local folders, mounted NAS/network folders, or no photo background. Folder sources can combine multiple locations into one rotation.</div>
+  <div class="s-section" id="settings-backgrounds" data-settings-tab="content">
+   <h3>Pictures &amp; backgrounds</h3>
+   <div class="howto">Choose the picture source and tune its rotation in one place. Use Google Photos, built-in stock categories, local folders, mounted NAS/network folders, or no photo background.</div>
    <div class="settings-grid">
     <div class="s-row"><label>Source</label><select id="s-bg-source" onchange="updateBackgroundSourceUI()"><option value="google">Google Photos shared album</option><option value="folders">Local / NAS folders</option><option value="stock">Stock photo categories</option><option value="none">No photo background</option></select></div>
     <div class="s-row stock-bg-only"><label>Stock category</label><select id="s-stock-category" onchange="updateBackgroundSourceUI()"><option value="nature">Nature</option><option value="space">Space</option><option value="animals">Animals</option><option value="architecture">Architecture</option><option value="abstract">Abstract</option><option value="ocean">Ocean</option><option value="mountains">Mountains</option><option value="forest">Forest</option><option value="city">City</option><option value="beach">Beach</option><option value="minimal">Minimal</option><option value="technology">Technology</option><option value="wallpaper">Wallpaper</option><option value="custom">Custom search…</option></select></div>
@@ -1611,7 +1632,20 @@ html:not(.cursor-active) * {
     <button class="btn-util" type="button" onclick="nextBackgroundNow()">Next stock photo</button>
    </div>
    <div class="settings-note stock-bg-only">Stock backgrounds use the external SourceSplash image service and require internet access. The service may source images from multiple licensed providers.</div>
-   <div class="folders-bg-only" style="margin-top:8px;">
+
+   <div class="google-bg-only settings-inline-group">
+    <div class="s-subhead">Google Photos shared album</div>
+    <div class="settings-inline-help">Google Photos → open album → Share icon → “Create link” → copy URL. LibreDisplay paginates large shared albums and loads up to 1,000 photos per album.</div>
+    <div class="s-row"><label>Album URL</label><input id="s-photos" type="url" placeholder="https://photos.app.goo.gl/…"></div>
+    <div class="utility-actions">
+     <button class="btn-util" type="button" onclick="reloadBackgroundNow()">Reload album</button>
+     <button class="btn-util" type="button" onclick="nextBackgroundNow()">Next photo now</button>
+     <button class="btn-util" type="button" onclick="reshuffleBackgroundNow()">Reshuffle now</button>
+    </div>
+   </div>
+
+   <div class="folders-bg-only settings-inline-group">
+    <div class="s-subhead">Local / NAS picture folders</div>
     <div class="s-row"><label>Picture folders — one path per line</label><textarea id="s-media-folders" class="media-paths" placeholder="/home/pi/Pictures/Family
 /mnt/libredisplay/NAS-Photos"></textarea></div>
     <label class="checkline"><input id="s-media-recursive" type="checkbox" checked> Include subfolders</label>
@@ -1625,18 +1659,21 @@ html:not(.cursor-active) * {
     </div>
     <div class="settings-note" style="margin-top:7px;">NAS folders use normal Linux mount points. The included <b>scripts/setup-nas.sh</b> helper mounts SMB/CIFS or NFS shares read-only under <code>/mnt/libredisplay</code>. For another local folder outside the approved picture roots, run <b>scripts/setup-media.sh</b> locally on the Pi, then reboot.</div>
    </div>
-   <div id="background-status" class="howto" style="display:none;margin-top:10px;"></div>
-  </div>
 
-  <div class="s-section google-bg-only" id="settings-background-google" data-settings-tab="content">
-   <h3>Google Photos shared album</h3>
-   <div class="howto">Google Photos → open album → Share icon → "Create link" → copy URL. Large shared albums are paginated up to 1000 photos.</div>
-   <div class="s-row"><label>Album URL</label><input id="s-photos" type="url" placeholder="https://photos.app.goo.gl/…"></div>
-   <div class="utility-actions">
-    <button class="btn-util" type="button" onclick="reloadBackgroundNow()">Reload album</button>
-    <button class="btn-util" type="button" onclick="nextBackgroundNow()">Next photo now</button>
-    <button class="btn-util" type="button" onclick="reshuffleBackgroundNow()">Reshuffle now</button>
+   <div class="settings-inline-group rotating-bg-only">
+    <div class="s-subhead">Rotation &amp; order</div>
+    <div class="settings-inline-help">Choose how quickly pictures change and how LibreDisplay moves through the full source.</div>
+    <div class="settings-grid">
+     <div class="s-row"><label>Change background every</label><select id="s-photo-interval">
+      <option value="0">Don’t rotate</option><option value="5">Every 5 seconds</option><option value="10">Every 10 seconds</option><option value="15">Every 15 seconds</option><option value="20">Every 20 seconds</option><option value="30">Every 30 seconds</option><option value="45">Every 45 seconds</option><option value="60">Every 1 minute</option><option value="120">Every 2 minutes</option><option value="300">Every 5 minutes</option><option value="600">Every 10 minutes</option><option value="900">Every 15 minutes</option><option value="1800">Every 30 minutes</option><option value="3600">Every 60 minutes</option>
+     </select></div>
+     <div class="s-row"><label>Photo order</label><select id="s-photo-order"><option value="sequential">Sequential — source order</option><option value="shuffle">Shuffle cycle — every photo once</option><option value="random">Random — avoid immediate repeats</option></select></div>
+     <label class="checkline"><input id="s-photo-random-start" type="checkbox"> Random starting photo</label>
+     <label class="checkline"><input id="s-photo-preload" type="checkbox" checked> Preload the next photo</label>
+    </div>
+    <div class="settings-note">Shuffle cycle shows every available image once before reshuffling. Random chooses a new image each change and avoids showing the same image twice in a row.</div>
    </div>
+   <div id="background-status" class="howto" style="display:none;margin-top:10px;"></div>
   </div>
 
   <div class="s-section" id="settings-weather-options" data-settings-tab="content">
@@ -1658,52 +1695,6 @@ html:not(.cursor-active) * {
     <button class="btn-util" type="button" onclick="resetWeatherDetails()">Reset details</button>
    </div>
   </div>
-
-  <div class="s-section" id="settings-calendar-options" data-settings-tab="content">
-   <h3>Calendar preferences</h3>
-   <div class="settings-grid">
-    <div class="s-row"><label>Calendar refresh</label><select id="s-calendar-refresh"><option value="5">Every 5 minutes</option><option value="15">Every 15 minutes</option><option value="30">Every 30 minutes</option><option value="60">Every 60 minutes</option></select></div>
-    <div class="s-row"><label>Event time display</label><select id="s-calendar-time-style" onchange="previewAppearance()"><option value="start">Start time</option><option value="range">Start – end</option><option value="none">Hide times</option></select></div>
-   </div>
-   <div class="settings-grid" style="margin-top:4px;">
-    <label class="checkline"><input id="s-calendar-legend" type="checkbox" onchange="previewAppearance()"> Show calendar legend below the calendar band</label>
-    <label class="checkline"><input id="s-calendar-show-continuation" type="checkbox" onchange="previewAppearance()" checked> Mark multi-day carry-over as “Continues”</label>
-   </div>
-   <div class="howto" style="margin-top:9px;">Opacity affects events from that feed only. Display priority is used for the legend and as a tie-breaker when events start at the same time.</div>
-   <div id="calendar-order-list" class="calendar-order-list"></div>
-  </div>
-
-  <div class="s-section" id="settings-background-options" data-settings-tab="content">
-   <h3>Background rotation &amp; order</h3>
-   <div class="howto">Fine-grained rotation can be useful for faster photo changes. Very short intervals mean more image requests and may use more bandwidth on a Pi.</div>
-   <div class="settings-grid">
-    <div class="s-row"><label>Change background every</label><select id="s-photo-interval">
-     <option value="0">Don’t rotate</option>
-     <option value="5">Every 5 seconds</option>
-     <option value="10">Every 10 seconds</option>
-     <option value="15">Every 15 seconds</option>
-     <option value="20">Every 20 seconds</option>
-     <option value="30">Every 30 seconds</option>
-     <option value="45">Every 45 seconds</option>
-     <option value="60">Every 1 minute</option>
-     <option value="120">Every 2 minutes</option>
-     <option value="300">Every 5 minutes</option>
-     <option value="600">Every 10 minutes</option>
-     <option value="900">Every 15 minutes</option>
-     <option value="1800">Every 30 minutes</option>
-     <option value="3600">Every 60 minutes</option>
-    </select></div>
-    <div class="s-row rotating-bg-only"><label>Photo order</label><select id="s-photo-order">
-     <option value="sequential">Sequential — album order</option>
-     <option value="shuffle">Shuffle cycle — reshuffle every loop</option>
-     <option value="random">Random — avoid immediate repeats</option>
-    </select></div>
-    <label class="checkline rotating-bg-only"><input id="s-photo-random-start" type="checkbox">Random starting photo</label>
-    <label class="checkline rotating-bg-only"><input id="s-photo-preload" type="checkbox" checked>Preload the next photo</label>
-   </div>
-   <div class="settings-note rotating-bg-only">Shuffle cycle shows every available image once before reshuffling. Random chooses a new image each change and avoids showing the same image twice in a row.</div>
-  </div>
-
 
   <div class="s-section" id="settings-background-style" data-settings-level="advanced" data-settings-tab="content">
    <h3>Background appearance</h3>
@@ -1851,7 +1842,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.0.0</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.1.0</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -1962,6 +1953,12 @@ html:not(.cursor-active) * {
  <span class="layout-toolbar-label">Grid</span>
  <select id="layout-toolbar-grid" onchange="setLayoutEditorGrid(this.value)"><option value="8">8</option><option value="12">12</option><option value="16">16</option><option value="20">20</option><option value="24">24</option><option value="32">32</option></select>
  <label class="layout-toolbar-label"><input id="layout-toolbar-snap" type="checkbox" checked onchange="setLayoutEditorSnap(this.checked)"> Snap</label>
+ <span class="layout-toolbar-label">Content</span>
+ <div id="layout-content-size-control" class="layout-content-size-control">
+  <input id="layout-toolbar-scale" type="range" min="50" max="200" step="5" value="100" aria-label="Selected element content size" oninput="setSelectedContentScale(this.value)" onchange="finishSelectedContentScaleEdit()">
+  <span id="layout-toolbar-scale-value">100%</span>
+  <button type="button" onclick="resetSelectedContentScale()" title="Reset selected content size">Reset</button>
+ </div>
  <span id="layout-selected-info">Drag an element · resize from corner</span>
 </div>
 <div id="block-catalog" aria-hidden="true">
@@ -1981,7 +1978,7 @@ html:not(.cursor-active) * {
 <div id="offline-pill">Offline · cached data</div>
 
 <script>
-const DASHBOARD_BUILD = '1.0.0';
+const DASHBOARD_BUILD = '1.1.0';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -2099,6 +2096,7 @@ let cfg = {
   layoutGridPx:20,
   layoutSnap:true,
   layoutBlocks:{},
+  layoutContentScale:{},
   customBlocks:[],
   showEventTimes:true,
   showDailyForecast:true,
@@ -2143,8 +2141,8 @@ let isWizardMode=false, wizardStepIndex=0;
 const WIZARD_STEPS=[
   {key:'welcome',title:'Make LibreDisplay yours',desc:'A short guided setup gets the essentials working. Nothing here locks you in — every choice stays editable later.',sections:[],skippable:false},
   {key:'location',title:'Where is this display?',desc:'Set the city used for weather, severe alerts, sunrise/sunset, and forecast data.',sections:['settings-location','settings-weather-options'],skippable:false},
-  {key:'calendar',title:'Connect your calendars',desc:'Add any compatible ICS calendar feed or import a local .ics file. You can skip this and add feeds later.',sections:['settings-calendars','settings-calendar-options'],skippable:true},
-  {key:'background',title:'Choose your photo source',desc:'Use Google Photos, stock images, local folders, mounted NAS folders, or a clean no-photo background.',sections:['settings-background-source','settings-background-google','settings-background-options'],skippable:true},
+  {key:'calendar',title:'Connect your calendars',desc:'Add any compatible ICS calendar feed or import a local .ics file. You can skip this and add feeds later.',sections:['settings-calendars'],skippable:true},
+  {key:'background',title:'Choose your photo source',desc:'Use Google Photos, stock images, local folders, mounted NAS folders, or a clean no-photo background.',sections:['settings-backgrounds'],skippable:true},
   {key:'alerts',title:'Weather alerts',desc:'Choose whether active severe-weather alerts should take over the center of the display when they matter.',sections:['settings-alerts'],skippable:true},
   {key:'appearance',title:'Pick a look',desc:'Choose a LibreDisplay theme and font. Libre Night is the dark-first default.',sections:['settings-theme'],skippable:true},
   {key:'remote',title:'Edit from another device',desc:'LibreDisplay can be managed from a paired phone or computer on your trusted LAN or private VPN.',sections:['settings-remote'],skippable:true},
@@ -2250,6 +2248,8 @@ function ensureCfgDefaults(){
   cfg.layoutGridPx=[8,12,16,20,24,32].includes(Number(cfg.layoutGridPx))?Number(cfg.layoutGridPx):20;
   if(typeof cfg.layoutSnap!=='boolean')cfg.layoutSnap=true;
   if(!cfg.layoutBlocks||typeof cfg.layoutBlocks!=='object'||Array.isArray(cfg.layoutBlocks))cfg.layoutBlocks={};
+  if(!cfg.layoutContentScale||typeof cfg.layoutContentScale!=='object'||Array.isArray(cfg.layoutContentScale))cfg.layoutContentScale={};
+  for(const key of ['calendar','current','clock','details','daily','hourly','alerts'])cfg.layoutContentScale[key]=Math.min(200,Math.max(50,Number(cfg.layoutContentScale[key])||100));
   const previousWeatherBlock=cfg.layoutBlocks.weather, previousForecastBlock=cfg.layoutBlocks.forecast;
   const rectPart=(r,x,y,w,h)=>({x:Number(r.x||0)+Number(r.w||0)*x,y:Number(r.y||0)+Number(r.h||0)*y,w:Number(r.w||0)*w,h:Number(r.h||0)*h});
   if(previousWeatherBlock&&typeof previousWeatherBlock==='object'){
@@ -2281,6 +2281,7 @@ function ensureCfgDefaults(){
     const x=Math.max(0,Math.min(.96,Number(r.x)||.30)),y=Math.max(0,Math.min(.96,Number(r.y)||.26));
     const w=Math.max(.04,Math.min(1-x,Number(r.w)||.28)),h=Math.max(.04,Math.min(1-y,Number(r.h)||.20));
     const config=(b.config&&typeof b.config==='object'&&!Array.isArray(b.config))?b.config:{};
+    config._contentScale=Math.min(200,Math.max(50,Number(config._contentScale)||100));
     if(type==='json'){
       if(!['value','gauge','progress','sparkline','line','bar','table','raw'].includes(config.visualization))config.visualization=config.raw===true?'raw':'value';
       config.raw=config.visualization==='raw';
@@ -3511,13 +3512,15 @@ function updateCalStatusUI(){
   }).join('<br>');
 }
 
-async function fetchCal(cal,calIdx){
+async function fetchCal(cal,calIdx,{preferFormUrl=false}={}){
   const label=cal?.label||`Calendar ${calIdx+1}`;
   const url=normalizeCalendarUrl(cal?.url||'');
   try{
     if(!cal?.id&&!url)throw new Error('No calendar source configured');
     let text;
-    if(cal?.id){
+    if(preferFormUrl&&url){
+      text=await fetchRemoteText(url,(cfg.calendarRefreshMin||15)*60);
+    }else if(cal?.id){
       const target=serverPath('/api/calendar-source?id='+encodeURIComponent(cal.id));
       const res=await fetch(target,{cache:'no-store'});
       noteCacheResponse('calendar:'+cal.id,res);
@@ -3738,20 +3741,20 @@ function extractGooglePhotoUrls(html){
   return out;
 }
 
-function parseGoogleAlbumInit(html){
+function parseGoogleAlbumInits(html){
   const rx=/AF_initDataCallback\((\{[\s\S]*?\})\);<\/script>/g;
-  let best='';
+  const out=[];
   for(const m of String(html||'').matchAll(rx)){
     const candidate=m[1]||'';
-    if(candidate.includes('data')&&candidate.length>best.length)best=candidate;
+    if(!candidate.includes('data'))continue;
+    try{out.push(Function('"use strict";return ('+candidate+');')());}
+    catch(e){console.warn('Google Photos init-data parse failed',e);}
   }
-  if(!best)return null;
-  try{
-    return Function('"use strict";return ('+best+');')();
-  }catch(e){
-    console.warn('Google Photos init-data parse failed',e);
-    return null;
-  }
+  return out;
+}
+function parseGoogleAlbumInit(html){
+  const all=parseGoogleAlbumInits(html);
+  return all.sort((a,b)=>JSON.stringify(b||{}).length-JSON.stringify(a||{}).length)[0]||null;
 }
 
 function extractGooglePageRequest(html){
@@ -3765,18 +3768,25 @@ function googleNextPageToken(dataObj){
 }
 
 function extractGooglePhotoUrlsFromData(dataObj){
-  const data=dataObj&&Array.isArray(dataObj.data)?dataObj.data:dataObj;
-  const rows=Array.isArray(data)&&Array.isArray(data[1])?data[1]:[];
-  const out=[];
-  const seen=new Set();
-  for(const row of rows){
-    if(!Array.isArray(row)||!Array.isArray(row[1]))continue;
-    const detail=row[1];
-    const raw=typeof detail[0]==='string'?detail[0]:'';
-    const w=Number(detail[1]), h=Number(detail[2]);
-    if(!raw||!Number.isFinite(w)||!Number.isFinite(h)||w<300||h<200)continue;
+  const root=dataObj&&Array.isArray(dataObj.data)?dataObj.data:dataObj;
+  const out=[],seen=new Set();
+  const add=(raw,w=0,h=0)=>{
+    if(typeof raw!=='string'||!/^https:\/\/(?:lh[3-6]\.googleusercontent\.com|lh3\.ggpht\.com)\//i.test(raw))return;
+    if(w&&h&&(w<300||h<200))return;
     const u=googlePhotoSizedUrl(raw);
     if(u&&!seen.has(u)){seen.add(u);out.push(u);}
+  };
+  const walk=(node,depth=0)=>{
+    if(depth>18||out.length>=GOOGLE_PHOTOS_MAX_ITEMS)return;
+    if(Array.isArray(node)){
+      if(typeof node[0]==='string'&&Number.isFinite(Number(node[1]))&&Number.isFinite(Number(node[2])))add(node[0],Number(node[1]),Number(node[2]));
+      for(const child of node)walk(child,depth+1);
+    }else if(node&&typeof node==='object'){for(const child of Object.values(node))walk(child,depth+1);}
+  };
+  walk(root);
+  if(!out.length){
+    const broad=JSON.stringify(root||'').match(/https:\/\/(?:lh[3-6]\.googleusercontent\.com|lh3\.ggpht\.com)\/[^\\"'<>\s,\]]+/gi)||[];
+    for(const raw of broad){add(raw);if(out.length>=GOOGLE_PHOTOS_MAX_ITEMS)break;}
   }
   return out;
 }
@@ -3814,30 +3824,29 @@ async function fetchGoogleAlbumPage(request,pageToken){
 }
 
 async function extractAllGooglePhotoUrls(html){
-  const init=parseGoogleAlbumInit(html);
-  let first=init?extractGooglePhotoUrlsFromData(init):[];
-  if(!first.length)first=extractGooglePhotoUrls(html);
-
+  const inits=parseGoogleAlbumInits(html);
   const merged=[];
   const seen=new Set();
   const add=(items)=>{
-    for(const u of items){
+    for(const u of items||[]){
       if(!u||seen.has(u))continue;
       seen.add(u);merged.push(u);
       if(merged.length>=GOOGLE_PHOTOS_MAX_ITEMS)return false;
     }
     return true;
   };
-  add(first);
-  if(merged.length>=GOOGLE_PHOTOS_MAX_ITEMS)return {urls:merged,paginated:false,limitReached:true};
+  for(const init of inits){if(!add(extractGooglePhotoUrlsFromData(init)))break;}
+  if(!merged.length)add(extractGooglePhotoUrls(html));
+  if(merged.length>=GOOGLE_PHOTOS_MAX_ITEMS)return {urls:merged,paginated:false,limitReached:true,pages:1};
 
-  let token=init?googleNextPageToken(init):null;
+  let token=null;
+  for(const init of inits){token=googleNextPageToken(init);if(token)break;}
   const request=token?extractGooglePageRequest(html):null;
-  if(!token||!request)return {urls:merged,paginated:false,limitReached:false};
+  if(!token||!request)return {urls:merged,paginated:false,limitReached:false,pages:1};
 
   let pages=1;
   const seenTokens=new Set();
-  while(token&&merged.length<GOOGLE_PHOTOS_MAX_ITEMS&&pages<20){
+  while(token&&merged.length<GOOGLE_PHOTOS_MAX_ITEMS){
     if(seenTokens.has(token))throw new Error('Google Photos returned a repeated continuation token');
     seenTokens.add(token);
     const page=await fetchGoogleAlbumPage(request,token);
@@ -3845,7 +3854,7 @@ async function extractAllGooglePhotoUrls(html){
     add(extractGooglePhotoUrlsFromData(page.data));
     token=page.nextPageToken;
   }
-  return {urls:merged,paginated:pages>1,limitReached:!!token||merged.length>=GOOGLE_PHOTOS_MAX_ITEMS,pages};
+  return {urls:merged,paginated:pages>1,limitReached:merged.length>=GOOGLE_PHOTOS_MAX_ITEMS,pages};
 }
 function localProxyUrl(remoteUrl){
   return serverPath('/proxy?url='+encodeURIComponent(remoteUrl));
@@ -4240,7 +4249,7 @@ function defaultBlockConfig(type){
     icon:{title:'',glyph:'★',card:false},
     integration:{title:'Integration',plugin:'',settings:{},refreshMin:5,card:true}
   }[type]||{};
-  return Object.assign({_visible:true,_locked:false,_layer:10,_opacity:100,_cardMode:'auto',_visMode:'always',_visDays:'0,1,2,3,4,5,6',_visStart:'00:00',_visEnd:'00:00'},specific);
+  return Object.assign({_visible:true,_locked:false,_layer:10,_opacity:100,_contentScale:100,_cardMode:'auto',_visMode:'always',_visDays:'0,1,2,3,4,5,6',_visStart:'00:00',_visEnd:'00:00'},specific);
 }
 function customBlockById(id,list=cfg.customBlocks){return (list||[]).find(b=>b.id===id)||null;}
 function customKeyId(key){return String(key||'').startsWith('custom:')?String(key).slice(7):'';}
@@ -4254,7 +4263,7 @@ function clearCustomBlockTimers(){for(const t of customBlockTimers.values())clea
 function customBlockSignature(blocks){try{return JSON.stringify((blocks||[]).map(b=>({id:b.id,type:b.type,name:b.name,rect:b.rect,config:b.config})));}catch{return String(Date.now());}}
 function blockScheduleActive(c,now=new Date()){if(c?._visible===false)return false;const mode=c?._visMode||'always';if(mode==='always')return true;const day=now.getDay();let allowed=mode==='weekdays'?(day>=1&&day<=5):mode==='weekends'?(day===0||day===6):String(c?._visDays||'').split(',').map(Number).includes(day);if(!allowed)return false;const parse=t=>{const m=String(t||'').match(/^(\d{1,2}):(\d{2})$/);return m?Math.min(1439,Math.max(0,+m[1]*60 + +m[2])):null;},mins=now.getHours()*60+now.getMinutes(),start=parse(c?._visStart),end=parse(c?._visEnd);if(start==null||end==null||start===end)return true;return start<end?(mins>=start&&mins<end):(mins>=start||mins<end);}
 function blockCardEnabled(block){const c=block?.config||{};if(c._cardMode==='card')return true;if(c._cardMode==='transparent')return false;return c.card!==false;}
-function applyCustomBlockUniversalState(el,block){if(!el||!block)return;const c=block.config||{},active=blockScheduleActive(c),editing=layoutEditorActive;el.style.zIndex=String(Math.max(1,Math.min(99,Number(c._layer)||10)));el.style.opacity=String(Math.max(.1,Math.min(1,(Number(c._opacity)||100)/100))*(editing&&!active?0.32:1));el.style.display=(!editing&&!active)?'none':'';el.classList.toggle('no-card',!blockCardEnabled(block));el.classList.toggle('custom-block-hidden-edit',editing&&!active);el.classList.toggle('custom-block-locked-edit',editing&&c._locked===true);}
+function applyCustomBlockUniversalState(el,block){if(!el||!block)return;const c=block.config||{},active=blockScheduleActive(c),editing=layoutEditorActive,contentScale=Math.min(200,Math.max(50,Number(c._contentScale)||100))/100;el.style.setProperty('--ld-block-scale',contentScale.toFixed(3));el.style.setProperty('--ld-block-scale-inverse',(1/contentScale).toFixed(4));el.style.zIndex=String(Math.max(1,Math.min(99,Number(c._layer)||10)));el.style.opacity=String(Math.max(.1,Math.min(1,(Number(c._opacity)||100)/100))*(editing&&!active?0.32:1));el.style.display=(!editing&&!active)?'none':'';el.classList.toggle('no-card',!blockCardEnabled(block));el.classList.toggle('custom-block-hidden-edit',editing&&!active);el.classList.toggle('custom-block-locked-edit',editing&&c._locked===true);}
 function updateCustomBlockUniversalStates(blocks=layoutEditorActive?layoutCustomBlocksDraft:cfg.customBlocks){for(const block of blocks||[]){const el=document.querySelector(`.custom-block[data-block-id="${CSS.escape(block.id)}"]`);applyCustomBlockUniversalState(el,block);}}
 function ensureCustomBlocksRendered(blocks=cfg.customBlocks,force=false){const sig=customBlockSignature(blocks);if(!force&&sig===customBlockRenderSignature)return;customBlockRenderSignature=sig;renderCustomBlocks(blocks);}
 function applyCustomBlockRect(el,block){if(!el||!block)return;const r=customBlockRectSanitize(block,block.rect),px=pxRectFromNormalized(r);el.style.left=px.left.toFixed(1)+'px';el.style.top=px.top.toFixed(1)+'px';el.style.width=px.width.toFixed(1)+'px';el.style.height=px.height.toFixed(1)+'px';}
@@ -4501,7 +4510,7 @@ function integrationSettingsFieldsHtml(c){
   h+=bf('Refresh every minutes','bc-refresh',c.refreshMin??manifest.refreshMin??5,'number','min="1" max="1440"')+bcheck('Show translucent card','bc-card',c.card!==false);return h;
 }
 function readIntegrationSettings(pluginId){const manifest=integrationManifest(pluginId),out={};if(!manifest)return out;for(const field of manifest.settings||[]){const id='bc-int-'+field.key;out[field.key]=field.type==='checkbox'?bc(id):(field.type==='number'?(Number(bv(id))||0):bv(id));}return out;}
-function blockConfigFieldsHtml(type,c,name){let h=bf('Block name','bc-name',name||BLOCK_TYPE_INFO[type]?.name||'Block')+`<div class="block-field full"><label>Universal block controls</label><div class="block-dialog-sub">These controls work the same way for every added block.</div></div>`+bcheck('Visible','bc-u-visible',c._visible!==false)+bcheck('Lock position / size','bc-u-locked',c._locked===true)+bf('Opacity %','bc-u-opacity',c._opacity??100,'number','min="10" max="100"')+bf('Layer (1 back – 99 front)','bc-u-layer',c._layer??10,'number','min="1" max="99"')+bsel('Card style','bc-u-cardmode',c._cardMode||'auto',[['auto','Use block default'],['card','Force glass card'],['transparent','Force transparent']])+bsel('Scheduled visibility','bc-u-vismode',c._visMode||'always',[['always','Always'],['weekdays','Weekdays'],['weekends','Weekends'],['custom','Custom days']])+bf('Custom days 0=Sun … 6=Sat','bc-u-visdays',c._visDays||'0,1,2,3,4,5,6')+bf('Visible from','bc-u-visstart',c._visStart||'00:00','time')+bf('Visible until','bc-u-visend',c._visEnd||'00:00','time');
+function blockConfigFieldsHtml(type,c,name){let h=bf('Block name','bc-name',name||BLOCK_TYPE_INFO[type]?.name||'Block')+`<div class="block-field full"><label>Universal block controls</label><div class="block-dialog-sub">These controls work the same way for every added block.</div></div>`+bcheck('Visible','bc-u-visible',c._visible!==false)+bcheck('Lock position / size','bc-u-locked',c._locked===true)+bf('Content size %','bc-u-content-scale',c._contentScale??100,'number','min="50" max="200" step="5"')+bf('Opacity %','bc-u-opacity',c._opacity??100,'number','min="10" max="100"')+bf('Layer (1 back – 99 front)','bc-u-layer',c._layer??10,'number','min="1" max="99"')+bsel('Card style','bc-u-cardmode',c._cardMode||'auto',[['auto','Use block default'],['card','Force glass card'],['transparent','Force transparent']])+bsel('Scheduled visibility','bc-u-vismode',c._visMode||'always',[['always','Always'],['weekdays','Weekdays'],['weekends','Weekends'],['custom','Custom days']])+bf('Custom days 0=Sun … 6=Sat','bc-u-visdays',c._visDays||'0,1,2,3,4,5,6')+bf('Visible from','bc-u-visstart',c._visStart||'00:00','time')+bf('Visible until','bc-u-visend',c._visEnd||'00:00','time');
   if(type==='calendarview')h+=bf('Title','bc-title',c.title||'Calendar')+bsel('View','bc-mode',c.mode||'agenda',[['agenda','Agenda'],['upnext','Up Next'],['month','Month'],['week','Week schedule']])+bsel('Calendar source','bc-source',c.source||'all',calendarBlockFeedOptions(),true)+bsel('Agenda range','bc-days',c.days||14,[['7','7 days'],['14','14 days'],['30','30 days'],['45','45 days'],['60','60 days']])+bf('Maximum events','bc-items',c.maxItems??10,'number','min="1" max="30"')+bf('Month events/day','bc-epd',c.eventsPerDay??2,'number','min="1" max="4"')+bsel('Week starts','bc-weekstart',c.weekStart||'monday',[['monday','Monday'],['sunday','Sunday'],['today','Today (week view only)']])+bf('Week start hour','bc-starthour',c.weekStartHour??6,'number','min="0" max="22"')+bf('Week end hour','bc-endhour',c.weekEndHour??22,'number','min="2" max="24"')+bcheck('Show event times','bc-showtimes',c.showTimes!==false)+bcheck('Show translucent card','bc-card',c.card!==false);
   if(type==='weatherview')h+=bf('Title','bc-title',c.title||'Weather')+bsel('View','bc-mode',c.mode||'current',[['current','Current conditions'],['hourly','Hourly forecast'],['daily','Daily forecast'],['details','Weather details']])+bsel('Hourly range','bc-hours',c.hours||12,[['3','3 hours'],['6','6 hours'],['9','9 hours'],['12','12 hours'],['18','18 hours'],['24','24 hours']])+bsel('Daily range','bc-days',c.days||7,[['3','3 days'],['5','5 days'],['7','7 days'],['10','10 days'],['12','12 days'],['14','14 days']])+bcheck('Show precipitation chance','bc-precip',c.showPrecip!==false)+bcheck('Show translucent card','bc-card',c.card!==false);
   if(type==='text')h+=bf('Optional small title','bc-title',c.title||'')+`<div class="block-field full"><label for="bc-text">Text / simple Markdown</label><textarea id="bc-text">${escHtml(c.text||'')}</textarea></div>`+bcheck('Show translucent card','bc-card',c.card!==false);
@@ -4525,7 +4534,7 @@ function blockConfigFieldsHtml(type,c,name){let h=bf('Block name','bc-name',name
   return h;
 }
 function bv(id){return document.getElementById(id)?.value??'';}function bc(id){return !!document.getElementById(id)?.checked;}
-function readBlockConfig(type){const c={_visible:bc('bc-u-visible'),_locked:bc('bc-u-locked'),_opacity:Math.max(10,Math.min(100,Number(bv('bc-u-opacity'))||100)),_layer:Math.max(1,Math.min(99,Number(bv('bc-u-layer'))||10)),_cardMode:['auto','card','transparent'].includes(bv('bc-u-cardmode'))?bv('bc-u-cardmode'):'auto',_visMode:['always','weekdays','weekends','custom'].includes(bv('bc-u-vismode'))?bv('bc-u-vismode'):'always',_visDays:bv('bc-u-visdays').replace(/[^0-6,]/g,'').slice(0,30),_visStart:bv('bc-u-visstart')||'00:00',_visEnd:bv('bc-u-visend')||'00:00'};if(document.getElementById('bc-title'))c.title=bv('bc-title').slice(0,120);if(document.getElementById('bc-card'))c.card=bc('bc-card');if(type==='calendarview'){c.mode=['agenda','upnext','month','week'].includes(bv('bc-mode'))?bv('bc-mode'):'agenda';c.source=bv('bc-source')||'all';c.days=Math.max(7,Math.min(60,Number(bv('bc-days'))||14));c.maxItems=Math.max(1,Math.min(30,Number(bv('bc-items'))||10));c.eventsPerDay=Math.max(1,Math.min(4,Number(bv('bc-epd'))||2));c.weekStart=['monday','sunday','today'].includes(bv('bc-weekstart'))?bv('bc-weekstart'):'monday';c.weekStartHour=Math.max(0,Math.min(22,Number(bv('bc-starthour'))||6));c.weekEndHour=Math.max(c.weekStartHour+2,Math.min(24,Number(bv('bc-endhour'))||22));c.showTimes=bc('bc-showtimes');}if(type==='weatherview'){c.mode=['current','hourly','daily','details'].includes(bv('bc-mode'))?bv('bc-mode'):'current';c.hours=[3,6,9,12,18,24].includes(Number(bv('bc-hours')))?Number(bv('bc-hours')):12;c.days=[3,5,7,10,12,14].includes(Number(bv('bc-days')))?Number(bv('bc-days')):7;c.showPrecip=bc('bc-precip');}if(type==='text')c.text=bv('bc-text').slice(0,12000);if(type==='countdown'){c.target=bv('bc-target');c.label=bv('bc-label').slice(0,120);c.showSeconds=bc('bc-seconds');}if(type==='image'){c.url=bv('bc-url').trim();c.fit=bv('bc-fit')==='contain'?'contain':'cover';}if(type==='qr')c.value=bv('bc-value').slice(0,4000);if(type==='shape'){c.shape=bv('bc-shape');c.color=bv('bc-color');c.opacity=Math.max(0,Math.min(100,Number(bv('bc-opacity'))||0));c.radius=Math.max(0,Math.min(100,Number(bv('bc-radius'))||0));c.border=Math.max(0,Math.min(20,Number(bv('bc-border'))||0));}if(type==='button'){c.label=bv('bc-label').slice(0,120);c.url=bv('bc-url').trim();c.newTab=bc('bc-newtab');}if(type==='rss'){c.url=bv('bc-url').trim();c.items=Math.max(1,Math.min(12,Number(bv('bc-items'))||5));c.refreshMin=Math.max(1,Math.min(240,Number(bv('bc-refresh'))||15));}if(type==='iframe')c.url=bv('bc-url').trim();if(type==='video'){c.url=bv('bc-url').trim();c.autoplay=bc('bc-autoplay');c.muted=bc('bc-muted');c.controls=bc('bc-controls');}if(type==='json'){c.url=bv('bc-url').trim();c.path=bv('bc-path').trim().slice(0,300);c.prefix=bv('bc-prefix').slice(0,100);c.suffix=bv('bc-suffix').slice(0,100);c.refreshMin=Math.max(1,Math.min(240,Number(bv('bc-refresh'))||5));c.visualization=['value','gauge','progress','sparkline','line','bar','table','raw'].includes(bv('bc-viz'))?bv('bc-viz'):'value';c.raw=c.visualization==='raw';c.min=Number(bv('bc-min'))||0;c.max=Number.isFinite(Number(bv('bc-max')))?Number(bv('bc-max')):100;c.valueKey=bv('bc-valuekey').trim().slice(0,120);c.labelKey=bv('bc-labelkey').trim().slice(0,120);c.columns=bv('bc-columns').trim().slice(0,500);c.maxPoints=Math.max(2,Math.min(100,Number(bv('bc-maxpoints'))||30));c.chartArea=bc('bc-chart-area');c.chartPoints=bc('bc-chart-points');c.chartGrid=bc('bc-chart-grid');}if(type==='todo'){c.items=bv('bc-items').slice(0,12000);c.showCompleted=bc('bc-showcompleted');const old=blockConfigEditingId?customBlockById(blockConfigEditingId,layoutCustomBlocksDraft):null;c.done=Array.isArray(old?.config?.done)?old.config.done:[];}if(type==='family'){c.memberId=bv('bc-member');c.showCompleted=bc('bc-showcompleted');c.showRewards=bc('bc-showrewards');}if(type==='scheduled'){c.message=bv('bc-message').slice(0,12000);c.schedule=['everyday','weekdays','weekends','custom'].includes(bv('bc-schedule'))?bv('bc-schedule'):'weekdays';c.days=bv('bc-days').replace(/[^0-6,]/g,'').slice(0,30);c.start=bv('bc-start')||'00:00';c.end=bv('bc-end')||'00:00';c.hideInactive=bc('bc-hideinactive');}if(type==='daily'){c.source=['facts','prompts','custom'].includes(bv('bc-source'))?bv('bc-source'):'facts';c.custom=bv('bc-custom').slice(0,12000);}if(type==='airquality'){c.refreshMin=Math.max(5,Math.min(240,Number(bv('bc-refresh'))||15));c.showDetails=bc('bc-details');}if(type==='suntimes')c.showDaylight=bc('bc-daylight');if(type==='icon')c.glyph=bv('bc-glyph').slice(0,8)||'★';if(type==='integration'){c.plugin=bv('bc-plugin');c.settings=readIntegrationSettings(c.plugin);c.refreshMin=Math.max(1,Math.min(1440,Number(bv('bc-refresh'))||integrationManifest(c.plugin)?.refreshMin||5));}return c;}
+function readBlockConfig(type){const c={_visible:bc('bc-u-visible'),_locked:bc('bc-u-locked'),_contentScale:Math.max(50,Math.min(200,Number(bv('bc-u-content-scale'))||100)),_opacity:Math.max(10,Math.min(100,Number(bv('bc-u-opacity'))||100)),_layer:Math.max(1,Math.min(99,Number(bv('bc-u-layer'))||10)),_cardMode:['auto','card','transparent'].includes(bv('bc-u-cardmode'))?bv('bc-u-cardmode'):'auto',_visMode:['always','weekdays','weekends','custom'].includes(bv('bc-u-vismode'))?bv('bc-u-vismode'):'always',_visDays:bv('bc-u-visdays').replace(/[^0-6,]/g,'').slice(0,30),_visStart:bv('bc-u-visstart')||'00:00',_visEnd:bv('bc-u-visend')||'00:00'};if(document.getElementById('bc-title'))c.title=bv('bc-title').slice(0,120);if(document.getElementById('bc-card'))c.card=bc('bc-card');if(type==='calendarview'){c.mode=['agenda','upnext','month','week'].includes(bv('bc-mode'))?bv('bc-mode'):'agenda';c.source=bv('bc-source')||'all';c.days=Math.max(7,Math.min(60,Number(bv('bc-days'))||14));c.maxItems=Math.max(1,Math.min(30,Number(bv('bc-items'))||10));c.eventsPerDay=Math.max(1,Math.min(4,Number(bv('bc-epd'))||2));c.weekStart=['monday','sunday','today'].includes(bv('bc-weekstart'))?bv('bc-weekstart'):'monday';c.weekStartHour=Math.max(0,Math.min(22,Number(bv('bc-starthour'))||6));c.weekEndHour=Math.max(c.weekStartHour+2,Math.min(24,Number(bv('bc-endhour'))||22));c.showTimes=bc('bc-showtimes');}if(type==='weatherview'){c.mode=['current','hourly','daily','details'].includes(bv('bc-mode'))?bv('bc-mode'):'current';c.hours=[3,6,9,12,18,24].includes(Number(bv('bc-hours')))?Number(bv('bc-hours')):12;c.days=[3,5,7,10,12,14].includes(Number(bv('bc-days')))?Number(bv('bc-days')):7;c.showPrecip=bc('bc-precip');}if(type==='text')c.text=bv('bc-text').slice(0,12000);if(type==='countdown'){c.target=bv('bc-target');c.label=bv('bc-label').slice(0,120);c.showSeconds=bc('bc-seconds');}if(type==='image'){c.url=bv('bc-url').trim();c.fit=bv('bc-fit')==='contain'?'contain':'cover';}if(type==='qr')c.value=bv('bc-value').slice(0,4000);if(type==='shape'){c.shape=bv('bc-shape');c.color=bv('bc-color');c.opacity=Math.max(0,Math.min(100,Number(bv('bc-opacity'))||0));c.radius=Math.max(0,Math.min(100,Number(bv('bc-radius'))||0));c.border=Math.max(0,Math.min(20,Number(bv('bc-border'))||0));}if(type==='button'){c.label=bv('bc-label').slice(0,120);c.url=bv('bc-url').trim();c.newTab=bc('bc-newtab');}if(type==='rss'){c.url=bv('bc-url').trim();c.items=Math.max(1,Math.min(12,Number(bv('bc-items'))||5));c.refreshMin=Math.max(1,Math.min(240,Number(bv('bc-refresh'))||15));}if(type==='iframe')c.url=bv('bc-url').trim();if(type==='video'){c.url=bv('bc-url').trim();c.autoplay=bc('bc-autoplay');c.muted=bc('bc-muted');c.controls=bc('bc-controls');}if(type==='json'){c.url=bv('bc-url').trim();c.path=bv('bc-path').trim().slice(0,300);c.prefix=bv('bc-prefix').slice(0,100);c.suffix=bv('bc-suffix').slice(0,100);c.refreshMin=Math.max(1,Math.min(240,Number(bv('bc-refresh'))||5));c.visualization=['value','gauge','progress','sparkline','line','bar','table','raw'].includes(bv('bc-viz'))?bv('bc-viz'):'value';c.raw=c.visualization==='raw';c.min=Number(bv('bc-min'))||0;c.max=Number.isFinite(Number(bv('bc-max')))?Number(bv('bc-max')):100;c.valueKey=bv('bc-valuekey').trim().slice(0,120);c.labelKey=bv('bc-labelkey').trim().slice(0,120);c.columns=bv('bc-columns').trim().slice(0,500);c.maxPoints=Math.max(2,Math.min(100,Number(bv('bc-maxpoints'))||30));c.chartArea=bc('bc-chart-area');c.chartPoints=bc('bc-chart-points');c.chartGrid=bc('bc-chart-grid');}if(type==='todo'){c.items=bv('bc-items').slice(0,12000);c.showCompleted=bc('bc-showcompleted');const old=blockConfigEditingId?customBlockById(blockConfigEditingId,layoutCustomBlocksDraft):null;c.done=Array.isArray(old?.config?.done)?old.config.done:[];}if(type==='family'){c.memberId=bv('bc-member');c.showCompleted=bc('bc-showcompleted');c.showRewards=bc('bc-showrewards');}if(type==='scheduled'){c.message=bv('bc-message').slice(0,12000);c.schedule=['everyday','weekdays','weekends','custom'].includes(bv('bc-schedule'))?bv('bc-schedule'):'weekdays';c.days=bv('bc-days').replace(/[^0-6,]/g,'').slice(0,30);c.start=bv('bc-start')||'00:00';c.end=bv('bc-end')||'00:00';c.hideInactive=bc('bc-hideinactive');}if(type==='daily'){c.source=['facts','prompts','custom'].includes(bv('bc-source'))?bv('bc-source'):'facts';c.custom=bv('bc-custom').slice(0,12000);}if(type==='airquality'){c.refreshMin=Math.max(5,Math.min(240,Number(bv('bc-refresh'))||15));c.showDetails=bc('bc-details');}if(type==='suntimes')c.showDaylight=bc('bc-daylight');if(type==='icon')c.glyph=bv('bc-glyph').slice(0,8)||'★';if(type==='integration'){c.plugin=bv('bc-plugin');c.settings=readIntegrationSettings(c.plugin);c.refreshMin=Math.max(1,Math.min(1440,Number(bv('bc-refresh'))||integrationManifest(c.plugin)?.refreshMin||5));}return c;}
 function saveBlockConfig(){pushLayoutHistory();const type=blockConfigEditingType;if(!BLOCK_TYPE_INFO[type])return;const name=(bv('bc-name')||BLOCK_TYPE_INFO[type].name).trim().slice(0,80),config=readBlockConfig(type);if(blockConfigEditingId){const b=customBlockById(blockConfigEditingId,layoutCustomBlocksDraft);if(b){b.name=name;b.config=config;}}else{const b={id:makeBlockId(),type,name,rect:defaultBlockRect(type),config};layoutCustomBlocksDraft.push(b);layoutSelectedKey=customBlockKey(b.id);}document.getElementById('block-config-modal')?.classList.remove('show');blockConfigEditingId='';blockConfigEditingType='';renderCustomBlocks(layoutCustomBlocksDraft);renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);}
 function refreshToolbarCustomActions(){const custom=!!customKeyId(layoutSelectedKey);for(const id of ['layout-configure-block','layout-duplicate-block','layout-delete-block','layout-layer-back','layout-layer-front'])document.getElementById(id)?.classList.toggle('block-action-hidden',!custom);}
 function changeSelectedBlockLayer(delta){pushLayoutHistory();const id=customKeyId(layoutSelectedKey),b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return;b.config=b.config||{};b.config._layer=Math.max(1,Math.min(99,(Number(b.config._layer)||10)+Number(delta||0)));renderCustomBlocks(layoutCustomBlocksDraft);renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);}
@@ -4544,11 +4553,13 @@ let layoutEditorDraft={};
 let layoutEditorOriginal=null;
 let layoutSelectedKey='';
 let layoutPointerState=null;
+let layoutContentScaleDraft={};
+let layoutScaleEditActive=false;
 let layoutUndoStack=[],layoutRedoStack=[];
-function layoutHistorySnapshot(){return {layout:JSON.parse(JSON.stringify(layoutEditorDraft||{})),custom:JSON.parse(JSON.stringify(layoutCustomBlocksDraft||[])),selected:layoutSelectedKey};}
+function layoutHistorySnapshot(){return {layout:JSON.parse(JSON.stringify(layoutEditorDraft||{})),custom:JSON.parse(JSON.stringify(layoutCustomBlocksDraft||[])),contentScale:JSON.parse(JSON.stringify(layoutContentScaleDraft||{})),selected:layoutSelectedKey};}
 function updateLayoutHistoryButtons(){const u=document.getElementById('layout-undo'),r=document.getElementById('layout-redo');if(u)u.disabled=!layoutUndoStack.length;if(r)r.disabled=!layoutRedoStack.length;}
 function pushLayoutHistory(){if(!layoutEditorActive)return;layoutUndoStack.push(layoutHistorySnapshot());if(layoutUndoStack.length>60)layoutUndoStack.shift();layoutRedoStack=[];updateLayoutHistoryButtons();}
-function restoreLayoutHistorySnapshot(snap){if(!snap)return;layoutEditorDraft=JSON.parse(JSON.stringify(snap.layout||{}));layoutCustomBlocksDraft=JSON.parse(JSON.stringify(snap.custom||[]));layoutSelectedKey=snap.selected||'';cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));renderCustomBlocks(layoutCustomBlocksDraft);for(const [key,r] of Object.entries(layoutEditorDraft))applyOneLayoutRect(key,r);renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);updateLayoutHistoryButtons();}
+function restoreLayoutHistorySnapshot(snap){if(!snap)return;layoutEditorDraft=JSON.parse(JSON.stringify(snap.layout||{}));layoutCustomBlocksDraft=JSON.parse(JSON.stringify(snap.custom||[]));layoutContentScaleDraft=JSON.parse(JSON.stringify(snap.contentScale||{}));layoutSelectedKey=snap.selected||'';cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));renderCustomBlocks(layoutCustomBlocksDraft);for(const [key,r] of Object.entries(layoutEditorDraft))applyOneLayoutRect(key,r);applyLayoutEditorContentScalePreview();renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);updateLayoutHistoryButtons();}
 function undoLayoutEditor(){if(!layoutEditorActive||!layoutUndoStack.length)return;layoutRedoStack.push(layoutHistorySnapshot());restoreLayoutHistorySnapshot(layoutUndoStack.pop());}
 function redoLayoutEditor(){if(!layoutEditorActive||!layoutRedoStack.length)return;layoutUndoStack.push(layoutHistorySnapshot());restoreLayoutHistorySnapshot(layoutRedoStack.pop());}
 
@@ -4699,6 +4710,31 @@ function refreshLayoutToolbarBlockOptions(){const picker=document.getElementById
 function layoutEditorRectForKey(key){const id=customKeyId(key);if(id)return customBlockById(id,layoutCustomBlocksDraft)?.rect||null;return layoutEditorDraft[key]||null;}
 function layoutEditorDefForKey(key){const id=customKeyId(key);if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return null;const [minW,minH]=customBlockMin(b.type);return {label:b.name||BLOCK_TYPE_INFO[b.type]?.name||'Block',minW,minH,custom:true,block:b,locked:b.config?._locked===true};}return LAYOUT_BLOCK_DEFS[key]||null;}
 function setLayoutEditorRectForKey(key,r){const id=customKeyId(key);if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(b){b.rect=customBlockRectSanitize(b,r);const el=document.querySelector(`.custom-block[data-block-id="${CSS.escape(id)}"]`);applyCustomBlockRect(el,b);}return;}layoutEditorDraft[key]=sanitizeLayoutRect(key,r);applyOneLayoutRect(key,layoutEditorDraft[key]);}
+function selectedContentScale(){
+  const id=customKeyId(layoutSelectedKey);
+  if(id)return Math.min(200,Math.max(50,Number(customBlockById(id,layoutCustomBlocksDraft)?.config?._contentScale)||100));
+  return Math.min(200,Math.max(50,Number(layoutContentScaleDraft?.[layoutSelectedKey])||100));
+}
+function applyLayoutEditorContentScalePreview(){
+  if(!layoutEditorActive)return;
+  applyUiCustomization({...cfg,layoutMode:'custom',layoutBlocks:layoutEditorDraft,layoutContentScale:layoutContentScaleDraft,customBlocks:layoutCustomBlocksDraft});
+}
+function setSelectedContentScale(value){
+  if(!layoutEditorActive||!layoutSelectedKey)return;
+  if(!layoutScaleEditActive){pushLayoutHistory();layoutScaleEditActive=true;}
+  const n=Math.min(200,Math.max(50,Number(value)||100)),id=customKeyId(layoutSelectedKey);
+  if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return;b.config=b.config||{};b.config._contentScale=n;applyCustomBlockUniversalState(document.querySelector(`.custom-block[data-block-id="${CSS.escape(id)}"]`),b);}
+  else {layoutContentScaleDraft[layoutSelectedKey]=n;applyLayoutEditorContentScalePreview();}
+  updateLayoutSelectedInfo();
+}
+function finishSelectedContentScaleEdit(){layoutScaleEditActive=false;}
+function resetSelectedContentScale(){
+  if(!layoutEditorActive||!layoutSelectedKey)return;pushLayoutHistory();layoutScaleEditActive=false;
+  const id=customKeyId(layoutSelectedKey);
+  if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return;b.config=b.config||{};b.config._contentScale=100;applyCustomBlockUniversalState(document.querySelector(`.custom-block[data-block-id="${CSS.escape(id)}"]`),b);}
+  else {layoutContentScaleDraft[layoutSelectedKey]=100;applyLayoutEditorContentScalePreview();}
+  updateLayoutSelectedInfo();
+}
 function selectLayoutBlock(key){
   if(key&&!LAYOUT_BLOCK_DEFS[key]&&!customBlockById(customKeyId(key),layoutCustomBlocksDraft))return;
   layoutSelectedKey=key||'';
@@ -4708,11 +4744,13 @@ function selectLayoutBlock(key){
   updateLayoutSelectedInfo();
 }
 function updateLayoutSelectedInfo(){
-  const el=document.getElementById('layout-selected-info');if(!el)return;
-  const selectedRect=layoutEditorRectForKey(layoutSelectedKey),def=layoutEditorDefForKey(layoutSelectedKey);
-  if(!layoutSelectedKey||!selectedRect||!def){el.textContent='Drag an element · resize from corner';return;}
-  const px=pxRectFromNormalized(selectedRect);
-  el.textContent=`${def.label} · ${Math.round(px.width)}×${Math.round(px.height)} px`;
+  const el=document.getElementById('layout-selected-info'),range=document.getElementById('layout-toolbar-scale'),value=document.getElementById('layout-toolbar-scale-value'),control=document.getElementById('layout-content-size-control');if(!el)return;
+  const selectedRect=layoutEditorRectForKey(layoutSelectedKey),def=layoutEditorDefForKey(layoutSelectedKey),has=!!(layoutSelectedKey&&selectedRect&&def);
+  control?.classList.toggle('disabled',!has);if(range)range.disabled=!has;
+  if(!has){if(range)range.value='100';if(value)value.textContent='100%';el.textContent='Drag an element · resize from corner';return;}
+  const px=pxRectFromNormalized(selectedRect),scale=selectedContentScale();
+  if(range)range.value=String(scale);if(value)value.textContent=scale+'%';
+  el.textContent=`${def.label} · ${Math.round(px.width)}×${Math.round(px.height)} px · content ${scale}%`;
 }
 function beginLayoutPointer(e){
   pushLayoutHistory();
@@ -4749,9 +4787,9 @@ function setLayoutEditorSnap(on){
 }
 function startLayoutEditor(){
   if(layoutEditorActive)return;
-  layoutEditorOriginal={layoutMode:cfg.layoutMode,layoutBlocks:JSON.parse(JSON.stringify(cfg.layoutBlocks||{})),layoutGridPx:cfg.layoutGridPx,layoutSnap:cfg.layoutSnap};
+  layoutEditorOriginal={layoutMode:cfg.layoutMode,layoutBlocks:JSON.parse(JSON.stringify(cfg.layoutBlocks||{})),layoutContentScale:JSON.parse(JSON.stringify(cfg.layoutContentScale||{})),layoutGridPx:cfg.layoutGridPx,layoutSnap:cfg.layoutSnap};
   layoutCustomBlocksOriginal=JSON.parse(JSON.stringify(cfg.customBlocks||[]));layoutCustomBlocksDraft=JSON.parse(JSON.stringify(cfg.customBlocks||[]));
-  layoutEditorDraft=ensureLayoutDraft();layoutSelectedKey='';layoutEditorActive=true;layoutUndoStack=[];layoutRedoStack=[];updateLayoutHistoryButtons();
+  layoutEditorDraft=ensureLayoutDraft();layoutContentScaleDraft=JSON.parse(JSON.stringify(cfg.layoutContentScale||{}));layoutSelectedKey='';layoutEditorActive=true;layoutScaleEditActive=false;layoutUndoStack=[];layoutRedoStack=[];updateLayoutHistoryButtons();
   cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));
   document.body.classList.add('custom-layout','layout-editing');
   for(const [key,r] of Object.entries(layoutEditorDraft))applyOneLayoutRect(key,r);
@@ -4763,7 +4801,7 @@ function startLayoutEditor(){
   const gridSel=document.getElementById('layout-toolbar-grid');if(gridSel)gridSel.value=String(grid);
   const blockSel=document.getElementById('layout-toolbar-block');if(blockSel)blockSel.value='';
   const snapEl=document.getElementById('layout-toolbar-snap');if(snapEl)snapEl.checked=snap;
-  setLayoutEditorGrid(grid);setLayoutEditorSnap(snap);renderLayoutEditorBoxes();
+  setLayoutEditorGrid(grid);setLayoutEditorSnap(snap);applyLayoutEditorContentScalePreview();renderLayoutEditorBoxes();
   document.addEventListener('pointermove',moveLayoutPointer,{passive:false});
   document.addEventListener('pointerup',endLayoutPointer);
 }
@@ -4776,21 +4814,21 @@ function stopLayoutEditorUi(){
   document.body.classList.remove('layout-editing');
   const layer=document.getElementById('layout-editor-layer'),toolbar=document.getElementById('layout-toolbar');
   layer?.classList.remove('show','grid-on');toolbar?.classList.remove('show');layer?.setAttribute('aria-hidden','true');toolbar?.setAttribute('aria-hidden','true');
-  if(layer)layer.innerHTML='';closeBlockCatalog();document.getElementById('block-config-modal')?.classList.remove('show');layoutCustomBlocksDraft=[];
+  if(layer)layer.innerHTML='';closeBlockCatalog();document.getElementById('block-config-modal')?.classList.remove('show');layoutCustomBlocksDraft=[];layoutContentScaleDraft={};layoutScaleEditActive=false;
   document.removeEventListener('pointermove',moveLayoutPointer);
   document.removeEventListener('pointerup',endLayoutPointer);
 }
 function saveLayoutEditor(){
   if(!layoutEditorActive)return;
-  cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));cfg.customBlocks=JSON.parse(JSON.stringify(layoutCustomBlocksDraft));customBlockRenderSignature='';
+  cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));cfg.layoutContentScale=JSON.parse(JSON.stringify(layoutContentScaleDraft));cfg.customBlocks=JSON.parse(JSON.stringify(layoutCustomBlocksDraft));customBlockRenderSignature='';
   cfg.layoutGridPx=Number(document.getElementById('layout-toolbar-grid')?.value)||20;
   cfg.layoutSnap=document.getElementById('layout-toolbar-snap')?.checked!==false;
   saveCfg();stopLayoutEditorUi();applyUiCustomization(cfg);updateLayoutModeStatus(cfg);
 }
 function cancelLayoutEditor(){
   if(!layoutEditorActive)return;
-  const o=layoutEditorOriginal||{layoutMode:'default',layoutBlocks:{},layoutGridPx:20,layoutSnap:true};
-  cfg.layoutMode=o.layoutMode;cfg.layoutBlocks=JSON.parse(JSON.stringify(o.layoutBlocks||{}));cfg.layoutGridPx=o.layoutGridPx||20;cfg.layoutSnap=o.layoutSnap!==false;cfg.customBlocks=JSON.parse(JSON.stringify(layoutCustomBlocksOriginal||[]));customBlockRenderSignature='';
+  const o=layoutEditorOriginal||{layoutMode:'default',layoutBlocks:{},layoutContentScale:{},layoutGridPx:20,layoutSnap:true};
+  cfg.layoutMode=o.layoutMode;cfg.layoutBlocks=JSON.parse(JSON.stringify(o.layoutBlocks||{}));cfg.layoutContentScale=JSON.parse(JSON.stringify(o.layoutContentScale||{}));cfg.layoutGridPx=o.layoutGridPx||20;cfg.layoutSnap=o.layoutSnap!==false;cfg.customBlocks=JSON.parse(JSON.stringify(layoutCustomBlocksOriginal||[]));customBlockRenderSignature='';
   stopLayoutEditorUi();renderCustomBlocks(cfg.customBlocks);applyUiCustomization(cfg);
 }
 function resetLayoutEditorDraft(){
@@ -4803,11 +4841,11 @@ function resetLayoutEditorDraft(){
 }
 function resetSelectedLayoutBlock(){
   if(!layoutEditorActive||!layoutSelectedKey)return;pushLayoutHistory();
-  const customId=customKeyId(layoutSelectedKey);if(customId){const b=customBlockById(customId,layoutCustomBlocksDraft);if(!b)return;b.rect=defaultBlockRect(b.type);renderCustomBlocks(layoutCustomBlocksDraft);renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);return;}
+  const customId=customKeyId(layoutSelectedKey);if(customId){const b=customBlockById(customId,layoutCustomBlocksDraft);if(!b)return;b.rect=defaultBlockRect(b.type);b.config=b.config||{};b.config._contentScale=100;renderCustomBlocks(layoutCustomBlocksDraft);renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);return;}
   if(!LAYOUT_BLOCK_DEFS[layoutSelectedKey])return;
   cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));
   const defaults=measureDefaultLayoutRects(),r=defaults[layoutSelectedKey];if(!r)return;
-  layoutEditorDraft[layoutSelectedKey]=r;cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));
+  layoutEditorDraft[layoutSelectedKey]=r;layoutContentScaleDraft[layoutSelectedKey]=100;cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));
   document.body.classList.add('custom-layout','layout-editing');
   for(const [key,rect] of Object.entries(layoutEditorDraft))applyOneLayoutRect(key,rect);
   renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);
@@ -4897,8 +4935,10 @@ function applyUiCustomization(source=cfg){
   applyAccessibilityPreferences(source);
   applyProductTheme(source.uiTheme||'libre-night');
   const q=(v,lo,hi,def)=>{const n=Number(v);return Math.min(hi,Math.max(lo,Number.isFinite(n)?n:def));};
-  const cal=q(source.uiCalendarPct,75,140,100), cur=q(source.uiCurrentPct,75,140,100), clk=q(source.uiClockPct,75,140,100);
-  const fc=q(source.uiForecastPct,75,150,100), det=q(source.uiDetailsPct,75,140,100), al=q(source.uiAlertPct,75,150,100);
+  const per=source.layoutContentScale&&typeof source.layoutContentScale==='object'?source.layoutContentScale:{};
+  const es=k=>q(per[k],50,200,100)/100;
+  const cal=q(source.uiCalendarPct,75,140,100)*es('calendar'), cur=q(source.uiCurrentPct,75,140,100)*es('current'), clk=q(source.uiClockPct,75,140,100)*es('clock');
+  const dailyFc=q(source.uiForecastPct,75,150,100)*es('daily'), hourlyFc=q(source.uiForecastPct,75,150,100)*es('hourly'), det=q(source.uiDetailsPct,75,140,100)*es('details'), al=q(source.uiAlertPct,75,150,100)*es('alerts');
   const gap=q(source.forecastGapPx,0,16,5), rowGap=q(source.forecastRowGapPx,4,36,18);
   const calH=q(source.calendarBandHeight,120,210,150), bottomH=q(source.bottomPanelHeight,270,410,330);
   const leftW=q(source.leftPanelWidth,410,560,470), sidePad=q(source.sidePaddingPx,10,48,28);
@@ -4947,14 +4987,14 @@ function applyUiCustomization(source=cfg){
     .clock-time.wide-time{font-size:${scaledClamp(62,5.55,94,clk)}}
     .clock-sec{font-size:${scaledClamp(20,1.8,30,clk)};color:${textColor}}
     .clock-date{font-size:${scaledClamp(16,1.35,24,clk)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)})}
-    .fc-col .fc-day-name{font-size:${scaledClamp(13,.95,18,fc)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)})}
-    .fc-col .fc-icon{font-size:${scaledClamp(23,1.7,32,fc)}}
-    .fc-col .fc-rain{font-size:${scaledClamp(11,.8,15,fc)}}
-    .fc-col .fc-temps{font-size:${scaledClamp(13,.95,18,fc)};color:${textColor}}
-    .hr-col .hr-time{font-size:${scaledClamp(14,1,19,fc)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)})}
-    .hr-col .hr-icon{font-size:${scaledClamp(24,1.85,34,fc)}}
-    .hr-col .hr-rain{font-size:${scaledClamp(12,.86,16,fc)}}
-    .hr-col .hr-temp{font-size:${scaledClamp(15,1.05,20,fc)};color:${textColor}}
+    .fc-col .fc-day-name{font-size:${scaledClamp(13,.95,18,dailyFc)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)})}
+    .fc-col .fc-icon{font-size:${scaledClamp(23,1.7,32,dailyFc)}}
+    .fc-col .fc-rain{font-size:${scaledClamp(11,.8,15,dailyFc)}}
+    .fc-col .fc-temps{font-size:${scaledClamp(13,.95,18,dailyFc)};color:${textColor}}
+    .hr-col .hr-time{font-size:${scaledClamp(14,1,19,hourlyFc)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)})}
+    .hr-col .hr-icon{font-size:${scaledClamp(24,1.85,34,hourlyFc)}}
+    .hr-col .hr-rain{font-size:${scaledClamp(12,.86,16,hourlyFc)}}
+    .hr-col .hr-temp{font-size:${scaledClamp(15,1.05,20,hourlyFc)};color:${textColor}}
     .wx-detail .wd-icon{font-size:${(21*det/100).toFixed(2)}px}
     .wx-detail .wd-label{font-size:${scaledClamp(13,.92,17,det)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.82).toFixed(3)})}
     .wx-detail .wd-val{font-size:${scaledClamp(15,1,19,det)};color:${textColor}}
@@ -5655,7 +5695,7 @@ function syncCalendarEditorRows(){
 function calendarCardHtml(c,i){
   const color=normalizeHexColor(c.color,DEFAULT_CAL_COLORS[i%DEFAULT_CAL_COLORS.length]);
   const name=escHtml(c.label||`Calendar ${i+1}`),url=escHtml(c.url||''),id=escHtml(c.id||newCalendarId());
-  return `<div class="cal-entry calendar-source-card" data-calendar-id="${id}"><div class="calendar-source-head"><div class="calendar-source-title">${name}</div><div class="calendar-source-actions"><button class="cal-mini-btn" type="button" onclick="duplicateCalendarSource('${id}')">Duplicate</button><button class="cal-mini-btn" type="button" onclick="removeCalendarSource('${id}')">Remove</button></div></div><div class="cal-meta-row"><input data-field="enabled" class="cal-enabled" type="checkbox" ${c.enabled!==false?'checked':''} title="Enable this calendar"><input data-field="name" class="cal-name" type="text" placeholder="Name (e.g. Family)" value="${name}"><input data-field="color" type="color" value="${color}" title="Calendar color"><input data-field="hex" class="color-hex" type="text" maxlength="7" value="${color.toUpperCase()}" spellcheck="false" aria-label="Calendar hex color"><select data-field="opacity" class="cal-opacity" title="Calendar opacity"><option value="100">100%</option><option value="85">85%</option><option value="70">70%</option><option value="55">55%</option><option value="40">40%</option></select></div><div class="cal-input-row"><input data-field="url" type="text" placeholder="https://…/calendar.ics or imported file" value="${url}"></div></div>`;
+  return `<div class="cal-entry calendar-source-card" data-calendar-id="${id}"><div class="calendar-source-head"><div class="calendar-source-title">${name}</div><div class="calendar-source-actions"><button class="cal-mini-btn" type="button" onclick="testSingleCalendarSource('${id}')">Check</button><button class="cal-mini-btn" type="button" onclick="duplicateCalendarSource('${id}')">Duplicate</button><button class="cal-mini-btn" type="button" onclick="removeCalendarSource('${id}')">Remove</button></div></div><div class="cal-meta-row"><input data-field="enabled" class="cal-enabled" type="checkbox" ${c.enabled!==false?'checked':''} title="Enable this calendar"><input data-field="name" class="cal-name" type="text" placeholder="Name (e.g. Family)" value="${name}"><input data-field="color" type="color" value="${color}" title="Calendar color"><input data-field="hex" class="color-hex" type="text" maxlength="7" value="${color.toUpperCase()}" spellcheck="false" aria-label="Calendar hex color"><select data-field="opacity" class="cal-opacity" title="Calendar opacity"><option value="100">100%</option><option value="85">85%</option><option value="70">70%</option><option value="55">55%</option><option value="40">40%</option></select></div><div class="cal-input-row"><input data-field="url" type="text" placeholder="https://…/calendar.ics or imported file" value="${url}"></div></div>`;
 }
 function bindCalendarCard(entry,row){
   const picker=entry.querySelector('[data-field="color"]'),hex=entry.querySelector('[data-field="hex"]'),opacity=entry.querySelector('[data-field="opacity"]');
@@ -5874,15 +5914,12 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-profiles':'Save and switch complete dashboard configurations.',
   'settings-scenes':'Schedule saved Profiles by display, day and time.',
   'settings-location':'Weather location and the label shown on the dashboard.',
-  'settings-calendars':'ICS calendar feeds and imported calendar files.',
+  'settings-calendars':'Calendar feeds, imported files, refresh behavior and display priority.',
   'settings-alerts':'Enable severe-weather alerts and control their motion.',
   'settings-alert-appearance':'Power-user filtering and alert-card presentation.',
-  'settings-background-source':'Choose Google Photos, stock backgrounds or no photo.',
-  'settings-background-google':'Your Google Photos shared-album source.',
+  'settings-backgrounds':'Picture sources, Google Photos, local/NAS folders, rotation and order.',
   'settings-weather-options':'Temperature units and weather refresh timing.',
   'settings-weather-details':'Choose, enable and reorder Weather Details metrics.',
-  'settings-calendar-options':'Calendar refresh, time display, legend and feed priority.',
-  'settings-background-options':'Background timing, order, shuffle and preloading.',
   'settings-background-style':'Power-user controls for how backgrounds are rendered.',
   'settings-templates':'Apply safe layout and presentation starting points without replacing data sources.',
   'settings-theme':'Choose a LibreDisplay color theme and dashboard font.',
@@ -6040,7 +6077,17 @@ async function testCalendarInputs(){
   }
   calStatuses=calendars.map(c=>({label:c.label,pending:true}));
   updateCalStatusUI();
-  await Promise.all(calendars.map((c,i)=>fetchCal(c,i)));
+  await Promise.all(calendars.map((c,i)=>fetchCal(c,i,{preferFormUrl:true})));
+}
+
+async function testSingleCalendarSource(id){
+  syncCalendarEditorRows();
+  const row=calendarEditorRows.find(c=>c.id===id);
+  if(!row)return;
+  if(!row.url){calStatuses=[{label:row.label||'Calendar',ok:false,error:'Enter a calendar URL first'}];updateCalStatusUI();return;}
+  calStatuses=[{label:row.label||'Calendar',pending:true}];
+  updateCalStatusUI();
+  await fetchCal(row,0,{preferFormUrl:true});
 }
 
 function refreshDataNow(){
