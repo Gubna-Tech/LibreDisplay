@@ -179,6 +179,20 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("layoutContentScale", html)
         self.assertIn("_contentScale", html)
 
+    def test_v121_layout_editor_customization_controls(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        self.assertIn('id="settings-settings-button"', html)
+        for marker in ('s-cog-position', 's-cog-opacity', 's-cog-size', 's-cog-label'):
+            self.assertIn(marker, html)
+        self.assertIn('id="layout-properties"', html)
+        self.assertIn('layoutElementStyle', html)
+        self.assertIn('function setSelectedLayoutStyle', html)
+        self.assertIn('function placeSelectedLayoutBlock', html)
+        self.assertIn('function applyBuiltInElementStyles', html)
+        self.assertIn('existing._hAlign', html)
+        for direction in ('nw', 'ne', 'sw', 'se'):
+            self.assertIn(f'data-resize="{direction}"', html)
+
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
         for marker in ("bc-chart-area", "bc-chart-points", "bc-chart-grid", "function analyzeImportedSettings", "product:'LibreDisplay',format:2"):

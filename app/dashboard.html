@@ -600,6 +600,26 @@ body.custom-layout #wx-hourly-block {
 }
 body.custom-layout #wx-hourly-block .wx-hourly { position:absolute;left:0;bottom:0;width:100%; }
 body.custom-layout #calendar-legend { position:fixed; }
+
+body.custom-layout #top-strip[data-ld-v-align="top"]{align-content:start}body.custom-layout #top-strip[data-ld-v-align="middle"]{align-content:center}body.custom-layout #top-strip[data-ld-v-align="bottom"]{align-content:end}
+body.custom-layout #top-strip[data-ld-h-align="left"] .day-col{text-align:left}body.custom-layout #top-strip[data-ld-h-align="center"] .day-col{text-align:center}body.custom-layout #top-strip[data-ld-h-align="right"] .day-col{text-align:right}
+body.custom-layout #top-strip[data-ld-h-align="left"] .day-heading,body.custom-layout #top-strip[data-ld-h-align="left"] .event-time,body.custom-layout #top-strip[data-ld-h-align="left"] .event-title-no-time{justify-content:flex-start}body.custom-layout #top-strip[data-ld-h-align="center"] .day-heading,body.custom-layout #top-strip[data-ld-h-align="center"] .event-time,body.custom-layout #top-strip[data-ld-h-align="center"] .event-title-no-time{justify-content:center}body.custom-layout #top-strip[data-ld-h-align="right"] .day-heading,body.custom-layout #top-strip[data-ld-h-align="right"] .event-time,body.custom-layout #top-strip[data-ld-h-align="right"] .event-title-no-time{justify-content:flex-end}
+body.custom-layout .wx-main[data-ld-v-align="top"]{justify-content:flex-start}body.custom-layout .wx-main[data-ld-v-align="middle"]{justify-content:center}body.custom-layout .wx-main[data-ld-v-align="bottom"]{justify-content:flex-end}
+body.custom-layout .wx-main[data-ld-h-align="left"] .wx-current{align-items:flex-start;text-align:left}body.custom-layout .wx-main[data-ld-h-align="center"] .wx-current{align-items:center;text-align:center}body.custom-layout .wx-main[data-ld-h-align="right"] .wx-current{align-items:flex-end;text-align:right}
+body.custom-layout #clock-block[data-ld-v-align="top"]{justify-content:flex-start}body.custom-layout #clock-block[data-ld-v-align="middle"]{justify-content:center}body.custom-layout #clock-block[data-ld-v-align="bottom"]{justify-content:flex-end}
+body.custom-layout #clock-block[data-ld-h-align="left"]{align-items:flex-start;text-align:left}body.custom-layout #clock-block[data-ld-h-align="center"]{align-items:center;text-align:center}body.custom-layout #clock-block[data-ld-h-align="right"]{align-items:flex-end;text-align:right}
+body.custom-layout .wx-details[data-ld-v-align="top"]{align-content:start}body.custom-layout .wx-details[data-ld-v-align="middle"]{align-content:center}body.custom-layout .wx-details[data-ld-v-align="bottom"]{align-content:end}
+body.custom-layout .wx-details[data-ld-h-align="left"] .wx-detail{align-items:flex-start!important;text-align:left!important}body.custom-layout .wx-details[data-ld-h-align="center"] .wx-detail{align-items:center!important;text-align:center!important}body.custom-layout .wx-details[data-ld-h-align="right"] .wx-detail{align-items:flex-end!important;text-align:right!important}
+body.custom-layout #wx-forecast[data-ld-v-align="top"]{align-content:start}body.custom-layout #wx-forecast[data-ld-v-align="middle"]{align-content:center}body.custom-layout #wx-forecast[data-ld-v-align="bottom"]{align-content:end}
+body.custom-layout #wx-forecast[data-ld-h-align="left"] .fc-col{align-items:flex-start;text-align:left}body.custom-layout #wx-forecast[data-ld-h-align="center"] .fc-col{align-items:center;text-align:center}body.custom-layout #wx-forecast[data-ld-h-align="right"] .fc-col{align-items:flex-end;text-align:right}
+body.custom-layout #wx-hourly-block[data-ld-v-align="top"] .wx-hourly{top:0;bottom:auto}body.custom-layout #wx-hourly-block[data-ld-v-align="middle"] .wx-hourly{top:50%;bottom:auto;transform:translateY(-50%)}body.custom-layout #wx-hourly-block[data-ld-v-align="bottom"] .wx-hourly{top:auto;bottom:0;transform:none}
+body.custom-layout #wx-hourly-block[data-ld-h-align="left"] .hr-col{align-items:flex-start;text-align:left}body.custom-layout #wx-hourly-block[data-ld-h-align="center"] .hr-col{align-items:center;text-align:center}body.custom-layout #wx-hourly-block[data-ld-h-align="right"] .hr-col{align-items:flex-end;text-align:right}
+.custom-block[data-ld-h-align="left"] .custom-block-card{text-align:left}.custom-block[data-ld-h-align="center"] .custom-block-card{text-align:center}.custom-block[data-ld-h-align="right"] .custom-block-card{text-align:right}
+.custom-block[data-ld-h-align="left"] :is(.custom-countdown,.custom-daily-wrap){align-items:flex-start}.custom-block[data-ld-h-align="center"] :is(.custom-countdown,.custom-daily-wrap){align-items:center}.custom-block[data-ld-h-align="right"] :is(.custom-countdown,.custom-daily-wrap){align-items:flex-end}
+.custom-block[data-ld-h-align="left"] :is(.custom-icon-wrap,.custom-link-wrap,.custom-qr-wrap,.custom-scheduled-wrap){justify-content:flex-start}.custom-block[data-ld-h-align="center"] :is(.custom-icon-wrap,.custom-link-wrap,.custom-qr-wrap,.custom-scheduled-wrap){justify-content:center}.custom-block[data-ld-h-align="right"] :is(.custom-icon-wrap,.custom-link-wrap,.custom-qr-wrap,.custom-scheduled-wrap){justify-content:flex-end}
+.custom-block[data-ld-v-align="top"] :is(.custom-countdown,.custom-daily-wrap){justify-content:flex-start}.custom-block[data-ld-v-align="middle"] :is(.custom-countdown,.custom-daily-wrap){justify-content:center}.custom-block[data-ld-v-align="bottom"] :is(.custom-countdown,.custom-daily-wrap){justify-content:flex-end}
+.custom-block[data-ld-v-align="top"] :is(.custom-icon-wrap,.custom-link-wrap,.custom-qr-wrap,.custom-scheduled-wrap){align-items:flex-start}.custom-block[data-ld-v-align="middle"] :is(.custom-icon-wrap,.custom-link-wrap,.custom-qr-wrap,.custom-scheduled-wrap){align-items:center}.custom-block[data-ld-v-align="bottom"] :is(.custom-icon-wrap,.custom-link-wrap,.custom-qr-wrap,.custom-scheduled-wrap){align-items:flex-end}
+[data-ld-color="custom"],[data-ld-color="custom"] *{color:var(--ld-element-color)!important}[data-ld-font="custom"],[data-ld-font="custom"] *{font-family:var(--ld-element-font)!important}
 body.layout-editing #top-strip,
 body.layout-editing .wx-main,
 body.layout-editing #clock-block,
@@ -661,17 +681,15 @@ body.layout-editing #calendar-legend {
 }
 .layout-resize-handle {
   position:absolute;
-  right:-7px;
-  bottom:-7px;
-  width:22px;
-  height:22px;
+  width:18px;
+  height:18px;
   border-radius:50%;
   border:2px solid #fff;
   background:#111;
   box-shadow:0 2px 8px rgba(0,0,0,.55);
-  cursor:nwse-resize;
   touch-action:none;
 }
+.layout-resize-handle.se{right:-7px;bottom:-7px;cursor:nwse-resize}.layout-resize-handle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.layout-resize-handle.ne{right:-7px;top:-7px;cursor:nesw-resize}.layout-resize-handle.nw{left:-7px;top:-7px;cursor:nwse-resize}
 #layout-toolbar {
   position:fixed;
   z-index:255;
@@ -706,6 +724,10 @@ body.layout-editing #calendar-legend {
 #layout-toolbar .layout-cancel { color:rgba(255,255,255,.78); }
 #layout-toolbar .layout-toolbar-label { font-size:11px;color:rgba(255,255,255,.66);white-space:nowrap; }
 .layout-content-size-control{display:flex;align-items:center;gap:6px}.layout-content-size-control input[type=range]{width:92px;accent-color:#fff}.layout-content-size-control span{min-width:38px;font-size:11px;color:rgba(255,255,255,.78);text-align:right}.layout-content-size-control.disabled{opacity:.38;pointer-events:none}
+#layout-properties{position:fixed;z-index:256;top:72px;right:14px;width:min(310px,calc(100vw - 28px));max-height:calc(100vh - 88px);overflow:auto;display:none;padding:13px;border:1px solid rgba(255,255,255,.18);border-radius:13px;background:rgba(10,10,16,.95);box-shadow:0 10px 34px rgba(0,0,0,.45);font-family:'Inter',sans-serif;color:#fff}
+#layout-properties.show{display:block}.layout-prop-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}.layout-prop-head b{font-size:13px}.layout-prop-head small{display:block;margin-top:3px;font-size:10px;color:rgba(255,255,255,.56);line-height:1.35}.layout-prop-section{padding:10px 0;border-top:1px solid rgba(255,255,255,.10)}.layout-prop-section:first-of-type{border-top:0}.layout-prop-label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:rgba(255,255,255,.62);margin-bottom:6px}.layout-prop-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.layout-prop-row select,.layout-prop-row input[type=text]{min-width:0;flex:1;border:1px solid rgba(255,255,255,.14);border-radius:7px;background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:11px;padding:7px 8px}.layout-prop-row input[type=color]{width:38px;height:32px;border:1px solid rgba(255,255,255,.14);border-radius:7px;background:rgba(255,255,255,.08);padding:3px}.layout-prop-row input[type=range]{flex:1;min-width:110px;accent-color:#fff}.layout-prop-row button,.layout-align-grid button,.layout-position-grid button{border:1px solid rgba(255,255,255,.14);border-radius:7px;background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:11px;padding:7px 8px;cursor:pointer}.layout-prop-row button.active,.layout-align-grid button.active{background:#fff;color:#111}.layout-align-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.layout-position-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.layout-position-grid button{padding:6px 5px}.layout-prop-value{font-size:10px;color:rgba(255,255,255,.68);min-width:42px;text-align:right}.layout-prop-disabled{opacity:.38;pointer-events:none}.layout-prop-hint{font-size:10px;line-height:1.45;color:rgba(255,255,255,.48)}
+@media(max-width:900px){#layout-properties{top:auto;bottom:12px;right:12px;left:12px;width:auto;max-height:44vh}#layout-toolbar{top:8px}}
+
 #layout-selected-info {
   min-width:118px;
   max-width:220px;
@@ -1332,6 +1354,7 @@ body.layout-editing .custom-block { pointer-events:none !important; user-select:
 #layout-toolbar button,#layout-toolbar select { background:var(--ld-surface-2); border-color:var(--ld-border); color:var(--ld-text); }
 #layout-toolbar .layout-save { background:var(--ld-accent); color:var(--ld-accent-contrast); border-color:var(--ld-accent); }
 #layout-toolbar .layout-cancel,#layout-toolbar .layout-toolbar-label,#layout-selected-info { color:var(--ld-muted); }
+#layout-properties{background:color-mix(in srgb,var(--ld-surface) 96%,transparent);border-color:var(--ld-border-strong);color:var(--ld-text);box-shadow:0 10px 34px var(--ld-shadow)}#layout-properties .layout-prop-head small,#layout-properties .layout-prop-label,#layout-properties .layout-prop-hint{color:var(--ld-muted)}#layout-properties .layout-prop-section{border-color:var(--ld-border)}#layout-properties select,#layout-properties input[type=text],#layout-properties input[type=color],#layout-properties button{background:var(--ld-surface-2);border-color:var(--ld-border);color:var(--ld-text)}#layout-properties button.active{background:var(--ld-accent);border-color:var(--ld-accent);color:var(--ld-accent-contrast)}#layout-properties input[type=range]{accent-color:var(--ld-accent)}
 .layout-edit-box.selected { border-color:var(--ld-accent); box-shadow:0 0 0 2px color-mix(in srgb,var(--ld-accent) 28%,transparent),0 5px 22px var(--ld-shadow); }
 .layout-resize-handle { border-color:var(--ld-accent); background:var(--ld-surface); }
 #cog {
@@ -1465,7 +1488,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.2.0</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.2.1</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -1748,6 +1771,17 @@ html:not(.cursor-active) * {
    <div class="settings-note">Reduced motion disables decorative transitions and continuous alert/background animation where possible. It does not stop data refreshes.</div>
   </div>
 
+  <div class="s-section" id="settings-settings-button" data-settings-tab="look">
+   <h3>Settings button</h3>
+   <div class="howto">Keep the Settings cog convenient without letting it dominate the dashboard. Move it to any corner and tune how noticeable it is when idle.</div>
+   <div class="settings-grid">
+    <div class="s-row"><label>Corner</label><select id="s-cog-position" onchange="previewAppearance()"><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option><option value="top-right">Top right</option><option value="top-left">Top left</option></select></div>
+    <div class="s-row"><label>Button size</label><select id="s-cog-size" onchange="previewAppearance()"><option value="36">Compact</option><option value="42">Small</option><option value="46">Standard</option><option value="52">Large</option><option value="58">Extra large</option></select></div>
+    <div class="s-row"><label>Idle visibility <span id="s-cog-opacity-value" class="range-value">42%</span></label><input id="s-cog-opacity" type="range" min="10" max="90" step="2" value="42" oninput="previewAppearance()"></div>
+    <label class="checkline"><input id="s-cog-label" type="checkbox" checked onchange="previewAppearance()"> Show “Settings” hint on hover / first discovery</label>
+   </div>
+  </div>
+
   <div class="s-section" id="settings-appearance" data-settings-level="advanced" data-settings-tab="look">
    <h3>Layout &amp; display tuning</h3>
    <div class="howto">The current dashboard is the 100% default. Changes preview live while this menu is open; Esc/Cancel restores the saved layout. Presets only change appearance controls — never calendar URLs or account data.</div>
@@ -1793,7 +1827,7 @@ html:not(.cursor-active) * {
    </div>
 
    <div class="s-subhead">Advanced layout editor</div>
-   <div class="howto">Unlock the dashboard to drag and resize each major element independently. The editor also has an Add Block catalog for Calendar View, Weather View, Text, Countdown, Image, QR, Shape, Button, RSS, Web Page, JSON/Data, Todo, Scheduled Text, Daily Message, Air Quality, Sunrise/Sunset, and Icon blocks. Multiple instances are supported. Positions are stored proportionally, so layouts scale across similar screen resolutions. The current fixed layout remains the default until you save a custom arrangement.</div>
+   <div class="howto">Unlock the dashboard to drag and resize each major element independently. Select any element to open its inspector for content size, font, text color, opacity, horizontal/vertical content alignment, and precise screen placement. Arrow keys nudge a selected block; Shift + arrow resizes it. The Add Block catalog supports multiple reusable custom blocks. Positions are stored proportionally so layouts scale across similar screen resolutions.</div>
    <div class="settings-grid">
     <div class="s-row"><label>Snap grid</label><select id="s-layout-grid"><option value="8">8 px — fine</option><option value="12">12 px</option><option value="16">16 px</option><option value="20">20 px — default</option><option value="24">24 px</option><option value="32">32 px — coarse</option></select></div>
     <label class="checkline"><input id="s-layout-snap" type="checkbox" checked> Snap blocks to grid while moving/resizing</label>
@@ -1842,7 +1876,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.2.0</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.2.1</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -1953,13 +1987,40 @@ html:not(.cursor-active) * {
  <span class="layout-toolbar-label">Grid</span>
  <select id="layout-toolbar-grid" onchange="setLayoutEditorGrid(this.value)"><option value="8">8</option><option value="12">12</option><option value="16">16</option><option value="20">20</option><option value="24">24</option><option value="32">32</option></select>
  <label class="layout-toolbar-label"><input id="layout-toolbar-snap" type="checkbox" checked onchange="setLayoutEditorSnap(this.checked)"> Snap</label>
- <span class="layout-toolbar-label">Content</span>
- <div id="layout-content-size-control" class="layout-content-size-control">
-  <input id="layout-toolbar-scale" type="range" min="50" max="200" step="5" value="100" aria-label="Selected element content size" oninput="setSelectedContentScale(this.value)" onchange="finishSelectedContentScaleEdit()">
-  <span id="layout-toolbar-scale-value">100%</span>
-  <button type="button" onclick="resetSelectedContentScale()" title="Reset selected content size">Reset</button>
+ <span id="layout-selected-info">Select an element · drag to move · corner to resize</span>
+</div>
+<div id="layout-properties" aria-hidden="true">
+ <div class="layout-prop-head"><div><b id="layout-properties-title">Element inspector</b><small id="layout-properties-subtitle">Select an element to customize its contents.</small></div><button type="button" onclick="resetSelectedLayoutBlock()" title="Reset the selected element">Reset</button></div>
+ <div id="layout-properties-controls" class="layout-prop-disabled">
+  <div class="layout-prop-section">
+   <div class="layout-prop-label"><span>Content size</span><span id="layout-toolbar-scale-value" class="layout-prop-value">100%</span></div>
+   <div id="layout-content-size-control" class="layout-content-size-control"><input id="layout-toolbar-scale" type="range" min="50" max="200" step="5" value="100" aria-label="Selected element content size" oninput="setSelectedContentScale(this.value)" onchange="finishSelectedContentScaleEdit()"><button type="button" onclick="resetSelectedContentScale()">100%</button></div>
+  </div>
+  <div class="layout-prop-section">
+   <div class="layout-prop-label"><span>Typography</span><span>Per element</span></div>
+   <div class="layout-prop-row"><select id="layout-style-font" onchange="setSelectedLayoutStyle('fontFamily',this.value)"><option value="">Use dashboard font</option><option value="Inter">Inter</option><option value="system">System UI</option><option value="Noto Sans">Noto Sans</option><option value="DejaVu Sans">DejaVu Sans</option><option value="Liberation Sans">Liberation Sans</option><option value="Trebuchet MS">Humanist sans</option><option value="DejaVu Serif">DejaVu Serif</option><option value="Georgia">Georgia</option><option value="monospace">Monospace</option></select></div>
+   <div class="layout-prop-row" style="margin-top:6px"><input id="layout-style-color" type="color" value="#ffffff" aria-label="Element text color" oninput="setSelectedLayoutStyle('textColor',this.value,true)" onchange="finishSelectedLayoutStyleEdit()"><input id="layout-style-color-hex" type="text" maxlength="7" value="Theme" aria-label="Element text color hex" onchange="setSelectedLayoutColorHex(this.value)"><button type="button" onclick="setSelectedLayoutStyle('textColor','')">Theme</button></div>
+  </div>
+  <div class="layout-prop-section">
+   <div class="layout-prop-label"><span>Horizontal content</span><span>Inside block</span></div>
+   <div class="layout-align-grid"><button id="layout-h-left" type="button" onclick="setSelectedLayoutStyle('hAlign','left')">Left</button><button id="layout-h-center" type="button" onclick="setSelectedLayoutStyle('hAlign','center')">Center</button><button id="layout-h-right" type="button" onclick="setSelectedLayoutStyle('hAlign','right')">Right</button></div>
+   <div class="layout-prop-row" style="margin-top:5px"><button id="layout-h-auto" type="button" onclick="setSelectedLayoutStyle('hAlign','auto')">Use default</button></div>
+  </div>
+  <div class="layout-prop-section">
+   <div class="layout-prop-label"><span>Vertical content</span><span>Inside block</span></div>
+   <div class="layout-align-grid"><button id="layout-v-top" type="button" onclick="setSelectedLayoutStyle('vAlign','top')">Top</button><button id="layout-v-middle" type="button" onclick="setSelectedLayoutStyle('vAlign','middle')">Middle</button><button id="layout-v-bottom" type="button" onclick="setSelectedLayoutStyle('vAlign','bottom')">Bottom</button></div>
+   <div class="layout-prop-row" style="margin-top:5px"><button id="layout-v-auto" type="button" onclick="setSelectedLayoutStyle('vAlign','auto')">Use default</button></div>
+  </div>
+  <div class="layout-prop-section">
+   <div class="layout-prop-label"><span>Element opacity</span><span id="layout-style-opacity-value" class="layout-prop-value">100%</span></div>
+   <div class="layout-prop-row"><input id="layout-style-opacity" type="range" min="20" max="100" step="5" value="100" oninput="setSelectedLayoutStyle('opacity',this.value,true)" onchange="finishSelectedLayoutStyleEdit()"><button type="button" onclick="setSelectedLayoutStyle('opacity',100)">100%</button></div>
+  </div>
+  <div class="layout-prop-section">
+   <div class="layout-prop-label"><span>Place element</span><span>Keep current size</span></div>
+   <div class="layout-position-grid"><button type="button" onclick="placeSelectedLayoutBlock('top-left')">↖</button><button type="button" onclick="placeSelectedLayoutBlock('top-center')">↑</button><button type="button" onclick="placeSelectedLayoutBlock('top-right')">↗</button><button type="button" onclick="placeSelectedLayoutBlock('middle-left')">←</button><button type="button" onclick="placeSelectedLayoutBlock('center')">Center</button><button type="button" onclick="placeSelectedLayoutBlock('middle-right')">→</button><button type="button" onclick="placeSelectedLayoutBlock('bottom-left')">↙</button><button type="button" onclick="placeSelectedLayoutBlock('bottom-center')">↓</button><button type="button" onclick="placeSelectedLayoutBlock('bottom-right')">↘</button></div>
+  </div>
+  <div class="layout-prop-section"><div class="layout-prop-hint">Tip: drag for free placement. Arrow keys nudge by one grid step. Hold Shift + an arrow key to resize. Undo/Redo includes geometry and inspector changes.</div></div>
  </div>
- <span id="layout-selected-info">Drag an element · resize from corner</span>
 </div>
 <div id="block-catalog" aria-hidden="true">
  <div class="block-dialog">
@@ -1978,7 +2039,7 @@ html:not(.cursor-active) * {
 <div id="offline-pill">Offline · cached data</div>
 
 <script>
-const DASHBOARD_BUILD = '1.2.0';
+const DASHBOARD_BUILD = '1.2.1';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -2097,6 +2158,11 @@ let cfg = {
   layoutSnap:true,
   layoutBlocks:{},
   layoutContentScale:{},
+  layoutElementStyle:{},
+  settingsCogPosition:'bottom-right',
+  settingsCogOpacity:42,
+  settingsCogSize:46,
+  settingsCogLabel:true,
   customBlocks:[],
   showEventTimes:true,
   showDailyForecast:true,
@@ -2250,6 +2316,16 @@ function ensureCfgDefaults(){
   if(!cfg.layoutBlocks||typeof cfg.layoutBlocks!=='object'||Array.isArray(cfg.layoutBlocks))cfg.layoutBlocks={};
   if(!cfg.layoutContentScale||typeof cfg.layoutContentScale!=='object'||Array.isArray(cfg.layoutContentScale))cfg.layoutContentScale={};
   for(const key of ['calendar','current','clock','details','daily','hourly','alerts'])cfg.layoutContentScale[key]=Math.min(200,Math.max(50,Number(cfg.layoutContentScale[key])||100));
+  if(!cfg.layoutElementStyle||typeof cfg.layoutElementStyle!=='object'||Array.isArray(cfg.layoutElementStyle))cfg.layoutElementStyle={};
+  const layoutStyleKeys=['calendar','current','clock','details','daily','hourly','alerts'];
+  for(const key of layoutStyleKeys){
+    const raw=(cfg.layoutElementStyle[key]&&typeof cfg.layoutElementStyle[key]==='object'&&!Array.isArray(cfg.layoutElementStyle[key]))?cfg.layoutElementStyle[key]:{};
+    cfg.layoutElementStyle[key]={hAlign:['auto','left','center','right'].includes(raw.hAlign)?raw.hAlign:'auto',vAlign:['auto','top','middle','bottom'].includes(raw.vAlign)?raw.vAlign:'auto',fontFamily:['','Inter','system','Noto Sans','DejaVu Sans','Liberation Sans','Trebuchet MS','DejaVu Serif','Georgia','monospace'].includes(raw.fontFamily)?raw.fontFamily:'',textColor:/^#[0-9a-f]{6}$/i.test(raw.textColor||'')?raw.textColor.toLowerCase():'',opacity:Math.min(100,Math.max(20,Number(raw.opacity)||100))};
+  }
+  cfg.settingsCogPosition=['bottom-right','bottom-left','top-right','top-left'].includes(cfg.settingsCogPosition)?cfg.settingsCogPosition:'bottom-right';
+  cfg.settingsCogOpacity=Math.min(90,Math.max(10,num(cfg.settingsCogOpacity,42)));
+  cfg.settingsCogSize=[36,42,46,52,58].includes(Number(cfg.settingsCogSize))?Number(cfg.settingsCogSize):46;
+  if(typeof cfg.settingsCogLabel!=='boolean')cfg.settingsCogLabel=true;
   const previousWeatherBlock=cfg.layoutBlocks.weather, previousForecastBlock=cfg.layoutBlocks.forecast;
   const rectPart=(r,x,y,w,h)=>({x:Number(r.x||0)+Number(r.w||0)*x,y:Number(r.y||0)+Number(r.h||0)*y,w:Number(r.w||0)*w,h:Number(r.h||0)*h});
   if(previousWeatherBlock&&typeof previousWeatherBlock==='object'){
@@ -2282,6 +2358,11 @@ function ensureCfgDefaults(){
     const w=Math.max(.04,Math.min(1-x,Number(r.w)||.28)),h=Math.max(.04,Math.min(1-y,Number(r.h)||.20));
     const config=(b.config&&typeof b.config==='object'&&!Array.isArray(b.config))?b.config:{};
     config._contentScale=Math.min(200,Math.max(50,Number(config._contentScale)||100));
+    config._hAlign=['auto','left','center','right'].includes(config._hAlign)?config._hAlign:'auto';
+    config._vAlign=['auto','top','middle','bottom'].includes(config._vAlign)?config._vAlign:'auto';
+    config._fontFamily=['','Inter','system','Noto Sans','DejaVu Sans','Liberation Sans','Trebuchet MS','DejaVu Serif','Georgia','monospace'].includes(config._fontFamily)?config._fontFamily:'';
+    config._textColor=/^#[0-9a-f]{6}$/i.test(config._textColor||'')?config._textColor.toLowerCase():'';
+    config._opacity=Math.min(100,Math.max(20,Number(config._opacity)||100));
     if(type==='json'){
       if(!['value','gauge','progress','sparkline','line','bar','table','raw'].includes(config.visualization))config.visualization=config.raw===true?'raw':'value';
       config.raw=config.visualization==='raw';
@@ -4249,7 +4330,7 @@ function defaultBlockConfig(type){
     icon:{title:'',glyph:'★',card:false},
     integration:{title:'Integration',plugin:'',settings:{},refreshMin:5,card:true}
   }[type]||{};
-  return Object.assign({_visible:true,_locked:false,_layer:10,_opacity:100,_contentScale:100,_cardMode:'auto',_visMode:'always',_visDays:'0,1,2,3,4,5,6',_visStart:'00:00',_visEnd:'00:00'},specific);
+  return Object.assign({_visible:true,_locked:false,_layer:10,_opacity:100,_contentScale:100,_hAlign:'auto',_vAlign:'auto',_fontFamily:'',_textColor:'',_cardMode:'auto',_visMode:'always',_visDays:'0,1,2,3,4,5,6',_visStart:'00:00',_visEnd:'00:00'},specific);
 }
 function customBlockById(id,list=cfg.customBlocks){return (list||[]).find(b=>b.id===id)||null;}
 function customKeyId(key){return String(key||'').startsWith('custom:')?String(key).slice(7):'';}
@@ -4263,7 +4344,8 @@ function clearCustomBlockTimers(){for(const t of customBlockTimers.values())clea
 function customBlockSignature(blocks){try{return JSON.stringify((blocks||[]).map(b=>({id:b.id,type:b.type,name:b.name,rect:b.rect,config:b.config})));}catch{return String(Date.now());}}
 function blockScheduleActive(c,now=new Date()){if(c?._visible===false)return false;const mode=c?._visMode||'always';if(mode==='always')return true;const day=now.getDay();let allowed=mode==='weekdays'?(day>=1&&day<=5):mode==='weekends'?(day===0||day===6):String(c?._visDays||'').split(',').map(Number).includes(day);if(!allowed)return false;const parse=t=>{const m=String(t||'').match(/^(\d{1,2}):(\d{2})$/);return m?Math.min(1439,Math.max(0,+m[1]*60 + +m[2])):null;},mins=now.getHours()*60+now.getMinutes(),start=parse(c?._visStart),end=parse(c?._visEnd);if(start==null||end==null||start===end)return true;return start<end?(mins>=start&&mins<end):(mins>=start||mins<end);}
 function blockCardEnabled(block){const c=block?.config||{};if(c._cardMode==='card')return true;if(c._cardMode==='transparent')return false;return c.card!==false;}
-function applyCustomBlockUniversalState(el,block){if(!el||!block)return;const c=block.config||{},active=blockScheduleActive(c),editing=layoutEditorActive,contentScale=Math.min(200,Math.max(50,Number(c._contentScale)||100))/100;el.style.setProperty('--ld-block-scale',contentScale.toFixed(3));el.style.setProperty('--ld-block-scale-inverse',(1/contentScale).toFixed(4));el.style.zIndex=String(Math.max(1,Math.min(99,Number(c._layer)||10)));el.style.opacity=String(Math.max(.1,Math.min(1,(Number(c._opacity)||100)/100))*(editing&&!active?0.32:1));el.style.display=(!editing&&!active)?'none':'';el.classList.toggle('no-card',!blockCardEnabled(block));el.classList.toggle('custom-block-hidden-edit',editing&&!active);el.classList.toggle('custom-block-locked-edit',editing&&c._locked===true);}
+function applyElementInspectorStyle(el,style={}){if(!el)return;const h=['auto','left','center','right'].includes(style.hAlign)?style.hAlign:'auto',v=['auto','top','middle','bottom'].includes(style.vAlign)?style.vAlign:'auto',font=['','Inter','system','Noto Sans','DejaVu Sans','Liberation Sans','Trebuchet MS','DejaVu Serif','Georgia','monospace'].includes(style.fontFamily)?style.fontFamily:'',color=/^#[0-9a-f]{6}$/i.test(style.textColor||'')?style.textColor.toLowerCase():'';el.dataset.ldHAlign=h;el.dataset.ldVAlign=v;el.dataset.ldFont=font?'custom':'theme';el.dataset.ldColor=color?'custom':'theme';if(font)el.style.setProperty('--ld-element-font',fontCssValue(font));else el.style.removeProperty('--ld-element-font');if(color)el.style.setProperty('--ld-element-color',color);else el.style.removeProperty('--ld-element-color');}
+function applyCustomBlockUniversalState(el,block){if(!el||!block)return;const c=block.config||{},active=blockScheduleActive(c),editing=layoutEditorActive,contentScale=Math.min(200,Math.max(50,Number(c._contentScale)||100))/100;el.style.setProperty('--ld-block-scale',contentScale.toFixed(3));el.style.setProperty('--ld-block-scale-inverse',(1/contentScale).toFixed(4));el.style.zIndex=String(Math.max(1,Math.min(99,Number(c._layer)||10)));el.style.opacity=String(Math.max(.2,Math.min(1,(Number(c._opacity)||100)/100))*(editing&&!active?0.32:1));el.style.display=(!editing&&!active)?'none':'';applyElementInspectorStyle(el,{hAlign:c._hAlign,vAlign:c._vAlign,fontFamily:c._fontFamily,textColor:c._textColor});el.classList.toggle('no-card',!blockCardEnabled(block));el.classList.toggle('custom-block-hidden-edit',editing&&!active);el.classList.toggle('custom-block-locked-edit',editing&&c._locked===true);}
 function updateCustomBlockUniversalStates(blocks=layoutEditorActive?layoutCustomBlocksDraft:cfg.customBlocks){for(const block of blocks||[]){const el=document.querySelector(`.custom-block[data-block-id="${CSS.escape(block.id)}"]`);applyCustomBlockUniversalState(el,block);}}
 function ensureCustomBlocksRendered(blocks=cfg.customBlocks,force=false){const sig=customBlockSignature(blocks);if(!force&&sig===customBlockRenderSignature)return;customBlockRenderSignature=sig;renderCustomBlocks(blocks);}
 function applyCustomBlockRect(el,block){if(!el||!block)return;const r=customBlockRectSanitize(block,block.rect),px=pxRectFromNormalized(r);el.style.left=px.left.toFixed(1)+'px';el.style.top=px.top.toFixed(1)+'px';el.style.width=px.width.toFixed(1)+'px';el.style.height=px.height.toFixed(1)+'px';}
@@ -4534,7 +4616,7 @@ function blockConfigFieldsHtml(type,c,name){let h=bf('Block name','bc-name',name
   return h;
 }
 function bv(id){return document.getElementById(id)?.value??'';}function bc(id){return !!document.getElementById(id)?.checked;}
-function readBlockConfig(type){const c={_visible:bc('bc-u-visible'),_locked:bc('bc-u-locked'),_contentScale:Math.max(50,Math.min(200,Number(bv('bc-u-content-scale'))||100)),_opacity:Math.max(10,Math.min(100,Number(bv('bc-u-opacity'))||100)),_layer:Math.max(1,Math.min(99,Number(bv('bc-u-layer'))||10)),_cardMode:['auto','card','transparent'].includes(bv('bc-u-cardmode'))?bv('bc-u-cardmode'):'auto',_visMode:['always','weekdays','weekends','custom'].includes(bv('bc-u-vismode'))?bv('bc-u-vismode'):'always',_visDays:bv('bc-u-visdays').replace(/[^0-6,]/g,'').slice(0,30),_visStart:bv('bc-u-visstart')||'00:00',_visEnd:bv('bc-u-visend')||'00:00'};if(document.getElementById('bc-title'))c.title=bv('bc-title').slice(0,120);if(document.getElementById('bc-card'))c.card=bc('bc-card');if(type==='calendarview'){c.mode=['agenda','upnext','month','week'].includes(bv('bc-mode'))?bv('bc-mode'):'agenda';c.source=bv('bc-source')||'all';c.days=Math.max(7,Math.min(60,Number(bv('bc-days'))||14));c.maxItems=Math.max(1,Math.min(30,Number(bv('bc-items'))||10));c.eventsPerDay=Math.max(1,Math.min(4,Number(bv('bc-epd'))||2));c.weekStart=['monday','sunday','today'].includes(bv('bc-weekstart'))?bv('bc-weekstart'):'monday';c.weekStartHour=Math.max(0,Math.min(22,Number(bv('bc-starthour'))||6));c.weekEndHour=Math.max(c.weekStartHour+2,Math.min(24,Number(bv('bc-endhour'))||22));c.showTimes=bc('bc-showtimes');}if(type==='weatherview'){c.mode=['current','hourly','daily','details'].includes(bv('bc-mode'))?bv('bc-mode'):'current';c.hours=[3,6,9,12,18,24].includes(Number(bv('bc-hours')))?Number(bv('bc-hours')):12;c.days=[3,5,7,10,12,14].includes(Number(bv('bc-days')))?Number(bv('bc-days')):7;c.showPrecip=bc('bc-precip');}if(type==='text')c.text=bv('bc-text').slice(0,12000);if(type==='countdown'){c.target=bv('bc-target');c.label=bv('bc-label').slice(0,120);c.showSeconds=bc('bc-seconds');}if(type==='image'){c.url=bv('bc-url').trim();c.fit=bv('bc-fit')==='contain'?'contain':'cover';}if(type==='qr')c.value=bv('bc-value').slice(0,4000);if(type==='shape'){c.shape=bv('bc-shape');c.color=bv('bc-color');c.opacity=Math.max(0,Math.min(100,Number(bv('bc-opacity'))||0));c.radius=Math.max(0,Math.min(100,Number(bv('bc-radius'))||0));c.border=Math.max(0,Math.min(20,Number(bv('bc-border'))||0));}if(type==='button'){c.label=bv('bc-label').slice(0,120);c.url=bv('bc-url').trim();c.newTab=bc('bc-newtab');}if(type==='rss'){c.url=bv('bc-url').trim();c.items=Math.max(1,Math.min(12,Number(bv('bc-items'))||5));c.refreshMin=Math.max(1,Math.min(240,Number(bv('bc-refresh'))||15));}if(type==='iframe')c.url=bv('bc-url').trim();if(type==='video'){c.url=bv('bc-url').trim();c.autoplay=bc('bc-autoplay');c.muted=bc('bc-muted');c.controls=bc('bc-controls');}if(type==='json'){c.url=bv('bc-url').trim();c.path=bv('bc-path').trim().slice(0,300);c.prefix=bv('bc-prefix').slice(0,100);c.suffix=bv('bc-suffix').slice(0,100);c.refreshMin=Math.max(1,Math.min(240,Number(bv('bc-refresh'))||5));c.visualization=['value','gauge','progress','sparkline','line','bar','table','raw'].includes(bv('bc-viz'))?bv('bc-viz'):'value';c.raw=c.visualization==='raw';c.min=Number(bv('bc-min'))||0;c.max=Number.isFinite(Number(bv('bc-max')))?Number(bv('bc-max')):100;c.valueKey=bv('bc-valuekey').trim().slice(0,120);c.labelKey=bv('bc-labelkey').trim().slice(0,120);c.columns=bv('bc-columns').trim().slice(0,500);c.maxPoints=Math.max(2,Math.min(100,Number(bv('bc-maxpoints'))||30));c.chartArea=bc('bc-chart-area');c.chartPoints=bc('bc-chart-points');c.chartGrid=bc('bc-chart-grid');}if(type==='todo'){c.items=bv('bc-items').slice(0,12000);c.showCompleted=bc('bc-showcompleted');const old=blockConfigEditingId?customBlockById(blockConfigEditingId,layoutCustomBlocksDraft):null;c.done=Array.isArray(old?.config?.done)?old.config.done:[];}if(type==='family'){c.memberId=bv('bc-member');c.showCompleted=bc('bc-showcompleted');c.showRewards=bc('bc-showrewards');}if(type==='scheduled'){c.message=bv('bc-message').slice(0,12000);c.schedule=['everyday','weekdays','weekends','custom'].includes(bv('bc-schedule'))?bv('bc-schedule'):'weekdays';c.days=bv('bc-days').replace(/[^0-6,]/g,'').slice(0,30);c.start=bv('bc-start')||'00:00';c.end=bv('bc-end')||'00:00';c.hideInactive=bc('bc-hideinactive');}if(type==='daily'){c.source=['facts','prompts','custom'].includes(bv('bc-source'))?bv('bc-source'):'facts';c.custom=bv('bc-custom').slice(0,12000);}if(type==='airquality'){c.refreshMin=Math.max(5,Math.min(240,Number(bv('bc-refresh'))||15));c.showDetails=bc('bc-details');}if(type==='suntimes')c.showDaylight=bc('bc-daylight');if(type==='icon')c.glyph=bv('bc-glyph').slice(0,8)||'★';if(type==='integration'){c.plugin=bv('bc-plugin');c.settings=readIntegrationSettings(c.plugin);c.refreshMin=Math.max(1,Math.min(1440,Number(bv('bc-refresh'))||integrationManifest(c.plugin)?.refreshMin||5));}return c;}
+function readBlockConfig(type){const existing=blockConfigEditingId?customBlockById(blockConfigEditingId,layoutCustomBlocksDraft)?.config||{}:{};const c={_visible:bc('bc-u-visible'),_locked:bc('bc-u-locked'),_contentScale:Math.max(50,Math.min(200,Number(bv('bc-u-content-scale'))||100)),_opacity:Math.max(20,Math.min(100,Number(bv('bc-u-opacity'))||100)),_layer:Math.max(1,Math.min(99,Number(bv('bc-u-layer'))||10)),_hAlign:existing._hAlign||'auto',_vAlign:existing._vAlign||'auto',_fontFamily:existing._fontFamily||'',_textColor:existing._textColor||'',_cardMode:['auto','card','transparent'].includes(bv('bc-u-cardmode'))?bv('bc-u-cardmode'):'auto',_visMode:['always','weekdays','weekends','custom'].includes(bv('bc-u-vismode'))?bv('bc-u-vismode'):'always',_visDays:bv('bc-u-visdays').replace(/[^0-6,]/g,'').slice(0,30),_visStart:bv('bc-u-visstart')||'00:00',_visEnd:bv('bc-u-visend')||'00:00'};if(document.getElementById('bc-title'))c.title=bv('bc-title').slice(0,120);if(document.getElementById('bc-card'))c.card=bc('bc-card');if(type==='calendarview'){c.mode=['agenda','upnext','month','week'].includes(bv('bc-mode'))?bv('bc-mode'):'agenda';c.source=bv('bc-source')||'all';c.days=Math.max(7,Math.min(60,Number(bv('bc-days'))||14));c.maxItems=Math.max(1,Math.min(30,Number(bv('bc-items'))||10));c.eventsPerDay=Math.max(1,Math.min(4,Number(bv('bc-epd'))||2));c.weekStart=['monday','sunday','today'].includes(bv('bc-weekstart'))?bv('bc-weekstart'):'monday';c.weekStartHour=Math.max(0,Math.min(22,Number(bv('bc-starthour'))||6));c.weekEndHour=Math.max(c.weekStartHour+2,Math.min(24,Number(bv('bc-endhour'))||22));c.showTimes=bc('bc-showtimes');}if(type==='weatherview'){c.mode=['current','hourly','daily','details'].includes(bv('bc-mode'))?bv('bc-mode'):'current';c.hours=[3,6,9,12,18,24].includes(Number(bv('bc-hours')))?Number(bv('bc-hours')):12;c.days=[3,5,7,10,12,14].includes(Number(bv('bc-days')))?Number(bv('bc-days')):7;c.showPrecip=bc('bc-precip');}if(type==='text')c.text=bv('bc-text').slice(0,12000);if(type==='countdown'){c.target=bv('bc-target');c.label=bv('bc-label').slice(0,120);c.showSeconds=bc('bc-seconds');}if(type==='image'){c.url=bv('bc-url').trim();c.fit=bv('bc-fit')==='contain'?'contain':'cover';}if(type==='qr')c.value=bv('bc-value').slice(0,4000);if(type==='shape'){c.shape=bv('bc-shape');c.color=bv('bc-color');c.opacity=Math.max(0,Math.min(100,Number(bv('bc-opacity'))||0));c.radius=Math.max(0,Math.min(100,Number(bv('bc-radius'))||0));c.border=Math.max(0,Math.min(20,Number(bv('bc-border'))||0));}if(type==='button'){c.label=bv('bc-label').slice(0,120);c.url=bv('bc-url').trim();c.newTab=bc('bc-newtab');}if(type==='rss'){c.url=bv('bc-url').trim();c.items=Math.max(1,Math.min(12,Number(bv('bc-items'))||5));c.refreshMin=Math.max(1,Math.min(240,Number(bv('bc-refresh'))||15));}if(type==='iframe')c.url=bv('bc-url').trim();if(type==='video'){c.url=bv('bc-url').trim();c.autoplay=bc('bc-autoplay');c.muted=bc('bc-muted');c.controls=bc('bc-controls');}if(type==='json'){c.url=bv('bc-url').trim();c.path=bv('bc-path').trim().slice(0,300);c.prefix=bv('bc-prefix').slice(0,100);c.suffix=bv('bc-suffix').slice(0,100);c.refreshMin=Math.max(1,Math.min(240,Number(bv('bc-refresh'))||5));c.visualization=['value','gauge','progress','sparkline','line','bar','table','raw'].includes(bv('bc-viz'))?bv('bc-viz'):'value';c.raw=c.visualization==='raw';c.min=Number(bv('bc-min'))||0;c.max=Number.isFinite(Number(bv('bc-max')))?Number(bv('bc-max')):100;c.valueKey=bv('bc-valuekey').trim().slice(0,120);c.labelKey=bv('bc-labelkey').trim().slice(0,120);c.columns=bv('bc-columns').trim().slice(0,500);c.maxPoints=Math.max(2,Math.min(100,Number(bv('bc-maxpoints'))||30));c.chartArea=bc('bc-chart-area');c.chartPoints=bc('bc-chart-points');c.chartGrid=bc('bc-chart-grid');}if(type==='todo'){c.items=bv('bc-items').slice(0,12000);c.showCompleted=bc('bc-showcompleted');const old=blockConfigEditingId?customBlockById(blockConfigEditingId,layoutCustomBlocksDraft):null;c.done=Array.isArray(old?.config?.done)?old.config.done:[];}if(type==='family'){c.memberId=bv('bc-member');c.showCompleted=bc('bc-showcompleted');c.showRewards=bc('bc-showrewards');}if(type==='scheduled'){c.message=bv('bc-message').slice(0,12000);c.schedule=['everyday','weekdays','weekends','custom'].includes(bv('bc-schedule'))?bv('bc-schedule'):'weekdays';c.days=bv('bc-days').replace(/[^0-6,]/g,'').slice(0,30);c.start=bv('bc-start')||'00:00';c.end=bv('bc-end')||'00:00';c.hideInactive=bc('bc-hideinactive');}if(type==='daily'){c.source=['facts','prompts','custom'].includes(bv('bc-source'))?bv('bc-source'):'facts';c.custom=bv('bc-custom').slice(0,12000);}if(type==='airquality'){c.refreshMin=Math.max(5,Math.min(240,Number(bv('bc-refresh'))||15));c.showDetails=bc('bc-details');}if(type==='suntimes')c.showDaylight=bc('bc-daylight');if(type==='icon')c.glyph=bv('bc-glyph').slice(0,8)||'★';if(type==='integration'){c.plugin=bv('bc-plugin');c.settings=readIntegrationSettings(c.plugin);c.refreshMin=Math.max(1,Math.min(1440,Number(bv('bc-refresh'))||integrationManifest(c.plugin)?.refreshMin||5));}return c;}
 function saveBlockConfig(){pushLayoutHistory();const type=blockConfigEditingType;if(!BLOCK_TYPE_INFO[type])return;const name=(bv('bc-name')||BLOCK_TYPE_INFO[type].name).trim().slice(0,80),config=readBlockConfig(type);if(blockConfigEditingId){const b=customBlockById(blockConfigEditingId,layoutCustomBlocksDraft);if(b){b.name=name;b.config=config;}}else{const b={id:makeBlockId(),type,name,rect:defaultBlockRect(type),config};layoutCustomBlocksDraft.push(b);layoutSelectedKey=customBlockKey(b.id);}document.getElementById('block-config-modal')?.classList.remove('show');blockConfigEditingId='';blockConfigEditingType='';renderCustomBlocks(layoutCustomBlocksDraft);renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);}
 function refreshToolbarCustomActions(){const custom=!!customKeyId(layoutSelectedKey);for(const id of ['layout-configure-block','layout-duplicate-block','layout-delete-block','layout-layer-back','layout-layer-front'])document.getElementById(id)?.classList.toggle('block-action-hidden',!custom);}
 function changeSelectedBlockLayer(delta){pushLayoutHistory();const id=customKeyId(layoutSelectedKey),b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return;b.config=b.config||{};b.config._layer=Math.max(1,Math.min(99,(Number(b.config._layer)||10)+Number(delta||0)));renderCustomBlocks(layoutCustomBlocksDraft);renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);}
@@ -4554,12 +4636,14 @@ let layoutEditorOriginal=null;
 let layoutSelectedKey='';
 let layoutPointerState=null;
 let layoutContentScaleDraft={};
+let layoutElementStyleDraft={};
 let layoutScaleEditActive=false;
+let layoutStyleEditField='';
 let layoutUndoStack=[],layoutRedoStack=[];
-function layoutHistorySnapshot(){return {layout:JSON.parse(JSON.stringify(layoutEditorDraft||{})),custom:JSON.parse(JSON.stringify(layoutCustomBlocksDraft||[])),contentScale:JSON.parse(JSON.stringify(layoutContentScaleDraft||{})),selected:layoutSelectedKey};}
+function layoutHistorySnapshot(){return {layout:JSON.parse(JSON.stringify(layoutEditorDraft||{})),custom:JSON.parse(JSON.stringify(layoutCustomBlocksDraft||[])),contentScale:JSON.parse(JSON.stringify(layoutContentScaleDraft||{})),elementStyle:JSON.parse(JSON.stringify(layoutElementStyleDraft||{})),selected:layoutSelectedKey};}
 function updateLayoutHistoryButtons(){const u=document.getElementById('layout-undo'),r=document.getElementById('layout-redo');if(u)u.disabled=!layoutUndoStack.length;if(r)r.disabled=!layoutRedoStack.length;}
 function pushLayoutHistory(){if(!layoutEditorActive)return;layoutUndoStack.push(layoutHistorySnapshot());if(layoutUndoStack.length>60)layoutUndoStack.shift();layoutRedoStack=[];updateLayoutHistoryButtons();}
-function restoreLayoutHistorySnapshot(snap){if(!snap)return;layoutEditorDraft=JSON.parse(JSON.stringify(snap.layout||{}));layoutCustomBlocksDraft=JSON.parse(JSON.stringify(snap.custom||[]));layoutContentScaleDraft=JSON.parse(JSON.stringify(snap.contentScale||{}));layoutSelectedKey=snap.selected||'';cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));renderCustomBlocks(layoutCustomBlocksDraft);for(const [key,r] of Object.entries(layoutEditorDraft))applyOneLayoutRect(key,r);applyLayoutEditorContentScalePreview();renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);updateLayoutHistoryButtons();}
+function restoreLayoutHistorySnapshot(snap){if(!snap)return;layoutEditorDraft=JSON.parse(JSON.stringify(snap.layout||{}));layoutCustomBlocksDraft=JSON.parse(JSON.stringify(snap.custom||[]));layoutContentScaleDraft=JSON.parse(JSON.stringify(snap.contentScale||{}));layoutElementStyleDraft=JSON.parse(JSON.stringify(snap.elementStyle||{}));layoutSelectedKey=snap.selected||'';cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));renderCustomBlocks(layoutCustomBlocksDraft);for(const [key,r] of Object.entries(layoutEditorDraft))applyOneLayoutRect(key,r);applyLayoutEditorContentScalePreview();renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);updateLayoutHistoryButtons();}
 function undoLayoutEditor(){if(!layoutEditorActive||!layoutUndoStack.length)return;layoutRedoStack.push(layoutHistorySnapshot());restoreLayoutHistorySnapshot(layoutUndoStack.pop());}
 function redoLayoutEditor(){if(!layoutEditorActive||!layoutRedoStack.length)return;layoutUndoStack.push(layoutHistorySnapshot());restoreLayoutHistorySnapshot(layoutRedoStack.pop());}
 
@@ -4617,6 +4701,8 @@ function applyCustomLayout(source=cfg){
     const r=source.layoutBlocks[key];if(validLayoutRect(r))applyOneLayoutRect(key,r);
   }
 }
+function applyBuiltInElementStyles(source=cfg){const styles=source?.layoutElementStyle&&typeof source.layoutElementStyle==='object'?source.layoutElementStyle:{};for(const [key,def] of Object.entries(LAYOUT_BLOCK_DEFS)){const el=document.querySelector(def.selector);if(!el)continue;const st=styles[key]||{};applyElementInspectorStyle(el,st);el.style.opacity=String(Math.min(1,Math.max(.2,(Number(st.opacity)||100)/100)));}}
+
 function updateLayoutModeStatus(source=cfg){
   const el=document.getElementById('layout-mode-status');if(!el)return;
   const custom=source?.layoutMode==='custom'&&source.layoutBlocks&&Object.keys(source.layoutBlocks).length;
@@ -4705,7 +4791,7 @@ function renderLayoutEditorBoxes(){
   refreshLayoutToolbarBlockOptions();
   updateLayoutSelectedInfo();
 }
-function appendLayoutEditBox(layer,key,label,r){const px=pxRectFromNormalized(r),def=layoutEditorDefForKey(key),locked=def?.locked===true,box=document.createElement('div');box.className='layout-edit-box'+(layoutSelectedKey===key?' selected':'')+(locked?' locked':'');box.dataset.layoutKey=key;box.style.left=px.left+'px';box.style.top=px.top+'px';box.style.width=px.width+'px';box.style.height=px.height+'px';box.innerHTML=`<div class="layout-edit-label">${escHtml(label)}${locked?' · 🔒':''}</div><div class="layout-resize-handle" title="Resize"></div>`;box.addEventListener('pointerdown',beginLayoutPointer);box.addEventListener('click',()=>selectLayoutBlock(key));layer.appendChild(box);}
+function appendLayoutEditBox(layer,key,label,r){const px=pxRectFromNormalized(r),def=layoutEditorDefForKey(key),locked=def?.locked===true,box=document.createElement('div');box.className='layout-edit-box'+(layoutSelectedKey===key?' selected':'')+(locked?' locked':'');box.dataset.layoutKey=key;box.style.left=px.left+'px';box.style.top=px.top+'px';box.style.width=px.width+'px';box.style.height=px.height+'px';box.innerHTML=`<div class="layout-edit-label">${escHtml(label)}${locked?' · 🔒':''}</div><div class="layout-resize-handle nw" data-resize="nw" title="Resize from top left"></div><div class="layout-resize-handle ne" data-resize="ne" title="Resize from top right"></div><div class="layout-resize-handle sw" data-resize="sw" title="Resize from bottom left"></div><div class="layout-resize-handle se" data-resize="se" title="Resize from bottom right"></div>`;box.addEventListener('pointerdown',beginLayoutPointer);box.addEventListener('click',()=>selectLayoutBlock(key));layer.appendChild(box);}
 function refreshLayoutToolbarBlockOptions(){const picker=document.getElementById('layout-toolbar-block');if(!picker)return;const current=layoutSelectedKey;picker.innerHTML='<option value="">Choose…</option>'+Object.entries(LAYOUT_BLOCK_DEFS).map(([k,d])=>`<option value="${k}">${escHtml(d.label)}</option>`).join('')+(layoutCustomBlocksDraft.length?'<optgroup label="Added blocks">'+layoutCustomBlocksDraft.map(b=>`<option value="${customBlockKey(b.id)}">${escHtml(b.name||BLOCK_TYPE_INFO[b.type]?.name||'Block')}</option>`).join('')+'</optgroup>':'');picker.value=current||'';}
 function layoutEditorRectForKey(key){const id=customKeyId(key);if(id)return customBlockById(id,layoutCustomBlocksDraft)?.rect||null;return layoutEditorDraft[key]||null;}
 function layoutEditorDefForKey(key){const id=customKeyId(key);if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return null;const [minW,minH]=customBlockMin(b.type);return {label:b.name||BLOCK_TYPE_INFO[b.type]?.name||'Block',minW,minH,custom:true,block:b,locked:b.config?._locked===true};}return LAYOUT_BLOCK_DEFS[key]||null;}
@@ -4735,6 +4821,13 @@ function resetSelectedContentScale(){
   else {layoutContentScaleDraft[layoutSelectedKey]=100;applyLayoutEditorContentScalePreview();}
   updateLayoutSelectedInfo();
 }
+function selectedLayoutStyle(){const id=customKeyId(layoutSelectedKey);if(id){const c=customBlockById(id,layoutCustomBlocksDraft)?.config||{};return {hAlign:c._hAlign||'auto',vAlign:c._vAlign||'auto',fontFamily:c._fontFamily||'',textColor:c._textColor||'',opacity:Math.min(100,Math.max(20,Number(c._opacity)||100))};}const s=layoutElementStyleDraft?.[layoutSelectedKey]||{};return {hAlign:s.hAlign||'auto',vAlign:s.vAlign||'auto',fontFamily:s.fontFamily||'',textColor:s.textColor||'',opacity:Math.min(100,Math.max(20,Number(s.opacity)||100))};}
+function applyLayoutInspectorPreview(){if(!layoutEditorActive)return;applyUiCustomization({...cfg,layoutMode:'custom',layoutBlocks:layoutEditorDraft,layoutContentScale:layoutContentScaleDraft,layoutElementStyle:layoutElementStyleDraft,customBlocks:layoutCustomBlocksDraft});}
+function setSelectedLayoutStyle(field,value,continuous=false){if(!layoutEditorActive||!layoutSelectedKey)return;if(continuous){if(layoutStyleEditField!==field){pushLayoutHistory();layoutStyleEditField=field;}}else{pushLayoutHistory();layoutStyleEditField='';}const id=customKeyId(layoutSelectedKey);const h=['auto','left','center','right'],v=['auto','top','middle','bottom'],fonts=['','Inter','system','Noto Sans','DejaVu Sans','Liberation Sans','Trebuchet MS','DejaVu Serif','Georgia','monospace'];let val=value;if(field==='hAlign')val=h.includes(value)?value:'auto';if(field==='vAlign')val=v.includes(value)?value:'auto';if(field==='fontFamily')val=fonts.includes(value)?value:'';if(field==='textColor')val=/^#[0-9a-f]{6}$/i.test(value||'')?String(value).toLowerCase():'';if(field==='opacity')val=Math.min(100,Math.max(20,Number(value)||100));if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return;b.config=b.config||{};const map={hAlign:'_hAlign',vAlign:'_vAlign',fontFamily:'_fontFamily',textColor:'_textColor',opacity:'_opacity'};b.config[map[field]]=val;applyCustomBlockUniversalState(document.querySelector(`.custom-block[data-block-id="${CSS.escape(id)}"]`),b);}else{layoutElementStyleDraft[layoutSelectedKey]={...(layoutElementStyleDraft[layoutSelectedKey]||{}),[field]:val};applyLayoutInspectorPreview();}updateLayoutSelectedInfo();}
+function finishSelectedLayoutStyleEdit(){layoutStyleEditField='';}
+function setSelectedLayoutColorHex(value){let c=String(value||'').trim();if(c&&!c.startsWith('#'))c='#'+c;if(/^#[0-9a-f]{3}$/i.test(c))c='#'+c.slice(1).split('').map(x=>x+x).join('');setSelectedLayoutStyle('textColor',/^#[0-9a-f]{6}$/i.test(c)?c:'');}
+function placeSelectedLayoutBlock(anchor){const r=layoutEditorRectForKey(layoutSelectedKey),def=layoutEditorDefForKey(layoutSelectedKey);if(!layoutEditorActive||!r||!def||def.locked)return;pushLayoutHistory();const px=pxRectFromNormalized(r),pad=Math.max(8,Number(document.getElementById('layout-toolbar-grid')?.value)||20);let left=px.left,top=px.top;if(anchor.includes('left'))left=pad;else if(anchor.includes('right'))left=innerWidth-px.width-pad;else left=(innerWidth-px.width)/2;if(anchor.startsWith('top'))top=pad;else if(anchor.startsWith('bottom'))top=innerHeight-px.height-pad;else top=(innerHeight-px.height)/2;left=Math.max(0,Math.min(innerWidth-px.width,left));top=Math.max(0,Math.min(innerHeight-px.height,top));setLayoutEditorRectForKey(layoutSelectedKey,normalizedRectFromPx({left,top,width:px.width,height:px.height}));renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);}
+
 function selectLayoutBlock(key){
   if(key&&!LAYOUT_BLOCK_DEFS[key]&&!customBlockById(customKeyId(key),layoutCustomBlocksDraft))return;
   layoutSelectedKey=key||'';
@@ -4744,13 +4837,15 @@ function selectLayoutBlock(key){
   updateLayoutSelectedInfo();
 }
 function updateLayoutSelectedInfo(){
-  const el=document.getElementById('layout-selected-info'),range=document.getElementById('layout-toolbar-scale'),value=document.getElementById('layout-toolbar-scale-value'),control=document.getElementById('layout-content-size-control');if(!el)return;
+  const el=document.getElementById('layout-selected-info'),range=document.getElementById('layout-toolbar-scale'),value=document.getElementById('layout-toolbar-scale-value'),control=document.getElementById('layout-properties-controls'),title=document.getElementById('layout-properties-title'),subtitle=document.getElementById('layout-properties-subtitle');if(!el)return;
   const selectedRect=layoutEditorRectForKey(layoutSelectedKey),def=layoutEditorDefForKey(layoutSelectedKey),has=!!(layoutSelectedKey&&selectedRect&&def);
-  control?.classList.toggle('disabled',!has);if(range)range.disabled=!has;
-  if(!has){if(range)range.value='100';if(value)value.textContent='100%';el.textContent='Drag an element · resize from corner';return;}
-  const px=pxRectFromNormalized(selectedRect),scale=selectedContentScale();
-  if(range)range.value=String(scale);if(value)value.textContent=scale+'%';
-  el.textContent=`${def.label} · ${Math.round(px.width)}×${Math.round(px.height)} px · content ${scale}%`;
+  control?.classList.toggle('layout-prop-disabled',!has);if(range)range.disabled=!has;
+  if(!has){if(range)range.value='100';if(value)value.textContent='100%';el.textContent='Select an element · drag to move · corner to resize';if(title)title.textContent='Element inspector';if(subtitle)subtitle.textContent='Select an element to customize its contents.';return;}
+  const px=pxRectFromNormalized(selectedRect),scale=selectedContentScale(),st=selectedLayoutStyle();
+  if(range)range.value=String(scale);if(value)value.textContent=scale+'%';if(title)title.textContent=def.label;if(subtitle)subtitle.textContent=`${Math.round(px.width)} × ${Math.round(px.height)} px · content ${scale}%`;
+  const font=document.getElementById('layout-style-font');if(font)font.value=st.fontFamily||'';const color=document.getElementById('layout-style-color'),hex=document.getElementById('layout-style-color-hex');if(color)color.value=st.textColor||normalizeHexColor(cfg.primaryTextColor,'#ffffff');if(hex)hex.value=st.textColor?st.textColor.toUpperCase():'Theme';const opacity=document.getElementById('layout-style-opacity'),ov=document.getElementById('layout-style-opacity-value');if(opacity)opacity.value=String(st.opacity);if(ov)ov.textContent=st.opacity+'%';
+  for(const h of ['auto','left','center','right'])document.getElementById('layout-h-'+h)?.classList.toggle('active',st.hAlign===h);for(const v of ['auto','top','middle','bottom'])document.getElementById('layout-v-'+v)?.classList.toggle('active',st.vAlign===v);
+  el.textContent=`${def.label} · ${Math.round(px.width)}×${Math.round(px.height)} · ${scale}%`;
 }
 function beginLayoutPointer(e){
   pushLayoutHistory();
@@ -4758,7 +4853,7 @@ function beginLayoutPointer(e){
   const box=e.currentTarget,key=box.dataset.layoutKey,r=layoutEditorRectForKey(key);if(!r)return;
   selectLayoutBlock(key);const def=layoutEditorDefForKey(key);if(def?.locked){e.preventDefault();return;}box.setPointerCapture?.(e.pointerId);
   const px=pxRectFromNormalized(r);
-  layoutPointerState={key,mode:e.target.classList.contains('layout-resize-handle')?'resize':'move',pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,start:px};
+  layoutPointerState={key,mode:e.target?.dataset?.resize?('resize-'+e.target.dataset.resize):'move',pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,start:px};
   e.preventDefault();
 }
 function moveLayoutPointer(e){
@@ -4769,8 +4864,11 @@ function moveLayoutPointer(e){
     left=editorSnapPx(st.start.left+dx);top=editorSnapPx(st.start.top+dy);
     left=Math.max(0,Math.min(vw-width,left));top=Math.max(0,Math.min(vh-height,top));
   }else{
-    width=editorSnapPx(st.start.width+dx);height=editorSnapPx(st.start.height+dy);
-    width=Math.max(def.minW,Math.min(vw-left,width));height=Math.max(def.minH,Math.min(vh-top,height));
+    const dir=String(st.mode||'').slice(7),right=st.start.left+st.start.width,bottom=st.start.top+st.start.height;
+    if(dir.includes('w')){left=editorSnapPx(st.start.left+dx);left=Math.max(0,Math.min(right-def.minW,left));width=right-left;}
+    if(dir.includes('e')){width=editorSnapPx(st.start.width+dx);width=Math.max(def.minW,Math.min(vw-st.start.left,width));left=st.start.left;}
+    if(dir.includes('n')){top=editorSnapPx(st.start.top+dy);top=Math.max(0,Math.min(bottom-def.minH,top));height=bottom-top;}
+    if(dir.includes('s')){height=editorSnapPx(st.start.height+dy);height=Math.max(def.minH,Math.min(vh-st.start.top,height));top=st.start.top;}
   }
   setLayoutEditorRectForKey(st.key,normalizedRectFromPx({left,top,width,height}));renderLayoutEditorBoxes();
   e.preventDefault();
@@ -4787,16 +4885,16 @@ function setLayoutEditorSnap(on){
 }
 function startLayoutEditor(){
   if(layoutEditorActive)return;
-  layoutEditorOriginal={layoutMode:cfg.layoutMode,layoutBlocks:JSON.parse(JSON.stringify(cfg.layoutBlocks||{})),layoutContentScale:JSON.parse(JSON.stringify(cfg.layoutContentScale||{})),layoutGridPx:cfg.layoutGridPx,layoutSnap:cfg.layoutSnap};
+  layoutEditorOriginal={layoutMode:cfg.layoutMode,layoutBlocks:JSON.parse(JSON.stringify(cfg.layoutBlocks||{})),layoutContentScale:JSON.parse(JSON.stringify(cfg.layoutContentScale||{})),layoutElementStyle:JSON.parse(JSON.stringify(cfg.layoutElementStyle||{})),layoutGridPx:cfg.layoutGridPx,layoutSnap:cfg.layoutSnap};
   layoutCustomBlocksOriginal=JSON.parse(JSON.stringify(cfg.customBlocks||[]));layoutCustomBlocksDraft=JSON.parse(JSON.stringify(cfg.customBlocks||[]));
-  layoutEditorDraft=ensureLayoutDraft();layoutContentScaleDraft=JSON.parse(JSON.stringify(cfg.layoutContentScale||{}));layoutSelectedKey='';layoutEditorActive=true;layoutScaleEditActive=false;layoutUndoStack=[];layoutRedoStack=[];updateLayoutHistoryButtons();
+  layoutEditorDraft=ensureLayoutDraft();layoutContentScaleDraft=JSON.parse(JSON.stringify(cfg.layoutContentScale||{}));layoutElementStyleDraft=JSON.parse(JSON.stringify(cfg.layoutElementStyle||{}));layoutSelectedKey='';layoutEditorActive=true;layoutScaleEditActive=false;layoutStyleEditField='';layoutUndoStack=[];layoutRedoStack=[];updateLayoutHistoryButtons();
   cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));
   document.body.classList.add('custom-layout','layout-editing');
   for(const [key,r] of Object.entries(layoutEditorDraft))applyOneLayoutRect(key,r);
   renderCustomBlocks(layoutCustomBlocksDraft);
-  const layer=document.getElementById('layout-editor-layer'),toolbar=document.getElementById('layout-toolbar');
-  layer?.classList.add('show');toolbar?.classList.add('show');
-  layer?.setAttribute('aria-hidden','false');toolbar?.setAttribute('aria-hidden','false');
+  const layer=document.getElementById('layout-editor-layer'),toolbar=document.getElementById('layout-toolbar'),props=document.getElementById('layout-properties');
+  layer?.classList.add('show');toolbar?.classList.add('show');props?.classList.add('show');
+  layer?.setAttribute('aria-hidden','false');toolbar?.setAttribute('aria-hidden','false');props?.setAttribute('aria-hidden','false');
   const grid=Number(document.getElementById('s-layout-grid')?.value)||cfg.layoutGridPx||20,snap=document.getElementById('s-layout-snap')?.checked!==false;
   const gridSel=document.getElementById('layout-toolbar-grid');if(gridSel)gridSel.value=String(grid);
   const blockSel=document.getElementById('layout-toolbar-block');if(blockSel)blockSel.value='';
@@ -4812,23 +4910,23 @@ function launchLayoutEditorFromSettings(){
 function stopLayoutEditorUi(){
   layoutEditorActive=false;layoutPointerState=null;layoutSelectedKey='';layoutUndoStack=[];layoutRedoStack=[];updateLayoutHistoryButtons();
   document.body.classList.remove('layout-editing');
-  const layer=document.getElementById('layout-editor-layer'),toolbar=document.getElementById('layout-toolbar');
-  layer?.classList.remove('show','grid-on');toolbar?.classList.remove('show');layer?.setAttribute('aria-hidden','true');toolbar?.setAttribute('aria-hidden','true');
-  if(layer)layer.innerHTML='';closeBlockCatalog();document.getElementById('block-config-modal')?.classList.remove('show');layoutCustomBlocksDraft=[];layoutContentScaleDraft={};layoutScaleEditActive=false;
+  const layer=document.getElementById('layout-editor-layer'),toolbar=document.getElementById('layout-toolbar'),props=document.getElementById('layout-properties');
+  layer?.classList.remove('show','grid-on');toolbar?.classList.remove('show');props?.classList.remove('show');layer?.setAttribute('aria-hidden','true');toolbar?.setAttribute('aria-hidden','true');props?.setAttribute('aria-hidden','true');
+  if(layer)layer.innerHTML='';closeBlockCatalog();document.getElementById('block-config-modal')?.classList.remove('show');layoutCustomBlocksDraft=[];layoutContentScaleDraft={};layoutElementStyleDraft={};layoutScaleEditActive=false;layoutStyleEditField='';
   document.removeEventListener('pointermove',moveLayoutPointer);
   document.removeEventListener('pointerup',endLayoutPointer);
 }
 function saveLayoutEditor(){
   if(!layoutEditorActive)return;
-  cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));cfg.layoutContentScale=JSON.parse(JSON.stringify(layoutContentScaleDraft));cfg.customBlocks=JSON.parse(JSON.stringify(layoutCustomBlocksDraft));customBlockRenderSignature='';
+  cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));cfg.layoutContentScale=JSON.parse(JSON.stringify(layoutContentScaleDraft));cfg.layoutElementStyle=JSON.parse(JSON.stringify(layoutElementStyleDraft));cfg.customBlocks=JSON.parse(JSON.stringify(layoutCustomBlocksDraft));customBlockRenderSignature='';
   cfg.layoutGridPx=Number(document.getElementById('layout-toolbar-grid')?.value)||20;
   cfg.layoutSnap=document.getElementById('layout-toolbar-snap')?.checked!==false;
   saveCfg();stopLayoutEditorUi();applyUiCustomization(cfg);updateLayoutModeStatus(cfg);
 }
 function cancelLayoutEditor(){
   if(!layoutEditorActive)return;
-  const o=layoutEditorOriginal||{layoutMode:'default',layoutBlocks:{},layoutContentScale:{},layoutGridPx:20,layoutSnap:true};
-  cfg.layoutMode=o.layoutMode;cfg.layoutBlocks=JSON.parse(JSON.stringify(o.layoutBlocks||{}));cfg.layoutContentScale=JSON.parse(JSON.stringify(o.layoutContentScale||{}));cfg.layoutGridPx=o.layoutGridPx||20;cfg.layoutSnap=o.layoutSnap!==false;cfg.customBlocks=JSON.parse(JSON.stringify(layoutCustomBlocksOriginal||[]));customBlockRenderSignature='';
+  const o=layoutEditorOriginal||{layoutMode:'default',layoutBlocks:{},layoutContentScale:{},layoutElementStyle:{},layoutGridPx:20,layoutSnap:true};
+  cfg.layoutMode=o.layoutMode;cfg.layoutBlocks=JSON.parse(JSON.stringify(o.layoutBlocks||{}));cfg.layoutContentScale=JSON.parse(JSON.stringify(o.layoutContentScale||{}));cfg.layoutElementStyle=JSON.parse(JSON.stringify(o.layoutElementStyle||{}));cfg.layoutGridPx=o.layoutGridPx||20;cfg.layoutSnap=o.layoutSnap!==false;cfg.customBlocks=JSON.parse(JSON.stringify(layoutCustomBlocksOriginal||[]));customBlockRenderSignature='';
   stopLayoutEditorUi();renderCustomBlocks(cfg.customBlocks);applyUiCustomization(cfg);
 }
 function resetLayoutEditorDraft(){
@@ -4841,11 +4939,11 @@ function resetLayoutEditorDraft(){
 }
 function resetSelectedLayoutBlock(){
   if(!layoutEditorActive||!layoutSelectedKey)return;pushLayoutHistory();
-  const customId=customKeyId(layoutSelectedKey);if(customId){const b=customBlockById(customId,layoutCustomBlocksDraft);if(!b)return;b.rect=defaultBlockRect(b.type);b.config=b.config||{};b.config._contentScale=100;renderCustomBlocks(layoutCustomBlocksDraft);renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);return;}
+  const customId=customKeyId(layoutSelectedKey);if(customId){const b=customBlockById(customId,layoutCustomBlocksDraft);if(!b)return;b.rect=defaultBlockRect(b.type);b.config=b.config||{};Object.assign(b.config,{_contentScale:100,_hAlign:'auto',_vAlign:'auto',_fontFamily:'',_textColor:'',_opacity:100});renderCustomBlocks(layoutCustomBlocksDraft);renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);return;}
   if(!LAYOUT_BLOCK_DEFS[layoutSelectedKey])return;
   cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));
   const defaults=measureDefaultLayoutRects(),r=defaults[layoutSelectedKey];if(!r)return;
-  layoutEditorDraft[layoutSelectedKey]=r;layoutContentScaleDraft[layoutSelectedKey]=100;cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));
+  layoutEditorDraft[layoutSelectedKey]=r;layoutContentScaleDraft[layoutSelectedKey]=100;layoutElementStyleDraft[layoutSelectedKey]={hAlign:'auto',vAlign:'auto',fontFamily:'',textColor:'',opacity:100};cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));
   document.body.classList.add('custom-layout','layout-editing');
   for(const [key,rect] of Object.entries(layoutEditorDraft))applyOneLayoutRect(key,rect);
   renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);
@@ -4962,6 +5060,10 @@ function applyUiCustomization(source=cfg){
   if(!style){style=document.createElement('style');style.id='user-ui-overrides';document.head.appendChild(style);}
   style.textContent=`
     #app,#alert-zone,#cog{font-family:${fontCssValue(source.fontFamily)};color:${textColor}}
+    #cog{width:${q(source.settingsCogSize,36,58,46)}px;height:${q(source.settingsCogSize,36,58,46)}px;opacity:${(q(source.settingsCogOpacity,10,90,42)/100).toFixed(2)};top:${String(source.settingsCogPosition||'').startsWith('top')?'22px':'auto'};bottom:${String(source.settingsCogPosition||'').startsWith('bottom')?'22px':'auto'};left:${String(source.settingsCogPosition||'').endsWith('left')?'22px':'auto'};right:${String(source.settingsCogPosition||'').endsWith('right')?'22px':'auto'}}
+    html.cursor-active #cog{opacity:${Math.min(.95,q(source.settingsCogOpacity,10,90,42)/100+.18).toFixed(2)}}
+    #cog::before{display:${source.settingsCogLabel===false?'none':'block'};right:${String(source.settingsCogPosition||'').endsWith('left')?'auto':'54px'};left:${String(source.settingsCogPosition||'').endsWith('left')?'54px':'auto'};transform:${String(source.settingsCogPosition||'').endsWith('left')?'translate(-7px,-50%)':'translate(7px,-50%)'}}
+    #cog:hover::before,#cog:focus-visible::before,#cog.cog-discover::before{transform:translate(0,-50%)}
     #top-strip{height:${calH}px;padding-left:${sidePad}px;padding-right:${sidePad}px;grid-template-columns:repeat(${calCols},minmax(0,1fr));grid-auto-rows:${calCellH}px;overflow-y:auto;overflow-x:hidden}
     #bottom{grid-template-columns:${leftW}px minmax(0,1fr);min-height:${bottomH}px;padding-left:${sidePad}px;padding-right:${sidePad}px}
     #wx-left{width:${leftW}px}
@@ -5015,6 +5117,8 @@ function applyUiCustomization(source=cfg){
   renderCalendarLegend();
   ensureCustomBlocksRendered(source.customBlocks||cfg.customBlocks||[]);
   applyCustomLayout(source);
+  applyBuiltInElementStyles(source);
+  updateCustomBlockUniversalStates(source.customBlocks||cfg.customBlocks||[]);
   updateLayoutModeStatus(source);
   tick();
 }
@@ -5077,7 +5181,11 @@ function appearanceFromForm(){
     locale:document.getElementById('s-locale')?.value||'auto',
     motionPreference:document.getElementById('s-motion-preference')?.value||'auto',
     highContrast:!!document.getElementById('s-high-contrast')?.checked,
-    focusOutline:!!document.getElementById('s-focus-outline')?.checked
+    focusOutline:!!document.getElementById('s-focus-outline')?.checked,
+    settingsCogPosition:document.getElementById('s-cog-position')?.value||'bottom-right',
+    settingsCogOpacity:Number(document.getElementById('s-cog-opacity')?.value)||42,
+    settingsCogSize:Number(document.getElementById('s-cog-size')?.value)||46,
+    settingsCogLabel:document.getElementById('s-cog-label')?.checked!==false
   };
 }
 
@@ -5087,7 +5195,7 @@ function updateAppearanceLabels(v){
     ['s-ui-calendar-value',v.uiCalendarPct,'%'],['s-ui-current-value',v.uiCurrentPct,'%'],['s-ui-clock-value',v.uiClockPct,'%'],['s-ui-forecast-value',v.uiForecastPct,'%'],['s-ui-details-value',v.uiDetailsPct,'%'],['s-ui-alert-value',v.uiAlertPct,'%'],
     ['s-calendar-height-value',v.calendarBandHeight,'px'],['s-bottom-height-value',v.bottomPanelHeight,'px'],['s-left-width-value',v.leftPanelWidth,'px'],['s-side-padding-value',v.sidePaddingPx,'px'],
     ['s-forecast-gap-value',v.forecastGapPx,'px'],['s-forecast-row-gap-value',v.forecastRowGapPx,'px'],['s-calendar-cell-height-value',v.calendarCellHeight||150,'px'],['s-calendar-scroll-speed-value',v.calendarScrollSpeed||12,' px/s'],
-    ['s-bg-top-value',v.bgShadeTop,'%'],['s-bg-bottom-value',v.bgShadeBottom,'%'],['s-bg-blur-value',v.bgBlurPx,'px'],['s-bg-transition-value',v.bgTransitionSec,'s'],['s-alert-opacity-value',v.alertOpacityPct,'%']
+    ['s-bg-top-value',v.bgShadeTop,'%'],['s-bg-bottom-value',v.bgShadeBottom,'%'],['s-bg-blur-value',v.bgBlurPx,'px'],['s-bg-transition-value',v.bgTransitionSec,'s'],['s-alert-opacity-value',v.alertOpacityPct,'%'],['s-cog-opacity-value',v.settingsCogOpacity??42,'%']
   ];
   for(const [id,val,suffix] of map){const el=document.getElementById(id);if(el)el.textContent=String(val)+suffix;}
 }
@@ -5107,7 +5215,7 @@ const APPEARANCE_DEFAULTS={
   uiCalendarPct:100,uiCurrentPct:100,uiClockPct:100,uiForecastPct:100,uiDetailsPct:100,uiAlertPct:100,
   calendarBandHeight:150,bottomPanelHeight:330,leftPanelWidth:470,sidePaddingPx:28,forecastGapPx:5,forecastRowGapPx:18,forecastColumns:12,hourlyForecastHours:12,dailyForecastDays:12,calendarDays:7,calendarColumns:7,calendarCellHeight:150,calendarScrollMode:'off',calendarScrollSpeed:12,layoutGridPx:20,layoutSnap:true,calendarMaxEvents:4,
   showNoEvents:true,showEventTimes:true,showDailyForecast:true,showHourlyForecast:true,showPrecip:true,timeFormat:'12',dateFormat:'long',showSeconds:true,showAmPm:true,showDate:true,showCurrentIcon:true,showSunset:true,showWind:true,showHumidity:true,weatherDetailsOrder:['sunset','wind','humidity','sunrise','airquality','uvindex','feelslike','pressure','cloudcover','dewpoint','precipitation'],weatherDetailsEnabled:{sunset:true,wind:true,humidity:true,sunrise:false,airquality:false,uvindex:false,feelslike:false,pressure:false,cloudcover:false,dewpoint:false,precipitation:false},
-  bgShadeTop:52,bgShadeBottom:55,bgBlurPx:0,bgTransitionSec:1.5,bgFit:'cover',bgPosition:'center',alertOpacityPct:100,alertMinSeverity:'all',alertShowExpiry:true,alertShowMeta:true
+  bgShadeTop:52,bgShadeBottom:55,bgBlurPx:0,bgTransitionSec:1.5,bgFit:'cover',bgPosition:'center',alertOpacityPct:100,alertMinSeverity:'all',alertShowExpiry:true,alertShowMeta:true,settingsCogPosition:'bottom-right',settingsCogOpacity:42,settingsCogSize:46,settingsCogLabel:true
 };
 
 const APPEARANCE_PRESETS={
@@ -5130,14 +5238,14 @@ function setAppearanceForm(v){
     's-calendar-height':v.calendarBandHeight,'s-bottom-height':v.bottomPanelHeight,'s-left-width':v.leftPanelWidth,'s-side-padding':v.sidePaddingPx,'s-forecast-gap':v.forecastGapPx,'s-forecast-row-gap':v.forecastRowGapPx,
     's-hourly-hours':v.hourlyForecastHours||v.forecastColumns||12,'s-daily-days':v.dailyForecastDays||v.forecastColumns||12,'s-calendar-days':v.calendarDays,'s-calendar-columns':v.calendarColumns||7,'s-calendar-cell-height':v.calendarCellHeight||150,'s-calendar-scroll-mode':v.calendarScrollMode||'off','s-calendar-scroll-speed':v.calendarScrollSpeed||12,'s-layout-grid':v.layoutGridPx||20,'s-calendar-max-events':v.calendarMaxEvents,'s-time-format':v.timeFormat,'s-date-format':v.dateFormat,
     's-bg-top':v.bgShadeTop,'s-bg-bottom':v.bgShadeBottom,'s-bg-blur':v.bgBlurPx,'s-bg-transition':v.bgTransitionSec,'s-bg-fit':v.bgFit,'s-bg-position':v.bgPosition,
-    's-alert-opacity':v.alertOpacityPct,'s-alert-min-severity':v.alertMinSeverity
+    's-alert-opacity':v.alertOpacityPct,'s-alert-min-severity':v.alertMinSeverity,'s-cog-position':v.settingsCogPosition||'bottom-right','s-cog-opacity':v.settingsCogOpacity??42,'s-cog-size':v.settingsCogSize||46
   };
   for(const [id,val] of Object.entries(values)){const el=document.getElementById(id);if(el)el.value=String(val);}
   const checks={
     's-layout-snap':v.layoutSnap!==false,
     's-show-no-events':v.showNoEvents,'s-show-event-times':v.showEventTimes,'s-show-daily':v.showDailyForecast,'s-show-hourly':v.showHourlyForecast,'s-show-precip':v.showPrecip,
     's-show-seconds':v.showSeconds,'s-show-ampm':v.showAmPm,'s-show-date':v.showDate,'s-show-current-icon':v.showCurrentIcon,
-    's-alert-show-expiry':v.alertShowExpiry,'s-alert-show-meta':v.alertShowMeta
+    's-alert-show-expiry':v.alertShowExpiry,'s-alert-show-meta':v.alertShowMeta,'s-cog-label':v.settingsCogLabel!==false
   };
   for(const [id,val] of Object.entries(checks)){const el=document.getElementById(id);if(el)el.checked=val!==false;}
   const color=normalizeHexColor(v.primaryTextColor,'#ffffff');
@@ -5152,7 +5260,7 @@ function applyAppearancePreset(){
   const key=document.getElementById('s-appearance-preset')?.value||'custom';
   if(key==='custom')return;
   const current=appearanceFromForm();
-  const preset={...(APPEARANCE_PRESETS[key]||APPEARANCE_PRESETS.default),uiTheme:current.uiTheme,fontFamily:current.fontFamily,primaryTextColor:current.primaryTextColor};
+  const preset={...(APPEARANCE_PRESETS[key]||APPEARANCE_PRESETS.default),uiTheme:current.uiTheme,fontFamily:current.fontFamily,primaryTextColor:current.primaryTextColor,settingsCogPosition:current.settingsCogPosition,settingsCogOpacity:current.settingsCogOpacity,settingsCogSize:current.settingsCogSize,settingsCogLabel:current.settingsCogLabel};
   setAppearanceForm(preset);
   previewAppearance();markSettingsDirty();
 }
@@ -5924,6 +6032,7 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-templates':'Apply safe layout and presentation starting points without replacing data sources.',
   'settings-theme':'Choose a LibreDisplay color theme and dashboard font.',
   'settings-accessibility':'Language, reduced motion, contrast and keyboard focus.',
+  'settings-settings-button':'Move and soften the Settings cog so it stays available without distracting from the dashboard.',
   'settings-integrations':'Browse installed providers and review connection health.',
   'settings-appearance':'Typography, element sizing, forecast ranges and layout controls.',
   'settings-software-update':'Check the installed release and see the one-command update instruction.',
@@ -6237,7 +6346,7 @@ function revealSettingsCog(){
   if(!cog)return;
   let seen=0;
   try{seen=Number(localStorage.getItem('libredisplay_settings_hint_seen')||0)||0;}catch(e){}
-  if(seen>=3)return;
+  if(seen>=3||cfg.settingsCogLabel===false)return;
   cog.classList.add('cog-discover');
   setTimeout(()=>cog.classList.remove('cog-discover'),6500);
   try{localStorage.setItem('libredisplay_settings_hint_seen',String(seen+1));}catch(e){}
