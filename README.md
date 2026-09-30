@@ -134,16 +134,24 @@ Then open the address shown by the script on a trusted device on your home netwo
 
 Copy the Display Link for the screen you want to use.
 
-**2. On the viewer Raspberry Pi, allow the viewer installer to run:**
+On the viewer Raspberry Pi, run the next commands **one at a time, in order**.
+
+**2. Download the viewer setup helper:**
 
 ```bash
-chmod +x scripts/viewer-setup.sh
+curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.0.0/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
 ```
 
-**3. On the viewer Raspberry Pi, install the Display Link:**
+**3. Allow the viewer installer to run:**
 
 ```bash
-./scripts/viewer-setup.sh install 'PASTE_DISPLAY_LINK_HERE'
+chmod +x /tmp/libredisplay-viewer-setup.sh
+```
+
+**4. Install the Display Link:**
+
+```bash
+/tmp/libredisplay-viewer-setup.sh install 'PASTE_DISPLAY_LINK_HERE'
 ```
 
 <details>
