@@ -122,6 +122,15 @@ class SecurityTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             server.pin_hash("12ab")
 
+    def test_layout_preview_is_only_same_origin_frame_exception(self):
+        handler = object.__new__(server.DashboardHandler)
+        handler.path = "/layout-preview?endpoint=main&layoutPreview=1"
+        self.assertTrue(handler.same_origin_layout_preview())
+        handler.path = "/dashboard.html?endpoint=main&layoutPreview=1"
+        self.assertFalse(handler.same_origin_layout_preview())
+        handler.path = "/settings"
+        self.assertFalse(handler.same_origin_layout_preview())
+
 
 
 

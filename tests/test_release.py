@@ -432,6 +432,16 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('"fontProbeHeight": font_probe_height', server)
         self.assertIn('fonts-liberation2 fonts-noto-core fonts-dejavu-core', viewer)
 
+    def test_v133_remote_layout_preview_uses_same_origin_frame_route(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        server_source = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
+        self.assertIn("frame.src=`/layout-preview?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1", html)
+        self.assertIn('if parsed.path == "/layout-preview":', server_source)
+        self.assertIn('return urlparse(self.path).path == "/layout-preview"', server_source)
+        self.assertIn('"SAMEORIGIN" if layout_preview else "DENY"', server_source)
+        self.assertIn('frame_ancestors = "\'self\'" if layout_preview else "\'none\'"', server_source)
+        self.assertNotIn("frame.src=`/dashboard.html?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1", html)
+
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
         for marker in ("bc-chart-area", "bc-chart-points", "bc-chart-grid", "function analyzeImportedSettings", "product:'LibreDisplay',format:2"):

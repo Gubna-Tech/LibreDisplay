@@ -1687,13 +1687,21 @@ class DashboardHandler(BaseHTTPRequestHandler):
         message = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]", "?", message)
         sys.stderr.write(f"{self.address_string()} - - [{self.log_date_time_string()}] {message}\n")
 
+    def same_origin_layout_preview(self):
+        try:
+            return urlparse(self.path).path == "/layout-preview"
+        except Exception:
+            return False
+
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("X-Frame-Options", "DENY")
+        layout_preview = self.same_origin_layout_preview()
+        self.send_header("X-Frame-Options", "SAMEORIGIN" if layout_preview else "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()")
-        self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; connect-src 'self' https:; font-src 'self' data:; frame-src http: https:; media-src 'self' data: blob: http: https:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+        frame_ancestors = "'self'" if layout_preview else "'none'"
+        self.send_header("Content-Security-Policy", f"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; connect-src 'self' https:; font-src 'self' data:; frame-src http: https:; media-src 'self' data: blob: http: https:; object-src 'none'; base-uri 'none'; frame-ancestors {frame_ancestors}; form-action 'self'")
         self.send_header("Cross-Origin-Opener-Policy", "same-origin")
         self.send_header("X-DNS-Prefetch-Control", "off")
         self.send_header("Cross-Origin-Resource-Policy", "same-origin")
@@ -2973,6 +2981,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if parsed.path == "/gphotos-page":
             self.handle_gphotos_page(parsed)
             return
+        if parsed.path == "/layout-preview":
+            if not self.require_authorized(parsed):
+                return
+            return self.serve_dashboard()
         if parsed.path == "/dashboard.html":
             return self.serve_dashboard()
         if parsed.path == "/favicon.ico":

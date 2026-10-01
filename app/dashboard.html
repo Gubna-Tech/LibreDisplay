@@ -1704,7 +1704,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.3.2</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.3.3</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -2096,7 +2096,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.3.2</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.3.3</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -2287,7 +2287,7 @@ html:not(.cursor-active) * {
 <div id="offline-pill">Offline · cached data</div>
 
 <script>
-const DASHBOARD_BUILD = '1.3.2';
+const DASHBOARD_BUILD = '1.3.3';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -5345,11 +5345,11 @@ async function openRemoteLayoutPreview(){
     remoteLayoutPreviewTarget={width:fallbackW,height:fallbackH,online:false,fallback:true};
     if(meta)meta.textContent='No display heartbeat found · using 1920×1080 fallback';
   }
-  frame.src=`/dashboard.html?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1&targetFontProbeWidth=${encodeURIComponent(remoteLayoutPreviewTarget.fontProbeWidth||0)}&targetFontProbeHeight=${encodeURIComponent(remoteLayoutPreviewTarget.fontProbeHeight||0)}&_=${Date.now()}`;
+  frame.src=`/layout-preview?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1&targetFontProbeWidth=${encodeURIComponent(remoteLayoutPreviewTarget.fontProbeWidth||0)}&targetFontProbeHeight=${encodeURIComponent(remoteLayoutPreviewTarget.fontProbeHeight||0)}&_=${Date.now()}`;
   fitRemoteLayoutPreview();requestAnimationFrame(fitRemoteLayoutPreview);
 }
 function closeRemoteLayoutPreview(){const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');if(shell){shell.classList.remove('show');shell.setAttribute('aria-hidden','true');}if(frame)frame.src='about:blank';remoteLayoutPreviewTarget=null;}
-function reloadRemoteLayoutPreview(){const frame=document.getElementById('remote-layout-preview-frame');if(frame&&remoteLayoutPreviewTarget)frame.src=`/dashboard.html?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1&targetFontProbeWidth=${encodeURIComponent(remoteLayoutPreviewTarget.fontProbeWidth||0)}&targetFontProbeHeight=${encodeURIComponent(remoteLayoutPreviewTarget.fontProbeHeight||0)}&_=${Date.now()}`;}
+function reloadRemoteLayoutPreview(){const frame=document.getElementById('remote-layout-preview-frame');if(frame&&remoteLayoutPreviewTarget)frame.src=`/layout-preview?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1&targetFontProbeWidth=${encodeURIComponent(remoteLayoutPreviewTarget.fontProbeWidth||0)}&targetFontProbeHeight=${encodeURIComponent(remoteLayoutPreviewTarget.fontProbeHeight||0)}&_=${Date.now()}`;}
 window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==document.getElementById('remote-layout-preview-frame')?.contentWindow)return;const msg=e.data||{};if(msg.type!=='libredisplay-layout-editor')return;if(msg.action==='saved'){closeRemoteLayoutPreview();setTimeout(()=>{pollServerConfig();openSetup(false);},180);}else if(msg.action==='cancelled'){closeRemoteLayoutPreview();openSetup(false);}});
 function launchLayoutEditorFromSettings(){
   if(settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;
