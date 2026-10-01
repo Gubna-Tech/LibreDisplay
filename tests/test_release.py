@@ -376,7 +376,7 @@ class ReleaseContractTests(unittest.TestCase):
             'function displayViewportMetrics()',
             'layoutWidth,layoutHeight,viewportWidth,viewportHeight',
             "closeSetup(true);if(REMOTE_SETTINGS_MODE){setTimeout(openRemoteLayoutPreview,80);return;}",
-            "window.parent.postMessage({type:'libredisplay-layout-editor',action:'saved'}",
+            "notifyLayoutPreviewParent('saved')",
         ):
             self.assertIn(marker, html)
         self.assertIn('"viewportWidth": viewport_width', server)
@@ -423,8 +423,8 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("fontProbeWidth", html)
         self.assertIn("fontProbeHeight", html)
         self.assertIn("for(let attempt=0;attempt<18;attempt++)", html)
-        self.assertIn("Number(row.lastSeen||0)>=requestedAt-.15", html)
-        self.assertIn("Math.max(.1,Math.min(4,sw/tw,sh/th))", html)
+        self.assertIn("bestLayoutTargetDevice(rows,{freshSince:requestedAt-.15})", html)
+        self.assertIn("Math.max(.1,Math.min(1,sw/tw,sh/th))", html)
         self.assertIn('"fontProbeWidth": font_probe_width', server)
         self.assertIn('"fontProbeHeight": font_probe_height', server)
         self.assertIn('fonts-liberation2 fonts-noto-core fonts-dejavu-core', viewer)
@@ -471,6 +471,32 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertNotIn("body.layout-preview-embedded #layout-properties{top:var(", html)
         self.assertNotIn("body.custom-layout .wx-details {\n  width:auto !important;", html)
         self.assertIn("body.custom-layout .wx-details {\n  width:auto;", html)
+
+    def test_v140_arrange_workspace_uses_explicit_target_canvas_and_safe_close(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        for marker in (
+            "let layoutSessionViewport=null;",
+            "function layoutViewportSize()",
+            "function refreshLayoutSessionViewport()",
+            "['layoutWidth','layoutHeight','layout viewport']",
+            "if(!row||!['local','viewer'].includes(String(row.mode||'')))return null;",
+            "if(rawW<480||rawH<270||rawW>7680||rawH>4320)return null;",
+            "Math.max(.1,Math.min(1,sw/tw,sh/th))",
+            "body.remote-layout-proxy #remote-layout-preview-stage{top:112px;right:350px}",
+            "frame.onload=null;frame.removeAttribute('src');frame.src='about:blank';",
+            "layoutEditorRecoveredLegacy=false;layoutSessionViewport=null;",
+            "const hadSession=layoutEditorActive||!!layoutEditorOriginal;",
+        ):
+            self.assertIn(marker, html)
+        self.assertIn("session!==remoteLayoutPreviewSession||!shell.classList.contains('show')", html)
+        self.assertNotIn("severeOverflow=visual", html)
+        self.assertNotIn("Math.max(.1,Math.min(4,sw/tw,sh/th))", html)
+        self.assertNotIn("using 1920×1080 fallback", html)
+        self.assertIn("Arrange unavailable · the wall display has not reported a valid viewport yet", html)
+        self.assertIn("function legacyBuiltInCollisionCount(rects)", html)
+        self.assertIn("--ld-layout-fit-current", html)
+        clock_custom = html.split("body.custom-layout #clock-block {", 1)[1].split("}", 1)[0]
+        self.assertNotIn("padding:0 !important", clock_custom)
 
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
