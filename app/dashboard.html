@@ -636,10 +636,13 @@ body.layout-editing #calendar-legend {
 #remote-layout-preview-shell.show{display:block}
 #remote-layout-preview-topbar{position:absolute;z-index:3;left:0;right:0;top:0;height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;background:rgba(8,11,9,.96);border-bottom:1px solid rgba(255,255,255,.13);box-shadow:0 8px 24px rgba(0,0,0,.28)}
 #remote-layout-preview-title{min-width:0;display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,.72)}#remote-layout-preview-title b{font-size:13px;color:#fff}#remote-layout-preview-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#remote-layout-preview-actions{display:flex;gap:7px;flex:0 0 auto}#remote-layout-preview-actions button{border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:11px;padding:7px 10px;cursor:pointer}
+#remote-layout-preview-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}#remote-layout-preview-actions button,#remote-layout-preview-actions select{border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:11px;padding:7px 10px}#remote-layout-preview-actions button{cursor:pointer}.remote-layout-element-control{display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,.64)}.remote-layout-element-control select{min-width:150px;max-width:230px}.remote-layout-element-control option{background:#101410;color:#fff}
 #remote-layout-preview-stage{position:absolute;left:0;right:0;top:52px;bottom:0;overflow:hidden;background:#000}
 #remote-layout-preview-frame{position:absolute;left:0;top:0;border:0;background:#000;transform-origin:0 0;box-shadow:0 0 0 1px rgba(255,255,255,.12),0 22px 70px rgba(0,0,0,.55)}
 body.layout-preview-embedded #cog,body.layout-preview-embedded #settings-preview-return{display:none!important}
+body.layout-preview-embedded .layout-edit-box{min-width:2px;min-height:2px}
+body.layout-preview-embedded .layout-edit-label{font-size:var(--ld-editor-label-size,11px);padding:var(--ld-editor-label-pad-y,4px) var(--ld-editor-label-pad-x,7px)}
+body.layout-preview-embedded .layout-resize-handle{width:var(--ld-editor-handle-size,18px);height:var(--ld-editor-handle-size,18px)}
 #layout-editor-layer {
   position:fixed;
   inset:0;
@@ -1704,7 +1707,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.3.3</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.3.4</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -2096,7 +2099,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.3.3</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.3.4</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -2194,7 +2197,7 @@ html:not(.cursor-active) * {
 <div id="remote-layout-preview-shell" aria-hidden="true">
  <div id="remote-layout-preview-topbar">
   <div id="remote-layout-preview-title"><b>Arrange for display</b><span id="remote-layout-preview-meta">Loading display viewport…</span></div>
-  <div id="remote-layout-preview-actions"><button type="button" onclick="reloadRemoteLayoutPreview()">Reload preview</button><button type="button" onclick="closeRemoteLayoutPreview()">Close</button></div>
+  <div id="remote-layout-preview-actions"><label class="remote-layout-element-control"><span>Element</span><select id="remote-layout-element-picker" aria-label="Select dashboard element to edit" onchange="selectRemoteLayoutElement(this.value)"><option value="">Choose…</option></select></label><button type="button" onclick="reloadRemoteLayoutPreview()">Reload preview</button><button type="button" onclick="closeRemoteLayoutPreview()">Close</button></div>
  </div>
  <div id="remote-layout-preview-stage"><iframe id="remote-layout-preview-frame" title="LibreDisplay target-screen layout editor"></iframe></div>
 </div>
@@ -2287,7 +2290,7 @@ html:not(.cursor-active) * {
 <div id="offline-pill">Offline · cached data</div>
 
 <script>
-const DASHBOARD_BUILD = '1.3.3';
+const DASHBOARD_BUILD = '1.3.4';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -2296,9 +2299,6 @@ const PROFILES_KEY = 'libredisplay_profiles';
 const REMOTE_SETTINGS_MODE=PAGE_PARAMS.get('settings')==='1';
 const OPEN_SETTINGS_MODE=PAGE_PARAMS.get('openSettings')==='1';
 const LAYOUT_PREVIEW_MODE=PAGE_PARAMS.get('layoutPreview')==='1';
-const LAYOUT_PREVIEW_TARGET_FONT_WIDTH=Math.max(0,Number(PAGE_PARAMS.get('targetFontProbeWidth'))||0);
-const LAYOUT_PREVIEW_TARGET_FONT_HEIGHT=Math.max(0,Number(PAGE_PARAMS.get('targetFontProbeHeight'))||0);
-let LAYOUT_PREVIEW_FONT_METRIC_SCALE=1;
 let READ_ONLY_DISPLAY_MODE=PAGE_PARAMS.get('display')==='1';
 let LOCAL_CLIENT_MODE=false;
 let SESSION_ROLE='';
@@ -4611,8 +4611,7 @@ function updateBackgroundSourceUI(){
 }
 
 function scaledClamp(minPx,vw,maxPx,pct){
-  const previewScale=LAYOUT_PREVIEW_MODE?LAYOUT_PREVIEW_FONT_METRIC_SCALE:1;
-  const s=((Number(pct)||100)/100)*previewScale;
+  const s=((Number(pct)||100)/100);
   return `clamp(${(minPx*s).toFixed(2)}px,${(vw*s).toFixed(3)}vw,${(maxPx*s).toFixed(2)}px)`;
 }
 
@@ -5328,13 +5327,38 @@ async function fetchRemoteLayoutTarget(){
   }catch(e){console.warn('Could not read target display viewport',e);}
   return null;
 }
+function syncRemoteLayoutEditorAffordances(attempt=0){
+  const frame=document.getElementById('remote-layout-preview-frame'),picker=document.getElementById('remote-layout-element-picker');if(!frame||!picker)return;
+  try{
+    const doc=frame.contentDocument,innerPicker=doc?.getElementById('layout-toolbar-block');
+    if(!doc||!innerPicker||innerPicker.options.length<2){if(attempt<14)setTimeout(()=>syncRemoteLayoutEditorAffordances(attempt+1),100);return;}
+    const current=picker.value;
+    picker.innerHTML=Array.from(innerPicker.options).map(o=>`<option value="${escHtml(o.value)}"${o.disabled?' disabled':''}>${escHtml(o.textContent||o.label||'')}</option>`).join('');
+    if(Array.from(picker.options).some(o=>o.value===current))picker.value=current;
+  }catch(e){if(attempt<14)setTimeout(()=>syncRemoteLayoutEditorAffordances(attempt+1),100);}
+}
+function selectRemoteLayoutElement(key){
+  if(!key)return;const frame=document.getElementById('remote-layout-preview-frame');
+  try{frame?.contentWindow?.selectLayoutBlock?.(key);const inner=frame?.contentDocument?.getElementById('layout-toolbar-block');if(inner)inner.value=key;}catch(e){}
+}
+function syncRemoteEditorHitTargets(scale){
+  const frame=document.getElementById('remote-layout-preview-frame');
+  try{
+    const root=frame?.contentDocument?.documentElement;if(!root)return;
+    const inv=Math.max(1,Math.min(2.4,1/Math.max(.1,Number(scale)||1)));
+    root.style.setProperty('--ld-editor-label-size',(11*inv).toFixed(1)+'px');
+    root.style.setProperty('--ld-editor-label-pad-y',(4*inv).toFixed(1)+'px');
+    root.style.setProperty('--ld-editor-label-pad-x',(7*inv).toFixed(1)+'px');
+    root.style.setProperty('--ld-editor-handle-size',(18*inv).toFixed(1)+'px');
+  }catch(e){}
+}
 function fitRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),stage=document.getElementById('remote-layout-preview-stage'),frame=document.getElementById('remote-layout-preview-frame');
   if(!shell?.classList.contains('show')||!stage||!frame||!remoteLayoutPreviewTarget)return;
   const sw=Math.max(1,stage.clientWidth),sh=Math.max(1,stage.clientHeight),tw=remoteLayoutPreviewTarget.width,th=remoteLayoutPreviewTarget.height;
   const scale=Math.max(.1,Math.min(4,sw/tw,sh/th)),left=Math.max(0,(sw-tw*scale)/2),top=Math.max(0,(sh-th*scale)/2);
-  frame.style.width=tw+'px';frame.style.height=th+'px';frame.style.left=left.toFixed(1)+'px';frame.style.top=top.toFixed(1)+'px';frame.style.transform=`scale(${scale})`;
-  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'live display':'last reported display',dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} target viewport${dpr} · ${state}${remoteLayoutPreviewTarget.fontProbeWidth?' · wall font calibrated':''} · preview scaled to ${Math.round(scale*100)}%`;}
+  frame.style.width=tw+'px';frame.style.height=th+'px';frame.style.left=left.toFixed(1)+'px';frame.style.top=top.toFixed(1)+'px';frame.style.transform=`scale(${scale})`;syncRemoteEditorHitTargets(scale);
+  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'live display':'last reported display',dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} target viewport${dpr} · ${state} · preview scaled to ${Math.round(scale*100)}%`;}
 }
 async function openRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame'),meta=document.getElementById('remote-layout-preview-meta');if(!shell||!frame)return;
@@ -5345,11 +5369,12 @@ async function openRemoteLayoutPreview(){
     remoteLayoutPreviewTarget={width:fallbackW,height:fallbackH,online:false,fallback:true};
     if(meta)meta.textContent='No display heartbeat found · using 1920×1080 fallback';
   }
-  frame.src=`/layout-preview?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1&targetFontProbeWidth=${encodeURIComponent(remoteLayoutPreviewTarget.fontProbeWidth||0)}&targetFontProbeHeight=${encodeURIComponent(remoteLayoutPreviewTarget.fontProbeHeight||0)}&_=${Date.now()}`;
+  frame.onload=()=>{fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();};
+  frame.src=`/layout-preview?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1&_=${Date.now()}`;
   fitRemoteLayoutPreview();requestAnimationFrame(fitRemoteLayoutPreview);
 }
 function closeRemoteLayoutPreview(){const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');if(shell){shell.classList.remove('show');shell.setAttribute('aria-hidden','true');}if(frame)frame.src='about:blank';remoteLayoutPreviewTarget=null;}
-function reloadRemoteLayoutPreview(){const frame=document.getElementById('remote-layout-preview-frame');if(frame&&remoteLayoutPreviewTarget)frame.src=`/layout-preview?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1&targetFontProbeWidth=${encodeURIComponent(remoteLayoutPreviewTarget.fontProbeWidth||0)}&targetFontProbeHeight=${encodeURIComponent(remoteLayoutPreviewTarget.fontProbeHeight||0)}&_=${Date.now()}`;}
+function reloadRemoteLayoutPreview(){const frame=document.getElementById('remote-layout-preview-frame');if(frame&&remoteLayoutPreviewTarget){frame.onload=()=>{fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();};frame.src=`/layout-preview?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1&_=${Date.now()}`;}}
 window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==document.getElementById('remote-layout-preview-frame')?.contentWindow)return;const msg=e.data||{};if(msg.type!=='libredisplay-layout-editor')return;if(msg.action==='saved'){closeRemoteLayoutPreview();setTimeout(()=>{pollServerConfig();openSetup(false);},180);}else if(msg.action==='cancelled'){closeRemoteLayoutPreview();openSetup(false);}});
 function launchLayoutEditorFromSettings(){
   if(settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;
@@ -5478,15 +5503,6 @@ function measureDashboardFontProbe(fontName){
     return {width:Number(m.width)||0,height};
   }catch(e){return {width:0,height:0};}
 }
-function refreshLayoutPreviewFontCalibration(source=cfg){
-  if(!LAYOUT_PREVIEW_MODE){LAYOUT_PREVIEW_FONT_METRIC_SCALE=1;return 1;}
-  const local=measureDashboardFontProbe(source?.fontFamily||'Inter');
-  const wr=LAYOUT_PREVIEW_TARGET_FONT_WIDTH>0&&local.width>0?LAYOUT_PREVIEW_TARGET_FONT_WIDTH/local.width:1;
-  const hr=LAYOUT_PREVIEW_TARGET_FONT_HEIGHT>0&&local.height>0?LAYOUT_PREVIEW_TARGET_FONT_HEIGHT/local.height:wr;
-  const raw=(wr*.7)+(hr*.3);
-  LAYOUT_PREVIEW_FONT_METRIC_SCALE=Math.max(.82,Math.min(1.22,Number.isFinite(raw)?raw:1));
-  return LAYOUT_PREVIEW_FONT_METRIC_SCALE;
-}
 
 function uiCfg(){return window.__uiPreviewCfg||cfg;}
 
@@ -5503,7 +5519,6 @@ function applyAccessibilityPreferences(source=cfg){
 }
 
 function applyUiCustomization(source=cfg){
-  refreshLayoutPreviewFontCalibration(source);
   applyAccessibilityPreferences(source);
   applyProductTheme(source.uiTheme||'libre-night');
   const q=(v,lo,hi,def)=>{const n=Number(v);return Math.min(hi,Math.max(lo,Number.isFinite(n)?n:def));};

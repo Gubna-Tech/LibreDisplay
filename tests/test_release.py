@@ -414,19 +414,16 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('--disable-backgrounding-occluded-windows', start)
         self.assertIn('--disable-renderer-backgrounding', start)
 
-    def test_v132_remote_layout_fresh_handshake_font_calibration_and_boot_polish(self):
+    def test_v132_remote_layout_fresh_handshake_and_boot_polish(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
         server = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
         viewer = (ROOT / "scripts" / "viewer-setup.sh").read_text(encoding="utf-8")
         self.assertIn('<div id="setup" class="hidden" aria-hidden="true">', html)
         self.assertIn("function measureDashboardFontProbe(fontName)", html)
-        self.assertIn("function refreshLayoutPreviewFontCalibration(source=cfg)", html)
-        self.assertIn("LAYOUT_PREVIEW_TARGET_FONT_WIDTH", html)
         self.assertIn("fontProbeWidth", html)
         self.assertIn("fontProbeHeight", html)
         self.assertIn("for(let attempt=0;attempt<18;attempt++)", html)
         self.assertIn("Number(row.lastSeen||0)>=requestedAt-.15", html)
-        self.assertIn("wall font calibrated", html)
         self.assertIn("Math.max(.1,Math.min(4,sw/tw,sh/th))", html)
         self.assertIn('"fontProbeWidth": font_probe_width', server)
         self.assertIn('"fontProbeHeight": font_probe_height', server)
@@ -441,6 +438,18 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('"SAMEORIGIN" if layout_preview else "DENY"', server_source)
         self.assertIn('frame_ancestors = "\'self\'" if layout_preview else "\'none\'"', server_source)
         self.assertNotIn("frame.src=`/dashboard.html?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1", html)
+
+    def test_v134_remote_arrange_keeps_content_and_boxes_on_same_scale(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        self.assertNotIn("LAYOUT_PREVIEW_TARGET_FONT_WIDTH", html)
+        self.assertNotIn("LAYOUT_PREVIEW_FONT_METRIC_SCALE", html)
+        self.assertNotIn("refreshLayoutPreviewFontCalibration", html)
+        self.assertIn("const s=((Number(pct)||100)/100);", html)
+        self.assertIn('id="remote-layout-element-picker"', html)
+        self.assertIn("function selectRemoteLayoutElement(key)", html)
+        self.assertIn("function syncRemoteEditorHitTargets(scale)", html)
+        self.assertNotIn("wall font calibrated", html)
+        self.assertNotIn("targetFontProbeWidth=", html)
 
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
