@@ -242,6 +242,34 @@ class ReleaseContractTests(unittest.TestCase):
         for direction in ('nw', 'ne', 'sw', 'se'):
             self.assertIn(f'data-resize="{direction}"', html)
 
+
+    def test_v126_layout_inspector_subsections_and_mobility(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        for marker in (
+            'id="layout-properties-drag-handle"',
+            'id="layout-part-picker"',
+            'id="layout-toolbar-scale-number"',
+            'All event text',
+            'layoutPartStyle',
+            'const LAYOUT_PART_DEFS=',
+            'const CUSTOM_LAYOUT_PART_DEFS=',
+            'function setSelectedPartFineStyle',
+            'function resetSelectedStyleScope',
+            'function initLayoutInspectorDrag',
+            'function buildCustomLayoutPartCss',
+            'LAYOUT_INSPECTOR_POS_KEY',
+            '_partStyles',
+        ):
+            self.assertIn(marker, html)
+        self.assertIn("cal*ps('calendar','eventText')*ps('calendar','eventTitle')", html)
+        self.assertIn("cal*ps('calendar','eventText')*ps('calendar','eventTime')", html)
+        self.assertIn("cal*ps('calendar','dayNumber')", html)
+        self.assertNotIn("cal*ps('calendar','eventText')*ps('calendar','dayNumber')", html)
+        self.assertIn("document.addEventListener('pointermove'", html)
+        self.assertIn("document.addEventListener('pointerup'", html)
+        self.assertIn("max-height:calc(100vh - 88px)", html)
+        self.assertEqual(html.count("</script>"), 1)
+
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
         for marker in ("bc-chart-area", "bc-chart-points", "bc-chart-grid", "function analyzeImportedSettings", "product:'LibreDisplay',format:2"):
