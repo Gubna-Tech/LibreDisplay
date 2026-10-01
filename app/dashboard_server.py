@@ -2516,6 +2516,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 visual_viewport_height = max(0, min(20000, int((body or {}).get("visualViewportHeight") or viewport_height)))
                 screen_width = max(0, min(20000, int((body or {}).get("screenWidth") or width)))
                 screen_height = max(0, min(20000, int((body or {}).get("screenHeight") or height)))
+                font_probe_width = max(0.0, min(50000.0, float((body or {}).get("fontProbeWidth") or 0)))
+                font_probe_height = max(0.0, min(5000.0, float((body or {}).get("fontProbeHeight") or 0)))
                 row = {
                     "endpoint": endpoint_id,
                     "deviceId": device_id,
@@ -2532,6 +2534,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     "screenWidth": screen_width,
                     "screenHeight": screen_height,
                     "dpr": max(0.25, min(8.0, float((body or {}).get("dpr") or 1))),
+                    "fontProbeWidth": font_probe_width,
+                    "fontProbeHeight": font_probe_height,
+                    "fontName": str((body or {}).get("fontName") or "").strip()[:80],
                     "mode": str((body or {}).get("mode") or "browser").strip()[:40],
                     "version": str((body or {}).get("version") or "").strip()[:40],
                     "userAgent": str((body or {}).get("userAgent") or "").strip()[:220],

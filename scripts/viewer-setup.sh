@@ -140,7 +140,7 @@ esac
 
 sudo -v
 sudo apt update
-sudo DEBIAN_FRONTEND=noninteractive apt install -y chromium curl labwc raspi-config swayidle wtype
+sudo DEBIAN_FRONTEND=noninteractive apt install -y chromium curl labwc raspi-config swayidle wtype fonts-liberation2 fonts-noto-core fonts-dejavu-core
 
 mkdir -p "$DATA_DIR" "$LABWC_DIR"
 chmod 700 "$VIEWER_DIR" "$DATA_DIR"

@@ -190,7 +190,7 @@ class ReleaseContractTests(unittest.TestCase):
 
     def test_v125_restores_v121_known_good_dashboard_hydration_path(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
-        self.assertIn('<div id="setup">', html)
+        self.assertIn('<div id="setup" class="hidden" aria-hidden="true">', html)
         self.assertNotIn('function fetchWithTimeout', html)
         self.assertNotIn('fetchWithTimeout(', html)
         self.assertIn('id="settings-init-error"', html)
@@ -413,6 +413,24 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('--disable-background-timer-throttling', start)
         self.assertIn('--disable-backgrounding-occluded-windows', start)
         self.assertIn('--disable-renderer-backgrounding', start)
+
+    def test_v132_remote_layout_fresh_handshake_font_calibration_and_boot_polish(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        server = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
+        viewer = (ROOT / "scripts" / "viewer-setup.sh").read_text(encoding="utf-8")
+        self.assertIn('<div id="setup" class="hidden" aria-hidden="true">', html)
+        self.assertIn("function measureDashboardFontProbe(fontName)", html)
+        self.assertIn("function refreshLayoutPreviewFontCalibration(source=cfg)", html)
+        self.assertIn("LAYOUT_PREVIEW_TARGET_FONT_WIDTH", html)
+        self.assertIn("fontProbeWidth", html)
+        self.assertIn("fontProbeHeight", html)
+        self.assertIn("for(let attempt=0;attempt<18;attempt++)", html)
+        self.assertIn("Number(row.lastSeen||0)>=requestedAt-.15", html)
+        self.assertIn("wall font calibrated", html)
+        self.assertIn("Math.max(.1,Math.min(4,sw/tw,sh/th))", html)
+        self.assertIn('"fontProbeWidth": font_probe_width', server)
+        self.assertIn('"fontProbeHeight": font_probe_height', server)
+        self.assertIn('fonts-liberation2 fonts-noto-core fonts-dejavu-core', viewer)
 
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
