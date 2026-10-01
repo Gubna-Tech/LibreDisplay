@@ -270,6 +270,24 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("max-height:calc(100vh - 88px)", html)
         self.assertEqual(html.count("</script>"), 1)
 
+    def test_v127_alert_runtime_state_and_context_help(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        start = html.index("function previewAlertMotionSpeed(value){")
+        end = html.index("\n}\n\nfunction handleAlertMotionChange", start)
+        preview = html[start:end]
+        self.assertNotIn("syncAlertRuntimeStateFromForm", preview)
+        self.assertIn("if(alertRuntimeState)alertRuntimeState.speed=speed;", preview)
+        self.assertIn('id="context-help-popover"', html)
+        self.assertIn('class="help-tip"', html)
+        self.assertIn("function initContextHelp", html)
+        self.assertIn("contextHelpPinned", html)
+        self.assertIn("alertRuntimeState=null;\n      window.__uiPreviewCfg=null;\n      applySettings();", html)
+        self.assertIn("saveCfg();setAppearanceForm(cfg);applySettings();", html)
+        self.assertIn("saveCfg();alertRuntimeState=null;window.__uiPreviewCfg=null;applySettings();openSetup(false)", html)
+        self.assertIn("ensureCfgDefaults();cfg._savedAt=Date.now();", html)
+        self.assertIn("persistCfgToServer(JSON.parse(JSON.stringify(cfg)));", html)
+        self.assertIn("if(e.key==='Escape'&&activeContextHelpTip)", html)
+
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
         for marker in ("bc-chart-area", "bc-chart-points", "bc-chart-grid", "function analyzeImportedSettings", "product:'LibreDisplay',format:2"):

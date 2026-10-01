@@ -972,6 +972,11 @@ body.layout-editing .custom-block { pointer-events:none !important; user-select:
 .settings-inline-group{margin-top:16px;padding-top:14px;border-top:1px solid var(--ld-border)}
 .settings-inline-group:first-of-type{margin-top:12px}.settings-inline-group .s-subhead{margin-top:0}
 .settings-inline-help{font-size:11px;line-height:1.45;color:var(--ld-subtle);margin:4px 0 10px}
+.help-tip{display:inline-grid;place-items:center;width:17px;height:17px;margin-left:5px;padding:0;border:1px solid color-mix(in srgb,var(--ld-accent) 42%,var(--ld-border));border-radius:50%;background:color-mix(in srgb,var(--ld-accent) 9%,var(--ld-surface-2));color:var(--ld-accent);font:800 10px/1 var(--ld-app-font);vertical-align:middle;cursor:help;opacity:.78;transition:opacity .16s,border-color .16s,background .16s;transform:none;text-transform:none;letter-spacing:0}
+.help-tip:hover,.help-tip:focus-visible,.help-tip.help-active{opacity:1;border-color:var(--ld-accent);background:color-mix(in srgb,var(--ld-accent) 16%,var(--ld-surface-2));outline:none}
+.s-section>h3 .help-tip,.s-subhead .help-tip,.layout-prop-label .help-tip{position:relative;top:-1px}
+#context-help-popover{position:fixed;z-index:1400;max-width:min(330px,calc(100vw - 24px));padding:9px 11px;border:1px solid color-mix(in srgb,var(--ld-accent) 32%,var(--ld-border));border-radius:9px;background:color-mix(in srgb,var(--ld-surface) 97%,#000);color:var(--ld-text);box-shadow:0 14px 36px var(--ld-shadow);font:500 11px/1.5 var(--ld-app-font);text-transform:none;letter-spacing:0;pointer-events:none}
+#context-help-popover[hidden]{display:none}
 
 .s-subhead {
   margin:15px 0 9px;
@@ -1502,7 +1507,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.2.6</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.2.7</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -1601,7 +1606,7 @@ html:not(.cursor-active) * {
   </div>
 
   <div class="s-section" id="settings-calendars" data-settings-tab="content">
-   <h3>Calendars</h3>
+   <h3>Calendars <button class="help-tip" type="button" aria-label="Calendar help" data-help="Add and test ICS feeds before saving. Display range, event count, and calendar auto-scroll are controlled in Appearance and can be fine-tuned further in Arrange mode.">?</button></h3>
    <div class="howto">Add as many calendars as you need. LibreDisplay accepts standard iCalendar/ICS subscription links from Google Calendar, Proton Calendar, Outlook/Microsoft 365, iCloud shared calendars, Nextcloud, Fastmail, and other providers that expose an ICS feed. You can also import a local <code>.ics</code> file.</div>
    <div class="calendar-slot-tools">
     <button class="btn-util" type="button" onclick="addCalendarSource()">+ Add calendar</button>
@@ -1628,26 +1633,26 @@ html:not(.cursor-active) * {
   </div>
 
   <div class="s-section" id="settings-alerts" data-settings-tab="content">
-   <h3>Weather alerts</h3>
+   <h3>Weather alerts <button class="help-tip" type="button" aria-label="Weather alert help" data-help="Test mode is generated locally and should keep running with Settings closed. Motion controls apply to both simulated and real alerts.">?</button></h3>
    <div class="howto">Uses active National Weather Service alerts for the configured location (U.S.). Up to 10 alerts are shown. Test mode generates 10 simulated alerts locally so you can tune the layout at any time.</div>
    <div class="settings-grid alert-settings-grid">
     <label class="checkline"><input id="s-alerts-enabled" type="checkbox" checked onchange="handleAlertsEnabledChange()"> Enable weather alerts</label>
-    <label class="checkline"><input id="s-alert-test" type="checkbox" onchange="handleAlertTestModeChange()"> Test mode — generate 10 alerts</label>
-    <div class="s-row"><label>Alert card height <span id="s-alert-size-value" class="range-value">29%</span></label><input id="s-alert-size" type="range" min="25" max="33" step="1" value="29" oninput="previewAlertSize(this.value)"></div>
-    <div class="s-row"><label>Alert motion</label><select id="s-alert-motion" onchange="handleAlertMotionChange()"><option value="step">Smooth step / rotate</option><option value="continuous">Continuous loop — only when needed</option><option value="static">No automatic motion</option></select></div>
-    <div class="s-row"><label>Continuous scroll speed <span id="s-alert-motion-speed-value" class="range-value">36 px/s</span></label><input id="s-alert-motion-speed" type="range" min="4" max="120" step="1" value="36" oninput="previewAlertMotionSpeed(this.value)"><div class="range-ends"><span>Slow</span><span>Fast</span></div></div>
-    <div class="s-row"><label>Step rotation delay</label><select id="s-alert-scroll" onchange="handleAlertMotionChange()"><option value="5">Every 5 seconds</option><option value="8">Every 8 seconds</option><option value="12">Every 12 seconds</option><option value="20">Every 20 seconds</option></select></div>
-    <div class="s-row"><label>Real alert refresh</label><select id="s-alert-refresh"><option value="3">Every 3 minutes</option><option value="5">Every 5 minutes</option><option value="10">Every 10 minutes</option><option value="15">Every 15 minutes</option></select></div>
+    <label class="checkline"><input id="s-alert-test" type="checkbox" onchange="handleAlertTestModeChange()"> Test mode — generate 10 alerts <button class="help-tip" type="button" aria-label="Test mode help" data-help="Creates 10 simulated alerts entirely in the browser. No live alert request is required, making this useful for tuning layout and motion at any time.">?</button></label>
+    <div class="s-row"><label>Alert card height <span id="s-alert-size-value" class="range-value">29%</span> <button class="help-tip" type="button" aria-label="Alert card height help" data-help="Changes the vertical space used by each alert card. It does not change alert text size; use Arrange → Weather Alerts for text sizing.">?</button></label><input id="s-alert-size" type="range" min="25" max="33" step="1" value="29" oninput="previewAlertSize(this.value)"></div>
+    <div class="s-row"><label>Alert motion <button class="help-tip" type="button" aria-label="Alert motion help" data-help="Step advances card-by-card. Continuous moves the full list smoothly when it is taller than the alert area. Static disables automatic movement.">?</button></label><select id="s-alert-motion" onchange="handleAlertMotionChange()"><option value="step">Smooth step / rotate</option><option value="continuous">Continuous loop — only when needed</option><option value="static">No automatic motion</option></select></div>
+    <div class="s-row"><label>Continuous scroll speed <span id="s-alert-motion-speed-value" class="range-value">36 px/s</span> <button class="help-tip" type="button" aria-label="Continuous alert speed help" data-help="Used only when Alert motion is Continuous. Higher values move the alert list faster.">?</button></label><input id="s-alert-motion-speed" type="range" min="4" max="120" step="1" value="36" oninput="previewAlertMotionSpeed(this.value)"><div class="range-ends"><span>Slow</span><span>Fast</span></div></div>
+    <div class="s-row"><label>Step rotation delay <button class="help-tip" type="button" aria-label="Step rotation delay help" data-help="Used only when Alert motion is Step. This is how long each alert position remains visible before advancing.">?</button></label><select id="s-alert-scroll" onchange="handleAlertMotionChange()"><option value="5">Every 5 seconds</option><option value="8">Every 8 seconds</option><option value="12">Every 12 seconds</option><option value="20">Every 20 seconds</option></select></div>
+    <div class="s-row"><label>Real alert refresh <button class="help-tip" type="button" aria-label="Real alert refresh help" data-help="How often LibreDisplay checks the National Weather Service for real alerts. Test mode is local and does not wait for this timer.">?</button></label><select id="s-alert-refresh"><option value="3">Every 3 minutes</option><option value="5">Every 5 minutes</option><option value="10">Every 10 minutes</option><option value="15">Every 15 minutes</option></select></div>
    </div>
    <div id="alert-status" class="howto" style="display:none;margin-top:10px;"></div>
   </div>
 
 
   <div class="s-section" id="settings-alert-appearance" data-settings-level="advanced" data-settings-tab="content">
-   <h3>Alert appearance &amp; filtering</h3>
+   <h3>Alert appearance &amp; filtering <button class="help-tip" type="button" aria-label="Alert filtering help" data-help="Severity filtering applies to real National Weather Service alerts. Test mode intentionally keeps mixed severities so you can preview the layout.">?</button></h3>
    <div class="settings-grid">
-    <div class="s-row"><label>Alert card opacity <span id="s-alert-opacity-value" class="range-value">100%</span></label><input id="s-alert-opacity" type="range" min="55" max="100" step="1" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Minimum real-alert severity</label><select id="s-alert-min-severity"><option value="all">All alerts</option><option value="minor">Minor or higher</option><option value="moderate">Moderate or higher</option><option value="severe">Severe or higher</option><option value="extreme">Extreme only</option></select></div>
+    <div class="s-row"><label>Alert card opacity <span id="s-alert-opacity-value" class="range-value">100%</span> <button class="help-tip" type="button" aria-label="Alert opacity help" data-help="Changes the visibility of the alert card surface. Text size and individual alert text styling are controlled separately in Arrange mode.">?</button></label><input id="s-alert-opacity" type="range" min="55" max="100" step="1" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Minimum real-alert severity <button class="help-tip" type="button" aria-label="Alert severity help" data-help="Filters live National Weather Service alerts only. Test alerts are not filtered so all severity styles can be previewed.">?</button></label><select id="s-alert-min-severity"><option value="all">All alerts</option><option value="minor">Minor or higher</option><option value="moderate">Moderate or higher</option><option value="severe">Severe or higher</option><option value="extreme">Extreme only</option></select></div>
    </div>
    <div class="settings-grid alert-settings-grid" style="margin-top:2px;">
     <label class="checkline"><input id="s-alert-show-expiry" type="checkbox" onchange="previewAppearance()"> Show alert expiry</label>
@@ -1656,7 +1661,7 @@ html:not(.cursor-active) * {
   </div>
 
   <div class="s-section" id="settings-backgrounds" data-settings-tab="content">
-   <h3>Pictures &amp; backgrounds</h3>
+   <h3>Pictures &amp; backgrounds <button class="help-tip" type="button" aria-label="Background help" data-help="Choose one active source. Google Photos shared albums paginate up to 1,000 images; local or NAS folders and stock sources can also rotate automatically.">?</button></h3>
    <div class="howto">Choose the picture source and tune its rotation in one place. Use Google Photos, built-in stock categories, local folders, mounted NAS/network folders, or no photo background.</div>
    <div class="settings-grid">
     <div class="s-row"><label>Source</label><select id="s-bg-source" onchange="updateBackgroundSourceUI()"><option value="google">Google Photos shared album</option><option value="folders">Local / NAS folders</option><option value="stock">Stock photo categories</option><option value="none">No photo background</option></select></div>
@@ -1673,7 +1678,7 @@ html:not(.cursor-active) * {
    <div class="google-bg-only settings-inline-group">
     <div class="s-subhead">Google Photos shared album</div>
     <div class="settings-inline-help">Google Photos → open album → Share icon → “Create link” → copy URL. LibreDisplay paginates large shared albums and loads up to 1,000 photos per album.</div>
-    <div class="s-row"><label>Album URL</label><input id="s-photos" type="url" placeholder="https://photos.app.goo.gl/…"></div>
+    <div class="s-row"><label>Album URL <button class="help-tip" type="button" aria-label="Google Photos album help" data-help="Use a Google Photos shared-album link created with Create link. LibreDisplay follows continuation pages and loads up to 1,000 images from one shared album.">?</button></label><input id="s-photos" type="url" placeholder="https://photos.app.goo.gl/…"></div>
     <div class="utility-actions">
      <button class="btn-util" type="button" onclick="reloadBackgroundNow()">Reload album</button>
      <button class="btn-util" type="button" onclick="nextBackgroundNow()">Next photo now</button>
@@ -1704,9 +1709,9 @@ html:not(.cursor-active) * {
      <div class="s-row"><label>Change background every</label><select id="s-photo-interval">
       <option value="0">Don’t rotate</option><option value="5">Every 5 seconds</option><option value="10">Every 10 seconds</option><option value="15">Every 15 seconds</option><option value="20">Every 20 seconds</option><option value="30">Every 30 seconds</option><option value="45">Every 45 seconds</option><option value="60">Every 1 minute</option><option value="120">Every 2 minutes</option><option value="300">Every 5 minutes</option><option value="600">Every 10 minutes</option><option value="900">Every 15 minutes</option><option value="1800">Every 30 minutes</option><option value="3600">Every 60 minutes</option>
      </select></div>
-     <div class="s-row"><label>Photo order</label><select id="s-photo-order"><option value="sequential">Sequential — source order</option><option value="shuffle">Shuffle cycle — every photo once</option><option value="random">Random — avoid immediate repeats</option></select></div>
+     <div class="s-row"><label>Photo order <button class="help-tip" type="button" aria-label="Photo order help" data-help="Sequential follows source order. Shuffle cycle shows every image once before reshuffling. Random chooses independently while avoiding immediate repeats.">?</button></label><select id="s-photo-order"><option value="sequential">Sequential — source order</option><option value="shuffle">Shuffle cycle — every photo once</option><option value="random">Random — avoid immediate repeats</option></select></div>
      <label class="checkline"><input id="s-photo-random-start" type="checkbox"> Random starting photo</label>
-     <label class="checkline"><input id="s-photo-preload" type="checkbox" checked> Preload the next photo</label>
+     <label class="checkline"><input id="s-photo-preload" type="checkbox" checked> Preload the next photo <button class="help-tip" type="button" aria-label="Photo preload help" data-help="Loads the next image before the transition to reduce flashes or blank frames. This uses a little more network and memory.">?</button></label>
     </div>
     <div class="settings-note">Shuffle cycle shows every available image once before reshuffling. Random chooses a new image each change and avoids showing the same image twice in a row.</div>
    </div>
@@ -1739,9 +1744,9 @@ html:not(.cursor-active) * {
    <div class="settings-grid">
     <div class="s-row"><label>Background top shading <span id="s-bg-top-value" class="range-value">52%</span></label><input id="s-bg-top" type="range" min="0" max="85" step="1" value="52" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Background bottom shading <span id="s-bg-bottom-value" class="range-value">55%</span></label><input id="s-bg-bottom" type="range" min="0" max="85" step="1" value="55" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Background blur <span id="s-bg-blur-value" class="range-value">0px</span></label><input id="s-bg-blur" type="range" min="0" max="12" step="1" value="0" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Background blur <span id="s-bg-blur-value" class="range-value">0px</span> <button class="help-tip" type="button" aria-label="Background blur help" data-help="Applies visual blur to the background image only. A small amount can make dashboard text easier to read over detailed photos.">?</button></label><input id="s-bg-blur" type="range" min="0" max="12" step="1" value="0" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Photo transition <span id="s-bg-transition-value" class="range-value">1.5s</span></label><input id="s-bg-transition" type="range" min="0" max="4" step="0.25" value="1.5" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Photo fit</label><select id="s-bg-fit" onchange="previewAppearance()"><option value="cover">Fill screen (cover)</option><option value="contain">Show whole photo (contain)</option></select></div>
+    <div class="s-row"><label>Photo fit <button class="help-tip" type="button" aria-label="Photo fit help" data-help="Cover fills the screen and may crop edges. Contain keeps the whole photo visible and may leave unused space around it.">?</button></label><select id="s-bg-fit" onchange="previewAppearance()"><option value="cover">Fill screen (cover)</option><option value="contain">Show whole photo (contain)</option></select></div>
     <div class="s-row"><label>Photo focal position</label><select id="s-bg-position" onchange="previewAppearance()"><option value="center">Center</option><option value="center top">Top</option><option value="center bottom">Bottom</option><option value="left center">Left</option><option value="right center">Right</option></select></div>
    </div>
   </div>
@@ -1812,7 +1817,7 @@ html:not(.cursor-active) * {
    </div>
    <div class="s-row"><label>Primary text color</label><div class="color-setting-row"><select disabled><option>Dashboard text</option></select><input id="s-text-color" type="color" value="#ffffff"><input id="s-text-hex" class="color-hex" type="text" maxlength="7" value="#FFFFFF" spellcheck="false"></div></div>
 
-   <div class="s-subhead">Element sizing</div>
+   <div class="s-subhead">Element sizing <button class="help-tip" type="button" aria-label="Element sizing help" data-help="These are dashboard-wide size defaults. Arrange mode can override an individual element or one internal section without changing the global default.">?</button></div>
    <div class="settings-grid">
     <div class="s-row"><label>Calendar text <span id="s-ui-calendar-value" class="range-value">100%</span></label><input id="s-ui-calendar" type="range" min="75" max="140" step="1" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Current weather <span id="s-ui-current-value" class="range-value">100%</span></label><input id="s-ui-current" type="range" min="75" max="140" step="1" value="100" oninput="previewAppearance()"></div>
@@ -1822,7 +1827,7 @@ html:not(.cursor-active) * {
     <div class="s-row"><label>Weather alert text <span id="s-ui-alert-value" class="range-value">100%</span></label><input id="s-ui-alert" type="range" min="75" max="150" step="1" value="100" oninput="previewAppearance()"></div>
    </div>
 
-   <div class="s-subhead">Layout geometry</div>
+   <div class="s-subhead">Layout geometry <button class="help-tip" type="button" aria-label="Layout geometry help" data-help="These controls change the default dashboard regions. Use Arrange mode when you want to position or resize individual elements freely.">?</button></div>
    <div class="settings-grid">
     <div class="s-row"><label>Calendar band height <span id="s-calendar-height-value" class="range-value">150px</span></label><input id="s-calendar-height" type="range" min="120" max="210" step="2" value="150" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Bottom area height <span id="s-bottom-height-value" class="range-value">330px</span></label><input id="s-bottom-height" type="range" min="270" max="410" step="2" value="330" oninput="previewAppearance()"></div>
@@ -1835,15 +1840,15 @@ html:not(.cursor-active) * {
     <div class="s-row"><label>Calendar range</label><select id="s-calendar-days" onchange="previewAppearance()"><option value="3">3 days</option><option value="5">5 days</option><option value="6">6 days</option><option value="7">7 days</option><option value="14">14 days</option><option value="21">21 days</option><option value="30">30 days</option><option value="45">45 days</option><option value="60">60 days</option></select></div>
     <div class="s-row"><label>Calendar columns</label><select id="s-calendar-columns" onchange="previewAppearance()"><option value="3">3 columns</option><option value="4">4 columns</option><option value="5">5 columns</option><option value="6">6 columns</option><option value="7">7 columns</option><option value="8">8 columns</option><option value="9">9 columns</option><option value="10">10 columns</option></select></div>
     <div class="s-row"><label>Calendar cell height <span id="s-calendar-cell-height-value" class="range-value">150px</span></label><input id="s-calendar-cell-height" type="range" min="90" max="240" step="5" value="150" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Calendar overflow</label><select id="s-calendar-scroll-mode" onchange="previewAppearance()"><option value="off">Manual / no auto-scroll</option><option value="auto">Slow auto-scroll</option></select></div>
-    <div class="s-row"><label>Calendar scroll speed <span id="s-calendar-scroll-speed-value" class="range-value">12 px/s</span></label><input id="s-calendar-scroll-speed" type="range" min="2" max="60" step="1" value="12" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Calendar events per day</label><select id="s-calendar-max-events" onchange="previewAppearance()"><option value="1">1 event</option><option value="2">2 events</option><option value="3">3 events</option><option value="4">4 events</option><option value="5">5 events</option><option value="6">6 events</option></select></div>
+    <div class="s-row"><label>Calendar overflow <button class="help-tip" type="button" aria-label="Calendar overflow help" data-help="Manual keeps the calendar band stationary. Slow auto-scroll moves it only when the calendar content is taller than the available area.">?</button></label><select id="s-calendar-scroll-mode" onchange="previewAppearance()"><option value="off">Manual / no auto-scroll</option><option value="auto">Slow auto-scroll</option></select></div>
+    <div class="s-row"><label>Calendar scroll speed <span id="s-calendar-scroll-speed-value" class="range-value">12 px/s</span> <button class="help-tip" type="button" aria-label="Calendar scroll speed help" data-help="Used only when Calendar overflow is set to Slow auto-scroll.">?</button></label><input id="s-calendar-scroll-speed" type="range" min="2" max="60" step="1" value="12" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Calendar events per day <button class="help-tip" type="button" aria-label="Calendar events per day help" data-help="Maximum number of entries shown in each day cell. This affects how much calendar content must fit or scroll.">?</button></label><select id="s-calendar-max-events" onchange="previewAppearance()"><option value="1">1 event</option><option value="2">2 events</option><option value="3">3 events</option><option value="4">4 events</option><option value="5">5 events</option><option value="6">6 events</option></select></div>
    </div>
 
-   <div class="s-subhead">Advanced layout editor</div>
+   <div class="s-subhead">Advanced layout editor <button class="help-tip" type="button" aria-label="Arrange mode help" data-help="Arrange changes presentation only. Select an element to move or resize it, then use the movable inspector to style the whole block or individual titles, values, labels, and event text.">?</button></div>
    <div class="howto">Unlock the dashboard to drag and resize each major element independently. Select any element to open its inspector for content size, font, text color, opacity, horizontal/vertical content alignment, and precise screen placement. Arrow keys nudge a selected block; Shift + arrow resizes it. The Add Block catalog supports multiple reusable custom blocks. Positions are stored proportionally so layouts scale across similar screen resolutions.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Snap grid</label><select id="s-layout-grid"><option value="8">8 px — fine</option><option value="12">12 px</option><option value="16">16 px</option><option value="20">20 px — default</option><option value="24">24 px</option><option value="32">32 px — coarse</option></select></div>
+    <div class="s-row"><label>Snap grid <button class="help-tip" type="button" aria-label="Snap grid help" data-help="Smaller grid values allow finer movement. Turn Snap off for completely free placement and resizing.">?</button></label><select id="s-layout-grid"><option value="8">8 px — fine</option><option value="12">12 px</option><option value="16">16 px</option><option value="20">20 px — default</option><option value="24">24 px</option><option value="32">32 px — coarse</option></select></div>
     <label class="checkline"><input id="s-layout-snap" type="checkbox" checked> Snap blocks to grid while moving/resizing</label>
    </div>
    <div class="utility-actions" style="margin-top:7px;">
@@ -1890,7 +1895,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.2.6</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.2.7</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -1981,6 +1986,7 @@ html:not(.cursor-active) * {
 
 
 <div id="layout-editor-layer" aria-hidden="true"></div>
+<div id="context-help-popover" role="tooltip" hidden></div>
 <div id="layout-toolbar" aria-hidden="true">
  <button class="layout-save" type="button" onclick="saveLayoutEditor()">Save &amp; Lock</button>
  <button class="layout-cancel" type="button" onclick="cancelLayoutEditor()">Cancel</button>
@@ -2007,22 +2013,22 @@ html:not(.cursor-active) * {
  <div id="layout-properties-drag-handle" class="layout-prop-head" title="Drag this inspector anywhere on the screen"><div><b id="layout-properties-title">Element inspector</b><small id="layout-properties-subtitle">Select an element to customize its contents.</small></div><div class="layout-prop-head-actions"><button id="layout-properties-collapse" type="button" onclick="toggleLayoutInspectorCollapse()" title="Collapse inspector">−</button><button type="button" onclick="resetLayoutInspectorPosition()" title="Return inspector to its default position">↺</button><button type="button" onclick="resetSelectedLayoutBlock()" title="Reset the selected element, including its position">Reset</button></div></div>
  <div id="layout-properties-controls" class="layout-prop-disabled">
   <div class="layout-prop-section">
-   <div class="layout-prop-label"><span>Edit section</span><span id="layout-part-scope-label">Whole element</span></div>
+   <div class="layout-prop-label"><span>Edit section <button class="help-tip" type="button" aria-label="Inspector section help" data-help="Whole element affects the selected block broadly. Choose an internal section to tune only that title, value, event, label, icon, or subtitle.">?</button></span><span id="layout-part-scope-label">Whole element</span></div>
    <select id="layout-part-picker" class="layout-section-select" aria-label="Choose part of the selected element to edit" onchange="selectLayoutPart(this.value)"><option value="whole">Whole element</option></select>
    <div class="layout-prop-hint" style="margin-top:6px">Choose a specific title, label, value, event, or subtitle to style it without changing the rest of the element.</div>
    <div class="layout-prop-row" style="margin-top:7px"><button type="button" onclick="resetSelectedStyleScope()">Reset this style</button></div>
   </div>
   <div class="layout-prop-section">
-   <div class="layout-prop-label"><span id="layout-size-label">Content size</span><span id="layout-toolbar-scale-value" class="layout-prop-value">100%</span></div>
+   <div class="layout-prop-label"><span id="layout-size-label">Content size <button class="help-tip" type="button" aria-label="Content size help" data-help="Scales the text or content inside the selected scope without changing the outer element box. Resize the block itself with its corner handles.">?</button></span><span id="layout-toolbar-scale-value" class="layout-prop-value">100%</span></div>
    <div id="layout-content-size-control" class="layout-content-size-control layout-prop-row"><input id="layout-toolbar-scale" type="range" min="50" max="200" step="5" value="100" aria-label="Selected content size" oninput="setSelectedContentScale(this.value)" onchange="finishSelectedContentScaleEdit()"><input id="layout-toolbar-scale-number" type="number" min="50" max="200" step="1" value="100" aria-label="Selected content size percent" style="width:64px;flex:0 0 64px" onchange="setSelectedContentScale(this.value);finishSelectedContentScaleEdit()"><button type="button" onclick="resetSelectedContentScale()">100%</button></div>
   </div>
   <div class="layout-prop-section">
-   <div class="layout-prop-label"><span>Typography</span><span id="layout-typography-scope">Per element</span></div>
+   <div class="layout-prop-label"><span>Typography <button class="help-tip" type="button" aria-label="Typography help" data-help="Override the dashboard font or text color for the selected element or internal section. Theme restores the inherited dashboard color.">?</button></span><span id="layout-typography-scope">Per element</span></div>
    <div class="layout-prop-row"><select id="layout-style-font" onchange="setSelectedLayoutStyle('fontFamily',this.value)"><option value="">Use dashboard font</option><option value="Inter">Inter</option><option value="system">System UI</option><option value="Noto Sans">Noto Sans</option><option value="DejaVu Sans">DejaVu Sans</option><option value="Liberation Sans">Liberation Sans</option><option value="Trebuchet MS">Humanist sans</option><option value="DejaVu Serif">DejaVu Serif</option><option value="Georgia">Georgia</option><option value="monospace">Monospace</option></select></div>
    <div class="layout-prop-row" style="margin-top:6px"><input id="layout-style-color" type="color" value="#ffffff" aria-label="Text color" oninput="setSelectedLayoutStyle('textColor',this.value,true)" onchange="finishSelectedLayoutStyleEdit()"><input id="layout-style-color-hex" type="text" maxlength="7" value="Theme" aria-label="Text color hex" onchange="setSelectedLayoutColorHex(this.value)"><button type="button" onclick="setSelectedLayoutStyle('textColor','')">Theme</button></div>
   </div>
   <div id="layout-part-advanced" class="layout-prop-section layout-part-only" hidden>
-   <div class="layout-prop-label"><span>Fine text tuning</span><span>Selected section</span></div>
+   <div class="layout-prop-label"><span>Fine text tuning <button class="help-tip" type="button" aria-label="Fine text tuning help" data-help="Adjust weight, line height, letter spacing, or visibility only for the selected internal section.">?</button></span><span>Selected section</span></div>
    <div class="layout-prop-row"><select id="layout-part-weight" aria-label="Font weight" onchange="setSelectedPartFineStyle('fontWeight',this.value)"><option value="">Use default weight</option><option value="200">Extra light</option><option value="300">Light</option><option value="400">Regular</option><option value="500">Medium</option><option value="600">Semi-bold</option><option value="700">Bold</option><option value="800">Extra bold</option><option value="900">Black</option></select></div>
    <div class="layout-prop-label" style="margin-top:9px"><span>Line height</span><span id="layout-part-line-height-value" class="layout-prop-value">100%</span></div>
    <div class="layout-prop-row"><input id="layout-part-line-height" type="range" min="80" max="180" step="5" value="100" oninput="setSelectedPartFineStyle('lineHeight',this.value,true)" onchange="finishSelectedPartFineStyleEdit()"><button type="button" onclick="setSelectedPartFineStyle('lineHeight',100)">100%</button></div>
@@ -2031,21 +2037,21 @@ html:not(.cursor-active) * {
    <label class="layout-check-row" style="margin-top:9px"><span>Show this section</span><input id="layout-part-visible" type="checkbox" checked onchange="setSelectedPartFineStyle('visible',this.checked)"></label>
   </div>
   <div class="layout-prop-section">
-   <div class="layout-prop-label"><span id="layout-h-label">Horizontal content</span><span id="layout-h-scope">Inside block</span></div>
+   <div class="layout-prop-label"><span id="layout-h-label">Horizontal content <button class="help-tip" type="button" aria-label="Horizontal alignment help" data-help="Aligns content inside its current element. It does not move the outer element on the dashboard.">?</button></span><span id="layout-h-scope">Inside block</span></div>
    <div class="layout-align-grid"><button id="layout-h-left" type="button" onclick="setSelectedLayoutStyle('hAlign','left')">Left</button><button id="layout-h-center" type="button" onclick="setSelectedLayoutStyle('hAlign','center')">Center</button><button id="layout-h-right" type="button" onclick="setSelectedLayoutStyle('hAlign','right')">Right</button></div>
    <div class="layout-prop-row" style="margin-top:5px"><button id="layout-h-auto" type="button" onclick="setSelectedLayoutStyle('hAlign','auto')">Use default</button></div>
   </div>
   <div id="layout-v-section" class="layout-prop-section layout-whole-only">
-   <div class="layout-prop-label"><span>Vertical content</span><span>Inside block</span></div>
+   <div class="layout-prop-label"><span>Vertical content <button class="help-tip" type="button" aria-label="Vertical alignment help" data-help="Moves the element contents toward the top, middle, or bottom of the current block while keeping the block itself in place.">?</button></span><span>Inside block</span></div>
    <div class="layout-align-grid"><button id="layout-v-top" type="button" onclick="setSelectedLayoutStyle('vAlign','top')">Top</button><button id="layout-v-middle" type="button" onclick="setSelectedLayoutStyle('vAlign','middle')">Middle</button><button id="layout-v-bottom" type="button" onclick="setSelectedLayoutStyle('vAlign','bottom')">Bottom</button></div>
    <div class="layout-prop-row" style="margin-top:5px"><button id="layout-v-auto" type="button" onclick="setSelectedLayoutStyle('vAlign','auto')">Use default</button></div>
   </div>
   <div class="layout-prop-section">
-   <div class="layout-prop-label"><span id="layout-opacity-label">Element opacity</span><span id="layout-style-opacity-value" class="layout-prop-value">100%</span></div>
+   <div class="layout-prop-label"><span id="layout-opacity-label">Element opacity <button class="help-tip" type="button" aria-label="Element opacity help" data-help="Changes visibility of the selected scope. Lower opacity can help secondary information sit behind more important content.">?</button></span><span id="layout-style-opacity-value" class="layout-prop-value">100%</span></div>
    <div class="layout-prop-row"><input id="layout-style-opacity" type="range" min="20" max="100" step="5" value="100" oninput="setSelectedLayoutStyle('opacity',this.value,true)" onchange="finishSelectedLayoutStyleEdit()"><button type="button" onclick="setSelectedLayoutStyle('opacity',100)">100%</button></div>
   </div>
   <div id="layout-place-section" class="layout-prop-section layout-whole-only">
-   <div class="layout-prop-label"><span>Place element</span><span>Keep current size</span></div>
+   <div class="layout-prop-label"><span>Place element <button class="help-tip" type="button" aria-label="Quick placement help" data-help="Moves the selected block to a screen anchor while preserving its current width and height. You can still drag it afterward for fine placement.">?</button></span><span>Keep current size</span></div>
    <div class="layout-position-grid"><button type="button" onclick="placeSelectedLayoutBlock('top-left')">↖</button><button type="button" onclick="placeSelectedLayoutBlock('top-center')">↑</button><button type="button" onclick="placeSelectedLayoutBlock('top-right')">↗</button><button type="button" onclick="placeSelectedLayoutBlock('middle-left')">←</button><button type="button" onclick="placeSelectedLayoutBlock('center')">Center</button><button type="button" onclick="placeSelectedLayoutBlock('middle-right')">→</button><button type="button" onclick="placeSelectedLayoutBlock('bottom-left')">↙</button><button type="button" onclick="placeSelectedLayoutBlock('bottom-center')">↓</button><button type="button" onclick="placeSelectedLayoutBlock('bottom-right')">↘</button></div>
   </div>
   <div class="layout-prop-section"><div class="layout-prop-hint">Drag the inspector by its header whenever it covers something you need to edit. Drag elements for free placement, use Arrow keys to nudge, and Shift + Arrow to resize. Undo/Redo includes geometry and inspector styling.</div></div>
@@ -2068,7 +2074,7 @@ html:not(.cursor-active) * {
 <div id="offline-pill">Offline · cached data</div>
 
 <script>
-const DASHBOARD_BUILD = '1.2.6';
+const DASHBOARD_BUILD = '1.2.7';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -2752,7 +2758,6 @@ function previewAlertMotionSpeed(value){
   const out=document.getElementById('s-alert-motion-speed-value');
   if(out)out.textContent=speed+' px/s';
   if(alertRuntimeState)alertRuntimeState.speed=speed;
-  else syncAlertRuntimeStateFromForm();
 }
 
 function handleAlertMotionChange(){
@@ -5423,7 +5428,7 @@ async function importSettingsFile(input){
     const notes=[`Source: ${info.sourceBuild}`,`Schema: ${info.schema}${info.schema<2?' → will migrate to schema 2':''}`,`${info.calendars} calendar source${info.calendars===1?'':'s'}`,`${info.blocks} custom block${info.blocks===1?'':'s'}`];
     if(info.missing.length)notes.push(`Missing plugins: ${info.missing.join(', ')}`);
     if(!confirm(`Import this LibreDisplay configuration?\n\n${notes.join('\n')}\n\nCurrent settings will be kept as the automatic previous-save backup.`))return;
-    cfg={...cfg,...info.candidate};ensureCfgDefaults();saveCfg();setAppearanceForm(cfg);applyUiCustomization(cfg);markSettingsClean();alert('Settings imported and migrated successfully.');openSetup(false);
+    cfg={...cfg,...info.candidate};ensureCfgDefaults();alertRuntimeState=null;window.__uiPreviewCfg=null;saveCfg();setAppearanceForm(cfg);applySettings();markSettingsClean();alert('Settings imported and migrated successfully.');openSetup(false);
   }catch(e){alert('Could not import settings: '+(e?.message||e));}
   finally{if(input)input.value='';}
 }
@@ -5607,6 +5612,7 @@ async function pollServerConfig(){
     if(remote&&typeof remote==='object'&&remoteSaved>localSaved){
       cfg={...cfg,...remote};ensureCfgDefaults();
       try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));}catch(e){}
+      alertRuntimeState=null;
       window.__uiPreviewCfg=null;
       applySettings();
     }
@@ -5772,8 +5778,10 @@ function restorePreviousSettings(){
     const parsed=JSON.parse(prev);
     if(!parsed||typeof parsed!=='object')throw new Error('Invalid backup');
     if(current)localStorage.setItem(CFG_BACKUP_KEY,current);
-    localStorage.setItem(CFG_KEY,prev);
-    cfg={...cfg,...parsed};ensureCfgDefaults();window.__uiPreviewCfg=null;applySettings();openSetup();
+    cfg={...cfg,...parsed};ensureCfgDefaults();cfg._savedAt=Date.now();
+    localStorage.setItem(CFG_KEY,JSON.stringify(cfg));
+    persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
+    alertRuntimeState=null;window.__uiPreviewCfg=null;applySettings();openSetup();
   }catch(e){alert('Could not restore the previous settings.');}
 }
 
@@ -5844,7 +5852,7 @@ function loadSelectedProfile(){
   if(!p){setProfileStatus('Choose a saved profile first.',true);return;}
   if(settingsDirty&&!confirm('Discard unsaved changes and load this profile?'))return;
   cfg={...cfg,...JSON.parse(JSON.stringify(p.config))};ensureCfgDefaults();cfg.onboardingComplete=true;
-  profileStore.activeId=id;persistProfiles();saveCfg();window.__uiPreviewCfg=null;applySettings();openSetup(false);setProfileStatus(`Loaded “${p.name}”.`);
+  profileStore.activeId=id;persistProfiles();saveCfg();alertRuntimeState=null;window.__uiPreviewCfg=null;applySettings();openSetup(false);setProfileStatus(`Loaded “${p.name}”.`);
 }
 
 function sceneProfileOptions(selected='',allowEmpty=true){
@@ -6382,6 +6390,7 @@ async function enterFullscreen(){
 }
 
 document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&activeContextHelpTip){e.preventDefault();hideContextHelp(true);return;}
   if(layoutEditorActive){
     if(e.key==='Escape'){e.preventDefault();cancelLayoutEditor();return;}
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveLayoutEditor();return;}
@@ -6485,6 +6494,67 @@ function initSettingsWheelGuard(){
   },{passive:false});
 }
 initSettingsWheelGuard();
+
+let activeContextHelpTip=null;
+let contextHelpPinned=false;
+let contextHelpHideTimer=null;
+function positionContextHelp(tip=activeContextHelpTip){
+  const pop=document.getElementById('context-help-popover');
+  if(!tip||!pop||pop.hidden)return;
+  const r=tip.getBoundingClientRect(),gap=8,pad=10;
+  const w=pop.offsetWidth||300,h=pop.offsetHeight||60;
+  let left=r.left+r.width/2-w/2;
+  left=Math.max(pad,Math.min(innerWidth-w-pad,left));
+  let top=r.bottom+gap;
+  if(top+h>innerHeight-pad&&r.top-h-gap>=pad)top=r.top-h-gap;
+  top=Math.max(pad,Math.min(innerHeight-h-pad,top));
+  pop.style.left=Math.round(left)+'px';
+  pop.style.top=Math.round(top)+'px';
+}
+function showContextHelp(tip,pinned=false){
+  if(!(tip instanceof Element))return;
+  const text=String(tip.dataset.help||'').trim();
+  const pop=document.getElementById('context-help-popover');
+  if(!text||!pop)return;
+  if(contextHelpHideTimer){clearTimeout(contextHelpHideTimer);contextHelpHideTimer=null;}
+  if(activeContextHelpTip&&activeContextHelpTip!==tip)activeContextHelpTip.classList.remove('help-active');
+  activeContextHelpTip=tip;contextHelpPinned=!!pinned;
+  tip.classList.add('help-active');tip.setAttribute('aria-expanded','true');
+  pop.textContent=text;pop.hidden=false;
+  requestAnimationFrame(()=>positionContextHelp(tip));
+}
+function hideContextHelp(force=false){
+  if(contextHelpPinned&&!force)return;
+  if(contextHelpHideTimer){clearTimeout(contextHelpHideTimer);contextHelpHideTimer=null;}
+  activeContextHelpTip?.classList.remove('help-active');
+  activeContextHelpTip?.setAttribute('aria-expanded','false');
+  activeContextHelpTip=null;contextHelpPinned=false;
+  const pop=document.getElementById('context-help-popover');if(pop)pop.hidden=true;
+}
+function scheduleHideContextHelp(){
+  if(contextHelpPinned)return;
+  if(contextHelpHideTimer)clearTimeout(contextHelpHideTimer);
+  contextHelpHideTimer=setTimeout(()=>hideContextHelp(false),100);
+}
+function initContextHelp(){
+  document.addEventListener('pointerover',e=>{const tip=e.target?.closest?.('.help-tip');if(tip&&!contextHelpPinned)showContextHelp(tip,false);});
+  document.addEventListener('pointerout',e=>{const tip=e.target?.closest?.('.help-tip');if(tip&&!tip.contains(e.relatedTarget))scheduleHideContextHelp();});
+  document.addEventListener('focusin',e=>{const tip=e.target?.closest?.('.help-tip');if(tip&&!contextHelpPinned)showContextHelp(tip,false);});
+  document.addEventListener('focusout',e=>{const tip=e.target?.closest?.('.help-tip');if(tip)scheduleHideContextHelp();});
+  document.addEventListener('click',e=>{
+    const tip=e.target?.closest?.('.help-tip');
+    if(tip){
+      e.preventDefault();e.stopPropagation();
+      if(activeContextHelpTip===tip&&contextHelpPinned)hideContextHelp(true);
+      else showContextHelp(tip,true);
+      return;
+    }
+    if(activeContextHelpTip)hideContextHelp(true);
+  },true);
+  document.addEventListener('scroll',()=>{if(activeContextHelpTip)positionContextHelp();},true);
+  window.addEventListener('resize',()=>{if(activeContextHelpTip)positionContextHelp();});
+}
+initContextHelp();
 
 async function loadLocalAccounts(){const host=document.getElementById('account-list'),status=document.getElementById('account-status');if(!host||SESSION_ROLE!=='owner')return;try{const r=await fetch(serverPath('/api/users'),{cache:'no-store'}),d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||('HTTP '+r.status));const rows=Array.isArray(d.users)?d.users:[];host.innerHTML=rows.length?rows.map(u=>`<div class="account-row"><b>${escHtml(u.username)}</b><span>${escHtml(u.role)}</span><span class="account-endpoints">${escHtml(u.role==='owner'?'All displays':(u.endpoints||[]).join(', ')||'No displays')}</span><span><button class="btn-util" type="button" onclick="editLocalAccount('${escHtml(u.username)}','${escHtml(u.role)}','${escHtml((u.endpoints||[]).join(','))}')">Edit</button> <button class="btn-util" type="button" onclick="deleteLocalAccount('${escHtml(u.username)}')">Delete</button></span></div>`).join(''):'<div class="settings-note">No local accounts yet. The local display and pairing link remain Owner access.</div>';if(status)status.textContent='';}catch(e){if(status)status.textContent='Could not load accounts: '+(e.message||e);}}
 function editLocalAccount(username,role,endpoints){const u=document.getElementById('account-username'),r=document.getElementById('account-role'),e=document.getElementById('account-endpoints'),p=document.getElementById('account-password');if(u)u.value=username;if(r)r.value=role;if(e)e.value=endpoints;if(p)p.value='';}
