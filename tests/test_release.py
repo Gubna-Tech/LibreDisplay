@@ -346,6 +346,44 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('\"$SRC_DIR/assets\"', (ROOT / 'install.sh').read_text(encoding='utf-8'))
         self.assertIn('\"$SRC_DIR/assets\"', (ROOT / 'update.sh').read_text(encoding='utf-8'))
 
+    def test_v130_control_panel_settings_shell(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        for marker in (
+            'class="settings-workspace"',
+            'class="settings-sidebar"',
+            'class="settings-content"',
+            'id="settings-page-title"',
+            '<b>Home</b><small>Status, displays &amp; shortcuts</small>',
+            '<b>Personalization</b><small>Themes, layout &amp; accessibility</small>',
+            "const SETTINGS_TAB_TITLES=",
+            "function updateSettingsPageHeader(searchQuery='')",
+            "title.textContent='Search results'",
+            "grid-template-columns:252px minmax(0,1fr)",
+        ):
+            self.assertIn(marker, html)
+        self.assertIn('@media(max-width:900px)', html)
+        self.assertIn('aria-label="Settings navigation"', html)
+
+    def test_v130_remote_arrange_uses_target_display_viewport(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        server = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
+        for marker in (
+            'id="remote-layout-preview-shell"',
+            'id="remote-layout-preview-frame"',
+            "const LAYOUT_PREVIEW_MODE=PAGE_PARAMS.get('layoutPreview')==='1'",
+            'function fetchRemoteLayoutTarget()',
+            'function fitRemoteLayoutPreview()',
+            'viewportWidth:innerWidth||0',
+            'viewportHeight:innerHeight||0',
+            "closeSetup(true);if(REMOTE_SETTINGS_MODE){setTimeout(openRemoteLayoutPreview,80);return;}",
+            "window.parent.postMessage({type:'libredisplay-layout-editor',action:'saved'}",
+        ):
+            self.assertIn(marker, html)
+        self.assertIn('"viewportWidth": viewport_width', server)
+        self.assertIn('"viewportHeight": viewport_height', server)
+        self.assertIn('"screenWidth": screen_width', server)
+        self.assertIn('"screenHeight": screen_height', server)
+
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
         for marker in ("bc-chart-area", "bc-chart-points", "bc-chart-grid", "function analyzeImportedSettings", "product:'LibreDisplay',format:2"):

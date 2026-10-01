@@ -632,6 +632,14 @@ body.layout-editing #calendar-legend {
   user-select:none;
 }
 
+#remote-layout-preview-shell{position:fixed;inset:0;z-index:270;display:none;background:#050705;color:#fff;font-family:'Inter',sans-serif;overflow:hidden}
+#remote-layout-preview-shell.show{display:block}
+#remote-layout-preview-topbar{position:absolute;z-index:3;left:0;right:0;top:0;height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;background:rgba(8,11,9,.96);border-bottom:1px solid rgba(255,255,255,.13);box-shadow:0 8px 24px rgba(0,0,0,.28)}
+#remote-layout-preview-title{min-width:0;display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,.72)}#remote-layout-preview-title b{font-size:13px;color:#fff}#remote-layout-preview-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#remote-layout-preview-actions{display:flex;gap:7px;flex:0 0 auto}#remote-layout-preview-actions button{border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:11px;padding:7px 10px;cursor:pointer}
+#remote-layout-preview-stage{position:absolute;left:0;right:0;top:52px;bottom:0;overflow:hidden;background:#000}
+#remote-layout-preview-frame{position:absolute;left:0;top:0;border:0;background:#000;transform-origin:0 0;box-shadow:0 0 0 1px rgba(255,255,255,.12),0 22px 70px rgba(0,0,0,.55)}
+body.layout-preview-embedded #cog,body.layout-preview-embedded #settings-preview-return{display:none!important}
 #layout-editor-layer {
   position:fixed;
   inset:0;
@@ -1416,6 +1424,169 @@ html:not(.cursor-active) * {
 #setup[data-ui-size=large] .setup-box h2{font-size:26px}#setup[data-ui-size=large] .setup-box .sub{font-size:15px}#setup[data-ui-size=large] .s-section h3{font-size:12px}#setup[data-ui-size=large] :is(.s-row label,.checkline,.howto,.settings-note,.section-summary){font-size:13px;line-height:1.55}#setup[data-ui-size=large] :is(.s-row input,.s-row select,.settings-jump select,.btn-util,.settings-tab-btn){font-size:14px;min-height:42px}#setup[data-ui-size=xlarge] .setup-box h2{font-size:30px}#setup[data-ui-size=xlarge] .setup-box .sub{font-size:17px}#setup[data-ui-size=xlarge] .s-section h3{font-size:13px}#setup[data-ui-size=xlarge] :is(.s-row label,.checkline,.howto,.settings-note,.section-summary){font-size:15px;line-height:1.62}#setup[data-ui-size=xlarge] :is(.s-row input,.s-row select,.settings-jump select,.btn-util,.settings-tab-btn){font-size:16px;min-height:48px;padding-top:11px;padding-bottom:11px}.ld-high-contrast #setup .setup-box .sub,.ld-high-contrast #setup .s-row label,.ld-high-contrast #setup .s-section h3,.ld-high-contrast #setup .settings-jump label,.ld-high-contrast #setup .section-summary,.ld-high-contrast #setup .howto,.ld-high-contrast #setup .settings-note{color:var(--ld-muted)!important}.ld-high-contrast #setup .setup-box{border-color:var(--ld-border-strong);box-shadow:0 20px 70px rgba(0,0,0,.72)}
 @media(max-width:900px){.settings-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}.integration-directory{grid-template-columns:1fr}}
 @media(max-width:720px){#setup{padding:0}.setup-box{width:100vw;max-width:none;height:100dvh;max-height:none;border-radius:0;padding:14px 14px 88px;overflow:auto}.setup-head{position:sticky;top:-14px;z-index:25;background:var(--ld-surface);padding:14px 0 8px}.settings-tabs{position:sticky;top:61px;z-index:24;display:flex;overflow-x:auto;grid-template-columns:none;background:var(--ld-surface);padding:6px 0}.settings-tab-btn{flex:0 0 auto;min-width:112px}.settings-controlbar,.settings-search{position:relative}.s-actions{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;padding:10px 14px;background:color-mix(in srgb,var(--ld-surface) 96%,transparent);border-top:1px solid var(--ld-border);box-shadow:0 -12px 30px var(--ld-shadow)}.integration-directory-toolbar{grid-template-columns:1fr}.integration-directory-card{grid-template-columns:34px 1fr}.integration-directory-actions{grid-column:1/-1;justify-content:flex-start;padding-left:44px}.integration-health-row{align-items:flex-start;flex-direction:column}.integration-health-actions{justify-content:flex-start}.integration-setup-grid{grid-template-columns:1fr}.settings-collapse-actions{display:none}}
+
+
+/* LibreDisplay v1.3 settings shell — desktop-control-panel layout inspired by familiar OS settings apps. */
+#setup { padding:22px; }
+#setup .setup-box {
+  width:min(1180px,100%); max-width:1180px; height:min(860px,92vh); max-height:92vh;
+  padding:0; overflow:hidden; display:flex; flex-direction:column;
+  border-radius:18px; background:var(--ld-surface); box-shadow:0 28px 90px var(--ld-shadow);
+}
+#setup .setup-head { flex:0 0 auto; padding:20px 24px 8px; margin:0; }
+#setup .setup-brand-mark { width:42px; height:42px; border-radius:12px; }
+#setup .setup-box h2 { font-size:21px; margin:0; }
+#setup .setup-box .sub { flex:0 0 auto; margin:0; padding:0 24px 17px 79px; max-width:900px; font-size:11px; line-height:1.45; }
+#setup .settings-workspace {
+  flex:1 1 auto; min-height:0; display:grid; grid-template-columns:252px minmax(0,1fr);
+  border-top:1px solid var(--ld-border); background:var(--ld-surface);
+}
+#setup .settings-sidebar {
+  min-width:0; overflow-y:auto; padding:16px 12px 18px;
+  border-right:1px solid var(--ld-border);
+  background:color-mix(in srgb,var(--ld-surface-2) 36%,var(--ld-surface));
+  scrollbar-width:thin;
+}
+#setup .settings-content { min-width:0; overflow-y:auto; padding:24px 28px 36px; scroll-behavior:smooth; scrollbar-width:thin; }
+#setup .settings-search { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:7px; margin:0 2px 14px; }
+#setup .settings-search-field { position:relative; min-width:0; }
+#setup .settings-search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--ld-subtle); font-size:15px; pointer-events:none; }
+#setup .settings-search input { height:38px; padding:8px 10px 8px 32px; border-radius:9px; font-size:12px; background:var(--ld-surface-2); }
+#setup .settings-search-clear { height:38px; padding:7px 9px; font-size:10px; }
+#setup .settings-search-status { grid-column:1/-1; margin:0 2px 2px; line-height:1.4; }
+#setup .settings-tabs {
+  position:static; top:auto; z-index:auto; display:flex; flex-direction:column; gap:3px; overflow:visible;
+  padding:0; margin:0; border:0; background:transparent; scrollbar-width:auto; grid-template-columns:none;
+}
+#setup .settings-tab-btn {
+  width:100%; min-width:0; display:grid; grid-template-columns:34px minmax(0,1fr); align-items:center; gap:9px;
+  border:1px solid transparent; border-radius:9px; padding:8px 9px; text-align:left;
+  background:transparent; color:var(--ld-muted); box-shadow:none; font-family:var(--ld-app-font);
+}
+#setup .settings-tab-btn:hover { color:var(--ld-text); background:var(--ld-surface-2); border-color:var(--ld-border); }
+#setup .settings-tab-btn.active {
+  color:var(--ld-text); background:color-mix(in srgb,var(--ld-accent) 11%,var(--ld-surface-2));
+  border-color:color-mix(in srgb,var(--ld-accent) 26%,var(--ld-border)); box-shadow:none;
+}
+#setup .settings-nav-icon {
+  display:grid; place-items:center; width:32px; height:32px; margin:0; border-radius:8px;
+  background:var(--ld-surface-3); color:var(--ld-muted); font-size:15px; font-weight:800;
+}
+#setup .settings-tab-btn.active .settings-nav-icon { background:var(--ld-accent); color:var(--ld-accent-contrast); }
+#setup .settings-nav-copy { min-width:0; display:flex; flex-direction:column; gap:2px; }
+#setup .settings-nav-copy b { color:inherit; font-size:12px; line-height:1.2; font-weight:720; }
+#setup .settings-nav-copy small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ld-subtle); font-size:9px; line-height:1.25; font-weight:500; }
+#setup .settings-tab-btn.active .settings-nav-copy small { color:var(--ld-muted); }
+#setup .settings-sidebar-tools { margin:15px 2px 0; padding-top:14px; border-top:1px solid var(--ld-border); }
+#setup .settings-mode-wrap label { margin-bottom:7px; }
+#setup .settings-mode-toggle { display:grid; grid-template-columns:1fr 1fr; gap:3px; padding:3px; }
+#setup .settings-mode-btn { min-width:0; padding:7px 6px; }
+#setup .settings-view-note { margin:7px 2px 0; font-size:9px; line-height:1.4; }
+#setup .settings-page-head {
+  display:flex; justify-content:space-between; align-items:flex-end; gap:18px;
+  margin:0 0 18px; padding:0 0 17px; border-bottom:1px solid var(--ld-border);
+}
+#setup .settings-page-heading { min-width:0; }
+#setup .settings-page-kicker { color:var(--ld-accent); font-size:9px; font-weight:800; letter-spacing:1.1px; text-transform:uppercase; margin-bottom:4px; }
+#setup #settings-page-title { margin:0; color:var(--ld-text); font-size:25px; line-height:1.1; font-weight:720; letter-spacing:-.45px; }
+#setup .settings-tab-hint { margin:6px 0 0; max-width:610px; color:var(--ld-muted); font-size:11px; line-height:1.45; }
+#setup .settings-page-tools { flex:0 0 auto; display:flex; gap:7px; align-items:flex-end; }
+#setup .settings-section-jump { min-width:200px; }
+#setup .settings-section-jump label { margin:0 0 5px; }
+#setup .settings-section-jump select { height:37px; padding:7px 10px; background:var(--ld-surface-2); }
+#setup .settings-collapse-actions { display:flex; gap:5px; }
+#setup .settings-collapse-actions .btn-util { height:37px; padding:7px 8px; }
+#setup .settings-controlbar { display:none !important; }
+#setup .s-section[data-settings-tab] {
+  border:1px solid var(--ld-border); border-radius:13px; padding:16px 17px 15px;
+  background:color-mix(in srgb,var(--ld-surface-2) 62%,transparent); margin-bottom:11px;
+  box-shadow:0 1px 0 color-mix(in srgb,var(--ld-text) 3%,transparent) inset;
+}
+#setup .s-section[data-settings-tab]:hover { border-color:var(--ld-border-strong); }
+#setup .s-section[data-settings-tab] > h3 {
+  display:flex; align-items:center; gap:8px; margin:0; color:var(--ld-text);
+  font-size:14px; line-height:1.3; font-weight:690; letter-spacing:-.08px; text-transform:none;
+}
+#setup .s-section[data-settings-tab] > h3::before {
+  content:'›'; order:3; width:20px; margin-left:auto; color:var(--ld-subtle); font-size:20px;
+  line-height:1; transform:rotate(90deg); transition:transform .15s ease,color .15s ease;
+}
+#setup .s-section[data-settings-tab] > h3:hover::before { color:var(--ld-accent); }
+#setup .s-section[data-settings-tab].section-collapsed > h3::before { transform:rotate(0deg); }
+#setup .s-section[data-settings-level="advanced"] > h3::after {
+  order:2; margin-left:5px; margin-right:0; padding:3px 6px; font-size:8px; letter-spacing:.55px;
+}
+#setup .s-section[data-settings-tab] .help-tip { order:1; }
+#setup .section-summary { margin:4px 28px 13px 0; color:var(--ld-muted); font-size:10px; line-height:1.45; }
+#setup .s-section[data-settings-tab].section-collapsed { padding-bottom:14px; }
+#setup .s-section[data-settings-tab].section-collapsed .section-summary { margin-bottom:0; }
+#setup .howto { background:color-mix(in srgb,var(--ld-surface-3) 62%,transparent); }
+#setup .checkline { border-radius:9px; }
+#setup .quick-edit-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+#setup .quick-edit-card { min-height:76px; border-radius:11px; }
+#setup .health-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+#setup .s-actions {
+  position:static; flex:0 0 auto; margin:0; padding:12px 18px;
+  border-top:1px solid var(--ld-border); background:color-mix(in srgb,var(--ld-surface) 97%,transparent);
+  box-shadow:0 -10px 28px color-mix(in srgb,var(--ld-shadow) 45%,transparent);
+}
+#setup .s-actions .settings-dirty { align-self:center; min-width:120px; }
+#setup .s-actions .btn-save { max-width:520px; }
+#setup.wizard-mode .settings-workspace { display:none !important; }
+#setup.wizard-mode .setup-box { height:auto; max-width:920px; padding:24px; overflow-y:auto; }
+#setup.wizard-mode .setup-head { padding:0; }
+#setup.wizard-mode .setup-box .sub { padding:0; margin:11px 0 21px 55px; }
+#setup.wizard-mode .wizard-shell { margin-top:2px; }
+#setup[data-ui-size=large] .settings-nav-copy b { font-size:14px; }
+#setup[data-ui-size=large] .settings-nav-copy small { font-size:11px; }
+#setup[data-ui-size=large] #settings-page-title { font-size:29px; }
+#setup[data-ui-size=xlarge] .settings-nav-copy b { font-size:16px; }
+#setup[data-ui-size=xlarge] .settings-nav-copy small { font-size:12px; }
+#setup[data-ui-size=xlarge] #settings-page-title { font-size:33px; }
+
+@media(max-width:900px){
+  #setup { padding:0; }
+  #setup .setup-box { width:100vw; max-width:none; height:100dvh; max-height:none; border-radius:0; }
+  #setup .setup-head { padding:14px 16px 7px; }
+  #setup .setup-box .sub { padding:0 16px 11px 69px; }
+  #setup .settings-workspace { grid-template-columns:1fr; grid-template-rows:auto minmax(0,1fr); }
+  #setup .settings-sidebar { overflow:visible; padding:10px 12px 9px; border-right:0; border-bottom:1px solid var(--ld-border); }
+  #setup .settings-search { max-width:none; margin:0 0 8px; }
+  #setup .settings-tabs { display:flex; flex-direction:row; gap:6px; overflow-x:auto; padding-bottom:2px; }
+  #setup .settings-tab-btn { flex:0 0 auto; width:auto; min-width:145px; grid-template-columns:28px minmax(0,1fr); padding:6px 8px; }
+  #setup .settings-nav-icon { width:27px; height:27px; border-radius:7px; font-size:13px; }
+  #setup .settings-nav-copy small { display:none; }
+  #setup .settings-sidebar-tools { display:flex; gap:9px; align-items:center; margin:8px 0 0; padding-top:8px; }
+  #setup .settings-mode-wrap { min-width:190px; }
+  #setup .settings-view-note { margin:0; }
+  #setup .settings-content { padding:17px 16px 28px; }
+  #setup .settings-page-head { align-items:flex-start; flex-direction:column; gap:12px; }
+  #setup .settings-page-tools { width:100%; }
+  #setup .settings-section-jump { flex:1 1 auto; min-width:0; }
+  #setup .s-actions { padding:9px 12px; }
+}
+@media(max-width:620px){
+  #setup .setup-box .sub { display:none; }
+  #setup .setup-head { border-bottom:1px solid var(--ld-border); padding-bottom:11px; }
+  #setup .setup-brand-mark { width:36px; height:36px; }
+  #setup .setup-box h2 { font-size:18px; }
+  #setup .settings-sidebar { padding-top:8px; }
+  #setup .settings-search { grid-template-columns:minmax(0,1fr); }
+  #setup .settings-search-clear { display:none; }
+  #setup .settings-tab-btn { min-width:118px; }
+  #setup .settings-sidebar-tools { justify-content:space-between; }
+  #setup .settings-view-note { display:none; }
+  #setup .settings-mode-wrap { min-width:170px; }
+  #setup .settings-page-head { margin-bottom:13px; padding-bottom:12px; }
+  #setup #settings-page-title { font-size:22px; }
+  #setup .settings-page-tools { align-items:flex-end; }
+  #setup .settings-collapse-actions { display:none; }
+  #setup .settings-content { padding:14px 12px 24px; }
+  #setup .s-section[data-settings-tab] { padding:14px 13px 13px; }
+  #setup .quick-edit-grid,#setup .health-grid { grid-template-columns:1fr; }
+  #setup .s-actions .settings-dirty { display:none; }
+  #setup .settings-preview-button { display:none; }
+}
 </style>
 </head>
 <body>
@@ -1441,44 +1612,63 @@ html:not(.cursor-active) * {
    <div id="wizard-summary" class="wizard-summary"></div>
   </div>
 
-  <div class="settings-tabs" role="tablist" aria-label="Settings categories">
-   <button class="settings-tab-btn active" type="button" role="tab" aria-selected="true" data-tab="overview" onclick="switchSettingsTab('overview')"><span aria-hidden="true">⌂</span> Overview</button>
-   <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="content" onclick="switchSettingsTab('content')"><span aria-hidden="true">▦</span> Content</button>
-   <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="family" data-owner-only="1" onclick="switchSettingsTab('family')"><span aria-hidden="true">✓</span> Family</button>
-   <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="look" onclick="switchSettingsTab('look')"><span aria-hidden="true">◐</span> Look &amp; Layout</button>
-   <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="integrations" onclick="switchSettingsTab('integrations')"><span aria-hidden="true">◇</span> Integrations</button>
-   <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="system" onclick="switchSettingsTab('system')"><span aria-hidden="true">⚙</span> System</button>
-  </div>
-  <div class="settings-tab-hint" id="settings-tab-hint">Settings are grouped by what they affect. Your dashboard stays live behind this menu for appearance previews.</div>
-  <div class="settings-controlbar">
-   <div class="settings-mode-wrap">
-    <label>View</label>
-    <div class="settings-mode-toggle" role="group" aria-label="Settings detail level">
-     <button id="settings-mode-essential" class="settings-mode-btn active" type="button" onclick="setSettingsViewMode('essential')">Essentials</button>
-     <button id="settings-mode-all" class="settings-mode-btn" type="button" onclick="setSettingsViewMode('all')">All settings</button>
+  <div class="settings-workspace">
+   <aside class="settings-sidebar" aria-label="Settings navigation">
+    <div class="settings-search">
+     <div class="settings-search-field">
+      <span class="settings-search-icon" aria-hidden="true">⌕</span>
+      <input id="s-settings-search" type="search" placeholder="Find a setting" aria-label="Search settings" oninput="filterSettings(this.value)">
+     </div>
+     <button class="btn-util settings-search-clear" type="button" onclick="clearSettingsSearch()">Clear</button>
+     <div id="settings-search-status" class="settings-search-status"></div>
     </div>
-   </div>
-   <div class="settings-section-jump">
-    <label for="settings-section-select">Jump to section</label>
-    <select id="settings-section-select" onchange="jumpToSettingsSection(this.value)"></select>
-   </div>
-   <div class="settings-collapse-actions">
-    <button class="btn-util" type="button" onclick="setAllSettingsSectionsCollapsed(false)" title="Expand visible sections">Expand</button>
-    <button class="btn-util" type="button" onclick="setAllSettingsSectionsCollapsed(true)" title="Collapse visible sections">Collapse</button>
-   </div>
-  </div>
-  <div id="settings-view-note" class="settings-view-note">Essentials keeps the common controls visible. Choose All settings for power-user and troubleshooting options.</div>
-  <div class="settings-search">
-   <input id="s-settings-search" type="search" placeholder="Search all settings — e.g. clock, shuffle, air quality, opacity…" oninput="filterSettings(this.value)">
-   <button class="btn-util" type="button" onclick="clearSettingsSearch()">Clear</button>
-   <div id="settings-search-status" class="settings-search-status"></div>
-  </div>
-  <div id="settings-empty-state" class="settings-empty-state">No sections are visible in this view. Choose <b>All settings</b> or use Search to find a power-user option.</div>
-  <div id="settings-init-error" class="settings-init-error" role="alert">
-   <b>Settings recovered after an initialization problem.</b>
-   <span id="settings-init-error-text">LibreDisplay kept the editor available instead of leaving an empty configuration screen.</span>
-   <div class="utility-actions"><button class="btn-util" type="button" onclick="location.reload()">Reload page</button><button class="btn-util" type="button" onclick="launchLayoutEditorFromSettings()">Arrange dashboard</button></div>
-  </div>
+
+    <div class="settings-tabs" role="tablist" aria-label="Settings categories">
+     <button class="settings-tab-btn active" type="button" role="tab" aria-selected="true" data-tab="overview" onclick="switchSettingsTab('overview')"><span class="settings-nav-icon" aria-hidden="true">⌂</span><span class="settings-nav-copy"><b>Home</b><small>Status, displays &amp; shortcuts</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="content" onclick="switchSettingsTab('content')"><span class="settings-nav-icon" aria-hidden="true">▦</span><span class="settings-nav-copy"><b>Content</b><small>Calendars, weather &amp; photos</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="family" data-owner-only="1" onclick="switchSettingsTab('family')"><span class="settings-nav-icon" aria-hidden="true">✓</span><span class="settings-nav-copy"><b>Family</b><small>Household, chores &amp; rewards</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="look" onclick="switchSettingsTab('look')"><span class="settings-nav-icon" aria-hidden="true">◐</span><span class="settings-nav-copy"><b>Personalization</b><small>Themes, layout &amp; accessibility</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="integrations" onclick="switchSettingsTab('integrations')"><span class="settings-nav-icon" aria-hidden="true">◇</span><span class="settings-nav-copy"><b>Integrations</b><small>Providers &amp; connections</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="system" onclick="switchSettingsTab('system')"><span class="settings-nav-icon" aria-hidden="true">⚙</span><span class="settings-nav-copy"><b>System</b><small>Accounts, updates &amp; recovery</small></span></button>
+    </div>
+
+    <div class="settings-sidebar-tools">
+     <div class="settings-mode-wrap">
+      <label>Settings shown</label>
+      <div class="settings-mode-toggle" role="group" aria-label="Settings detail level">
+       <button id="settings-mode-essential" class="settings-mode-btn active" type="button" onclick="setSettingsViewMode('essential')">Essentials</button>
+       <button id="settings-mode-all" class="settings-mode-btn" type="button" onclick="setSettingsViewMode('all')">All</button>
+      </div>
+     </div>
+     <div id="settings-view-note" class="settings-view-note">Essentials keeps the common controls visible. Choose All for power-user and troubleshooting options.</div>
+    </div>
+   </aside>
+
+   <main class="settings-content" id="settings-content">
+    <div class="settings-page-head">
+     <div class="settings-page-heading">
+      <div class="settings-page-kicker">Settings</div>
+      <h3 id="settings-page-title">Home</h3>
+      <div class="settings-tab-hint" id="settings-tab-hint">A quiet starting point for display health and the most common changes.</div>
+     </div>
+     <div class="settings-page-tools">
+      <div class="settings-section-jump">
+       <label for="settings-section-select">Jump to</label>
+       <select id="settings-section-select" onchange="jumpToSettingsSection(this.value)"></select>
+      </div>
+      <div class="settings-collapse-actions">
+       <button class="btn-util" type="button" onclick="setAllSettingsSectionsCollapsed(false)" aria-label="Expand visible sections">Expand</button>
+       <button class="btn-util" type="button" onclick="setAllSettingsSectionsCollapsed(true)" aria-label="Collapse visible sections">Collapse</button>
+      </div>
+     </div>
+    </div>
+
+    <div id="settings-empty-state" class="settings-empty-state">No sections are visible in this view. Choose <b>All</b> or use Search to find a power-user option.</div>
+    <div id="settings-init-error" class="settings-init-error" role="alert">
+     <b>Settings recovered after an initialization problem.</b>
+     <span id="settings-init-error-text">LibreDisplay kept the editor available instead of leaving an empty configuration screen.</span>
+     <div class="utility-actions"><button class="btn-util" type="button" onclick="location.reload()">Reload page</button><button class="btn-util" type="button" onclick="launchLayoutEditorFromSettings()">Arrange dashboard</button></div>
+    </div>
 
   <div class="s-section" id="settings-overview" data-settings-tab="overview">
    <h3>Quick edit</h3>
@@ -1486,7 +1676,7 @@ html:not(.cursor-active) * {
    <div class="quick-edit-grid">
     <button class="quick-edit-card" type="button" onclick="launchLayoutEditorFromSettings()"><b>Arrange dashboard</b><span>Drag, resize, add, duplicate, and configure dashboard blocks.</span></button>
     <button class="quick-edit-card" type="button" onclick="switchSettingsTab('content')"><b>Content</b><span>Calendars, weather, alerts, photos, and background sources.</span></button>
-    <button class="quick-edit-card" type="button" onclick="switchSettingsTab('look')"><b>Look &amp; Layout</b><span>Templates, themes, accessibility, and dashboard arrangement.</span></button>
+    <button class="quick-edit-card" type="button" onclick="switchSettingsTab('look')"><b>Personalization</b><span>Themes, accessibility, templates, and dashboard presentation.</span></button>
     <button class="quick-edit-card" type="button" onclick="switchSettingsTab('integrations')"><b>Integrations</b><span>Browse providers, see configured blocks, and check connection health.</span></button>
    </div>
    <div class="s-subhead">Dashboard health</div>
@@ -1514,7 +1704,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.2.10</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.3.0</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -1906,7 +2096,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.2.10</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.3.0</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -1930,6 +2120,9 @@ html:not(.cursor-active) * {
    <div class="settings-note" style="margin-top:9px;">Exported settings include private calendar URLs and your Google Photos album link. Treat the JSON file as private.</div>
    <div id="diagnostics-status" class="howto" style="display:none;"></div>
    <div id="cache-status" class="howto" style="display:none;"></div>
+  </div>
+
+   </main>
   </div>
 
   <div id="wizard-actions" class="wizard-actions">
@@ -1998,6 +2191,13 @@ html:not(.cursor-active) * {
 <button id="settings-preview-return" type="button" onclick="returnToSettingsPreview()" aria-hidden="true"><span>← Return to Settings</span><small>Previewing unsaved changes</small></button>
 
 
+<div id="remote-layout-preview-shell" aria-hidden="true">
+ <div id="remote-layout-preview-topbar">
+  <div id="remote-layout-preview-title"><b>Arrange for display</b><span id="remote-layout-preview-meta">Loading display viewport…</span></div>
+  <div id="remote-layout-preview-actions"><button type="button" onclick="reloadRemoteLayoutPreview()">Reload preview</button><button type="button" onclick="closeRemoteLayoutPreview()">Close</button></div>
+ </div>
+ <div id="remote-layout-preview-stage"><iframe id="remote-layout-preview-frame" title="LibreDisplay target-screen layout editor"></iframe></div>
+</div>
 <div id="layout-editor-layer" aria-hidden="true"></div>
 <div id="context-help-popover" role="tooltip" hidden></div>
 <div id="layout-toolbar" aria-hidden="true">
@@ -2087,7 +2287,7 @@ html:not(.cursor-active) * {
 <div id="offline-pill">Offline · cached data</div>
 
 <script>
-const DASHBOARD_BUILD = '1.2.10';
+const DASHBOARD_BUILD = '1.3.0';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -2095,6 +2295,7 @@ const CFG_BACKUP_KEY = 'libredisplay_cfg_previous_'+ACTIVE_ENDPOINT;
 const PROFILES_KEY = 'libredisplay_profiles';
 const REMOTE_SETTINGS_MODE=PAGE_PARAMS.get('settings')==='1';
 const OPEN_SETTINGS_MODE=PAGE_PARAMS.get('openSettings')==='1';
+const LAYOUT_PREVIEW_MODE=PAGE_PARAMS.get('layoutPreview')==='1';
 let READ_ONLY_DISPLAY_MODE=PAGE_PARAMS.get('display')==='1';
 let LOCAL_CLIENT_MODE=false;
 let SESSION_ROLE='';
@@ -5082,9 +5283,56 @@ function startLayoutEditor(){
   document.addEventListener('pointermove',moveLayoutPointer,{passive:false});
   document.addEventListener('pointerup',endLayoutPointer);
 }
+let remoteLayoutPreviewTarget=null;
+function bestLayoutTargetDevice(rows){
+  const candidates=(rows||[]).filter(x=>x&&x.endpoint===ACTIVE_ENDPOINT).sort((a,b)=>{
+    const ao=a.online?1:0,bo=b.online?1:0;if(ao!==bo)return bo-ao;
+    const am=['local','viewer'].includes(a.mode)?1:0,bm=['local','viewer'].includes(b.mode)?1:0;if(am!==bm)return bm-am;
+    return Number(b.lastSeen||0)-Number(a.lastSeen||0);
+  });
+  return candidates[0]||null;
+}
+function targetViewportFromDevice(row){
+  const width=Math.max(320,Math.min(7680,Number(row?.viewportWidth||row?.width)||0));
+  const height=Math.max(240,Math.min(4320,Number(row?.viewportHeight||row?.height)||0));
+  if(!width||!height)return null;
+  return {width:Math.round(width),height:Math.round(height),deviceId:String(row?.deviceId||''),mode:String(row?.mode||''),online:!!row?.online,ageSeconds:Number(row?.ageSeconds)||0};
+}
+async function fetchRemoteLayoutTarget(){
+  try{
+    const res=await fetch(serverPath('/api/devices'),{cache:'no-store'}),data=await res.json().catch(()=>({}));
+    if(!res.ok||!Array.isArray(data.devices))throw new Error(data.error||('HTTP '+res.status));
+    const target=targetViewportFromDevice(bestLayoutTargetDevice(data.devices));
+    if(target)return target;
+  }catch(e){console.warn('Could not read target display viewport',e);}
+  return null;
+}
+function fitRemoteLayoutPreview(){
+  const shell=document.getElementById('remote-layout-preview-shell'),stage=document.getElementById('remote-layout-preview-stage'),frame=document.getElementById('remote-layout-preview-frame');
+  if(!shell?.classList.contains('show')||!stage||!frame||!remoteLayoutPreviewTarget)return;
+  const sw=Math.max(1,stage.clientWidth),sh=Math.max(1,stage.clientHeight),tw=remoteLayoutPreviewTarget.width,th=remoteLayoutPreviewTarget.height;
+  const scale=Math.min(sw/tw,sh/th,.9999),left=Math.max(0,(sw-tw*scale)/2),top=Math.max(0,(sh-th*scale)/2);
+  frame.style.width=tw+'px';frame.style.height=th+'px';frame.style.left=left.toFixed(1)+'px';frame.style.top=top.toFixed(1)+'px';frame.style.transform=`scale(${scale})`;
+  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'live display':'last reported display';meta.textContent=`${tw}×${th} target viewport · ${state} · preview scaled to ${Math.round(scale*100)}%`;}
+}
+async function openRemoteLayoutPreview(){
+  const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame'),meta=document.getElementById('remote-layout-preview-meta');if(!shell||!frame)return;
+  if(meta)meta.textContent='Reading the wall display viewport…';shell.classList.add('show');shell.setAttribute('aria-hidden','false');
+  remoteLayoutPreviewTarget=await fetchRemoteLayoutTarget();
+  if(!remoteLayoutPreviewTarget){
+    const fallbackW=1920,fallbackH=1080;
+    remoteLayoutPreviewTarget={width:fallbackW,height:fallbackH,online:false,fallback:true};
+    if(meta)meta.textContent='No display heartbeat found · using 1920×1080 fallback';
+  }
+  frame.src=`/dashboard.html?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1&_=${Date.now()}`;
+  fitRemoteLayoutPreview();requestAnimationFrame(fitRemoteLayoutPreview);
+}
+function closeRemoteLayoutPreview(){const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');if(shell){shell.classList.remove('show');shell.setAttribute('aria-hidden','true');}if(frame)frame.src='about:blank';remoteLayoutPreviewTarget=null;}
+function reloadRemoteLayoutPreview(){const frame=document.getElementById('remote-layout-preview-frame');if(frame&&remoteLayoutPreviewTarget)frame.src=`/dashboard.html?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1&_=${Date.now()}`;}
+window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==document.getElementById('remote-layout-preview-frame')?.contentWindow)return;const msg=e.data||{};if(msg.type!=='libredisplay-layout-editor')return;if(msg.action==='saved'){closeRemoteLayoutPreview();setTimeout(()=>{pollServerConfig();openSetup(false);},180);}else if(msg.action==='cancelled'){closeRemoteLayoutPreview();openSetup(false);}});
 function launchLayoutEditorFromSettings(){
   if(settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;
-  closeSetup(true);setTimeout(()=>{startLayoutEditor();if(REMOTE_SETTINGS_MODE){const info=document.getElementById('layout-selected-info');if(info)info.textContent='Remote editor · positions save proportionally to the wall display';}},80);
+  closeSetup(true);if(REMOTE_SETTINGS_MODE){setTimeout(openRemoteLayoutPreview,80);return;}setTimeout(startLayoutEditor,80);
 }
 function stopLayoutEditorUi(){
   layoutEditorActive=false;layoutPointerState=null;layoutSelectedKey='';layoutUndoStack=[];layoutRedoStack=[];updateLayoutHistoryButtons();
@@ -5101,12 +5349,14 @@ function saveLayoutEditor(){
   cfg.layoutGridPx=Number(document.getElementById('layout-toolbar-grid')?.value)||20;
   cfg.layoutSnap=document.getElementById('layout-toolbar-snap')?.checked!==false;
   saveCfg();stopLayoutEditorUi();applyUiCustomization(cfg);updateLayoutModeStatus(cfg);
+  if(LAYOUT_PREVIEW_MODE&&window.parent!==window)setTimeout(()=>window.parent.postMessage({type:'libredisplay-layout-editor',action:'saved'},location.origin),160);
 }
 function cancelLayoutEditor(){
   if(!layoutEditorActive)return;
   const o=layoutEditorOriginal||{layoutMode:'default',layoutBlocks:{},layoutContentScale:{},layoutElementStyle:{},layoutPartStyle:{},layoutGridPx:20,layoutSnap:true};
   cfg.layoutMode=o.layoutMode;cfg.layoutBlocks=JSON.parse(JSON.stringify(o.layoutBlocks||{}));cfg.layoutContentScale=JSON.parse(JSON.stringify(o.layoutContentScale||{}));cfg.layoutElementStyle=JSON.parse(JSON.stringify(o.layoutElementStyle||{}));cfg.layoutPartStyle=JSON.parse(JSON.stringify(o.layoutPartStyle||{}));cfg.layoutGridPx=o.layoutGridPx||20;cfg.layoutSnap=o.layoutSnap!==false;cfg.customBlocks=JSON.parse(JSON.stringify(layoutCustomBlocksOriginal||[]));customBlockRenderSignature='';
   stopLayoutEditorUi();renderCustomBlocks(cfg.customBlocks);applyUiCustomization(cfg);
+  if(LAYOUT_PREVIEW_MODE&&window.parent!==window)setTimeout(()=>window.parent.postMessage({type:'libredisplay-layout-editor',action:'cancelled'},location.origin),0);
 }
 function resetLayoutEditorDraft(){
   if(!layoutEditorActive)return;pushLayoutHistory();
@@ -5141,6 +5391,7 @@ function nudgeSelectedLayoutBlock(key,resize=false){
   setLayoutEditorRectForKey(layoutSelectedKey,normalizedRectFromPx(r));renderLayoutEditorBoxes();return true;
 }
 window.addEventListener('resize',()=>{
+  fitRemoteLayoutPreview();
   if(layoutEditorActive){for(const [key,r] of Object.entries(layoutEditorDraft))applyOneLayoutRect(key,r);for(const b of layoutCustomBlocksDraft)applyCustomBlockRect(document.querySelector(`.custom-block[data-block-id="${CSS.escape(b.id)}"]`),b);renderLayoutEditorBoxes();requestAnimationFrame(keepLayoutInspectorOnScreen);}
   else {if(cfg.layoutMode==='custom')applyCustomLayout(cfg);for(const b of cfg.customBlocks||[])applyCustomBlockRect(document.querySelector(`.custom-block[data-block-id="${CSS.escape(b.id)}"]`),b);}
 });
@@ -5675,7 +5926,7 @@ async function pollServerConfig(){
 }
 let liveEventSource=null,heartbeatTimer=null;
 function displayDeviceId(){let id='';try{id=localStorage.getItem('libredisplay_device_id')||'';}catch(e){}if(!/^[A-Za-z0-9_-]{12,80}$/.test(id)){id='d'+Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem('libredisplay_device_id',id);}catch(e){}}return id;}
-async function sendDisplayHeartbeat(){if(!READ_ONLY_DISPLAY_MODE&&!LOCAL_CLIENT_MODE)return;try{await fetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),width:screen.width||innerWidth,height:screen.height||innerHeight,dpr:devicePixelRatio||1,mode:READ_ONLY_DISPLAY_MODE?'viewer':(LOCAL_CLIENT_MODE?'local':'admin'),version:DASHBOARD_BUILD,userAgent:navigator.userAgent}),cache:'no-store'});}catch(e){}}
+async function sendDisplayHeartbeat(){if(!READ_ONLY_DISPLAY_MODE&&!LOCAL_CLIENT_MODE)return;try{await fetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),width:innerWidth||screen.width,height:innerHeight||screen.height,viewportWidth:innerWidth||0,viewportHeight:innerHeight||0,screenWidth:screen.width||0,screenHeight:screen.height||0,dpr:devicePixelRatio||1,mode:READ_ONLY_DISPLAY_MODE?'viewer':(LOCAL_CLIENT_MODE?'local':'admin'),version:DASHBOARD_BUILD,userAgent:navigator.userAgent}),cache:'no-store'});}catch(e){}}
 function startLiveDisplayConnection(){
   try{liveEventSource?.close();}catch(e){}liveEventSource=null;
   try{liveEventSource=new EventSource(serverPath('/api/events'));liveEventSource.addEventListener('config',()=>pollServerConfig());liveEventSource.addEventListener('household',async()=>{await loadHousehold(false);refreshFamilyBlocks();});liveEventSource.addEventListener('refresh',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)refreshDataNow();});liveEventSource.addEventListener('reload',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)location.reload();});liveEventSource.addEventListener('reauth',()=>location.reload());}catch(e){}
@@ -6272,14 +6523,34 @@ function openSetup(startWizard=false){
 }
 
 const SETTINGS_TABS=['overview','content','family','look','integrations','system'];
-const SETTINGS_TAB_HINTS={
-  overview:'A quiet starting point for display health and the most common changes.',
-  content:'Calendars, weather, alerts, photos and the information shown on the dashboard.',
-  family:'Household members, chores, rewards and touch-mode behavior.',
-  look:'Templates, themes, accessibility and dashboard arrangement.',
-  integrations:'Browse installed providers, add integration blocks and check their health.',
-  system:'Displays, accounts, remote access, profiles, scenes, backup and diagnostics.'
+const SETTINGS_TAB_TITLES={
+  overview:'Home',
+  content:'Content',
+  family:'Family',
+  look:'Personalization',
+  integrations:'Integrations',
+  system:'System'
 };
+const SETTINGS_TAB_HINTS={
+  overview:'Dashboard status, displays, common actions, and a quick path to the settings you use most.',
+  content:'Calendars, weather, alerts, photos, and the information shown on your dashboard.',
+  family:'Household members, chores, rewards, and touch-mode behavior.',
+  look:'Themes, accessibility, Settings-button behavior, templates, and dashboard presentation.',
+  integrations:'Browse installed providers, add integration blocks, and review connection health.',
+  system:'Accounts, remote access, profiles, scenes, updates, backup, diagnostics, and recovery.'
+};
+function updateSettingsPageHeader(searchQuery=''){
+  const title=document.getElementById('settings-page-title');
+  const hint=document.getElementById('settings-tab-hint');
+  const q=String(searchQuery||'').trim();
+  if(q){
+    if(title)title.textContent='Search results';
+    if(hint)hint.textContent=`Matches for “${q}” across LibreDisplay settings.`;
+    return;
+  }
+  if(title)title.textContent=SETTINGS_TAB_TITLES[activeSettingsTab]||'Settings';
+  if(hint)hint.textContent=SETTINGS_TAB_HINTS[activeSettingsTab]||'';
+}
 const SETTINGS_SECTION_SUMMARIES={
   'settings-overview':'Health checks and the most common dashboard actions.',
   'settings-endpoints':'Create and manage independent screen endpoints from one server.',
@@ -6379,7 +6650,7 @@ function applySettingsSectionVisibility(){
   document.getElementById('settings-mode-essential')?.classList.toggle('active',settingsViewMode==='essential');
   document.getElementById('settings-mode-all')?.classList.toggle('active',settingsViewMode==='all');
   const note=document.getElementById('settings-view-note');
-  if(note)note.textContent=settingsViewMode==='essential'?'Essentials hides power-user and troubleshooting sections. Search still finds everything.':'All settings shows every available control.';
+  if(note)note.textContent=settingsViewMode==='essential'?'Essentials keeps the everyday controls visible. Search still finds everything.':'All shows every available control, including advanced and troubleshooting options.';
   let visible=0;
   document.querySelectorAll('.s-section[data-settings-tab]').forEach(section=>{
     const roleHidden=!settingsSectionRoleAllowed(section);
@@ -6390,7 +6661,7 @@ function applySettingsSectionVisibility(){
   });
   const empty=document.getElementById('settings-empty-state');if(empty)empty.classList.toggle('show',visible===0);
   buildSettingsSectionJump();
-  const hint=document.getElementById('settings-tab-hint');if(hint)hint.textContent=SETTINGS_TAB_HINTS[activeSettingsTab]||'';
+  updateSettingsPageHeader();
 }
 
 function switchSettingsTab(tab,scrollTop=true){
@@ -6432,7 +6703,8 @@ function settingsSectionSearchText(section){
 }
 
 function filterSettings(value){
-  const q=String(value||'').trim().toLowerCase();
+  const raw=String(value||'').trim();
+  const q=raw.toLowerCase();
   const status=document.getElementById('settings-search-status');
   const sections=[...document.querySelectorAll('.s-section[data-settings-tab]')];
   if(!q){
@@ -6440,6 +6712,7 @@ function filterSettings(value){
     if(status){status.style.display='none';status.textContent='';}
     return;
   }
+  updateSettingsPageHeader(raw);
   let matches=0,advancedMatches=0;
   sections.forEach(section=>{
     section.classList.remove('settings-advanced-hidden');
@@ -6732,7 +7005,13 @@ async function init(){
   startRemoteConfigPolling();
   if(!READ_ONLY_DISPLAY_MODE)setTimeout(()=>{loadRemoteInfo();loadCacheStatus();loadDisplayEndpoints();},300);
 }
+function autoStartLayoutPreviewWhenReady(attempt=0){
+  if(!LAYOUT_PREVIEW_MODE||READ_ONLY_DISPLAY_MODE)return;
+  if(document.getElementById('setup')?.classList.contains('hidden')&&cfg&&typeof cfg==='object'){document.body.classList.add('layout-preview-embedded');setTimeout(startLayoutEditor,100);return;}
+  if(attempt<120)setTimeout(()=>autoStartLayoutPreviewWhenReady(attempt+1),50);
+}
 init();
+if(LAYOUT_PREVIEW_MODE)autoStartLayoutPreviewWhenReady();
 </script>
 </body>
 </html>

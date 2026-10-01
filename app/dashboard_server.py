@@ -2508,12 +2508,20 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     raise ValueError("deviceId is required")
                 width = max(0, min(20000, int((body or {}).get("width") or 0)))
                 height = max(0, min(20000, int((body or {}).get("height") or 0)))
+                viewport_width = max(0, min(20000, int((body or {}).get("viewportWidth") or width)))
+                viewport_height = max(0, min(20000, int((body or {}).get("viewportHeight") or height)))
+                screen_width = max(0, min(20000, int((body or {}).get("screenWidth") or width)))
+                screen_height = max(0, min(20000, int((body or {}).get("screenHeight") or height)))
                 row = {
                     "endpoint": endpoint_id,
                     "deviceId": device_id,
                     "name": str((body or {}).get("name") or "").strip()[:80],
-                    "width": width,
-                    "height": height,
+                    "width": viewport_width,
+                    "height": viewport_height,
+                    "viewportWidth": viewport_width,
+                    "viewportHeight": viewport_height,
+                    "screenWidth": screen_width,
+                    "screenHeight": screen_height,
                     "dpr": max(0.25, min(8.0, float((body or {}).get("dpr") or 1))),
                     "mode": str((body or {}).get("mode") or "browser").strip()[:40],
                     "version": str((body or {}).get("version") or "").strip()[:40],
