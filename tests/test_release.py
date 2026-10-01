@@ -451,6 +451,27 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertNotIn("wall font calibrated", html)
         self.assertNotIn("targetFontProbeWidth=", html)
 
+
+    def test_v135_remote_arrange_separates_target_canvas_from_laptop_editor_chrome(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        for marker in (
+            "body.layout-preview-embedded #layout-toolbar",
+            "body.layout-preview-embedded #layout-properties",
+            "body.remote-layout-proxy #layout-toolbar",
+            "body.remote-layout-proxy #layout-properties",
+            "function activateRemoteLayoutProxy()",
+            "function deactivateRemoteLayoutProxy()",
+            "function handleRemoteLayoutProxyEvent(e)",
+            "function syncRemoteLayoutProxyUi()",
+            "remoteLayoutProxySyncTimer=setInterval(syncRemoteLayoutProxyUi,140)",
+            "--ld-editor-handle-size",
+        ):
+            self.assertIn(marker, html)
+        self.assertNotIn("--ld-editor-ui-inv-scale", html)
+        self.assertNotIn("body.layout-preview-embedded #layout-properties{top:var(", html)
+        self.assertNotIn("body.custom-layout .wx-details {\n  width:auto !important;", html)
+        self.assertIn("body.custom-layout .wx-details {\n  width:auto;", html)
+
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
         for marker in ("bc-chart-area", "bc-chart-points", "bc-chart-grid", "function analyzeImportedSettings", "product:'LibreDisplay',format:2"):

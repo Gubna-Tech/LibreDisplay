@@ -36,7 +36,7 @@ rm -rf ~/LibreDisplay-Setup && mkdir -p ~/LibreDisplay-Setup
 **4. Download the latest LibreDisplay release:**
 
 ```bash
-curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.3.4.zip -o /tmp/LibreDisplay.zip
+curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.3.5.zip -o /tmp/LibreDisplay.zip
 ```
 
 **5. Extract LibreDisplay:**
@@ -48,7 +48,7 @@ unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup
 **6. Open the LibreDisplay setup folder:**
 
 ```bash
-cd ~/LibreDisplay-Setup/LibreDisplay-1.3.4
+cd ~/LibreDisplay-Setup/LibreDisplay-1.3.5
 ```
 
 **7. Allow the installer to run:**
@@ -87,7 +87,7 @@ Useful places to remember:
 - **Content** — calendars, photos, weather, feeds, and dashboard content
 - **Family** — household members, chores, points, and rewards
 - **Personalization** — themes, templates, accessibility, blocks, and layout
-- **Arrange editor** — move/resize blocks, drag the inspector out of the way, and fine-tune individual text sections such as calendar event titles/times without changing day/date headers. When editing remotely, Arrange waits for a fresh wall-display heartbeat, mirrors the Pi’s actual dashboard viewport, and calibrates text metrics against the wall display so positions, wrapping, and responsive sizing stay aligned even when the laptop and Pi use different installed fonts.
+- **Arrange editor** — move/resize blocks, drag the inspector out of the way, and fine-tune individual text sections such as calendar event titles/times without changing day/date headers. When editing remotely, Arrange waits for a fresh wall-display heartbeat and mirrors the Pi’s actual dashboard viewport. The target canvas is scaled independently while the editor toolbar and inspector stay at normal laptop size, so editing controls remain readable and selectable without changing the dashboard geometry.
 - **Integrations** — connect supported services and check their status
 - **System** — displays, accounts, backups, remote access, and advanced options
 
@@ -166,7 +166,7 @@ On the viewer Raspberry Pi, run the next commands **one at a time, in order**.
 **2. Download the viewer setup helper:**
 
 ```bash
-curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.3.4/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
+curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.3.5/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
 ```
 
 **3. Allow the viewer installer to run:**

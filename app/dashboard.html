@@ -582,7 +582,7 @@ body.custom-layout #clock-block {
   overflow:hidden;
 }
 body.custom-layout .wx-details {
-  width:auto !important;
+  width:auto;
   align-items:end;
   overflow:hidden;
 }
@@ -640,9 +640,22 @@ body.layout-editing #calendar-legend {
 #remote-layout-preview-stage{position:absolute;left:0;right:0;top:52px;bottom:0;overflow:hidden;background:#000}
 #remote-layout-preview-frame{position:absolute;left:0;top:0;border:0;background:#000;transform-origin:0 0;box-shadow:0 0 0 1px rgba(255,255,255,.12),0 22px 70px rgba(0,0,0,.55)}
 body.layout-preview-embedded #cog,body.layout-preview-embedded #settings-preview-return{display:none!important}
-body.layout-preview-embedded .layout-edit-box{min-width:2px;min-height:2px}
-body.layout-preview-embedded .layout-edit-label{font-size:var(--ld-editor-label-size,11px);padding:var(--ld-editor-label-pad-y,4px) var(--ld-editor-label-pad-x,7px)}
-body.layout-preview-embedded .layout-resize-handle{width:var(--ld-editor-handle-size,18px);height:var(--ld-editor-handle-size,18px)}
+/* Remote Arrange uses two deliberately separate UI layers. The iframe contains only
+   the target-display canvas and edit rectangles. Laptop editor chrome lives in the
+   outer document and is never scaled with the TV/Pi viewport. */
+body.layout-preview-embedded #layout-toolbar,
+body.layout-preview-embedded #layout-properties,
+body.layout-preview-embedded #block-catalog,
+body.layout-preview-embedded #block-config-modal,
+body.layout-preview-embedded #context-help-popover{display:none!important}
+body.layout-preview-embedded .layout-edit-box{min-width:2px;min-height:2px;border-width:var(--ld-editor-border-size,2px);border-radius:var(--ld-editor-box-radius,9px)}
+body.layout-preview-embedded .layout-edit-label{font-size:var(--ld-editor-label-size,11px);padding:var(--ld-editor-label-pad-y,4px) var(--ld-editor-label-pad-x,7px);border-radius:var(--ld-editor-label-radius,5px)}
+body.layout-preview-embedded .layout-resize-handle{width:var(--ld-editor-handle-size,18px);height:var(--ld-editor-handle-size,18px);border-width:var(--ld-editor-handle-border,2px)}
+body.remote-layout-proxy #layout-toolbar{display:flex;z-index:292;left:14px;right:374px;top:64px;transform:none;max-width:none;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;white-space:nowrap}
+body.remote-layout-proxy #layout-properties{display:block;z-index:293;top:118px;right:14px;max-height:calc(100vh - 132px)}
+body.remote-layout-proxy #block-catalog,body.remote-layout-proxy #block-config-modal{z-index:310}
+body.remote-layout-proxy #layout-editor-layer{display:none!important}
+@media(max-width:980px){body.remote-layout-proxy #layout-toolbar{right:14px;top:64px}body.remote-layout-proxy #layout-properties{top:126px;right:10px;width:min(326px,calc(100vw - 20px));max-height:calc(100vh - 140px)}}
 #layout-editor-layer {
   position:fixed;
   inset:0;
@@ -1707,7 +1720,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.3.4</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.3.5</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -2099,7 +2112,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.3.4</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.3.5</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -2204,13 +2217,13 @@ html:not(.cursor-active) * {
 <div id="layout-editor-layer" aria-hidden="true"></div>
 <div id="context-help-popover" role="tooltip" hidden></div>
 <div id="layout-toolbar" aria-hidden="true">
- <button class="layout-save" type="button" onclick="saveLayoutEditor()">Save &amp; Lock</button>
- <button class="layout-cancel" type="button" onclick="cancelLayoutEditor()">Cancel</button>
+ <button id="layout-save" class="layout-save" type="button" onclick="saveLayoutEditor()">Save &amp; Lock</button>
+ <button id="layout-cancel" class="layout-cancel" type="button" onclick="cancelLayoutEditor()">Cancel</button>
  <button id="layout-undo" type="button" onclick="undoLayoutEditor()" disabled title="Undo (Ctrl/Cmd+Z)">Undo</button>
  <button id="layout-redo" type="button" onclick="redoLayoutEditor()" disabled title="Redo (Ctrl/Cmd+Shift+Z)">Redo</button>
- <button type="button" onclick="resetLayoutEditorDraft()">Default positions</button>
- <button type="button" onclick="resetSelectedLayoutBlock()">Reset selected</button>
- <button type="button" onclick="openBlockCatalog()">+ Add Block</button>
+ <button id="layout-default-positions" type="button" onclick="resetLayoutEditorDraft()">Default positions</button>
+ <button id="layout-reset-selected" type="button" onclick="resetSelectedLayoutBlock()">Reset selected</button>
+ <button id="layout-add-block" type="button" onclick="openBlockCatalog()">+ Add Block</button>
  <button id="layout-configure-block" class="block-action-hidden" type="button" onclick="configureSelectedCustomBlock()">Configure</button>
  <button id="layout-duplicate-block" class="block-action-hidden" type="button" onclick="duplicateSelectedCustomBlock()">Duplicate</button>
  <button id="layout-layer-back" class="block-action-hidden" type="button" onclick="changeSelectedBlockLayer(-1)">Send Back</button>
@@ -2226,7 +2239,7 @@ html:not(.cursor-active) * {
  <span id="layout-selected-info">Select an element · drag to move · corner to resize</span>
 </div>
 <div id="layout-properties" aria-hidden="true">
- <div id="layout-properties-drag-handle" class="layout-prop-head" title="Drag this inspector anywhere on the screen"><div><b id="layout-properties-title">Element inspector</b><small id="layout-properties-subtitle">Select an element to customize its contents.</small></div><div class="layout-prop-head-actions"><button id="layout-properties-collapse" type="button" onclick="toggleLayoutInspectorCollapse()" title="Collapse inspector">−</button><button type="button" onclick="resetLayoutInspectorPosition()" title="Return inspector to its default position">↺</button><button type="button" onclick="resetSelectedLayoutBlock()" title="Reset the selected element, including its position">Reset</button></div></div>
+ <div id="layout-properties-drag-handle" class="layout-prop-head" title="Drag this inspector anywhere on the screen"><div><b id="layout-properties-title">Element inspector</b><small id="layout-properties-subtitle">Select an element to customize its contents.</small></div><div class="layout-prop-head-actions"><button id="layout-properties-collapse" type="button" onclick="toggleLayoutInspectorCollapse()" title="Collapse inspector">−</button><button id="layout-properties-reset-position" type="button" onclick="resetLayoutInspectorPosition()" title="Return inspector to its default position">↺</button><button id="layout-properties-reset-selected" type="button" onclick="resetSelectedLayoutBlock()" title="Reset the selected element, including its position">Reset</button></div></div>
  <div id="layout-properties-controls" class="layout-prop-disabled">
   <div class="layout-prop-section">
    <div class="layout-prop-label"><span>Edit section <button class="help-tip" type="button" aria-label="Inspector section help" data-help="Whole element affects the selected block broadly. Choose an internal section to tune only that title, value, event, label, icon, or subtitle.">?</button></span><span id="layout-part-scope-label">Whole element</span></div>
@@ -2290,7 +2303,7 @@ html:not(.cursor-active) * {
 <div id="offline-pill">Offline · cached data</div>
 
 <script>
-const DASHBOARD_BUILD = '1.3.4';
+const DASHBOARD_BUILD = '1.3.5';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -5011,12 +5024,14 @@ function buildCustomLayoutPartCss(source=cfg){let css='';for(const block of sour
 `;}}return css;}
 
 const LAYOUT_INSPECTOR_POS_KEY='libredisplay-layout-inspector-pos-v1';
+const REMOTE_LAYOUT_INSPECTOR_POS_KEY='libredisplay-remote-layout-inspector-pos-v1';
+function layoutInspectorPositionKey(){return remoteLayoutProxyActive?REMOTE_LAYOUT_INSPECTOR_POS_KEY:LAYOUT_INSPECTOR_POS_KEY;}
 let layoutInspectorDragState=null;
 function layoutInspectorClamp(left,top){const el=document.getElementById('layout-properties');if(!el)return {left:14,top:72};const rect=el.getBoundingClientRect(),pad=8;return {left:Math.max(pad,Math.min(innerWidth-rect.width-pad,Number(left)||pad)),top:Math.max(pad,Math.min(innerHeight-rect.height-pad,Number(top)||pad))};}
-function setLayoutInspectorPosition(left,top,persist=false){const el=document.getElementById('layout-properties');if(!el)return;const p=layoutInspectorClamp(left,top);el.style.left=p.left+'px';el.style.top=p.top+'px';el.style.right='auto';el.style.bottom='auto';if(persist){const rect=el.getBoundingClientRect(),availX=Math.max(1,innerWidth-rect.width-16),availY=Math.max(1,innerHeight-rect.height-16);try{localStorage.setItem(LAYOUT_INSPECTOR_POS_KEY,JSON.stringify({x:Math.max(0,Math.min(1,(p.left-8)/availX)),y:Math.max(0,Math.min(1,(p.top-8)/availY))}));}catch{}}}
-function restoreLayoutInspectorPosition(){const el=document.getElementById('layout-properties');if(!el)return;let saved=null;try{saved=JSON.parse(localStorage.getItem(LAYOUT_INSPECTOR_POS_KEY)||'null');}catch{}if(saved&&Number.isFinite(Number(saved.x))&&Number.isFinite(Number(saved.y))){requestAnimationFrame(()=>{const rect=el.getBoundingClientRect(),availX=Math.max(1,innerWidth-rect.width-16),availY=Math.max(1,innerHeight-rect.height-16);setLayoutInspectorPosition(8+availX*Math.max(0,Math.min(1,Number(saved.x))),8+availY*Math.max(0,Math.min(1,Number(saved.y))),false);});}else{el.style.removeProperty('left');el.style.removeProperty('bottom');el.style.top='72px';el.style.right='14px';requestAnimationFrame(keepLayoutInspectorOnScreen);}}
-function resetLayoutInspectorPosition(){try{localStorage.removeItem(LAYOUT_INSPECTOR_POS_KEY);}catch{}restoreLayoutInspectorPosition();}
-function keepLayoutInspectorOnScreen(){const el=document.getElementById('layout-properties');if(!layoutEditorActive||!el?.classList.contains('show'))return;const r=el.getBoundingClientRect();setLayoutInspectorPosition(r.left,r.top,false);}
+function setLayoutInspectorPosition(left,top,persist=false){const el=document.getElementById('layout-properties');if(!el)return;const p=layoutInspectorClamp(left,top);el.style.left=p.left+'px';el.style.top=p.top+'px';el.style.right='auto';el.style.bottom='auto';if(persist){const rect=el.getBoundingClientRect(),availX=Math.max(1,innerWidth-rect.width-16),availY=Math.max(1,innerHeight-rect.height-16);try{localStorage.setItem(layoutInspectorPositionKey(),JSON.stringify({x:Math.max(0,Math.min(1,(p.left-8)/availX)),y:Math.max(0,Math.min(1,(p.top-8)/availY))}));}catch{}}}
+function restoreLayoutInspectorPosition(){const el=document.getElementById('layout-properties');if(!el)return;let saved=null;try{saved=JSON.parse(localStorage.getItem(layoutInspectorPositionKey())||'null');}catch{}if(saved&&Number.isFinite(Number(saved.x))&&Number.isFinite(Number(saved.y))){requestAnimationFrame(()=>{const rect=el.getBoundingClientRect(),availX=Math.max(1,innerWidth-rect.width-16),availY=Math.max(1,innerHeight-rect.height-16);setLayoutInspectorPosition(8+availX*Math.max(0,Math.min(1,Number(saved.x))),8+availY*Math.max(0,Math.min(1,Number(saved.y))),false);});}else{el.style.removeProperty('left');el.style.removeProperty('bottom');el.style.top=remoteLayoutProxyActive?'118px':'72px';el.style.right='14px';requestAnimationFrame(keepLayoutInspectorOnScreen);}}
+function resetLayoutInspectorPosition(){try{localStorage.removeItem(layoutInspectorPositionKey());}catch{}restoreLayoutInspectorPosition();}
+function keepLayoutInspectorOnScreen(){const el=document.getElementById('layout-properties');if(!(layoutEditorActive||remoteLayoutProxyActive)||!el?.classList.contains('show'))return;const r=el.getBoundingClientRect();setLayoutInspectorPosition(r.left,r.top,false);}
 function toggleLayoutInspectorCollapse(){const el=document.getElementById('layout-properties'),btn=document.getElementById('layout-properties-collapse');if(!el)return;el.classList.toggle('collapsed');if(btn)btn.textContent=el.classList.contains('collapsed')?'+':'−';requestAnimationFrame(keepLayoutInspectorOnScreen);}
 function initLayoutInspectorDrag(){const handle=document.getElementById('layout-properties-drag-handle');if(!handle||handle.dataset.dragBound==='1')return;handle.dataset.dragBound='1';handle.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('button,input,select,label'))return;const el=document.getElementById('layout-properties');if(!el)return;const r=el.getBoundingClientRect();layoutInspectorDragState={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,left:r.left,top:r.top};el.classList.add('dragging');try{handle.setPointerCapture?.(e.pointerId);}catch{}e.preventDefault();});document.addEventListener('pointermove',e=>{const st=layoutInspectorDragState;if(!st||st.pointerId!==e.pointerId)return;setLayoutInspectorPosition(st.left+(e.clientX-st.startX),st.top+(e.clientY-st.startY),false);e.preventDefault();},{passive:false});const done=e=>{const st=layoutInspectorDragState;if(!st||st.pointerId!==e.pointerId)return;layoutInspectorDragState=null;document.getElementById('layout-properties')?.classList.remove('dragging');const r=document.getElementById('layout-properties')?.getBoundingClientRect();if(r)setLayoutInspectorPosition(r.left,r.top,true);};document.addEventListener('pointerup',done);document.addEventListener('pointercancel',done);}
 let layoutEditorActive=false;
@@ -5286,6 +5301,71 @@ function startLayoutEditor(){
   document.addEventListener('pointermove',moveLayoutPointer,{passive:false});
   document.addEventListener('pointerup',endLayoutPointer);
 }
+let remoteLayoutProxyActive=false;
+let remoteLayoutProxySyncTimer=null;
+function remoteLayoutFrame(){return document.getElementById('remote-layout-preview-frame');}
+function remoteLayoutInnerDocument(){try{return remoteLayoutFrame()?.contentDocument||null;}catch(e){return null;}}
+function remoteLayoutProxyRoot(el){return el?.closest?.('#layout-toolbar,#layout-properties,#block-catalog,#block-config-modal')||null;}
+function remoteLayoutProxyCounterpart(el){
+  const doc=remoteLayoutInnerDocument(),root=remoteLayoutProxyRoot(el);if(!doc||!root)return null;
+  if(el.id){const byId=doc.getElementById(el.id);if(byId)return byId;}
+  const innerRoot=doc.getElementById(root.id);if(!innerRoot)return null;
+  const selector='button,input,select,textarea',outerList=Array.from(root.querySelectorAll(selector)),innerList=Array.from(innerRoot.querySelectorAll(selector)),idx=outerList.indexOf(el);
+  return idx>=0?innerList[idx]||null:null;
+}
+function remoteLayoutProxyMirrorElement(dst,src){
+  if(!dst||!src)return;
+  dst.toggleAttribute('hidden',src.hasAttribute('hidden'));
+  if(src.getAttribute('aria-hidden')!==null)dst.setAttribute('aria-hidden',src.getAttribute('aria-hidden'));else dst.removeAttribute('aria-hidden');
+  if(src.tagName==='SELECT'){if(dst.innerHTML!==src.innerHTML)dst.innerHTML=src.innerHTML;dst.value=src.value;dst.disabled=src.disabled;return;}
+  if(src.tagName==='INPUT'||src.tagName==='TEXTAREA'){if(src.type==='checkbox'||src.type==='radio')dst.checked=src.checked;else dst.value=src.value;dst.disabled=src.disabled;return;}
+  if(src.tagName==='BUTTON'){dst.disabled=src.disabled;const keepHelp=dst.classList.contains('help-tip');if(!keepHelp)dst.className=src.className;if(!src.querySelector('*'))dst.textContent=src.textContent;return;}
+  dst.className=src.className;
+  if(!src.querySelector('button,input,select,textarea'))dst.textContent=src.textContent;
+}
+function syncRemoteLayoutProxyUi(){
+  if(!remoteLayoutProxyActive)return;
+  const doc=remoteLayoutInnerDocument();if(!doc)return;
+  const toolbar=document.getElementById('layout-toolbar'),props=document.getElementById('layout-properties');
+  toolbar?.classList.add('show');props?.classList.add('show');toolbar?.setAttribute('aria-hidden','false');props?.setAttribute('aria-hidden','false');
+  for(const rootId of ['layout-toolbar','layout-properties']){
+    const outer=document.getElementById(rootId),inner=doc.getElementById(rootId);if(!outer||!inner)continue;
+    for(const dst of outer.querySelectorAll('[id]')){const src=doc.getElementById(dst.id);if(src)remoteLayoutProxyMirrorElement(dst,src);}
+  }
+  const outerPicker=document.getElementById('remote-layout-element-picker'),innerPicker=doc.getElementById('layout-toolbar-block');
+  if(outerPicker&&innerPicker){const current=innerPicker.value||'';if(outerPicker.innerHTML!==innerPicker.innerHTML)outerPicker.innerHTML=innerPicker.innerHTML;if(Array.from(outerPicker.options).some(o=>o.value===current))outerPicker.value=current;}
+  const innerCatalog=doc.getElementById('block-catalog'),outerCatalog=document.getElementById('block-catalog');
+  if(innerCatalog&&outerCatalog){const show=innerCatalog.classList.contains('show');outerCatalog.classList.toggle('show',show);outerCatalog.setAttribute('aria-hidden',show?'false':'true');if(show){const ig=doc.getElementById('block-catalog-grid'),og=document.getElementById('block-catalog-grid');if(ig&&og&&og.innerHTML!==ig.innerHTML)og.innerHTML=ig.innerHTML;const is=doc.getElementById('block-catalog-search'),os=document.getElementById('block-catalog-search');if(is&&os&&os.value!==is.value)os.value=is.value;}}
+  const innerConfig=doc.getElementById('block-config-modal'),outerConfig=document.getElementById('block-config-modal');
+  if(innerConfig&&outerConfig){const show=innerConfig.classList.contains('show');outerConfig.classList.toggle('show',show);outerConfig.setAttribute('aria-hidden',show?'false':'true');if(show){for(const id of ['block-config-title','block-config-sub']){const a=doc.getElementById(id),b=document.getElementById(id);if(a&&b)b.textContent=a.textContent;}const inf=doc.getElementById('block-config-fields'),outf=document.getElementById('block-config-fields');if(inf&&outf&&outf.innerHTML!==inf.innerHTML)outf.innerHTML=inf.innerHTML;for(const dst of outf?.querySelectorAll?.('[id]')||[]){const src=doc.getElementById(dst.id);if(src)remoteLayoutProxyMirrorElement(dst,src);}}}
+}
+function scheduleRemoteLayoutProxySync(delay=0){if(!remoteLayoutProxyActive)return;if(delay){setTimeout(()=>remoteLayoutProxyActive&&syncRemoteLayoutProxyUi(),delay);return;}requestAnimationFrame(()=>remoteLayoutProxyActive&&syncRemoteLayoutProxyUi());}
+function activateRemoteLayoutProxy(){
+  if(remoteLayoutProxyActive)return;remoteLayoutProxyActive=true;document.body.classList.add('remote-layout-proxy');
+  const toolbar=document.getElementById('layout-toolbar'),props=document.getElementById('layout-properties');toolbar?.classList.add('show');props?.classList.add('show');toolbar?.setAttribute('aria-hidden','false');props?.setAttribute('aria-hidden','false');
+  initLayoutInspectorDrag();restoreLayoutInspectorPosition();syncRemoteLayoutProxyUi();
+  clearInterval(remoteLayoutProxySyncTimer);remoteLayoutProxySyncTimer=setInterval(syncRemoteLayoutProxyUi,140);
+}
+function deactivateRemoteLayoutProxy(){
+  remoteLayoutProxyActive=false;clearInterval(remoteLayoutProxySyncTimer);remoteLayoutProxySyncTimer=null;document.body.classList.remove('remote-layout-proxy');
+  const toolbar=document.getElementById('layout-toolbar'),props=document.getElementById('layout-properties');toolbar?.classList.remove('show');props?.classList.remove('show');toolbar?.setAttribute('aria-hidden','true');props?.setAttribute('aria-hidden','true');
+  document.getElementById('block-catalog')?.classList.remove('show');document.getElementById('block-config-modal')?.classList.remove('show');layoutInspectorDragState=null;
+}
+function handleRemoteLayoutProxyEvent(e){
+  if(!remoteLayoutProxyActive)return;const t=e.target?.closest?.('button,input,select,textarea');if(!t)return;const root=remoteLayoutProxyRoot(t);if(!root)return;
+  if(t.classList.contains('help-tip'))return;
+  if(t.id==='layout-properties-collapse'||t.id==='layout-properties-reset-position')return;
+  const src=remoteLayoutProxyCounterpart(t);if(!src)return;
+  if(e.type==='click'){
+    if(t.tagName!=='BUTTON')return;e.preventDefault();e.stopImmediatePropagation();src.click();scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(40);return;
+  }
+  if(!['INPUT','SELECT','TEXTAREA'].includes(t.tagName))return;e.stopImmediatePropagation();
+  if(t.type==='checkbox'||t.type==='radio')src.checked=t.checked;else src.value=t.value;
+  src.dispatchEvent(new Event(e.type,{bubbles:true}));scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(35);
+}
+document.addEventListener('click',handleRemoteLayoutProxyEvent,true);
+document.addEventListener('input',handleRemoteLayoutProxyEvent,true);
+document.addEventListener('change',handleRemoteLayoutProxyEvent,true);
 let remoteLayoutPreviewTarget=null;
 function bestLayoutTargetDevice(rows){
   const candidates=(rows||[]).filter(x=>x&&x.endpoint===ACTIVE_ENDPOINT).sort((a,b)=>{
@@ -5339,17 +5419,21 @@ function syncRemoteLayoutEditorAffordances(attempt=0){
 }
 function selectRemoteLayoutElement(key){
   if(!key)return;const frame=document.getElementById('remote-layout-preview-frame');
-  try{frame?.contentWindow?.selectLayoutBlock?.(key);const inner=frame?.contentDocument?.getElementById('layout-toolbar-block');if(inner)inner.value=key;}catch(e){}
+  try{frame?.contentWindow?.selectLayoutBlock?.(key);const inner=frame?.contentDocument?.getElementById('layout-toolbar-block');if(inner)inner.value=key;scheduleRemoteLayoutProxySync();}catch(e){}
 }
 function syncRemoteEditorHitTargets(scale){
-  const frame=document.getElementById('remote-layout-preview-frame');
+  const frame=remoteLayoutFrame();
   try{
     const root=frame?.contentDocument?.documentElement;if(!root)return;
-    const inv=Math.max(1,Math.min(2.4,1/Math.max(.1,Number(scale)||1)));
-    root.style.setProperty('--ld-editor-label-size',(11*inv).toFixed(1)+'px');
-    root.style.setProperty('--ld-editor-label-pad-y',(4*inv).toFixed(1)+'px');
-    root.style.setProperty('--ld-editor-label-pad-x',(7*inv).toFixed(1)+'px');
-    root.style.setProperty('--ld-editor-handle-size',(18*inv).toFixed(1)+'px');
+    const inv=Math.max(.25,Math.min(4,1/Math.max(.1,Number(scale)||1)));
+    root.style.setProperty('--ld-editor-label-size',(11*inv).toFixed(2)+'px');
+    root.style.setProperty('--ld-editor-label-pad-y',(4*inv).toFixed(2)+'px');
+    root.style.setProperty('--ld-editor-label-pad-x',(7*inv).toFixed(2)+'px');
+    root.style.setProperty('--ld-editor-label-radius',(5*inv).toFixed(2)+'px');
+    root.style.setProperty('--ld-editor-handle-size',(18*inv).toFixed(2)+'px');
+    root.style.setProperty('--ld-editor-handle-border',(2*inv).toFixed(2)+'px');
+    root.style.setProperty('--ld-editor-border-size',(2*inv).toFixed(2)+'px');
+    root.style.setProperty('--ld-editor-box-radius',(9*inv).toFixed(2)+'px');
   }catch(e){}
 }
 function fitRemoteLayoutPreview(){
@@ -5369,12 +5453,12 @@ async function openRemoteLayoutPreview(){
     remoteLayoutPreviewTarget={width:fallbackW,height:fallbackH,online:false,fallback:true};
     if(meta)meta.textContent='No display heartbeat found · using 1920×1080 fallback';
   }
-  frame.onload=()=>{fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();};
+  frame.onload=()=>{fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();activateRemoteLayoutProxy();scheduleRemoteLayoutProxySync(60);};
   frame.src=`/layout-preview?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1&_=${Date.now()}`;
   fitRemoteLayoutPreview();requestAnimationFrame(fitRemoteLayoutPreview);
 }
-function closeRemoteLayoutPreview(){const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');if(shell){shell.classList.remove('show');shell.setAttribute('aria-hidden','true');}if(frame)frame.src='about:blank';remoteLayoutPreviewTarget=null;}
-function reloadRemoteLayoutPreview(){const frame=document.getElementById('remote-layout-preview-frame');if(frame&&remoteLayoutPreviewTarget){frame.onload=()=>{fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();};frame.src=`/layout-preview?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1&_=${Date.now()}`;}}
+function closeRemoteLayoutPreview(){deactivateRemoteLayoutProxy();const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');if(shell){shell.classList.remove('show');shell.setAttribute('aria-hidden','true');}if(frame)frame.src='about:blank';remoteLayoutPreviewTarget=null;}
+function reloadRemoteLayoutPreview(){const frame=document.getElementById('remote-layout-preview-frame');if(frame&&remoteLayoutPreviewTarget){deactivateRemoteLayoutProxy();frame.onload=()=>{fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();activateRemoteLayoutProxy();scheduleRemoteLayoutProxySync(60);};frame.src=`/layout-preview?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1&_=${Date.now()}`;}}
 window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==document.getElementById('remote-layout-preview-frame')?.contentWindow)return;const msg=e.data||{};if(msg.type!=='libredisplay-layout-editor')return;if(msg.action==='saved'){closeRemoteLayoutPreview();setTimeout(()=>{pollServerConfig();openSetup(false);},180);}else if(msg.action==='cancelled'){closeRemoteLayoutPreview();openSetup(false);}});
 function launchLayoutEditorFromSettings(){
   if(settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;
@@ -6847,6 +6931,14 @@ async function enterFullscreen(){
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&activeContextHelpTip){e.preventDefault();hideContextHelp(true);return;}
   if(e.key==='Escape'&&settingsPreviewMode){e.preventDefault();returnToSettingsPreview();return;}
+  if(remoteLayoutProxyActive){
+    const win=remoteLayoutFrame()?.contentWindow,doc=remoteLayoutInnerDocument(),editingText=e.target?.matches?.('input,textarea,select,[contenteditable="true"]');
+    if(e.key==='Escape'){e.preventDefault();if(doc?.getElementById('block-config-modal')?.classList.contains('show'))win?.closeBlockConfig?.();else if(doc?.getElementById('block-catalog')?.classList.contains('show'))win?.closeBlockCatalog?.();else win?.cancelLayoutEditor?.();scheduleRemoteLayoutProxySync();return;}
+    if(!editingText&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();win?.saveLayoutEditor?.();return;}
+    if(!editingText&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();if(e.shiftKey)win?.redoLayoutEditor?.();else win?.undoLayoutEditor?.();scheduleRemoteLayoutProxySync();return;}
+    if(!editingText&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();win?.redoLayoutEditor?.();scheduleRemoteLayoutProxySync();return;}
+    if(!editingText&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)&&win?.nudgeSelectedLayoutBlock?.(e.key,e.shiftKey)){e.preventDefault();scheduleRemoteLayoutProxySync();return;}
+  }
   if(layoutEditorActive){
     if(e.key==='Escape'){e.preventDefault();cancelLayoutEditor();return;}
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveLayoutEditor();return;}
