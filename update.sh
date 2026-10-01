@@ -56,8 +56,8 @@ printf 'Creating a safety backup...\n'
 "$INSTALL_DIR/scripts/backup.sh"
 
 printf 'Updating application files...\n'
-rm -rf "$INSTALL_DIR/app" "$INSTALL_DIR/scripts"
-cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$INSTALL_DIR/"
+rm -rf "$INSTALL_DIR/app" "$INSTALL_DIR/scripts" "$INSTALL_DIR/assets"
+cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/assets" "$INSTALL_DIR/"
 
 mkdir -p "$INSTALL_DIR/plugins"
 for src in "$SRC_DIR/plugins"/*; do

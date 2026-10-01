@@ -5,6 +5,10 @@ A free, open-source home dashboard for Raspberry Pi, Docker, NAS, mini PCs, and 
 
 LibreDisplay brings calendars, weather, photos, family chores, tasks, media, charts, alerts, and custom data together on one clean display. It is designed to stay simple for everyday use while keeping advanced controls out of the way until you need them.
 
+<p align="center">
+  <img src="assets/libredisplay-promo.png" alt="LibreDisplay self-hosted dashboard with calendar, weather, alerts, photo background, remote Settings, and Raspberry Pi hardware" width="720">
+</p>
+
 ## Quick start — Raspberry Pi
 
 **Best choice for a dedicated wall display.** Use a current Raspberry Pi OS **with Desktop**.
@@ -32,7 +36,7 @@ rm -rf ~/LibreDisplay-Setup && mkdir -p ~/LibreDisplay-Setup
 **4. Download the latest LibreDisplay release:**
 
 ```bash
-curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.2.9.zip -o /tmp/LibreDisplay.zip
+curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.2.10.zip -o /tmp/LibreDisplay.zip
 ```
 
 **5. Extract LibreDisplay:**
@@ -44,7 +48,7 @@ unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup
 **6. Open the LibreDisplay setup folder:**
 
 ```bash
-cd ~/LibreDisplay-Setup/LibreDisplay-1.2.9
+cd ~/LibreDisplay-Setup/LibreDisplay-1.2.10
 ```
 
 **7. Allow the installer to run:**
@@ -162,7 +166,7 @@ On the viewer Raspberry Pi, run the next commands **one at a time, in order**.
 **2. Download the viewer setup helper:**
 
 ```bash
-curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.2.9/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
+curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.2.10/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
 ```
 
 **3. Allow the viewer installer to run:**

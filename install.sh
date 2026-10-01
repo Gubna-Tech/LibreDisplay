@@ -88,7 +88,7 @@ if [ "$SRC_DIR" != "$INSTALL_DIR" ]; then
     fi
   fi
   mkdir -p "$INSTALL_DIR"
-  cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/plugins" "$INSTALL_DIR/"
+  cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/plugins" "$SRC_DIR/assets" "$INSTALL_DIR/"
   for file in Dockerfile LICENSE README.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
     cp "$SRC_DIR/$file" "$INSTALL_DIR/$file"
   done

@@ -25,7 +25,7 @@ API_URL = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"
 MAX_ARCHIVE_BYTES = 300 * 1024 * 1024
 MAX_MEMBER_BYTES = 150 * 1024 * 1024
 MAX_TOTAL_UNPACKED_BYTES = 700 * 1024 * 1024
-MANAGED_DIRS = ("app", "scripts", "tests", ".github")
+MANAGED_DIRS = ("app", "scripts", "tests", ".github", "assets")
 MANAGED_FILES = (
     "Dockerfile",
     "docker-compose.yml",

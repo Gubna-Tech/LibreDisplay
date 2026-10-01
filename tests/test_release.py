@@ -106,7 +106,7 @@ class ReleaseContractTests(unittest.TestCase):
         for key in ("DASHBOARD_UID", "DASHBOARD_GID", "DASHBOARD_REMOTE_ENABLED", "DASHBOARD_REMOTE_NETWORKS", "DASHBOARD_ALLOWED_HOSTS", "DASHBOARD_CACHE_MAX_BYTES"):
             self.assertIn(f': "${{{key}:=', docker_setup)
         self.assertIn("DASHBOARD_CACHE_MAX_BYTES=536870912", env_example)
-        self.assertIn('MANAGED_DIRS = ("app", "scripts", "tests", ".github")', docker_release)
+        self.assertIn('MANAGED_DIRS = ("app", "scripts", "tests", ".github", "assets")', docker_release)
         self.assertIn('Docker state in data/, media/, .env, backups/, and custom plugin', docker_release)
         self.assertIn("./scripts/docker-setup.sh update", html)
 
@@ -330,6 +330,21 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('role="status" aria-live="polite"', html)
         self.assertIn("document.addEventListener('visibilitychange'", html)
         self.assertIn("window.addEventListener('resize',()=>setTimeout(ensureAlertMotionRunning,120));", html)
+
+    def test_v1210_remote_alert_sync_and_readme_promo(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        promo = ROOT / "assets" / "libredisplay-promo.png"
+        self.assertTrue(promo.is_file())
+        self.assertIn('src="assets/libredisplay-promo.png"', readme)
+        self.assertIn('width="720"', readme)
+        self.assertLess(readme.index('assets/libredisplay-promo.png'), readme.index('## Quick start — Raspberry Pi'))
+        self.assertIn("if(setupOpen&&(!REMOTE_SETTINGS_MODE||settingsDirty||settingsPreviewMode))return;", html)
+        self.assertIn("setTimeout(()=>{openSetup(false);setTimeout(ensureAlertMotionRunning,120);},0);", html)
+        self.assertIn("remoteConfigPollTimer=setInterval(pollServerConfig,REMOTE_SETTINGS_MODE?5000:30000)", html)
+        self.assertIn("liveEventSource.addEventListener('config',()=>pollServerConfig())", html)
+        self.assertIn('\"$SRC_DIR/assets\"', (ROOT / 'install.sh').read_text(encoding='utf-8'))
+        self.assertIn('\"$SRC_DIR/assets\"', (ROOT / 'update.sh').read_text(encoding='utf-8'))
 
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
