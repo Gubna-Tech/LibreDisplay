@@ -310,7 +310,26 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('onclick="requestCloseSetup()"', html)
         self.assertIn("if(e.key==='Escape'&&settingsPreviewMode)", html)
         self.assertIn("if(settingsDirty&&!confirm('Discard unsaved changes?", html)
-        self.assertIn("Use Preview dashboard at the bottom of Settings", html)
+        self.assertIn("Preview test alerts full screen", html)
+
+    def test_v129_alert_lifecycle_and_settings_readability(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        for marker in (
+            "function settingsOverlayOpen()",
+            "if(settingsOverlayOpen()||settingsPreviewMode)",
+            "return savedAlertRuntimeState();",
+            "function ensureAlertMotionRunning()",
+            "function previewAlertTestFullScreen()",
+            "Preview test alerts full screen",
+            'id="s-settings-ui-size"',
+            "settingsUiSize:'standard'",
+            "setup.dataset.uiSize",
+            "accessibility readable readability larger large text",
+        ):
+            self.assertIn(marker, html)
+        self.assertIn('role="status" aria-live="polite"', html)
+        self.assertIn("document.addEventListener('visibilitychange'", html)
+        self.assertIn("window.addEventListener('resize',()=>setTimeout(ensureAlertMotionRunning,120));", html)
 
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")

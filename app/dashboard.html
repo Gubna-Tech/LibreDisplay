@@ -1412,7 +1412,8 @@ html:not(.cursor-active) * {
 .integration-health-list{display:grid;gap:7px}.integration-health-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 11px;border:1px solid var(--ld-border);border-radius:11px;background:var(--ld-surface-2)}.integration-health-row>div:first-child{min-width:0;display:flex;flex-direction:column;gap:2px}.integration-health-row span,.integration-health-row small{color:var(--ld-muted);font-size:11px}.integration-health-row small{color:var(--ld-danger,#fb7185)}.integration-health-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.state-error,.state-missing,.state-unconfigured{color:var(--ld-danger,#fb7185);border-color:color-mix(in srgb,var(--ld-danger,#fb7185) 45%,transparent)}.state-stale{color:var(--ld-warning,#fbbf24);border-color:color-mix(in srgb,var(--ld-warning,#fbbf24) 45%,transparent)}
 .integration-setup-group{padding:10px;border:1px solid var(--ld-border);border-radius:12px;background:var(--ld-surface-2)}.integration-setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.integration-setup-more{border:1px solid var(--ld-border);border-radius:12px;padding:10px}.integration-setup-more summary{cursor:pointer;font-weight:750;color:var(--ld-text)}
 .custom-data-chart .grid line{stroke:currentColor;opacity:.14;stroke-width:.35}.custom-data-chart .point{fill:var(--ld-accent);stroke:var(--ld-surface);stroke-width:.35}
-.ld-reduce-motion *, .ld-reduce-motion *::before,.ld-reduce-motion *::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}.ld-high-contrast{--ld-border:rgba(255,255,255,.28);--ld-border-strong:rgba(74,222,128,.72);--ld-muted:#d1d8d3;--ld-subtle:#a3aca6}.ld-focus-outline *:focus{outline:3px solid var(--ld-focus,var(--ld-accent))!important;outline-offset:3px}.ld-focus-outline *:focus:not(:focus-visible){outline:3px solid var(--ld-focus,var(--ld-accent))!important}
+.ld-reduce-motion *, .ld-reduce-motion *::before,.ld-reduce-motion *::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}.ld-high-contrast{--ld-border:rgba(255,255,255,.28)!important;--ld-border-strong:rgba(74,222,128,.72)!important;--ld-muted:#d1d8d3!important;--ld-subtle:#b8c1bb!important}.ld-focus-outline *:focus{outline:3px solid var(--ld-focus,var(--ld-accent))!important;outline-offset:3px}.ld-focus-outline *:focus:not(:focus-visible){outline:3px solid var(--ld-focus,var(--ld-accent))!important}
+#setup[data-ui-size=large] .setup-box h2{font-size:26px}#setup[data-ui-size=large] .setup-box .sub{font-size:15px}#setup[data-ui-size=large] .s-section h3{font-size:12px}#setup[data-ui-size=large] :is(.s-row label,.checkline,.howto,.settings-note,.section-summary){font-size:13px;line-height:1.55}#setup[data-ui-size=large] :is(.s-row input,.s-row select,.settings-jump select,.btn-util,.settings-tab-btn){font-size:14px;min-height:42px}#setup[data-ui-size=xlarge] .setup-box h2{font-size:30px}#setup[data-ui-size=xlarge] .setup-box .sub{font-size:17px}#setup[data-ui-size=xlarge] .s-section h3{font-size:13px}#setup[data-ui-size=xlarge] :is(.s-row label,.checkline,.howto,.settings-note,.section-summary){font-size:15px;line-height:1.62}#setup[data-ui-size=xlarge] :is(.s-row input,.s-row select,.settings-jump select,.btn-util,.settings-tab-btn){font-size:16px;min-height:48px;padding-top:11px;padding-bottom:11px}.ld-high-contrast #setup .setup-box .sub,.ld-high-contrast #setup .s-row label,.ld-high-contrast #setup .s-section h3,.ld-high-contrast #setup .settings-jump label,.ld-high-contrast #setup .section-summary,.ld-high-contrast #setup .howto,.ld-high-contrast #setup .settings-note{color:var(--ld-muted)!important}.ld-high-contrast #setup .setup-box{border-color:var(--ld-border-strong);box-shadow:0 20px 70px rgba(0,0,0,.72)}
 @media(max-width:900px){.settings-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}.integration-directory{grid-template-columns:1fr}}
 @media(max-width:720px){#setup{padding:0}.setup-box{width:100vw;max-width:none;height:100dvh;max-height:none;border-radius:0;padding:14px 14px 88px;overflow:auto}.setup-head{position:sticky;top:-14px;z-index:25;background:var(--ld-surface);padding:14px 0 8px}.settings-tabs{position:sticky;top:61px;z-index:24;display:flex;overflow-x:auto;grid-template-columns:none;background:var(--ld-surface);padding:6px 0}.settings-tab-btn{flex:0 0 auto;min-width:112px}.settings-controlbar,.settings-search{position:relative}.s-actions{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;padding:10px 14px;background:color-mix(in srgb,var(--ld-surface) 96%,transparent);border-top:1px solid var(--ld-border);box-shadow:0 -12px 30px var(--ld-shadow)}.integration-directory-toolbar{grid-template-columns:1fr}.integration-directory-card{grid-template-columns:34px 1fr}.integration-directory-actions{grid-column:1/-1;justify-content:flex-start;padding-left:44px}.integration-health-row{align-items:flex-start;flex-direction:column}.integration-health-actions{justify-content:flex-start}.integration-setup-grid{grid-template-columns:1fr}.settings-collapse-actions{display:none}}
 </style>
@@ -1513,7 +1514,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.2.8</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.2.9</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -1643,14 +1644,17 @@ html:not(.cursor-active) * {
    <div class="howto">Uses active National Weather Service alerts for the configured location (U.S.). Up to 10 alerts are shown. Test mode generates 10 simulated alerts locally so you can tune the layout at any time.</div>
    <div class="settings-grid alert-settings-grid">
     <label class="checkline"><input id="s-alerts-enabled" type="checkbox" checked onchange="handleAlertsEnabledChange()"> Enable weather alerts</label>
-    <label class="checkline"><input id="s-alert-test" type="checkbox" onchange="handleAlertTestModeChange()"> Test mode — generate 10 alerts <button class="help-tip" type="button" aria-label="Test mode help" data-help="Creates 10 simulated alerts entirely in the browser. Use Preview dashboard at the bottom of Settings to hide the menu and watch the current unsaved motion settings full-screen before you save.">?</button></label>
+    <label class="checkline"><input id="s-alert-test" type="checkbox" onchange="handleAlertTestModeChange()"> Test mode — generate 10 alerts <button class="help-tip" type="button" aria-label="Test mode help" data-help="Creates 10 simulated alerts entirely in the browser. Use Preview test alerts full screen below to hide Settings and watch the current unsaved motion settings before you save.">?</button></label>
     <div class="s-row"><label>Alert card height <span id="s-alert-size-value" class="range-value">29%</span> <button class="help-tip" type="button" aria-label="Alert card height help" data-help="Changes the vertical space used by each alert card. It does not change alert text size; use Arrange → Weather Alerts for text sizing.">?</button></label><input id="s-alert-size" type="range" min="25" max="33" step="1" value="29" oninput="previewAlertSize(this.value)"></div>
     <div class="s-row"><label>Alert motion <button class="help-tip" type="button" aria-label="Alert motion help" data-help="Step advances card-by-card. Continuous moves the full list smoothly when it is taller than the alert area. Static disables automatic movement.">?</button></label><select id="s-alert-motion" onchange="handleAlertMotionChange()"><option value="step">Smooth step / rotate</option><option value="continuous">Continuous loop — only when needed</option><option value="static">No automatic motion</option></select></div>
     <div class="s-row"><label>Continuous scroll speed <span id="s-alert-motion-speed-value" class="range-value">36 px/s</span> <button class="help-tip" type="button" aria-label="Continuous alert speed help" data-help="Used only when Alert motion is Continuous. Higher values move the alert list faster.">?</button></label><input id="s-alert-motion-speed" type="range" min="4" max="120" step="1" value="36" oninput="previewAlertMotionSpeed(this.value)"><div class="range-ends"><span>Slow</span><span>Fast</span></div></div>
     <div class="s-row"><label>Step rotation delay <button class="help-tip" type="button" aria-label="Step rotation delay help" data-help="Used only when Alert motion is Step. This is how long each alert position remains visible before advancing.">?</button></label><select id="s-alert-scroll" onchange="handleAlertMotionChange()"><option value="5">Every 5 seconds</option><option value="8">Every 8 seconds</option><option value="12">Every 12 seconds</option><option value="20">Every 20 seconds</option></select></div>
     <div class="s-row"><label>Real alert refresh <button class="help-tip" type="button" aria-label="Real alert refresh help" data-help="How often LibreDisplay checks the National Weather Service for real alerts. Test mode is local and does not wait for this timer.">?</button></label><select id="s-alert-refresh"><option value="3">Every 3 minutes</option><option value="5">Every 5 minutes</option><option value="10">Every 10 minutes</option><option value="15">Every 15 minutes</option></select></div>
    </div>
-   <div id="alert-status" class="howto" style="display:none;margin-top:10px;"></div>
+   <div class="utility-actions" style="margin-top:10px;">
+    <button class="btn-util" type="button" onclick="previewAlertTestFullScreen()">Preview test alerts full screen</button>
+   </div>
+   <div id="alert-status" class="howto" role="status" aria-live="polite" style="display:none;margin-top:10px;"></div>
   </div>
 
 
@@ -1789,9 +1793,10 @@ html:not(.cursor-active) * {
    <div class="howto">Keep the everyday controls simple while adapting motion, contrast, keyboard focus, and date language for the people who use this display.</div>
    <div class="settings-grid">
     <div class="s-row"><label>Language / date locale</label><select id="s-locale" onchange="previewAppearance()"><option value="auto">Automatic — browser/device</option><option value="en-US">English — United States</option><option value="en-GB">English — United Kingdom</option><option value="es-ES">Español</option><option value="fr-FR">Français</option><option value="de-DE">Deutsch</option></select></div>
-    <div class="s-row"><label>Motion</label><select id="s-motion-preference" onchange="previewAppearance()"><option value="auto">Automatic — respect device setting</option><option value="full">Full motion</option><option value="reduced">Reduced motion</option></select></div>
-    <label class="checkline"><input id="s-high-contrast" type="checkbox" onchange="previewAppearance()"> Stronger contrast and borders</label>
-    <label class="checkline"><input id="s-focus-outline" type="checkbox" onchange="previewAppearance()"> Always show strong keyboard focus</label>
+    <div class="s-row"><label>Settings interface size <button class="help-tip" type="button" aria-label="Settings interface size help" data-help="Enlarges labels, controls, and section text inside Settings only. Dashboard element sizes are still controlled independently in Arrange mode.">?</button></label><select id="s-settings-ui-size" onchange="previewAppearance()"><option value="standard">Standard</option><option value="large">Large</option><option value="xlarge">Extra large</option></select></div>
+    <div class="s-row"><label>Motion <button class="help-tip" type="button" aria-label="Motion accessibility help" data-help="Automatic follows the device accessibility preference. Reduced motion minimizes decorative animation while keeping data refreshes and essential status changes working.">?</button></label><select id="s-motion-preference" onchange="previewAppearance()"><option value="auto">Automatic — respect device setting</option><option value="full">Full motion</option><option value="reduced">Reduced motion</option></select></div>
+    <label class="checkline"><input id="s-high-contrast" type="checkbox" onchange="previewAppearance()"> Stronger contrast and borders <button class="help-tip" type="button" aria-label="Contrast help" data-help="Brightens muted Settings text and strengthens borders so controls and secondary information are easier to distinguish.">?</button></label>
+    <label class="checkline"><input id="s-focus-outline" type="checkbox" onchange="previewAppearance()"> Always show strong keyboard focus <button class="help-tip" type="button" aria-label="Keyboard focus help" data-help="Makes the currently focused control easier to see when navigating Settings with Tab, Shift+Tab, Enter, or Space.">?</button></label>
    </div>
    <div class="settings-note">Reduced motion disables decorative transitions and continuous alert/background animation where possible. It does not stop data refreshes.</div>
   </div>
@@ -1901,7 +1906,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.2.8</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.2.9</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -2082,7 +2087,7 @@ html:not(.cursor-active) * {
 <div id="offline-pill">Offline · cached data</div>
 
 <script>
-const DASHBOARD_BUILD = '1.2.8';
+const DASHBOARD_BUILD = '1.2.9';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -2227,6 +2232,7 @@ let cfg = {
   motionPreference:'auto',
   highContrast:false,
   focusOutline:false,
+  settingsUiSize:'standard',
   onboardingComplete:false,
   _schemaVersion:2,
   _savedAt:0
@@ -2440,6 +2446,7 @@ function ensureCfgDefaults(){
   cfg.motionPreference=['auto','full','reduced'].includes(cfg.motionPreference)?cfg.motionPreference:'auto';
   if(typeof cfg.highContrast!=='boolean')cfg.highContrast=false;
   if(typeof cfg.focusOutline!=='boolean')cfg.focusOutline=false;
+  cfg.settingsUiSize=['standard','large','xlarge'].includes(cfg.settingsUiSize)?cfg.settingsUiSize:'standard';
   cfg._schemaVersion=2;
   if(typeof cfg.onboardingComplete!=='boolean')cfg.onboardingComplete=!!(cfg.city&&cfg.lat&&cfg.lon);
   cfg._savedAt=Number.isFinite(Number(cfg._savedAt))?Number(cfg._savedAt):0;
@@ -2737,8 +2744,16 @@ function savedAlertRuntimeState(){
   };
 }
 
+function settingsOverlayOpen(){
+  const setup=document.getElementById('setup');
+  return !!setup&&!setup.classList.contains('hidden');
+}
+
 function effectiveAlertRuntimeState(){
-  return alertRuntimeState||savedAlertRuntimeState();
+  // Form-preview state is valid only while Settings is visible or the explicit
+  // full-screen preview is active. The normal dashboard always follows saved cfg.
+  if(settingsOverlayOpen()||settingsPreviewMode)return alertRuntimeState||savedAlertRuntimeState();
+  return savedAlertRuntimeState();
 }
 
 function syncAlertRuntimeStateFromForm(){
@@ -2771,6 +2786,20 @@ function previewAlertMotionSpeed(value){
 function handleAlertMotionChange(){
   syncAlertRuntimeStateFromForm();
   restartAlertScroller();
+}
+
+function previewAlertTestFullScreen(){
+  const test=document.getElementById('s-alert-test');
+  if(test&&!test.checked)test.checked=true;
+  previewDashboardFromSettings();
+}
+
+function ensureAlertMotionRunning(){
+  if(!activeWeatherAlerts.length)return;
+  const state=effectiveAlertRuntimeState();
+  if(state.mode==='static'){stopAlertScroller();return;}
+  if(state.mode==='continuous'){if(!alertScrollRaf)restartAlertScroller();return;}
+  if(!alertScrollTimer)restartAlertScroller();
 }
 
 function setAlertStatus(text,error=false){
@@ -5177,6 +5206,8 @@ function applyAccessibilityPreferences(source=cfg){
   document.documentElement.classList.toggle('ld-reduce-motion',reduced);
   document.documentElement.classList.toggle('ld-high-contrast',!!source.highContrast);
   document.documentElement.classList.toggle('ld-focus-outline',!!source.focusOutline);
+  const setup=document.getElementById('setup');
+  if(setup)setup.dataset.uiSize=['large','xlarge'].includes(source.settingsUiSize)?source.settingsUiSize:'standard';
 }
 
 function applyUiCustomization(source=cfg){
@@ -5334,6 +5365,7 @@ function appearanceFromForm(){
     motionPreference:document.getElementById('s-motion-preference')?.value||'auto',
     highContrast:!!document.getElementById('s-high-contrast')?.checked,
     focusOutline:!!document.getElementById('s-focus-outline')?.checked,
+    settingsUiSize:document.getElementById('s-settings-ui-size')?.value||'standard',
     settingsCogPosition:document.getElementById('s-cog-position')?.value||'bottom-right',
     settingsCogOpacity:Number(document.getElementById('s-cog-opacity')?.value)||42,
     settingsCogSize:Number(document.getElementById('s-cog-size')?.value)||46,
@@ -5367,7 +5399,7 @@ const APPEARANCE_DEFAULTS={
   uiCalendarPct:100,uiCurrentPct:100,uiClockPct:100,uiForecastPct:100,uiDetailsPct:100,uiAlertPct:100,
   calendarBandHeight:150,bottomPanelHeight:330,leftPanelWidth:470,sidePaddingPx:28,forecastGapPx:5,forecastRowGapPx:18,forecastColumns:12,hourlyForecastHours:12,dailyForecastDays:12,calendarDays:7,calendarColumns:7,calendarCellHeight:150,calendarScrollMode:'off',calendarScrollSpeed:12,layoutGridPx:20,layoutSnap:true,calendarMaxEvents:4,
   showNoEvents:true,showEventTimes:true,showDailyForecast:true,showHourlyForecast:true,showPrecip:true,timeFormat:'12',dateFormat:'long',showSeconds:true,showAmPm:true,showDate:true,showCurrentIcon:true,showSunset:true,showWind:true,showHumidity:true,weatherDetailsOrder:['sunset','wind','humidity','sunrise','airquality','uvindex','feelslike','pressure','cloudcover','dewpoint','precipitation'],weatherDetailsEnabled:{sunset:true,wind:true,humidity:true,sunrise:false,airquality:false,uvindex:false,feelslike:false,pressure:false,cloudcover:false,dewpoint:false,precipitation:false},
-  bgShadeTop:52,bgShadeBottom:55,bgBlurPx:0,bgTransitionSec:1.5,bgFit:'cover',bgPosition:'center',alertOpacityPct:100,alertMinSeverity:'all',alertShowExpiry:true,alertShowMeta:true,settingsCogPosition:'bottom-right',settingsCogOpacity:42,settingsCogSize:46,settingsCogLabel:true
+  bgShadeTop:52,bgShadeBottom:55,bgBlurPx:0,bgTransitionSec:1.5,bgFit:'cover',bgPosition:'center',alertOpacityPct:100,alertMinSeverity:'all',alertShowExpiry:true,alertShowMeta:true,locale:'auto',motionPreference:'auto',highContrast:false,focusOutline:false,settingsUiSize:'standard',settingsCogPosition:'bottom-right',settingsCogOpacity:42,settingsCogSize:46,settingsCogLabel:true
 };
 
 const APPEARANCE_PRESETS={
@@ -5383,6 +5415,7 @@ function setAppearanceForm(v){
   const motion=document.getElementById('s-motion-preference');if(motion)motion.value=v.motionPreference||'auto';
   const contrast=document.getElementById('s-high-contrast');if(contrast)contrast.checked=!!v.highContrast;
   const focus=document.getElementById('s-focus-outline');if(focus)focus.checked=!!v.focusOutline;
+  const settingsUiSize=document.getElementById('s-settings-ui-size');if(settingsUiSize)settingsUiSize.value=v.settingsUiSize||'standard';
   renderThemeChoices(v.uiTheme||'libre-night');
   const values={
     's-font-family':v.fontFamily,'s-secondary-opacity':v.secondaryOpacity,'s-text-shadow':v.textShadowPct,
@@ -5412,7 +5445,7 @@ function applyAppearancePreset(){
   const key=document.getElementById('s-appearance-preset')?.value||'custom';
   if(key==='custom')return;
   const current=appearanceFromForm();
-  const preset={...(APPEARANCE_PRESETS[key]||APPEARANCE_PRESETS.default),uiTheme:current.uiTheme,fontFamily:current.fontFamily,primaryTextColor:current.primaryTextColor,settingsCogPosition:current.settingsCogPosition,settingsCogOpacity:current.settingsCogOpacity,settingsCogSize:current.settingsCogSize,settingsCogLabel:current.settingsCogLabel};
+  const preset={...(APPEARANCE_PRESETS[key]||APPEARANCE_PRESETS.default),uiTheme:current.uiTheme,fontFamily:current.fontFamily,primaryTextColor:current.primaryTextColor,locale:current.locale,motionPreference:current.motionPreference,highContrast:current.highContrast,focusOutline:current.focusOutline,settingsUiSize:current.settingsUiSize,settingsCogPosition:current.settingsCogPosition,settingsCogOpacity:current.settingsCogOpacity,settingsCogSize:current.settingsCogSize,settingsCogLabel:current.settingsCogLabel};
   setAppearanceForm(preset);
   previewAppearance();markSettingsDirty();
 }
@@ -6147,6 +6180,9 @@ function closeSetup(revertPreview=true){
 }
 function skipSetup(){closeSetup();}
 
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(ensureAlertMotionRunning,120);});
+window.addEventListener('resize',()=>setTimeout(ensureAlertMotionRunning,120));
+
 function openSetup(startWizard=false){
   if(settingsPreviewMode){returnToSettingsPreview();return;}
   setTimeout(()=>{loadRemoteInfo();loadCacheStatus();loadDisplayEndpoints();loadHouseholdSettings();loadIntegrationHealth();checkSoftwareUpdate(false);},0);
@@ -6370,6 +6406,7 @@ const SETTINGS_SEARCH_ALIASES={
   'settings-calendars':'calendar calendars calander agenda events ics google proton outlook icloud',
   'settings-alerts':'alerts warning warnings severe weather test preview rotate rotation scroll scrolling motion',
   'settings-backgrounds':'background backgrounds picture pictures photo photos images slideshow google album nas media folder',
+  'settings-accessibility':'accessibility readable readability larger large text contrast focus keyboard motion language settings size eyesight vision',
   'settings-appearance':'appearance arrange layout editor inspector resize sizing font text color colour spacing alignment',
   'settings-settings-button':'settings cog gear button corner opacity',
   'settings-software-update':'update upgrade release version github',
