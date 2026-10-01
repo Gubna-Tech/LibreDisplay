@@ -36,7 +36,7 @@ rm -rf ~/LibreDisplay-Setup && mkdir -p ~/LibreDisplay-Setup
 **4. Download the latest LibreDisplay release:**
 
 ```bash
-curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.4.4.zip -o /tmp/LibreDisplay.zip
+curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.4.5.zip -o /tmp/LibreDisplay.zip
 ```
 
 **5. Extract LibreDisplay:**
@@ -48,7 +48,7 @@ unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup
 **6. Open the LibreDisplay setup folder:**
 
 ```bash
-cd ~/LibreDisplay-Setup/LibreDisplay-1.4.4
+cd ~/LibreDisplay-Setup/LibreDisplay-1.4.5
 ```
 
 **7. Allow the installer to run:**
@@ -73,7 +73,7 @@ When LibreDisplay opens:
 
 1. Open **Settings**.
 2. Add your calendar, weather location, photos, and any integrations you want.
-3. Open **Personalization** to choose a theme and arrange the dashboard.
+3. Open **Personalization** for theme/text choices and **Layout** to arrange the dashboard.
 4. Add more displays later from **Home > Displays** if you want LibreDisplay in multiple rooms.
 
 Settings open in the simpler **Essentials** view by default. Switch to **All** only when you want advanced and troubleshooting options.
@@ -84,9 +84,12 @@ LibreDisplay is designed to run quietly in the background. Once configured, your
 
 Useful places to remember:
 
-- **Content** — calendars, photos, weather, feeds, and dashboard content
+- **Weather** — location, forecasts, details, and severe-weather alerts
+- **Calendars** — calendar feeds, imported ICS files, and event display rules
+- **Backgrounds** — photo sources, local/NAS folders, and slideshow behavior
 - **Family** — household members, chores, points, and rewards
-- **Personalization** — themes, templates, accessibility, blocks, and layout
+- **Personalization** — themes, templates, typography, and accessibility
+- **Layout** — dashboard visibility, geometry, presets, and the Arrange editor
 - **Arrange editor** — move/resize blocks, drag the inspector out of the way, and fine-tune individual text sections such as calendar event titles/times without changing day/date headers. When editing remotely, Arrange waits for a fresh wall-display heartbeat and mirrors the Pi’s actual dashboard viewport. The target canvas is scaled independently while the editor toolbar and inspector stay at normal laptop size, so editing controls remain readable and selectable without changing the dashboard geometry.
 - **Integrations** — connect supported services and check their status
 - **System** — displays, accounts, backups, remote access, and advanced options
@@ -166,7 +169,7 @@ On the viewer Raspberry Pi, run the next commands **one at a time, in order**.
 **2. Download the viewer setup helper:**
 
 ```bash
-curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.4.4/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
+curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.4.5/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
 ```
 
 **3. Allow the viewer installer to run:**
@@ -206,7 +209,7 @@ chmod +x /tmp/libredisplay-viewer-setup.sh
 
 ### Calendars
 
-Go to **Settings > Content > Calendar sources > Add calendar**.
+Go to **Settings > Calendars > Calendars > Add calendar**.
 
 LibreDisplay accepts normal ICS/iCalendar subscription links, including links from Google Calendar, Proton Calendar, Outlook/Microsoft 365, iCloud shared calendars, Nextcloud, Fastmail, and other compatible providers. `webcal://` links work too.
 
@@ -226,7 +229,7 @@ For an SMB/CIFS or NFS share:
 ~/libredisplay/scripts/setup-nas.sh
 ```
 
-Then choose the folder under **Settings > Content > Background source**.
+Then choose the folder under **Settings > Backgrounds > Pictures & Backgrounds**.
 
 ### Multiple displays
 

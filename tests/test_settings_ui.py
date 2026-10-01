@@ -65,6 +65,42 @@ class SettingsUiTests(unittest.TestCase):
         self.assertIn('id="settings-layout-geometry"', HTML)
         self.assertIn("if(tab==='content')tab='weather';", HTML)
 
+    def test_weather_location_requires_explicit_match_and_shows_verified_metadata(self):
+        self.assertIn('function searchWeatherLocations()', HTML)
+        self.assertIn('count=10&language=en', HTML)
+        self.assertIn('function selectWeatherLocationResult(index)', HTML)
+        self.assertIn('weather-location-selected', HTML)
+        self.assertIn('Search for the location and choose the exact city/region/country match before saving.', HTML)
+        self.assertIn('locationTimezone', HTML)
+        self.assertIn('locationGeocodeId', HTML)
+
+    def test_weather_units_are_explicit_and_location_label_is_rendered(self):
+        self.assertIn('&temperature_unit=celsius&precipitation_unit=mm&wind_speed_unit=${weatherWindUnitParam(cfg)}', HTML)
+        self.assertIn('function weatherWindUnitLabel(source=cfg)', HTML)
+        self.assertIn('function weatherWindUnitMatches(raw,source=cfg)', HTML)
+        self.assertIn('id="wx-location"', HTML)
+        self.assertIn("locationEl.textContent=locationLabel", HTML)
+        self.assertIn("weatherWindUnitLabel(cfg)+' '+dir", HTML)
+
+    def test_preset_previews_do_not_mutate_saved_config(self):
+        m = re.search(r"function applyStarterTemplate\(key\)\{(.*?)\n\}", HTML, re.S)
+        self.assertIsNotNone(m)
+        body = m.group(1)
+        self.assertNotIn('Object.assign(cfg', body)
+        self.assertIn('const current=appearanceFromForm()', body)
+        self.assertIn('previewAppearance()', body)
+        self.assertIn('restoreSavedSettingsPreview()', HTML)
+        self.assertIn("if(cfg.layoutMode==='custom')for(const prop of CUSTOM_LAYOUT_PRESET_PRESERVE_KEYS)", HTML)
+        self.assertIn("'showDailyForecast','showHourlyForecast'", HTML)
+        restore = re.search(r"function restoreSavedSettingsPreview\(\)\{(.*?)\n\}", HTML, re.S)
+        self.assertIsNotNone(restore)
+        self.assertIn('applySettings();', restore.group(1))
+
+    def test_location_display_name_is_optional_not_coordinate_source(self):
+        self.assertIn("cfg.locName=requestedLabel;", HTML)
+        self.assertIn('Shown above Current Weather on the dashboard.', HTML)
+        self.assertNotIn("cfg.locName=requestedLabel||`${r.name}, ${r.country_code}`", HTML)
+
 
 if __name__ == '__main__':
     unittest.main()

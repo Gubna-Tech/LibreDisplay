@@ -179,6 +179,20 @@ body {
   gap:4px;
   min-width:0;
 }
+.wx-location {
+  display:none;
+  max-width:100%;
+  margin:0 0 2px 2px;
+  font-size:clamp(11px,.82vw,15px);
+  line-height:1.15;
+  font-weight:600;
+  letter-spacing:.12px;
+  color:rgba(255,255,255,.78);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.wx-location.show { display:block; }
 .wx-temp {
   font-size:clamp(66px,5.9vw,96px);
   font-weight:300;
@@ -1031,6 +1045,22 @@ body.layout-editing .custom-block { pointer-events:none !important; user-select:
 }
 .preset-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:end; margin-bottom:12px; }
 .preset-row .btn-util { height:38px; white-space:nowrap; }
+
+.weather-location-search { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; }
+.weather-location-search .btn-util { min-height:38px; white-space:nowrap; }
+.weather-location-results { display:grid; gap:7px; margin-top:8px; }
+.weather-location-result { width:100%; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center; text-align:left; border:1px solid var(--ld-border); border-radius:10px; padding:9px 10px; background:rgba(255,255,255,.035); color:var(--ld-text); cursor:pointer; }
+.weather-location-result:hover,.weather-location-result:focus-visible { border-color:var(--ld-border-strong); background:rgba(255,255,255,.065); outline:none; }
+.weather-location-result b { display:block; font-size:12px; }
+.weather-location-result span { display:block; margin-top:2px; color:var(--ld-muted); font-size:10px; line-height:1.35; }
+.weather-location-result code { color:var(--ld-subtle); font-size:9px; white-space:nowrap; }
+.weather-location-selected { margin-top:8px; border:1px solid var(--ld-border); border-radius:11px; padding:10px 11px; background:rgba(255,255,255,.028); }
+.weather-location-selected.verified { border-color:color-mix(in srgb,var(--ld-accent) 45%,var(--ld-border)); }
+.weather-location-selected b { display:block; font-size:12px; }
+.weather-location-selected span { display:block; color:var(--ld-muted); font-size:10px; line-height:1.4; margin-top:3px; }
+.weather-location-selected code { color:var(--ld-subtle); font-size:9px; }
+.weather-location-status { margin-top:6px; color:var(--ld-muted); font-size:10px; min-height:14px; }
+@media(max-width:700px){.weather-location-search{grid-template-columns:1fr}.weather-location-search .btn-util{width:100%}.weather-location-result{grid-template-columns:1fr}.weather-location-result code{white-space:normal}}
 .settings-note { font-size:10px; color:rgba(255,255,255,.32); margin-top:-3px; line-height:1.45; }
 .settings-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
 
@@ -1588,7 +1618,7 @@ html:not(.cursor-active) * {
   #setup .settings-section-jump { flex:1 1 auto; min-width:0; }
   #setup .s-actions { padding:9px 12px; }
 }
-/* v1.4.4 Settings readability + context-help polish. */
+/* v1.4.5 Settings readability + context-help polish. */
 #setup .settings-help-legend {
   display:flex; align-items:center; gap:7px; margin-top:8px; color:var(--ld-subtle);
   font-size:10px; line-height:1.4;
@@ -1808,7 +1838,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.4.4</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.4.5</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -1902,8 +1932,9 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-location" data-settings-tab="weather">
    <h3>Location &amp; Weather</h3>
-   <div class="s-row"><label>City</label><input id="s-city" placeholder="Chicago"></div>
-   <div class="s-row"><label>Display label (optional)</label><input id="s-locname" placeholder="Home · Chicago"></div>
+   <div class="howto">Search for a place, then choose the exact match before saving. LibreDisplay shows the region, country, coordinates, and timezone so cities with the same name are not confused. Forecast values come from the weather model/grid for those coordinates and can differ somewhat from a nearby personal weather station.</div>
+   <div class="s-row"><label>Weather location</label><div class="weather-location-search"><input id="s-city" placeholder="Springfield, Illinois" autocomplete="off" oninput="weatherLocationQueryChanged()" onkeydown="if(event.key==='Enter'){event.preventDefault();searchWeatherLocations();}"><button class="btn-util" type="button" onclick="searchWeatherLocations()">Find places</button></div><div id="weather-location-search-status" class="weather-location-status"></div><div id="weather-location-results" class="weather-location-results"></div><div id="weather-location-selected" class="weather-location-selected"></div></div>
+   <div class="s-row"><label>Display label (optional)</label><input id="s-locname" placeholder="Home · Chicago" oninput="previewWeatherLocationLabel()"><div class="settings-inline-help">Shown above Current Weather on the dashboard. Leave blank to hide the label; it does not change the selected forecast coordinates.</div></div>
   </div>
 
   <div class="s-section" id="settings-calendars" data-settings-tab="calendars">
@@ -2025,7 +2056,7 @@ html:not(.cursor-active) * {
   <div class="s-section" id="settings-weather-options" data-settings-tab="weather">
    <h3>Weather preferences</h3>
    <div class="settings-grid">
-    <div class="s-row"><label>Temperature</label><select id="s-unit"><option value="F">Fahrenheit (°F)</option><option value="C">Celsius (°C)</option></select></div>
+    <div class="s-row"><label>Weather units</label><select id="s-unit"><option value="F">Imperial — °F, mph, inches</option><option value="C">Metric — °C, km/h, mm</option></select></div>
     <div class="s-row"><label>Weather refresh</label><select id="s-weather-refresh"><option value="5">Every 5 minutes</option><option value="10">Every 10 minutes</option><option value="15">Every 15 minutes</option><option value="30">Every 30 minutes</option></select></div>
    </div>
   </div>
@@ -2210,7 +2241,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.4.4</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.4.5</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -2275,6 +2306,7 @@ html:not(.cursor-active) * {
   <div id="wx-left">
    <div class="wx-main">
     <div class="wx-current">
+     <div class="wx-location" id="wx-location"></div>
      <div class="wx-icon-big" id="wx-icon">🌡️</div>
      <div class="wx-temp" id="wx-temp">--°</div>
     </div>
@@ -2401,7 +2433,7 @@ html:not(.cursor-active) * {
 <div id="offline-pill">Offline · cached data</div>
 
 <script>
-const DASHBOARD_BUILD = '1.4.4';
+const DASHBOARD_BUILD = '1.4.5';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -2607,6 +2639,16 @@ function ensureCfgDefaults(){
   if(!cfg||typeof cfg!=='object')cfg={};
   if(!Array.isArray(cfg.calendars))cfg.calendars=[];
   if(typeof cfg.useFahrenheit!=='boolean')cfg.useFahrenheit=true;
+  const lat=Number(cfg.lat),lon=Number(cfg.lon);
+  if(!Number.isFinite(lat)||lat<-90||lat>90)delete cfg.lat;else cfg.lat=lat;
+  if(!Number.isFinite(lon)||lon<-180||lon>180)delete cfg.lon;else cfg.lon=lon;
+  cfg.city=String(cfg.city||'').trim().slice(0,160);
+  cfg.locName=String(cfg.locName||'').trim().slice(0,120);
+  cfg.locationAdmin1=String(cfg.locationAdmin1||'').trim().slice(0,120);
+  cfg.locationCountry=String(cfg.locationCountry||'').trim().slice(0,120);
+  cfg.locationCountryCode=String(cfg.locationCountryCode||'').trim().toUpperCase().slice(0,2);
+  cfg.locationTimezone=String(cfg.locationTimezone||'').trim().slice(0,120);
+  cfg.locationGeocodeId=Number.isFinite(Number(cfg.locationGeocodeId))?Number(cfg.locationGeocodeId):null;
   if(!Number.isFinite(Number(cfg.photoIntervalSec))){
     cfg.photoIntervalSec=Number.isFinite(Number(cfg.photoIntervalMin))?Math.max(0,Number(cfg.photoIntervalMin)*60):300;
   }
@@ -2896,11 +2938,23 @@ function u(){return cfg.useFahrenheit?'°F':'°C';}
 
 let weatherLastError='';
 let weatherLastSource='';
+let weatherLastGridPoint=null;
 
-function validateWeatherPayload(d){
+function weatherWindUnitParam(source=cfg){return source?.useFahrenheit===false?'kmh':'mph';}
+function weatherWindUnitLabel(source=cfg){return source?.useFahrenheit===false?'km/h':'mph';}
+function weatherWindUnitMatches(raw,source=cfg){
+  const u=String(raw||'').toLowerCase().replace(/\s+/g,'');
+  if(!u)return true;
+  return source?.useFahrenheit===false?['km/h','kmh'].includes(u):['mph','mp/h','mi/h'].includes(u);
+}
+function validateWeatherPayload(d,source=cfg){
   if(!d||typeof d!=='object')throw new Error('Weather service returned an invalid response');
   if(!d.current||!d.daily||!d.hourly)throw new Error('Weather response is missing current/daily/hourly data');
   if(!Array.isArray(d.daily.time)||!Array.isArray(d.hourly.time))throw new Error('Weather response is missing forecast timelines');
+  const cu=d.current_units||{};
+  if(cu.temperature_2m&&String(cu.temperature_2m)!=='°C')throw new Error('Weather service returned an unexpected temperature unit');
+  if(cu.precipitation&&String(cu.precipitation).toLowerCase()!=='mm')throw new Error('Weather service returned an unexpected precipitation unit');
+  if(!weatherWindUnitMatches(cu.wind_speed_10m,source))throw new Error('Weather service returned an unexpected wind-speed unit');
   return d;
 }
 
@@ -2914,12 +2968,15 @@ async function fetchWeather(){
     +`&current=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,precipitation,cloud_cover,pressure_msl,weather_code,wind_speed_10m,wind_direction_10m`
     +`&hourly=temperature_2m,weather_code,precipitation_probability`
     +`&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max`
+    +`&temperature_unit=celsius&precipitation_unit=mm&wind_speed_unit=${weatherWindUnitParam(cfg)}`
     +`&timezone=auto&forecast_days=14`;
 
   try{
-    const d=validateWeatherPayload(JSON.parse(await fetchRemoteText(url,(cfg.weatherRefreshMin||10)*60)));
+    const d=validateWeatherPayload(JSON.parse(await fetchRemoteText(url,(cfg.weatherRefreshMin||10)*60)),cfg);
     weatherLastError='';
-    weatherLastSource='server broker / cache';
+    weatherLastSource='Open-Meteo · '+weatherWindUnitLabel(cfg);
+    weatherLastGridPoint={latitude:Number(d.latitude),longitude:Number(d.longitude),elevation:Number(d.elevation),timezone:String(d.timezone||'')};
+    if(!document.getElementById('setup')?.classList.contains('hidden'))renderWeatherLocationSelected();
     wxData=d;
     renderWeather(d);
   }catch(e){
@@ -2934,9 +2991,11 @@ function renderWeather(d){
   setTimeout(updateSettingsOverview,0);
   const ui=uiCfg();
   const c=d.current, dl=d.daily, hr=d.hourly;
+  const locationEl=document.getElementById('wx-location'),locationLabel=String(ui.locName??cfg.locName??'').trim();
+  if(locationEl){locationEl.textContent=locationLabel;locationEl.classList.toggle('show',!!locationLabel);}
   document.getElementById('wx-temp').textContent=C(c.temperature_2m)+'°';
   document.getElementById('wx-icon').textContent=wi(c.weather_code);
-  document.getElementById('wx-icon').style.display=cfg.showCurrentIcon?'':'none';
+  document.getElementById('wx-icon').style.display=ui.showCurrentIcon?'':'none';
   document.getElementById('wx-feels').textContent='Feels like '+C(c.apparent_temperature)+'°';
   document.getElementById('wx-cond').textContent=wd(c.weather_code);
   renderBuiltInWeatherDetails(d,ui);
@@ -2998,7 +3057,7 @@ function weatherDetailValue(key,d,aqData=null){
   if(key==='sunset')return fmtTime(dl.sunset?.[0]);
   if(key==='feelslike')return Number.isFinite(Number(c.apparent_temperature))?C(c.apparent_temperature)+'°':'--';
   if(key==='humidity')return Number.isFinite(Number(c.relative_humidity_2m))?Math.round(c.relative_humidity_2m)+'%':'--';
-  if(key==='wind'){const dirs=['N','NE','E','SE','S','SW','W','NW'],dir=dirs[Math.round((c.wind_direction_10m||0)/45)%8];return Number.isFinite(Number(c.wind_speed_10m))?Math.round(c.wind_speed_10m)+' mph '+dir:'--';}
+  if(key==='wind'){const dirs=['N','NE','E','SE','S','SW','W','NW'],dir=dirs[Math.round((c.wind_direction_10m||0)/45)%8];return Number.isFinite(Number(c.wind_speed_10m))?Math.round(c.wind_speed_10m)+' '+weatherWindUnitLabel(cfg)+' '+dir:'--';}
   if(key==='pressure')return Number.isFinite(Number(c.pressure_msl))?Math.round(c.pressure_msl)+' hPa':'--';
   if(key==='cloudcover')return Number.isFinite(Number(c.cloud_cover))?Math.round(c.cloud_cover)+'%':'--';
   if(key==='dewpoint')return Number.isFinite(Number(c.dew_point_2m))?C(c.dew_point_2m)+'°':'--';
@@ -4865,7 +4924,7 @@ function renderCalendarViewBlock(el,block){
 function renderWeatherViewBlock(el,block){
   const c=block.config||{},d=wxData;if(!d?.current||!d?.daily||!d?.hourly){el.innerHTML=blockCardHtml(block,'<div class="custom-block-error">Waiting for weather data…</div>');return;}const mode=c.mode||'current',cur=d.current,dl=d.daily,hr=d.hourly;
   if(mode==='current'){el.innerHTML=blockCardHtml(block,`<div class="custom-weather-block"><div class="custom-weather-current"><div class="custom-weather-icon">${wi(cur.weather_code)}</div><div><div class="custom-weather-temp">${C(cur.temperature_2m)}°</div><div class="custom-weather-cond">${escHtml(wd(cur.weather_code))}</div><div class="custom-weather-muted">Feels like ${C(cur.apparent_temperature)}°</div></div></div></div>`);return;}
-  if(mode==='details'){const dirs=['N','NE','E','SE','S','SW','W','NW'],dir=dirs[Math.round((cur.wind_direction_10m||0)/45)%8];el.innerHTML=blockCardHtml(block,`<div class="custom-weather-block"><div class="custom-weather-details"><div class="custom-weather-detail"><div class="k">Humidity</div><div class="v">${cur.relative_humidity_2m}%</div></div><div class="custom-weather-detail"><div class="k">Wind</div><div class="v">${Math.round(cur.wind_speed_10m)} mph ${dir}</div></div><div class="custom-weather-detail"><div class="k">Feels like</div><div class="v">${C(cur.apparent_temperature)}°</div></div><div class="custom-weather-detail"><div class="k">Sunset</div><div class="v">${escHtml(fmtTime(dl.sunset?.[0]))}</div></div></div></div>`);return;}
+  if(mode==='details'){const dirs=['N','NE','E','SE','S','SW','W','NW'],dir=dirs[Math.round((cur.wind_direction_10m||0)/45)%8];el.innerHTML=blockCardHtml(block,`<div class="custom-weather-block"><div class="custom-weather-details"><div class="custom-weather-detail"><div class="k">Humidity</div><div class="v">${cur.relative_humidity_2m}%</div></div><div class="custom-weather-detail"><div class="k">Wind</div><div class="v">${Math.round(cur.wind_speed_10m)} ${weatherWindUnitLabel(cfg)} ${dir}</div></div><div class="custom-weather-detail"><div class="k">Feels like</div><div class="v">${C(cur.apparent_temperature)}°</div></div><div class="custom-weather-detail"><div class="k">Sunset</div><div class="v">${escHtml(fmtTime(dl.sunset?.[0]))}</div></div></div></div>`);return;}
   if(mode==='daily'){const n=Math.min(Math.max(3,Number(c.days)||7),14,dl.time.length),cells=[];for(let i=0;i<n;i++){const dt=new Date(dl.time[i]+'T12:00:00'),pp=dl.precipitation_probability_max?.[i]||0;cells.push(`<div class="custom-weather-cell"><div class="t">${i===0?'Today':dt.toLocaleDateString(undefined,{weekday:'short'})}</div><div class="i">${wi(dl.weather_code[i])}</div><div class="v">${C(dl.temperature_2m_max[i])}° <span style="opacity:.55">${C(dl.temperature_2m_min[i])}°</span></div>${c.showPrecip!==false?`<div class="p">💧${pp}%</div>`:''}</div>`);}el.innerHTML=blockCardHtml(block,`<div class="custom-weather-block"><div class="custom-weather-strip" style="grid-template-columns:repeat(${n},minmax(58px,1fr))">${cells.join('')}</div></div>`);return;}
   if(mode==='hourly'){const n=Math.min(24,Math.max(3,Number(c.hours)||12)),nowH=new Date();nowH.setMinutes(0,0,0);const cells=[];for(let i=0;i<hr.time.length&&cells.length<n;i++){const t=new Date(hr.time[i]);if(t<nowH)continue;const pp=hr.precipitation_probability?.[i]||0;cells.push(`<div class="custom-weather-cell"><div class="t">${escHtml(t.toLocaleTimeString(undefined,{hour:'numeric'}))}</div><div class="i">${wi(hr.weather_code[i])}</div><div class="v">${C(hr.temperature_2m[i])}°</div>${c.showPrecip!==false?`<div class="p">💧${pp}%</div>`:''}</div>`);}el.innerHTML=blockCardHtml(block,`<div class="custom-weather-block"><div class="custom-weather-strip" style="grid-template-columns:repeat(${cells.length},minmax(58px,1fr))">${cells.join('')}</div></div>`);return;}
   el.innerHTML=blockCardHtml(block,'<div class="custom-block-error">Unknown weather view.</div>');
@@ -5965,6 +6024,7 @@ function applyUiCustomization(source=cfg){
     .event-time{font-size:${scaledClamp(11,.92,15,cal*ps('calendar','eventText')*ps('calendar','eventTime'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.86).toFixed(3)});${pe('calendar','eventText')}${pe('calendar','eventTime')}}
     .event-title{font-size:${scaledClamp(12,1.02,17,cal*ps('calendar','eventText')*ps('calendar','eventTitle'))};color:${textColor};padding-left:${source.showEventTimes===false?'0':'9px'};${pe('calendar','eventText')}${pe('calendar','eventTitle')}}
     .event-title-no-time{display:flex;align-items:center;gap:6px;padding-left:0}
+    .wx-location{font-size:${scaledClamp(11,.82,15,cur)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.9).toFixed(3)})}
     .wx-temp{font-size:${scaledClamp(66,5.9,96,cur*ps('current','temperature'))};color:${textColor};${pe('current','temperature')}}
     .wx-icon-big{font-size:${scaledClamp(36,3.4,54,cur*ps('current','icon'))};${pe('current','icon')}}
     .wx-feels{font-size:${scaledClamp(17,1.25,23,cur*ps('current','feelsLike'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('current','feelsLike')}}
@@ -6142,11 +6202,13 @@ function setAppearanceForm(v){
   updateFontPreview();
 }
 
+const CUSTOM_LAYOUT_PRESET_PRESERVE_KEYS=['calendarBandHeight','bottomPanelHeight','leftPanelWidth','sidePaddingPx','forecastGapPx','forecastRowGapPx','forecastColumns','calendarCellHeight','calendarDays','calendarColumns','hourlyForecastHours','dailyForecastDays','calendarScrollMode','calendarScrollSpeed','calendarMaxEvents','layoutGridPx','layoutSnap','showNoEvents','showEventTimes','showDailyForecast','showHourlyForecast','showPrecip','showSeconds','showAmPm','showDate','showCurrentIcon'];
 function applyAppearancePreset(){
   const key=document.getElementById('s-appearance-preset')?.value||'custom';
   if(key==='custom')return;
   const current=appearanceFromForm();
-  const preset={...(APPEARANCE_PRESETS[key]||APPEARANCE_PRESETS.default),uiTheme:current.uiTheme,fontFamily:current.fontFamily,primaryTextColor:current.primaryTextColor,locale:current.locale,motionPreference:current.motionPreference,highContrast:current.highContrast,focusOutline:current.focusOutline,settingsUiSize:current.settingsUiSize,settingsCogPosition:current.settingsCogPosition,settingsCogOpacity:current.settingsCogOpacity,settingsCogSize:current.settingsCogSize,settingsCogLabel:current.settingsCogLabel};
+  const preset={...current,...(APPEARANCE_PRESETS[key]||APPEARANCE_PRESETS.default),uiTheme:current.uiTheme,fontFamily:current.fontFamily,primaryTextColor:current.primaryTextColor,locale:current.locale,motionPreference:current.motionPreference,highContrast:current.highContrast,focusOutline:current.focusOutline,settingsUiSize:current.settingsUiSize,settingsCogPosition:current.settingsCogPosition,settingsCogOpacity:current.settingsCogOpacity,settingsCogSize:current.settingsCogSize,settingsCogLabel:current.settingsCogLabel};
+  if(cfg.layoutMode==='custom')for(const prop of CUSTOM_LAYOUT_PRESET_PRESERVE_KEYS)preset[prop]=current[prop];
   setAppearanceForm(preset);
   previewAppearance();markSettingsDirty();
 }
@@ -6486,7 +6548,8 @@ async function checkSoftwareUpdate(force=false){
 function updateSettingsOverview(){
   const localServer=location.protocol==='http:'||location.protocol==='https:';
   setHealth('health-server',localServer?(serverConfigAvailable?'Connected · config synced':'Connected · browser fallback'):'Open through local server',localServer?(serverConfigAvailable?'good':'warn'):'bad');
-  setHealth('health-weather',wxData?`Forecast loaded${weatherLastSource?' · '+weatherLastSource:''}`:(weatherLastError?`Weather error · ${weatherLastError}`:(cfg.lat&&cfg.lon?'Waiting for data':'Location not configured')),wxData?'good':(weatherLastError?'bad':(cfg.lat&&cfg.lon?'warn':'bad')));
+  const verifiedPlace=weatherLocationTitle(savedWeatherLocation());
+  setHealth('health-weather',wxData?`Forecast loaded${verifiedPlace?' · '+verifiedPlace:''}${weatherLastSource?' · '+weatherLastSource:''}`:(weatherLastError?`Weather error · ${weatherLastError}`:(cfg.lat&&cfg.lon?`Waiting for data${verifiedPlace?' · '+verifiedPlace:''}`:'Location not configured')),wxData?'good':(weatherLastError?'bad':(cfg.lat&&cfg.lon?'warn':'bad')));
   const configured=(cfg.calendars||[]).filter(c=>c.url||c.configured).length;
   const enabled=(cfg.calendars||[]).filter(c=>(c.url||c.configured)&&c.enabled!==false).length;
   const failures=(calStatuses||[]).filter(s=>s&&!s.pending&&!s.disabled&&s.ok===false).length;
@@ -6523,7 +6586,7 @@ async function copyDiagnostics(){
     viewport:{width:innerWidth,height:innerHeight,devicePixelRatio:devicePixelRatio||1},
     fullscreen:!!document.fullscreenElement,
     appearance:{theme:cfg.uiTheme||'libre-night',font:cfg.fontFamily||'Inter'},
-    weather:{configured:!!(cfg.lat&&cfg.lon),loaded:!!wxData,unit:cfg.useFahrenheit?'F':'C',source:weatherLastSource||undefined,error:weatherLastError||undefined},
+    weather:{configured:!!(cfg.lat&&cfg.lon),loaded:!!wxData,unit:cfg.useFahrenheit?'imperial':'metric',windUnit:weatherWindUnitLabel(cfg),place:weatherLocationTitle(savedWeatherLocation())||undefined,timezone:cfg.locationTimezone||weatherLastGridPoint?.timezone||undefined,source:weatherLastSource||undefined,error:weatherLastError||undefined},
     calendars:(cfg.calendars||[]).map((c,i)=>({name:c.label||`Calendar ${i+1}`,type:(String(c.url||'').startsWith('/calendar-files/')?'file':'ics'),enabled:c.enabled!==false,status:calStatuses[i]?.ok===true?'ok':calStatuses[i]?.disabled?'disabled':calStatuses[i]?.pending?'checking':calStatuses[i]?.error?'error':'unknown'})),
     background:{source:cfg.backgroundSource,configured:cfg.backgroundSource==='stock'||(cfg.backgroundSource==='folders'&&!!cfg.mediaFolders?.length)||!!cfg.photosUrl,photosLoaded:(cfg.backgroundSource==='google'||cfg.backgroundSource==='folders')?(bgSourceImages?.length||0):undefined,stockCategory:cfg.backgroundSource==='stock'?cfg.stockCategory:undefined,stockResolution:cfg.backgroundSource==='stock'?cfg.stockResolution:undefined,mediaFolders:cfg.backgroundSource==='folders'?(cfg.mediaFolders||[]).length:undefined,order:cfg.photoOrder,intervalSec:cfg.photoIntervalSec,status:lastBackgroundStatus?.error?'error':'ok'},
     alerts:{enabled:cfg.alertsEnabled,testMode:cfg.alertTestMode,active:activeWeatherAlerts.length,motion:cfg.alertMotionMode},
@@ -6666,7 +6729,13 @@ const STARTER_TEMPLATES={
   morning:{uiTheme:'libre-night',uiClockPct:125,uiCalendarPct:108,uiCurrentPct:108,uiForecastPct:102,calendarBandHeight:164,bottomPanelHeight:340,leftPanelWidth:500,sidePaddingPx:30,forecastRowGapPx:18,calendarDays:7,calendarColumns:7,showDailyForecast:true,showHourlyForecast:true,secondaryOpacity:92},
   metrics:{uiTheme:'graphite',uiClockPct:90,uiCalendarPct:90,uiCurrentPct:92,uiForecastPct:90,calendarBandHeight:132,bottomPanelHeight:300,leftPanelWidth:430,sidePaddingPx:20,forecastRowGapPx:12,calendarCellHeight:125,secondaryOpacity:90}
 };
-function applyStarterTemplate(key){const patch=STARTER_TEMPLATES[key];if(!patch)return;Object.assign(cfg,JSON.parse(JSON.stringify(patch)));ensureCfgDefaults();setAppearanceForm(cfg);applyProductTheme(cfg.uiTheme);applyUiCustomization(cfg);markSettingsDirty();const el=document.getElementById('template-status');if(el)el.textContent='Template applied as a preview. Your data sources were not changed. Use Save & Apply to keep it.';}
+function applyStarterTemplate(key){
+  const patch=STARTER_TEMPLATES[key];if(!patch)return;
+  const current=appearanceFromForm(),preview={...current,...JSON.parse(JSON.stringify(patch))};
+  if(cfg.layoutMode==='custom')for(const prop of CUSTOM_LAYOUT_PRESET_PRESERVE_KEYS)preview[prop]=current[prop];
+  setAppearanceForm(preview);previewAppearance();markSettingsDirty();
+  const el=document.getElementById('template-status');if(el)el.textContent='Template preview applied. Cancel/Esc restores your last saved dashboard; Save & Apply keeps it.';
+}
 
 function setWizardMode(on){
   isWizardMode=!!on;
@@ -6675,7 +6744,7 @@ function setWizardMode(on){
 }
 function renderWizardSummary(){
   const el=document.getElementById('wizard-summary');if(!el)return;
-  const city=(document.getElementById('s-city')?.value||'').trim()||'Not set';
+  const city=pendingWeatherLocation?weatherLocationTitle(pendingWeatherLocation):((document.getElementById('s-city')?.value||'').trim()||'Not set');
   const calendars=readCalendarInputs().length;
   const bg=document.getElementById('s-bg-source')?.value||'google';
   const bgLabel=bg==='google'?'Google Photos':bg==='stock'?'Stock photos':bg==='folders'?'Local / NAS folders':'No photo background';
@@ -6715,7 +6784,11 @@ function wizardBack(){if(wizardStepIndex>0){wizardStepIndex--;renderWizardStep()
 function wizardSkip(){if(wizardStepIndex<WIZARD_STEPS.length-1){wizardStepIndex++;renderWizardStep();}}
 function wizardNext(){
   const step=WIZARD_STEPS[wizardStepIndex];
-  if(step.key==='location'&&!String(document.getElementById('s-city')?.value||'').trim()){alert('Enter a city before continuing.');document.getElementById('s-city')?.focus();return;}
+  if(step.key==='location'){
+    const q=String(document.getElementById('s-city')?.value||'').trim();
+    if(!q){alert('Enter a city or place before continuing.');document.getElementById('s-city')?.focus();return;}
+    if(!pendingWeatherLocation){alert('Use Find places and choose the exact city/region/country match before continuing.');document.getElementById('s-city')?.focus();return;}
+  }
   if(step.key==='finish'){saveSetup();return;}
   wizardStepIndex++;renderWizardStep();
 }
@@ -6818,22 +6891,68 @@ function bindCalendarUxInputs(){}
 function updateCalendarEntryVisibility(){}
 function toggleEmptyCalendarSlots(){}
 
+let pendingWeatherLocation=null;
+let weatherLocationSearchResults=[];
+function normalizeWeatherLocationResult(raw){
+  if(!raw||typeof raw!=='object')return null;
+  const latitude=Number(raw.latitude),longitude=Number(raw.longitude);if(!Number.isFinite(latitude)||latitude<-90||latitude>90||!Number.isFinite(longitude)||longitude<-180||longitude>180)return null;
+  return {id:Number.isFinite(Number(raw.id))?Number(raw.id):null,name:String(raw.name||'').trim(),admin1:String(raw.admin1||'').trim(),admin2:String(raw.admin2||'').trim(),country:String(raw.country||'').trim(),countryCode:String(raw.country_code||raw.countryCode||'').trim().toUpperCase(),timezone:String(raw.timezone||'').trim(),latitude,longitude};
+}
+function savedWeatherLocation(){
+  if(!Number.isFinite(Number(cfg.lat))||!Number.isFinite(Number(cfg.lon)))return null;
+  return normalizeWeatherLocationResult({id:cfg.locationGeocodeId,name:cfg.city||'Saved location',admin1:cfg.locationAdmin1,country:cfg.locationCountry,country_code:cfg.locationCountryCode,timezone:cfg.locationTimezone,latitude:cfg.lat,longitude:cfg.lon});
+}
+function weatherLocationTitle(loc){return [loc?.name,loc?.admin1,loc?.country].map(x=>String(x||'').trim()).filter((x,i,a)=>x&&a.indexOf(x)===i).join(', ');}
+function weatherLocationSearchText(loc){return weatherLocationTitle(loc)||String(loc?.name||'').trim();}
+function renderWeatherLocationSelected(loc=pendingWeatherLocation){
+  const host=document.getElementById('weather-location-selected');if(!host)return;
+  if(!loc){host.classList.remove('verified');host.innerHTML='<b>No exact location selected</b><span>Search above and choose the matching city/region before saving a changed location.</span>';return;}
+  host.classList.add('verified');const title=weatherLocationTitle(loc)||'Saved coordinates';
+  const meta=[loc.timezone?`Timezone ${loc.timezone}`:'',`Selected ${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}`].filter(Boolean);
+  if(weatherLastGridPoint&&Number.isFinite(weatherLastGridPoint.latitude)&&Number.isFinite(weatherLastGridPoint.longitude))meta.push(`Forecast grid ${weatherLastGridPoint.latitude.toFixed(4)}, ${weatherLastGridPoint.longitude.toFixed(4)}`);
+  host.innerHTML=`<b>✓ ${escHtml(title)}</b><span>${escHtml(meta.join(' · '))}</span>`;
+}
+function weatherLocationQueryChanged(){
+  const q=String(document.getElementById('s-city')?.value||'').trim(),saved=savedWeatherLocation();
+  if(saved&&[weatherLocationSearchText(saved),saved.name,String(cfg.city||'')].some(x=>x&&x.toLowerCase()===q.toLowerCase()))pendingWeatherLocation=saved;else pendingWeatherLocation=null;
+  document.getElementById('weather-location-results')?.replaceChildren();
+  const status=document.getElementById('weather-location-search-status');if(status)status.textContent=pendingWeatherLocation?'Using the currently saved coordinates.':'Search and choose an exact match before saving this location.';
+  renderWeatherLocationSelected();
+}
+function selectWeatherLocationResult(index){
+  const loc=weatherLocationSearchResults[Number(index)];if(!loc)return;
+  pendingWeatherLocation={...loc};const input=document.getElementById('s-city');if(input)input.value=weatherLocationSearchText(loc);
+  document.getElementById('weather-location-results')?.replaceChildren();const status=document.getElementById('weather-location-search-status');if(status)status.textContent='Exact location selected. Save & Apply to use these coordinates.';
+  renderWeatherLocationSelected(loc);markSettingsDirty();
+}
+async function searchWeatherLocations(){
+  const q=String(document.getElementById('s-city')?.value||'').trim(),status=document.getElementById('weather-location-search-status'),host=document.getElementById('weather-location-results');
+  if(q.length<2){if(status)status.textContent='Enter at least 2 characters.';return;}
+  if(status)status.textContent='Searching places…';if(host)host.innerHTML='';weatherLocationSearchResults=[];
+  try{
+    const geo=JSON.parse(await fetchRemoteText(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&language=en`,3600));
+    weatherLocationSearchResults=(geo.results||[]).map(normalizeWeatherLocationResult).filter(Boolean);
+    if(!weatherLocationSearchResults.length){if(status)status.textContent='No matching places found. Try adding a state/region or country.';return;}
+    if(status)status.textContent=`${weatherLocationSearchResults.length} match${weatherLocationSearchResults.length===1?'':'es'} found — choose the exact place.`;
+    if(host)host.innerHTML=weatherLocationSearchResults.map((loc,i)=>{const title=weatherLocationTitle(loc),sub=[loc.admin2&&!title.includes(loc.admin2)?loc.admin2:'',loc.timezone].filter(Boolean).join(' · ');return `<button class="weather-location-result" type="button" onclick="selectWeatherLocationResult(${i})"><span><b>${escHtml(title||loc.name||'Location')}</b><span>${escHtml(sub||'Choose this location')}</span></span><code>${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}</code></button>`;}).join('');
+  }catch(e){if(status)status.textContent='Location search failed. Check the network connection and try again.';}
+}
+function previewWeatherLocationLabel(){
+  const el=document.getElementById('wx-location');if(!el)return;const value=String(document.getElementById('s-locname')?.value||'').trim();el.textContent=value;el.classList.toggle('show',!!value);scheduleBuiltInLayoutAutoFit?.();
+}
+
 async function saveSetup(){
   const city=document.getElementById('s-city').value.trim();
   if(!city){alert('Enter a city name');return;}
   const requestedLabel=document.getElementById('s-locname').value.trim();
-  if(city!==cfg.city||!Number.isFinite(Number(cfg.lat))||!Number.isFinite(Number(cfg.lon))){
-    try{
-      const geo=JSON.parse(await fetchRemoteText(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`,3600));
-      if(!geo.results?.length){alert('City not found');return;}
-      const r=geo.results[0];
-      cfg.lat=r.latitude;cfg.lon=r.longitude;cfg.city=city;
-      cfg.locName=requestedLabel||`${r.name}, ${r.country_code}`;
-    }catch(e){alert('Could not geocode city');return;}
-  }else{
-    cfg.city=city;
-    if(requestedLabel)cfg.locName=requestedLabel;
+  let selected=pendingWeatherLocation;
+  if(!selected){
+    const saved=savedWeatherLocation();
+    if(saved&&[weatherLocationSearchText(saved),saved.name,String(cfg.city||'')].some(x=>x&&x.toLowerCase()===city.toLowerCase()))selected=saved;
   }
+  if(!selected){alert('Search for the location and choose the exact city/region/country match before saving.');document.getElementById('s-city')?.focus();return;}
+  cfg.lat=selected.latitude;cfg.lon=selected.longitude;cfg.city=selected.name||city;cfg.locName=requestedLabel;
+  cfg.locationAdmin1=selected.admin1||'';cfg.locationCountry=selected.country||'';cfg.locationCountryCode=selected.countryCode||'';cfg.locationTimezone=selected.timezone||'';cfg.locationGeocodeId=selected.id;
 
   cfg.calendars=readCalendarInputs();
   cfg.backgroundSource=document.getElementById('s-bg-source')?.value||'google';
@@ -6899,6 +7018,15 @@ function requestCloseSetup(){
   closeSetup(true);
 }
 
+function restoreSavedSettingsPreview(){
+  window.__uiPreviewCfg=null;alertRuntimeState=null;
+  if(!document.getElementById('setup')?.classList.contains('hidden'))setAppearanceForm(cfg);
+  // Preset previews can rebuild generated weather/forecast DOM and alter runtime
+  // presentation state. Cancel must restore the entire saved dashboard, not only
+  // CSS variables, otherwise a discarded preset can leave the live layout changed.
+  applySettings();
+  tick();
+}
 function closeSetup(revertPreview=true){
   settingsPreviewMode=false;
   setSettingsPreviewReturnVisible(false);
@@ -6906,7 +7034,7 @@ function closeSetup(revertPreview=true){
   setWizardMode(false);
   document.getElementById('setup').classList.add('hidden');document.getElementById('setup').setAttribute('aria-hidden','true');
   window.__uiPreviewCfg=null;
-  if(revertPreview){alertRuntimeState=null;previewAlertSize(cfg.alertCardPct);applyUiCustomization(cfg);if(wxData)renderWeather(wxData);renderCalendar(window.__lastCalendarEvents||[]);tick();fetchWeatherAlerts();}
+  if(revertPreview)restoreSavedSettingsPreview();
   setTimeout(()=>restartAlertScroller(),80);
 }
 function skipSetup(){closeSetup();}
@@ -6936,7 +7064,10 @@ function openSetup(startWizard=false){
     setProfileStatus('');
     loadScenes();
     document.getElementById('s-city').value=cfg.city||'';
+    pendingWeatherLocation=savedWeatherLocation();weatherLocationSearchResults=[];
+    if(pendingWeatherLocation)document.getElementById('s-city').value=weatherLocationSearchText(pendingWeatherLocation);
     document.getElementById('s-locname').value=cfg.locName||'';
+    document.getElementById('weather-location-results')?.replaceChildren();const locationStatus=document.getElementById('weather-location-search-status');if(locationStatus)locationStatus.textContent=pendingWeatherLocation?'Saved coordinates verified below.':'No saved coordinates yet — search and choose a place.';renderWeatherLocationSelected();
     calendarEditorRows=(cfg.calendars||[]).map(c=>({...c}));
     renderCalendarSourceList(calendarEditorRows);
     updateCalStatusUI();
@@ -7066,8 +7197,8 @@ const SETTINGS_CONTROL_HELP={
   'family-chores-editor':'One chore per line. Use Chore|member|points|recurrence|days so LibreDisplay can assign points and decide when the chore appears.',
   'family-rewards-editor':'One reward per line using Reward|cost|member. Omit member when a reward should be available to everyone.',
   'family-pin':'Protects owner-only Family actions on touch displays. Use 4–12 digits and keep it separate from account passwords.',
-  's-city':'The city or place used to resolve coordinates for weather data. More specific locations usually produce more accurate forecasts.',
-  's-locname':'Optional friendly text shown for the weather location. This changes the display label only, not the coordinates used for weather.',
+  's-city':'Search for a city or place, then choose the exact region/country match. The selected coordinates — not just the typed name — determine weather and alerts.',
+  's-locname':'Optional friendly name shown above Current Weather on the dashboard. It changes only the visible label; the verified coordinates remain unchanged.',
   's-calendar-refresh':'How often LibreDisplay checks enabled calendar feeds for changes. Shorter intervals update sooner but make more network requests.',
   's-calendar-time-style':'Controls whether calendar items show only their start time or a start–end range when an end time is available.',
   's-calendar-legend':'Shows a color legend below the calendar band so multiple calendar sources are easier to identify at a glance.',
@@ -7083,7 +7214,7 @@ const SETTINGS_CONTROL_HELP={
   's-media-recursive':'Also scans folders below each configured picture directory. Enable this when your photo library is organized into subfolders.',
   's-photo-interval':'How long each background remains visible before LibreDisplay advances to the next picture.',
   's-photo-random-start':'Starts each browser session at a different position in the photo list instead of always beginning with the first image.',
-  's-unit':'Sets Fahrenheit or Celsius for current weather, daily forecasts and hourly forecasts.',
+  's-unit':'Selects a consistent weather unit system: Imperial uses °F, mph and inches; Metric uses °C, km/h and millimeters.',
   's-weather-refresh':'How often LibreDisplay requests fresh weather data. A shorter interval updates sooner but uses more network/API traffic.',
   's-bg-top':'Darkens or lightens the upper portion of the background overlay so calendar text remains readable over bright photos.',
   's-bg-bottom':'Darkens or lightens the lower portion of the background overlay behind weather, clock and forecast content.',
