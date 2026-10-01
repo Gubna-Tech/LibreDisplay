@@ -2510,16 +2510,25 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 height = max(0, min(20000, int((body or {}).get("height") or 0)))
                 viewport_width = max(0, min(20000, int((body or {}).get("viewportWidth") or width)))
                 viewport_height = max(0, min(20000, int((body or {}).get("viewportHeight") or height)))
+                layout_width = max(0, min(20000, int((body or {}).get("layoutWidth") or viewport_width or width)))
+                layout_height = max(0, min(20000, int((body or {}).get("layoutHeight") or viewport_height or height)))
+                visual_viewport_width = max(0, min(20000, int((body or {}).get("visualViewportWidth") or viewport_width)))
+                visual_viewport_height = max(0, min(20000, int((body or {}).get("visualViewportHeight") or viewport_height)))
                 screen_width = max(0, min(20000, int((body or {}).get("screenWidth") or width)))
                 screen_height = max(0, min(20000, int((body or {}).get("screenHeight") or height)))
                 row = {
                     "endpoint": endpoint_id,
                     "deviceId": device_id,
                     "name": str((body or {}).get("name") or "").strip()[:80],
-                    "width": viewport_width,
-                    "height": viewport_height,
+                    "width": layout_width,
+                    "height": layout_height,
+                    "layoutWidth": layout_width,
+                    "layoutHeight": layout_height,
                     "viewportWidth": viewport_width,
                     "viewportHeight": viewport_height,
+                    "visualViewportWidth": visual_viewport_width,
+                    "visualViewportHeight": visual_viewport_height,
+                    "visualViewportScale": max(0.25, min(8.0, float((body or {}).get("visualViewportScale") or 1))),
                     "screenWidth": screen_width,
                     "screenHeight": screen_height,
                     "dpr": max(0.25, min(8.0, float((body or {}).get("dpr") or 1))),
@@ -2546,7 +2555,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     raise ValueError("Unknown display endpoint")
                 if not principal_allows_endpoint(self.session_principal(), endpoint_id, write=True):
                     return self.json_response(403, {"ok": False, "error": "Editor access to this endpoint is required."})
-                if action not in {"refresh", "reload"}:
+                if action not in {"refresh", "reload", "heartbeat"}:
                     raise ValueError("Unknown device action")
                 publish_event(endpoint_id, action, {"requestedAt": int(time.time())})
                 return self.json_response(200, {"ok": True, "endpoint": endpoint_id, "action": action})

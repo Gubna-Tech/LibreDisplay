@@ -373,8 +373,8 @@ class ReleaseContractTests(unittest.TestCase):
             "const LAYOUT_PREVIEW_MODE=PAGE_PARAMS.get('layoutPreview')==='1'",
             'function fetchRemoteLayoutTarget()',
             'function fitRemoteLayoutPreview()',
-            'viewportWidth:innerWidth||0',
-            'viewportHeight:innerHeight||0',
+            'function displayViewportMetrics()',
+            'layoutWidth,layoutHeight,viewportWidth,viewportHeight',
             "closeSetup(true);if(REMOTE_SETTINGS_MODE){setTimeout(openRemoteLayoutPreview,80);return;}",
             "window.parent.postMessage({type:'libredisplay-layout-editor',action:'saved'}",
         ):
@@ -383,6 +383,36 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('"viewportHeight": viewport_height', server)
         self.assertIn('"screenWidth": screen_width', server)
         self.assertIn('"screenHeight": screen_height', server)
+
+    def test_v131_display_fidelity_and_kiosk_hydration_recovery(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        server = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
+        start = (ROOT / "scripts" / "start.sh").read_text(encoding="utf-8")
+        for marker in (
+            "function displayViewportMetrics()",
+            "layoutWidth,layoutHeight,viewportWidth,viewportHeight",
+            "visualViewportWidth",
+            "function requestFreshDisplayMetrics()",
+            "action:'heartbeat'",
+            "liveEventSource.addEventListener('heartbeat'",
+            "function displayHydrationRecoveryNeeds()",
+            "async function retryDisplayHydration(reason='scheduled')",
+            "[5000,15000,35000,75000,150000]",
+            "window.addEventListener('online'",
+            "document.addEventListener('visibilitychange'",
+        ):
+            self.assertIn(marker, html)
+        for marker in (
+            '"layoutWidth": layout_width',
+            '"layoutHeight": layout_height',
+            '"visualViewportWidth": visual_viewport_width',
+            '"visualViewportHeight": visual_viewport_height',
+            'if action not in {"refresh", "reload", "heartbeat"}',
+        ):
+            self.assertIn(marker, server)
+        self.assertIn('--disable-background-timer-throttling', start)
+        self.assertIn('--disable-backgrounding-occluded-windows', start)
+        self.assertIn('--disable-renderer-backgrounding', start)
 
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")

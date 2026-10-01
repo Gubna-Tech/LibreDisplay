@@ -1704,7 +1704,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.3.0</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.3.1</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -2096,7 +2096,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.3.0</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.3.1</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -2287,7 +2287,7 @@ html:not(.cursor-active) * {
 <div id="offline-pill">Offline · cached data</div>
 
 <script>
-const DASHBOARD_BUILD = '1.3.0';
+const DASHBOARD_BUILD = '1.3.1';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -5293,13 +5293,20 @@ function bestLayoutTargetDevice(rows){
   return candidates[0]||null;
 }
 function targetViewportFromDevice(row){
-  const width=Math.max(320,Math.min(7680,Number(row?.viewportWidth||row?.width)||0));
-  const height=Math.max(240,Math.min(4320,Number(row?.viewportHeight||row?.height)||0));
+  const width=Math.max(320,Math.min(7680,Number(row?.layoutWidth||row?.viewportWidth||row?.width)||0));
+  const height=Math.max(240,Math.min(4320,Number(row?.layoutHeight||row?.viewportHeight||row?.height)||0));
   if(!width||!height)return null;
-  return {width:Math.round(width),height:Math.round(height),deviceId:String(row?.deviceId||''),mode:String(row?.mode||''),online:!!row?.online,ageSeconds:Number(row?.ageSeconds)||0};
+  return {width:Math.round(width),height:Math.round(height),deviceId:String(row?.deviceId||''),mode:String(row?.mode||''),online:!!row?.online,ageSeconds:Number(row?.ageSeconds)||0,dpr:Number(row?.dpr)||1,visualWidth:Number(row?.visualViewportWidth)||0,visualHeight:Number(row?.visualViewportHeight)||0};
+}
+async function requestFreshDisplayMetrics(){
+  try{
+    await fetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'heartbeat',endpoint:ACTIVE_ENDPOINT}),cache:'no-store'});
+    await new Promise(resolve=>setTimeout(resolve,360));
+  }catch(e){}
 }
 async function fetchRemoteLayoutTarget(){
   try{
+    await requestFreshDisplayMetrics();
     const res=await fetch(serverPath('/api/devices'),{cache:'no-store'}),data=await res.json().catch(()=>({}));
     if(!res.ok||!Array.isArray(data.devices))throw new Error(data.error||('HTTP '+res.status));
     const target=targetViewportFromDevice(bestLayoutTargetDevice(data.devices));
@@ -5313,7 +5320,7 @@ function fitRemoteLayoutPreview(){
   const sw=Math.max(1,stage.clientWidth),sh=Math.max(1,stage.clientHeight),tw=remoteLayoutPreviewTarget.width,th=remoteLayoutPreviewTarget.height;
   const scale=Math.min(sw/tw,sh/th,.9999),left=Math.max(0,(sw-tw*scale)/2),top=Math.max(0,(sh-th*scale)/2);
   frame.style.width=tw+'px';frame.style.height=th+'px';frame.style.left=left.toFixed(1)+'px';frame.style.top=top.toFixed(1)+'px';frame.style.transform=`scale(${scale})`;
-  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'live display':'last reported display';meta.textContent=`${tw}×${th} target viewport · ${state} · preview scaled to ${Math.round(scale*100)}%`;}
+  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'live display':'last reported display',dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} target viewport${dpr} · ${state} · preview scaled to ${Math.round(scale*100)}%`;}
 }
 async function openRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame'),meta=document.getElementById('remote-layout-preview-meta');if(!shell||!frame)return;
@@ -5924,13 +5931,28 @@ async function pollServerConfig(){
     }
   }catch(e){}
 }
-let liveEventSource=null,heartbeatTimer=null;
+let liveEventSource=null,heartbeatTimer=null,heartbeatResizeTimer=null;
 function displayDeviceId(){let id='';try{id=localStorage.getItem('libredisplay_device_id')||'';}catch(e){}if(!/^[A-Za-z0-9_-]{12,80}$/.test(id)){id='d'+Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem('libredisplay_device_id',id);}catch(e){}}return id;}
-async function sendDisplayHeartbeat(){if(!READ_ONLY_DISPLAY_MODE&&!LOCAL_CLIENT_MODE)return;try{await fetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),width:innerWidth||screen.width,height:innerHeight||screen.height,viewportWidth:innerWidth||0,viewportHeight:innerHeight||0,screenWidth:screen.width||0,screenHeight:screen.height||0,dpr:devicePixelRatio||1,mode:READ_ONLY_DISPLAY_MODE?'viewer':(LOCAL_CLIENT_MODE?'local':'admin'),version:DASHBOARD_BUILD,userAgent:navigator.userAgent}),cache:'no-store'});}catch(e){}}
+function displayViewportMetrics(){
+  const root=document.documentElement,app=document.getElementById('app'),appRect=app?.getBoundingClientRect?.(),vv=window.visualViewport;
+  const viewportWidth=Math.max(1,Math.round(root?.clientWidth||innerWidth||screen.width||1)),viewportHeight=Math.max(1,Math.round(root?.clientHeight||innerHeight||screen.height||1));
+  const layoutWidth=Math.max(1,Math.round(appRect?.width||viewportWidth)),layoutHeight=Math.max(1,Math.round(appRect?.height||viewportHeight));
+  return {width:layoutWidth,height:layoutHeight,layoutWidth,layoutHeight,viewportWidth,viewportHeight,visualViewportWidth:Math.max(1,Math.round(vv?.width||viewportWidth)),visualViewportHeight:Math.max(1,Math.round(vv?.height||viewportHeight)),visualViewportScale:Number(vv?.scale)||1,screenWidth:Math.round(screen.width||layoutWidth),screenHeight:Math.round(screen.height||layoutHeight),dpr:Number(devicePixelRatio)||1};
+}
+async function sendDisplayHeartbeat(){if(!READ_ONLY_DISPLAY_MODE&&!LOCAL_CLIENT_MODE)return;try{const m=displayViewportMetrics();await fetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:READ_ONLY_DISPLAY_MODE?'viewer':(LOCAL_CLIENT_MODE?'local':'admin'),version:DASHBOARD_BUILD,userAgent:navigator.userAgent}),cache:'no-store'});}catch(e){}}
+function scheduleDisplayHeartbeat(delay=100){if(!READ_ONLY_DISPLAY_MODE&&!LOCAL_CLIENT_MODE)return;if(heartbeatResizeTimer)clearTimeout(heartbeatResizeTimer);heartbeatResizeTimer=setTimeout(()=>{heartbeatResizeTimer=null;sendDisplayHeartbeat();},Math.max(0,delay));}
+function bindDisplayViewportHeartbeat(){
+  if(window.__ldViewportHeartbeatBound)return;window.__ldViewportHeartbeatBound=true;
+  window.addEventListener('resize',()=>scheduleDisplayHeartbeat(80),{passive:true});
+  window.addEventListener('orientationchange',()=>scheduleDisplayHeartbeat(180),{passive:true});
+  window.addEventListener('pageshow',()=>scheduleDisplayHeartbeat(60),{passive:true});
+  document.addEventListener('fullscreenchange',()=>scheduleDisplayHeartbeat(120));
+  window.visualViewport?.addEventListener('resize',()=>scheduleDisplayHeartbeat(80),{passive:true});
+}
 function startLiveDisplayConnection(){
   try{liveEventSource?.close();}catch(e){}liveEventSource=null;
-  try{liveEventSource=new EventSource(serverPath('/api/events'));liveEventSource.addEventListener('config',()=>pollServerConfig());liveEventSource.addEventListener('household',async()=>{await loadHousehold(false);refreshFamilyBlocks();});liveEventSource.addEventListener('refresh',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)refreshDataNow();});liveEventSource.addEventListener('reload',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)location.reload();});liveEventSource.addEventListener('reauth',()=>location.reload());}catch(e){}
-  sendDisplayHeartbeat();if(heartbeatTimer)clearInterval(heartbeatTimer);heartbeatTimer=setInterval(sendDisplayHeartbeat,30000);
+  try{liveEventSource=new EventSource(serverPath('/api/events'));liveEventSource.addEventListener('config',()=>pollServerConfig());liveEventSource.addEventListener('household',async()=>{await loadHousehold(false);refreshFamilyBlocks();});liveEventSource.addEventListener('refresh',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE){refreshDataNow();scheduleDisplayHeartbeat(40);}});liveEventSource.addEventListener('heartbeat',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)scheduleDisplayHeartbeat(0);});liveEventSource.addEventListener('reload',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)location.reload();});liveEventSource.addEventListener('reauth',()=>location.reload());}catch(e){}
+  bindDisplayViewportHeartbeat();sendDisplayHeartbeat();if(heartbeatTimer)clearInterval(heartbeatTimer);heartbeatTimer=setInterval(sendDisplayHeartbeat,30000);
 }
 function startRemoteConfigPolling(){if(remoteConfigPollTimer)clearInterval(remoteConfigPollTimer);remoteConfigPollTimer=setInterval(pollServerConfig,REMOTE_SETTINGS_MODE?5000:30000);}
 
@@ -6974,6 +6996,44 @@ function revealSettingsCog(){
   try{localStorage.setItem('libredisplay_settings_hint_seen',String(seen+1));}catch(e){}
 }
 
+let displayHydrationRecoveryStarted=false,displayHydrationRecoveryRunning=false;
+function displayHydrationRecoveryNeeds(){
+  if(!cfg?.onboardingComplete)return {any:false};
+  const weather=!!(cfg.lat&&cfg.lon&&!wxData);
+  const enabledCalendars=(cfg.calendars||[]).filter(c=>(c.url||c.configured)&&c.enabled!==false);
+  const calendars=enabledCalendars.length>0&&(calStatuses.length===0||calStatuses.some(s=>s?.pending||s?.ok===false));
+  let background=false;
+  if(cfg.backgroundSource==='stock')background=!bgLastUrl;
+  else if(cfg.backgroundSource==='google')background=!!cfg.photosUrl&&!bgSourceImages.length;
+  else if(cfg.backgroundSource==='folders')background=!!cfg.mediaFolders?.length&&!bgSourceImages.length;
+  return {weather,calendars,background,any:weather||calendars||background};
+}
+async function retryDisplayHydration(reason='scheduled'){
+  if(displayHydrationRecoveryRunning||!(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)||LAYOUT_PREVIEW_MODE)return;
+  const need=displayHydrationRecoveryNeeds();if(!need.any)return;
+  console.info('LibreDisplay display hydration recovery',reason,need);
+  const jobs=[];
+  if(need.weather)jobs.push(Promise.resolve(fetchWeather()));
+  if(need.calendars)jobs.push(Promise.resolve(loadCalendars()));
+  if(need.background){if(cfg.backgroundSource==='stock')jobs.push(Promise.resolve(loadStockBackground()));else if(cfg.backgroundSource==='google'&&cfg.photosUrl)jobs.push(Promise.resolve(loadPhotos(cfg.photosUrl)));else if(cfg.backgroundSource==='folders'&&cfg.mediaFolders?.length)jobs.push(Promise.resolve(loadFolderBackgrounds(cfg.mediaFolders,cfg.mediaRecursive)));}
+  if(cfg.alertsEnabled)jobs.push(Promise.resolve(fetchWeatherAlerts()));
+  if(!jobs.length)return;
+  displayHydrationRecoveryRunning=true;
+  try{await Promise.allSettled(jobs);}finally{displayHydrationRecoveryRunning=false;}
+}
+function startDisplayHydrationRecovery(attempt=0){
+  if(displayHydrationRecoveryStarted)return;
+  if(!(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)){
+    if(attempt<30)setTimeout(()=>startDisplayHydrationRecovery(attempt+1),500);
+    return;
+  }
+  displayHydrationRecoveryStarted=true;
+  [5000,15000,35000,75000,150000].forEach(ms=>setTimeout(()=>retryDisplayHydration('startup+'+Math.round(ms/1000)+'s'),ms));
+  window.addEventListener('online',()=>setTimeout(()=>retryDisplayHydration('online'),350));
+  window.addEventListener('pageshow',()=>setTimeout(()=>retryDisplayHydration('pageshow'),500));
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>retryDisplayHydration('visible'),500);});
+}
+
 async function init(){
   applyProductTheme('libre-night');
   await loadSessionInfo();
@@ -7011,6 +7071,7 @@ function autoStartLayoutPreviewWhenReady(attempt=0){
   if(attempt<120)setTimeout(()=>autoStartLayoutPreviewWhenReady(attempt+1),50);
 }
 init();
+setTimeout(()=>startDisplayHydrationRecovery(),1200);
 if(LAYOUT_PREVIEW_MODE)autoStartLayoutPreviewWhenReady();
 </script>
 </body>
