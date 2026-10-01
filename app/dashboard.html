@@ -1588,6 +1588,81 @@ html:not(.cursor-active) * {
   #setup .settings-section-jump { flex:1 1 auto; min-width:0; }
   #setup .s-actions { padding:9px 12px; }
 }
+/* v1.4.3 Settings readability + context-help polish. */
+#setup .settings-help-legend {
+  display:flex; align-items:center; gap:7px; margin-top:8px; color:var(--ld-subtle);
+  font-size:10px; line-height:1.4;
+}
+#setup .settings-help-legend-mark {
+  display:inline-grid; place-items:center; flex:0 0 auto; width:16px; height:16px;
+  border:1px solid color-mix(in srgb,var(--ld-accent) 38%,var(--ld-border)); border-radius:50%;
+  color:var(--ld-accent); background:color-mix(in srgb,var(--ld-accent) 8%,var(--ld-surface-2));
+  font-size:9px; font-weight:800;
+}
+#setup .s-section[data-settings-tab] > h3 .help-tip { flex:0 0 auto; }
+#setup .s-section[data-settings-tab] > h3 .settings-auto-help { margin-left:1px; }
+#setup .s-section[data-settings-tab] > .section-summary { max-width:820px; }
+#setup .s-row label {
+  color:var(--ld-muted); font-weight:620; line-height:1.35;
+}
+#setup .settings-grid > .s-row {
+  margin:0; padding:10px 11px 11px; border:1px solid var(--ld-border); border-radius:10px;
+  background:color-mix(in srgb,var(--ld-surface-3) 33%,transparent);
+  transition:border-color .14s ease,background .14s ease,box-shadow .14s ease;
+}
+#setup .settings-grid > .s-row:hover,
+#setup .settings-grid > .s-row:focus-within {
+  border-color:color-mix(in srgb,var(--ld-accent) 30%,var(--ld-border));
+  background:color-mix(in srgb,var(--ld-surface-3) 53%,transparent);
+}
+#setup .settings-grid > .s-row:focus-within {
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--ld-accent) 10%,transparent);
+}
+#setup .settings-grid > .s-row label { color:var(--ld-text); margin-bottom:7px; }
+#setup .settings-grid > .checkline {
+  margin:0; border-color:var(--ld-border); background:color-mix(in srgb,var(--ld-surface-3) 33%,transparent);
+  transition:border-color .14s ease,background .14s ease;
+}
+#setup .settings-grid > .checkline:hover,
+#setup .settings-grid > .checkline:focus-within {
+  border-color:color-mix(in srgb,var(--ld-accent) 30%,var(--ld-border));
+  background:color-mix(in srgb,var(--ld-surface-3) 53%,transparent);
+}
+#setup .s-row :is(input:not([type="range"]):not([type="color"]),select,textarea),
+#setup :is(.cal-meta-row input[type="text"],.cal-input-row input[type="url"],.settings-section-jump select) {
+  transition:border-color .14s ease,background .14s ease,box-shadow .14s ease;
+}
+#setup .s-row :is(input:not([type="range"]):not([type="color"]),select,textarea):focus,
+#setup :is(.cal-meta-row input[type="text"],.cal-input-row input[type="url"],.settings-section-jump select):focus {
+  border-color:color-mix(in srgb,var(--ld-accent) 58%,var(--ld-border));
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--ld-accent) 11%,transparent);
+}
+#setup .s-subhead {
+  margin:18px 0 9px; padding-top:14px; color:var(--ld-text); font-size:12px; font-weight:720;
+  letter-spacing:0; text-transform:none;
+}
+#setup .howto {
+  border:1px solid color-mix(in srgb,var(--ld-accent) 14%,var(--ld-border)); border-left:3px solid color-mix(in srgb,var(--ld-accent) 58%,var(--ld-border-strong));
+  color:var(--ld-muted); line-height:1.5;
+}
+#setup .settings-note { color:var(--ld-subtle); line-height:1.5; }
+#setup .settings-inline-help { color:var(--ld-muted); }
+#context-help-popover {
+  max-width:min(370px,calc(100vw - 24px)); padding:11px 12px 12px; border-radius:11px;
+  box-shadow:0 18px 46px var(--ld-shadow); pointer-events:none;
+}
+#context-help-popover .context-help-title {
+  margin:0 0 4px; color:var(--ld-text); font-size:11px; line-height:1.35; font-weight:800;
+}
+#context-help-popover .context-help-copy { color:var(--ld-muted); font-size:11px; line-height:1.5; }
+#context-help-popover .context-help-pin { margin-top:6px; color:var(--ld-subtle); font-size:9px; line-height:1.35; }
+.help-tip.settings-auto-help { opacity:.68; }
+.help-tip.settings-auto-help:hover,.help-tip.settings-auto-help:focus-visible,.help-tip.settings-auto-help.help-active { opacity:1; }
+@media(max-width:620px){
+  #setup .settings-help-legend { display:none; }
+  #setup .settings-grid > .s-row { padding:9px 10px 10px; }
+}
+
 @media(max-width:620px){
   #setup .setup-box .sub { display:none; }
   #setup .setup-head { border-bottom:1px solid var(--ld-border); padding-bottom:11px; }
@@ -1673,6 +1748,7 @@ html:not(.cursor-active) * {
       <div class="settings-page-kicker">Settings</div>
       <h3 id="settings-page-title">Home</h3>
       <div class="settings-tab-hint" id="settings-tab-hint">A quiet starting point for display health and the most common changes.</div>
+      <div class="settings-help-legend"><span class="settings-help-legend-mark" aria-hidden="true">?</span><span>Hover a ? for plain-language details. Click it to pin the explanation while you work.</span></div>
      </div>
      <div class="settings-page-tools">
       <div class="settings-section-jump">
@@ -1727,7 +1803,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.4.2</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.4.3</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -2119,7 +2195,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.4.2</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.4.3</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -2310,7 +2386,7 @@ html:not(.cursor-active) * {
 <div id="offline-pill">Offline · cached data</div>
 
 <script>
-const DASHBOARD_BUILD = '1.4.2';
+const DASHBOARD_BUILD = '1.4.3';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -4698,8 +4774,17 @@ function customKeyId(key){return String(key||'').startsWith('custom:')?String(ke
 function customBlockKey(id){return 'custom:'+id;}
 function customBlockMin(type){return {calendarview:[300,180],weatherview:[230,130],text:[140,70],countdown:[190,90],image:[120,100],qr:[130,130],shape:[60,30],button:[120,55],rss:[220,120],iframe:[220,140],video:[220,140],json:[190,100],todo:[190,120],family:[230,160],scheduled:[180,90],daily:[180,100],airquality:[190,110],suntimes:[190,110],icon:[70,70],integration:[180,100]}[type]||[120,70];}
 function customBlockRectSanitize(block,r){
-  const [minW,minH]=customBlockMin(block?.type),vw=Math.max(1,innerWidth),vh=Math.max(1,innerHeight);let px=pxRectFromNormalized(r||block?.rect||{});
-  px.width=Math.max(minW,Math.min(vw,px.width));px.height=Math.max(minH,Math.min(vh,px.height));px.left=Math.max(0,Math.min(vw-px.width,px.left));px.top=Math.max(0,Math.min(vh-px.height,px.top));return normalizedRectFromPx(px);
+  const [minW,minH]=customBlockMin(block?.type),vp=layoutViewportSize();let px=pxRectFromNormalized(r||block?.rect||{});
+  px.width=Math.max(minW,Math.min(vp.width,px.width));px.height=Math.max(minH,Math.min(vp.height,px.height));px.left=Math.max(0,Math.min(vp.width-px.width,px.left));px.top=Math.max(0,Math.min(vp.height-px.height,px.top));return normalizedRectFromPx(px);
+}
+function customBlockRectForDisplay(block,r=block?.rect){
+  if(validStoredLayoutRect(r))return cloneLayoutRect(r);
+  if(validLayoutRect(r))return customBlockRectSanitize(block,r);
+  return customBlockRectSanitize(block,defaultBlockRect(block?.type));
+}
+function normalizeCustomBlockDraftRects(blocks){
+  for(const block of blocks||[])block.rect=customBlockRectForDisplay(block,block?.rect);
+  return blocks;
 }
 function clearCustomBlockTimers(){for(const t of customBlockTimers.values())clearInterval(t);customBlockTimers.clear();}
 function customBlockSignature(blocks){try{return JSON.stringify((blocks||[]).map(b=>({id:b.id,type:b.type,name:b.name,rect:b.rect,config:b.config})));}catch{return String(Date.now());}}
@@ -4709,7 +4794,7 @@ function applyElementInspectorStyle(el,style={}){if(!el)return;const h=['auto','
 function applyCustomBlockUniversalState(el,block){if(!el||!block)return;const c=block.config||{},active=blockScheduleActive(c),editing=layoutEditorActive,contentScale=Math.min(200,Math.max(50,Number(c._contentScale)||100))/100;el.style.setProperty('--ld-block-scale',contentScale.toFixed(3));el.style.setProperty('--ld-block-scale-inverse',(1/contentScale).toFixed(4));el.style.zIndex=String(Math.max(1,Math.min(99,Number(c._layer)||10)));el.style.opacity=String(Math.max(.2,Math.min(1,(Number(c._opacity)||100)/100))*(editing&&!active?0.32:1));el.style.display=(!editing&&!active)?'none':'';applyElementInspectorStyle(el,{hAlign:c._hAlign,vAlign:c._vAlign,fontFamily:c._fontFamily,textColor:c._textColor});el.classList.toggle('no-card',!blockCardEnabled(block));el.classList.toggle('custom-block-hidden-edit',editing&&!active);el.classList.toggle('custom-block-locked-edit',editing&&c._locked===true);}
 function updateCustomBlockUniversalStates(blocks=layoutEditorActive?layoutCustomBlocksDraft:cfg.customBlocks){for(const block of blocks||[]){const el=document.querySelector(`.custom-block[data-block-id="${CSS.escape(block.id)}"]`);applyCustomBlockUniversalState(el,block);}}
 function ensureCustomBlocksRendered(blocks=cfg.customBlocks,force=false){const sig=customBlockSignature(blocks);if(!force&&sig===customBlockRenderSignature)return;customBlockRenderSignature=sig;renderCustomBlocks(blocks);}
-function applyCustomBlockRect(el,block){if(!el||!block)return;const r=customBlockRectSanitize(block,block.rect),px=pxRectFromNormalized(r);el.style.left=px.left.toFixed(1)+'px';el.style.top=px.top.toFixed(1)+'px';el.style.width=px.width.toFixed(1)+'px';el.style.height=px.height.toFixed(1)+'px';}
+function applyCustomBlockRect(el,block){if(!el||!block)return;const r=customBlockRectForDisplay(block,block.rect),px=pxRectFromNormalized(r);el.style.left=px.left.toFixed(1)+'px';el.style.top=px.top.toFixed(1)+'px';el.style.width=px.width.toFixed(1)+'px';el.style.height=px.height.toFixed(1)+'px';}
 function blockCardHtml(block,inner){const c=block.config||{},title=String(c.title??block.name??'').trim();return `<div class="custom-block-card">${title?`<div class="custom-block-title">${escHtml(title)}</div>`:''}${inner}</div>`;}
 function renderCustomBlocks(blocks=cfg.customBlocks){
   clearCustomBlockTimers();const layer=document.getElementById('custom-block-layer');if(!layer)return;layer.innerHTML='';
@@ -5043,7 +5128,6 @@ function toggleLayoutInspectorCollapse(){const el=document.getElementById('layou
 function initLayoutInspectorDrag(){const handle=document.getElementById('layout-properties-drag-handle');if(!handle||handle.dataset.dragBound==='1')return;handle.dataset.dragBound='1';handle.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('button,input,select,label'))return;const el=document.getElementById('layout-properties');if(!el)return;const r=el.getBoundingClientRect();layoutInspectorDragState={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,left:r.left,top:r.top};el.classList.add('dragging');try{handle.setPointerCapture?.(e.pointerId);}catch{}e.preventDefault();});document.addEventListener('pointermove',e=>{const st=layoutInspectorDragState;if(!st||st.pointerId!==e.pointerId)return;setLayoutInspectorPosition(st.left+(e.clientX-st.startX),st.top+(e.clientY-st.startY),false);e.preventDefault();},{passive:false});const done=e=>{const st=layoutInspectorDragState;if(!st||st.pointerId!==e.pointerId)return;layoutInspectorDragState=null;document.getElementById('layout-properties')?.classList.remove('dragging');const r=document.getElementById('layout-properties')?.getBoundingClientRect();if(r)setLayoutInspectorPosition(r.left,r.top,true);};document.addEventListener('pointerup',done);document.addEventListener('pointercancel',done);}
 let layoutEditorActive=false;
 let layoutSessionViewport=null;
-let layoutEditorRecoveredLegacy=false;
 let layoutEditorDraft={};
 let layoutEditorOriginal=null;
 let layoutSelectedKey='';
@@ -5083,6 +5167,12 @@ function pxRectFromNormalized(r){
   return {left:(Number(r?.x)||0)*vp.width,top:(Number(r?.y)||0)*vp.height,width:(Number(r?.w)||.25)*vp.width,height:(Number(r?.h)||.15)*vp.height};
 }
 function validLayoutRect(r){return r&&[r.x,r.y,r.w,r.h].every(v=>Number.isFinite(Number(v)))&&Number(r.w)>0&&Number(r.h)>0;}
+function validStoredLayoutRect(r){
+  if(!validLayoutRect(r))return false;
+  const x=Number(r.x),y=Number(r.y),w=Number(r.w),h=Number(r.h),eps=.000001;
+  return x>=-eps&&y>=-eps&&w<=1+eps&&h<=1+eps&&x+w<=1+eps&&y+h<=1+eps;
+}
+function cloneLayoutRect(r){return {x:Number(r.x),y:Number(r.y),w:Number(r.w),h:Number(r.h)};}
 function sanitizeLayoutRect(key,r){
   const def=LAYOUT_BLOCK_DEFS[key],vp=layoutViewportSize();
   if(!def)return r;
@@ -5092,6 +5182,11 @@ function sanitizeLayoutRect(key,r){
   px.left=Math.max(0,Math.min(vp.width-px.width,px.left));
   px.top=Math.max(0,Math.min(vp.height-px.height,px.top));
   return normalizedRectFromPx(px);
+}
+function layoutRectForDisplay(key,r){
+  if(validStoredLayoutRect(r))return cloneLayoutRect(r);
+  if(validLayoutRect(r))return sanitizeLayoutRect(key,r);
+  return null;
 }
 function clearCustomLayoutStyles(){
   document.body.classList.remove('custom-layout');
@@ -5107,8 +5202,8 @@ function clearCustomLayoutStyles(){
   if(legend){for(const p of ['left','top','right','width'])legend.style.removeProperty(p);}
 }
 function applyOneLayoutRect(key,r){
-  const def=LAYOUT_BLOCK_DEFS[key],el=document.querySelector(def.selector);if(!def||!el||!validLayoutRect(r))return;
-  const clean=sanitizeLayoutRect(key,r),px=pxRectFromNormalized(clean);
+  const def=LAYOUT_BLOCK_DEFS[key],el=def?document.querySelector(def.selector):null,clean=def?layoutRectForDisplay(key,r):null;if(!def||!el||!clean)return;
+  const px=pxRectFromNormalized(clean);
   el.style.position='fixed';
   el.style.left=px.left.toFixed(1)+'px';
   el.style.top=px.top.toFixed(1)+'px';
@@ -5150,6 +5245,13 @@ function clockFitScale(el){
   const needH=Math.max(1,el.scrollHeight);
   return clampLayoutFit(Math.min((el.clientWidth-2)/needW,(el.clientHeight-2)/needH));
 }
+function syncWeatherDetailsArrangeGrid(el){
+  if(!el)return 0;
+  const count=el.querySelectorAll(':scope > .wx-detail').length;if(!count)return 0;
+  const cols=weatherDetailColumnCount(count),value=`repeat(${cols},minmax(0,1fr))`;
+  if(el.style.gridTemplateColumns!==value)el.style.gridTemplateColumns=value;
+  return cols;
+}
 function weatherDetailsFitScale(el){
   if(!el||el.clientWidth<2||el.clientHeight<2)return 1;
   const cells=[...el.querySelectorAll(':scope > .wx-detail')];if(!cells.length)return 1;
@@ -5165,6 +5267,7 @@ function updateBuiltInLayoutAutoFit(){
   builtInLayoutAutoFitRaf=0;
   if(!document.body.classList.contains('custom-layout')){clearBuiltInLayoutAutoFit();return;}
   const current=document.querySelector('.wx-main'),clock=document.getElementById('clock-block'),details=document.querySelector('.wx-details');
+  if(details)syncWeatherDetailsArrangeGrid(details);
   if(current)current.style.setProperty('--ld-layout-fit-current','1');if(clock)clock.style.setProperty('--ld-layout-fit-clock','1');if(details)details.style.setProperty('--ld-layout-fit-details','1');
   void document.documentElement.offsetHeight;
   if(current)current.style.setProperty('--ld-layout-fit-current',currentWeatherFitScale(current).toFixed(4));
@@ -5202,7 +5305,8 @@ function gridTrackPixels(el){
 function defaultFineBlockFallback(key){
   const vp=layoutViewportSize(),leftEl=document.getElementById('wx-left'),rightEl=document.getElementById('wx-right');
   const left=leftEl?.getBoundingClientRect(),right=rightEl?.getBoundingClientRect(),ui=uiCfg();
-  const side=Number(ui.sidePaddingPx)||28,calH=Number(ui.calendarBandHeight)||150,bottomH=Number(ui.bottomPanelHeight)||330;
+  const side=Number(ui.sidePaddingPx)||28,calH=Number(ui.calendarBandHeight)||150,bottomH=Number(ui.bottomPanelHeight)||330,leftW=Math.min(vp.width-side*2,Number(ui.leftPanelWidth)||470),gap=22;
+  const bottomTop=Math.max(calH+20,vp.height-bottomH),rightLeft=Math.min(vp.width-side,side+leftW+gap),rightWidth=Math.max(280,vp.width-rightLeft-side),rowGap=Math.max(4,Number(ui.forecastRowGapPx)||18),rightRowH=Math.max(80,(bottomH-24-rowGap)/2);
   if(key==='calendar')return {left:0,top:0,width:vp.width,height:calH};
   if(left&&left.width>10){
     if(key==='current'){
@@ -5218,11 +5322,16 @@ function defaultFineBlockFallback(key){
       return r&&r.width>10&&r.height>10?{left:r.left,top:r.top,width:r.width,height:r.height}:{left:left.left,top:Math.max(left.top,left.bottom-76),width:left.width,height:76};
     }
   }
+  if(key==='current')return {left:side,top:bottomTop,width:Math.min(180,leftW*.40),height:Math.max(120,bottomH-104)};
+  if(key==='clock')return {left:side+Math.min(200,leftW*.43),top:bottomTop,width:Math.max(190,leftW-Math.min(200,leftW*.43)),height:Math.max(105,bottomH-104)};
+  if(key==='details')return {left:side,top:Math.max(bottomTop,vp.height-92),width:leftW,height:68};
   if(right&&right.width>10){
     const d=document.getElementById('wx-forecast')?.getBoundingClientRect(),h=document.getElementById('wx-hourly-block')?.getBoundingClientRect();
     if(key==='daily'&&d&&d.width>10&&d.height>10)return {left:d.left,top:d.top,width:d.width,height:d.height};
     if(key==='hourly'&&h&&h.width>10&&h.height>10)return {left:h.left,top:h.top,width:h.width,height:h.height};
   }
+  if(key==='daily')return {left:rightLeft,top:bottomTop,width:Math.min(rightWidth,vp.width-rightLeft),height:rightRowH};
+  if(key==='hourly')return {left:rightLeft,top:Math.min(vp.height-rightRowH,bottomTop+rightRowH+rowGap),width:Math.min(rightWidth,vp.width-rightLeft),height:rightRowH};
   if(key==='alerts'){
     const top=calH+(ui.calendarLegend?36:14),bottom=bottomH+30;
     return {left:side,top,width:Math.max(360,vp.width-side*2),height:Math.max(110,vp.height-top-bottom)};
@@ -5255,37 +5364,24 @@ function measureDefaultLayoutRects(){
   if(legend){if(legendStyle==null)legend.removeAttribute('style');else legend.setAttribute('style',legendStyle);}
   if(wasCustom)document.body.classList.add('custom-layout');
   if(cfg.layoutMode==='custom')applyCustomLayout(cfg);
+  for(const key of Object.keys(LAYOUT_BLOCK_DEFS)){
+    if(validStoredLayoutRect(out[key]))continue;
+    const fallback=defaultFineBlockFallback(key);
+    if(fallback)out[key]=sanitizeLayoutRect(key,normalizedRectFromPx(fallback));
+  }
   return out;
 }
-function normalizedRectOverlapRatio(a,b){
-  if(!validLayoutRect(a)||!validLayoutRect(b))return 0;
-  const ar=pxRectFromNormalized(a),br=pxRectFromNormalized(b),left=Math.max(ar.left,br.left),top=Math.max(ar.top,br.top),right=Math.min(ar.left+ar.width,br.left+br.width),bottom=Math.min(ar.top+ar.height,br.top+br.height);
-  if(right<=left||bottom<=top)return 0;
-  return ((right-left)*(bottom-top))/Math.max(1,Math.min(ar.width*ar.height,br.width*br.height));
-}
-function legacyBuiltInCollisionCount(rects){
-  const pairs=[['current','clock'],['current','details'],['clock','details'],['daily','hourly']];
-  return pairs.reduce((n,[a,b])=>n+(normalizedRectOverlapRatio(rects?.[a],rects?.[b])>.12?1:0),0);
-}
 function ensureLayoutDraft(){
-  layoutEditorRecoveredLegacy=false;
   const defaults=measureDefaultLayoutRects();
   if(!(cfg.layoutMode==='custom'&&cfg.layoutBlocks&&Object.keys(cfg.layoutBlocks).length))return defaults;
-  const out={};let suspicious=0,comparable=0;
-  for(const [key,def] of Object.entries(LAYOUT_BLOCK_DEFS)){
+  const out={};
+  for(const key of Object.keys(LAYOUT_BLOCK_DEFS)){
     const saved=cfg.layoutBlocks[key];
-    if(!validLayoutRect(saved)){out[key]=defaults[key];continue;}
-    const clean=sanitizeLayoutRect(key,saved),px=pxRectFromNormalized(clean),base=defaults[key]?pxRectFromNormalized(defaults[key]):null;
-    out[key]=clean;
-    if(base&&['current','clock','details','daily','hourly'].includes(key)){
-      comparable++;
-      const pinnedToMinimum=px.width<=def.minW+1||px.height<=def.minH+1;
-      const muchSmaller=px.width*px.height<base.width*base.height*.42;
-      if(pinnedToMinimum&&muchSmaller)suspicious++;
-    }
+    if(validStoredLayoutRect(saved)){out[key]=cloneLayoutRect(saved);continue;}
+    if(validStoredLayoutRect(defaults[key])){out[key]=cloneLayoutRect(defaults[key]);continue;}
+    const fallback=defaultFineBlockFallback(key);
+    if(fallback)out[key]=sanitizeLayoutRect(key,normalizedRectFromPx(fallback));
   }
-  const collisionCount=legacyBuiltInCollisionCount(out);
-  if((comparable>=4&&suspicious>=3)||collisionCount>=2){layoutEditorRecoveredLegacy=true;return defaults;}
   return out;
 }
 function layoutSnapPx(v){
@@ -5300,11 +5396,21 @@ function editorSnapPx(v){
 function renderLayoutEditorBoxes(){
   const layer=document.getElementById('layout-editor-layer');if(!layer)return;
   layer.innerHTML='';
+  const entries=[];
   for(const [key,def] of Object.entries(LAYOUT_BLOCK_DEFS)){
-    const r=layoutEditorDraft[key];if(!r)continue;
-    appendLayoutEditBox(layer,key,def.label,r);
+    let r=layoutEditorDraft[key];
+    if(!validStoredLayoutRect(r)){
+      const fallback=defaultFineBlockFallback(key);if(!fallback)continue;
+      r=sanitizeLayoutRect(key,normalizedRectFromPx(fallback));layoutEditorDraft[key]=r;
+    }
+    entries.push({key,label:def.label,r});
   }
-  for(const b of layoutCustomBlocksDraft){appendLayoutEditBox(layer,customBlockKey(b.id),b.name||BLOCK_TYPE_INFO[b.type]?.name||'Block',b.rect);}
+  for(const b of layoutCustomBlocksDraft){
+    b.rect=customBlockRectForDisplay(b,b.rect);
+    entries.push({key:customBlockKey(b.id),label:b.name||BLOCK_TYPE_INFO[b.type]?.name||'Block',r:b.rect});
+  }
+  entries.sort((a,b)=>(Number(b.r.w)*Number(b.r.h))-(Number(a.r.w)*Number(a.r.h)));
+  for(const item of entries)appendLayoutEditBox(layer,item.key,item.label,item.r);
   refreshLayoutToolbarBlockOptions();
   updateLayoutSelectedInfo();
 }
@@ -5312,7 +5418,7 @@ function appendLayoutEditBox(layer,key,label,r){const px=pxRectFromNormalized(r)
 function refreshLayoutToolbarBlockOptions(){const picker=document.getElementById('layout-toolbar-block');if(!picker)return;const current=layoutSelectedKey;picker.innerHTML='<option value="">Choose…</option>'+Object.entries(LAYOUT_BLOCK_DEFS).map(([k,d])=>`<option value="${k}">${escHtml(d.label)}</option>`).join('')+(layoutCustomBlocksDraft.length?'<optgroup label="Added blocks">'+layoutCustomBlocksDraft.map(b=>`<option value="${customBlockKey(b.id)}">${escHtml(b.name||BLOCK_TYPE_INFO[b.type]?.name||'Block')}</option>`).join('')+'</optgroup>':'');picker.value=current||'';}
 function layoutEditorRectForKey(key){const id=customKeyId(key);if(id)return customBlockById(id,layoutCustomBlocksDraft)?.rect||null;return layoutEditorDraft[key]||null;}
 function layoutEditorDefForKey(key){const id=customKeyId(key);if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return null;const [minW,minH]=customBlockMin(b.type);return {label:b.name||BLOCK_TYPE_INFO[b.type]?.name||'Block',minW,minH,custom:true,block:b,locked:b.config?._locked===true};}return LAYOUT_BLOCK_DEFS[key]||null;}
-function setLayoutEditorRectForKey(key,r){const id=customKeyId(key);if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(b){b.rect=customBlockRectSanitize(b,r);const el=document.querySelector(`.custom-block[data-block-id="${CSS.escape(id)}"]`);applyCustomBlockRect(el,b);}return;}layoutEditorDraft[key]=sanitizeLayoutRect(key,r);applyOneLayoutRect(key,layoutEditorDraft[key]);}
+function setLayoutEditorRectForKey(key,r){const id=customKeyId(key);if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(b){b.rect=validStoredLayoutRect(r)?cloneLayoutRect(r):customBlockRectSanitize(b,r);const el=document.querySelector(`.custom-block[data-block-id="${CSS.escape(id)}"]`);applyCustomBlockRect(el,b);}return;}layoutEditorDraft[key]=validStoredLayoutRect(r)?cloneLayoutRect(r):sanitizeLayoutRect(key,r);applyOneLayoutRect(key,layoutEditorDraft[key]);}
 function selectedPartDefs(){const id=customKeyId(layoutSelectedKey);if(id){const b=customBlockById(id,layoutCustomBlocksDraft);return b?customLayoutPartDefs(b.type):[];}return LAYOUT_PART_DEFS[layoutSelectedKey]||[];}
 function selectedPartDefinition(){return selectedPartDefs().find(x=>x.key===layoutSelectedPart)||null;}
 function selectedPartStyle(){if(layoutSelectedPart==='whole')return normalizePartStyleValue({});const id=customKeyId(layoutSelectedKey);if(id){const b=customBlockById(id,layoutCustomBlocksDraft);return normalizePartStyleValue(b?.config?._partStyles?.[layoutSelectedPart]||{});}return normalizePartStyleValue(layoutPartStyleDraft?.[layoutSelectedKey]?.[layoutSelectedPart]||{});}
@@ -5355,7 +5461,7 @@ function updateLayoutSelectedInfo(){
   const selectedRect=layoutEditorRectForKey(layoutSelectedKey),def=layoutEditorDefForKey(layoutSelectedKey),has=!!(layoutSelectedKey&&selectedRect&&def);control?.classList.toggle('layout-prop-disabled',!has);if(range)range.disabled=!has;if(scaleNumber)scaleNumber.disabled=!has;refreshLayoutPartPicker();
   const partDef=selectedPartDefinition(),partMode=has&&layoutSelectedPart!=='whole'&&!!partDef;document.getElementById('layout-part-advanced')?.toggleAttribute('hidden',!partMode);document.getElementById('layout-v-section')?.toggleAttribute('hidden',partMode);document.getElementById('layout-place-section')?.toggleAttribute('hidden',partMode);
   const scopeLabel=document.getElementById('layout-part-scope-label'),sizeLabel=document.getElementById('layout-size-label'),typoScope=document.getElementById('layout-typography-scope'),hLabel=document.getElementById('layout-h-label'),hScope=document.getElementById('layout-h-scope'),opacityLabel=document.getElementById('layout-opacity-label');if(scopeLabel)scopeLabel.textContent=partMode?partDef.label:'Whole element';if(sizeLabel)sizeLabel.textContent=partMode?'Section text size':'Content size';if(typoScope)typoScope.textContent=partMode?'Selected section':'Per element';if(hLabel)hLabel.textContent=partMode?'Text alignment':'Horizontal content';if(hScope)hScope.textContent=partMode?'Selected section':'Inside block';if(opacityLabel)opacityLabel.textContent=partMode?'Section opacity':'Element opacity';
-  if(!has){if(range)range.value='100';if(scaleNumber)scaleNumber.value='100';if(value)value.textContent='100%';el.textContent=layoutEditorRecoveredLegacy?'Recovered invalid legacy geometry · Save to keep repaired positions or Cancel to preserve the old saved layout':'Select an element · drag to move · corner to resize';if(title)title.textContent='Element inspector';if(subtitle)subtitle.textContent=layoutEditorRecoveredLegacy?'The previous arrangement contained several collapsed minimum-size blocks, so this draft started from the real dashboard positions.':'Select an element to customize its contents.';return;}
+  if(!has){if(range)range.value='100';if(scaleNumber)scaleNumber.value='100';if(value)value.textContent='100%';el.textContent='Select an element · drag to move · corner to resize';if(title)title.textContent='Element inspector';if(subtitle)subtitle.textContent='Select an element to customize its contents.';return;}
   const px=pxRectFromNormalized(selectedRect),scale=selectedContentScale(),st=selectedLayoutStyle();if(range)range.value=String(scale);if(scaleNumber)scaleNumber.value=String(scale);if(value)value.textContent=scale+'%';if(title)title.textContent=def.label;if(subtitle)subtitle.textContent=partMode?`${partDef.label} · ${Math.round(px.width)} × ${Math.round(px.height)} px element`:`${Math.round(px.width)} × ${Math.round(px.height)} px · content ${scale}%`;
   const font=document.getElementById('layout-style-font');if(font)font.value=st.fontFamily||'';const color=document.getElementById('layout-style-color'),hex=document.getElementById('layout-style-color-hex');if(color)color.value=st.textColor||normalizeHexColor(cfg.primaryTextColor,'#ffffff');if(hex)hex.value=st.textColor?st.textColor.toUpperCase():'Theme';const opacity=document.getElementById('layout-style-opacity'),ov=document.getElementById('layout-style-opacity-value');if(opacity)opacity.value=String(st.opacity);if(ov)ov.textContent=st.opacity+'%';
   for(const h of ['auto','left','center','right'])document.getElementById('layout-h-'+h)?.classList.toggle('active',st.hAlign===h);for(const v of ['auto','top','middle','bottom'])document.getElementById('layout-v-'+v)?.classList.toggle('active',st.vAlign===v);
@@ -5363,10 +5469,9 @@ function updateLayoutSelectedInfo(){
   el.textContent=partMode?`${def.label} · ${partDef.label} · ${scale}%`:`${def.label} · ${Math.round(px.width)}×${Math.round(px.height)} · ${scale}%`;
 }
 function beginLayoutPointer(e){
-  pushLayoutHistory();
   if(!layoutEditorActive)return;
   const box=e.currentTarget,key=box.dataset.layoutKey,r=layoutEditorRectForKey(key);if(!r)return;
-  selectLayoutBlock(key);const def=layoutEditorDefForKey(key);if(def?.locked){e.preventDefault();return;}box.setPointerCapture?.(e.pointerId);
+  selectLayoutBlock(key);const def=layoutEditorDefForKey(key);if(def?.locked){e.preventDefault();return;}pushLayoutHistory();box.setPointerCapture?.(e.pointerId);
   const px=pxRectFromNormalized(r);
   layoutPointerState={key,mode:e.target?.dataset?.resize?('resize-'+e.target.dataset.resize):'move',pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,start:px};
   e.preventDefault();
@@ -5401,7 +5506,7 @@ function startLayoutEditor(){
   if(layoutEditorActive)return;
   refreshLayoutSessionViewport();
   layoutEditorOriginal={layoutMode:cfg.layoutMode,layoutBlocks:JSON.parse(JSON.stringify(cfg.layoutBlocks||{})),layoutContentScale:JSON.parse(JSON.stringify(cfg.layoutContentScale||{})),layoutElementStyle:JSON.parse(JSON.stringify(cfg.layoutElementStyle||{})),layoutPartStyle:JSON.parse(JSON.stringify(cfg.layoutPartStyle||{})),layoutGridPx:cfg.layoutGridPx,layoutSnap:cfg.layoutSnap};
-  layoutCustomBlocksOriginal=JSON.parse(JSON.stringify(cfg.customBlocks||[]));layoutCustomBlocksDraft=JSON.parse(JSON.stringify(cfg.customBlocks||[]));
+  layoutCustomBlocksOriginal=JSON.parse(JSON.stringify(cfg.customBlocks||[]));layoutCustomBlocksDraft=normalizeCustomBlockDraftRects(JSON.parse(JSON.stringify(cfg.customBlocks||[])));
   layoutEditorDraft=ensureLayoutDraft();layoutContentScaleDraft=JSON.parse(JSON.stringify(cfg.layoutContentScale||{}));layoutElementStyleDraft=JSON.parse(JSON.stringify(cfg.layoutElementStyle||{}));layoutPartStyleDraft=JSON.parse(JSON.stringify(cfg.layoutPartStyle||{}));layoutSelectedKey='';layoutSelectedPart='whole';layoutEditorActive=true;layoutScaleEditActive=false;layoutStyleEditField='';layoutPartFineEditField='';layoutUndoStack=[];layoutRedoStack=[];updateLayoutHistoryButtons();
   cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));
   document.body.classList.add('custom-layout','layout-editing');
@@ -5415,7 +5520,6 @@ function startLayoutEditor(){
   const blockSel=document.getElementById('layout-toolbar-block');if(blockSel)blockSel.value='';
   const snapEl=document.getElementById('layout-toolbar-snap');if(snapEl)snapEl.checked=snap;
   setLayoutEditorGrid(grid);setLayoutEditorSnap(snap);applyLayoutEditorContentScalePreview();renderLayoutEditorBoxes();
-  if(layoutEditorRecoveredLegacy){const info=document.getElementById('layout-selected-info');if(info)info.textContent='Recovered an invalid legacy arrangement · Save to keep the repaired positions or Cancel to leave the saved layout unchanged';}
   document.addEventListener('pointermove',moveLayoutPointer,{passive:false});document.addEventListener('pointerup',endLayoutPointer);
 }
 let remoteLayoutProxyActive=false;
@@ -5632,7 +5736,7 @@ function stopLayoutEditorUi(){
   document.body.classList.remove('layout-editing');
   const layer=document.getElementById('layout-editor-layer'),toolbar=document.getElementById('layout-toolbar'),props=document.getElementById('layout-properties');
   layer?.classList.remove('show','grid-on');toolbar?.classList.remove('show');props?.classList.remove('show');layer?.setAttribute('aria-hidden','true');toolbar?.setAttribute('aria-hidden','true');props?.setAttribute('aria-hidden','true');
-  if(layer)layer.innerHTML='';closeBlockCatalog();document.getElementById('block-config-modal')?.classList.remove('show');layoutCustomBlocksDraft=[];layoutContentScaleDraft={};layoutElementStyleDraft={};layoutPartStyleDraft={};layoutSelectedPart='whole';layoutScaleEditActive=false;layoutStyleEditField='';layoutPartFineEditField='';layoutInspectorDragState=null;layoutEditorRecoveredLegacy=false;layoutSessionViewport=null;
+  if(layer)layer.innerHTML='';closeBlockCatalog();document.getElementById('block-config-modal')?.classList.remove('show');layoutCustomBlocksDraft=[];layoutContentScaleDraft={};layoutElementStyleDraft={};layoutPartStyleDraft={};layoutSelectedPart='whole';layoutScaleEditActive=false;layoutStyleEditField='';layoutPartFineEditField='';layoutInspectorDragState=null;layoutSessionViewport=null;
   document.removeEventListener('pointermove',moveLayoutPointer);document.removeEventListener('pointerup',endLayoutPointer);
 }
 function saveLayoutEditor(){
@@ -6780,6 +6884,7 @@ function openSetup(startWizard=false){
   const searchStatus=document.getElementById('settings-search-status');if(searchStatus){searchStatus.style.display='none';searchStatus.textContent='';}
   loadSettingsViewMode();
   enhanceSettingsSections();
+  enhanceSettingsControlHelp();
   let rememberedTab='overview';
   try{rememberedTab=sessionStorage.getItem('libredisplay_settings_tab')||'overview';}catch(e){}
   switchSettingsTab(rememberedTab,false);
@@ -6875,10 +6980,13 @@ function updateSettingsPageHeader(searchQuery=''){
 }
 const SETTINGS_SECTION_SUMMARIES={
   'settings-overview':'Health checks and the most common dashboard actions.',
+  'settings-about':'Version, project identity and local-first behavior.',
   'settings-endpoints':'Create and manage independent screen endpoints from one server.',
   'settings-remote':'Manage LibreDisplay from another device on your trusted network.',
+  'settings-users':'Create local accounts and control which displays each role can manage.',
   'settings-profiles':'Save and switch complete dashboard configurations.',
   'settings-scenes':'Schedule saved Profiles by display, day and time.',
+  'settings-family':'Household members, chores, rewards and touch-mode protection.',
   'settings-location':'Weather location and the label shown on the dashboard.',
   'settings-calendars':'Calendar feeds, imported files, refresh behavior and display priority.',
   'settings-alerts':'Enable severe-weather alerts and control their motion.',
@@ -6896,6 +7004,141 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-software-update':'Check the installed release and see the one-command update instruction.',
   'settings-utilities':'Backup, restore, cache, diagnostics and recovery tools.'
 };
+const SETTINGS_CONTROL_HELP={
+  'settings-section-select':'Jump directly to a section in the current Settings category without changing any values.',
+  'account-username':'The local sign-in name for this account. Usernames are stored on your LibreDisplay server, not in a cloud account.',
+  'account-role':'Owner can manage the server and all displays. Viewer access is intended for limited display management and can be restricted to endpoint IDs.',
+  'account-password':'Sets or replaces this local account password. Leaving it blank while editing an existing user keeps the current password.',
+  'account-endpoints':'Comma-separated display endpoint IDs this non-owner account may manage. Owners automatically have access to every display.',
+  's-profile-select':'Choose a saved dashboard profile to load, rename, update or use as the base for a scheduled scene.',
+  's-profile-name':'The friendly name stored with this dashboard profile. Profiles capture presentation and content configuration for later reuse.',
+  'scene-automatic':'When enabled, LibreDisplay evaluates scene schedules and switches profiles automatically for the selected display and time.',
+  'scene-base-profile':'The profile used whenever no scheduled scene currently matches. This prevents the dashboard from being left in an old scene.',
+  'family-members-editor':'One household member per line using Name|emoji. The emoji is optional and is shown in Family blocks and touch views.',
+  'family-chores-editor':'One chore per line. Use Chore|member|points|recurrence|days so LibreDisplay can assign points and decide when the chore appears.',
+  'family-rewards-editor':'One reward per line using Reward|cost|member. Omit member when a reward should be available to everyone.',
+  'family-pin':'Protects owner-only Family actions on touch displays. Use 4–12 digits and keep it separate from account passwords.',
+  's-city':'The city or place used to resolve coordinates for weather data. More specific locations usually produce more accurate forecasts.',
+  's-locname':'Optional friendly text shown for the weather location. This changes the display label only, not the coordinates used for weather.',
+  's-calendar-refresh':'How often LibreDisplay checks enabled calendar feeds for changes. Shorter intervals update sooner but make more network requests.',
+  's-calendar-time-style':'Controls whether calendar items show only their start time or a start–end range when an end time is available.',
+  's-calendar-legend':'Shows a color legend below the calendar band so multiple calendar sources are easier to identify at a glance.',
+  's-calendar-show-continuation':'Adds a Continues marker to multi-day events carried over from an earlier day, making long events easier to distinguish.',
+  's-alerts-enabled':'Turns live severe-weather alerts on or off. Disabling this does not disable the normal weather forecast.',
+  's-alert-show-expiry':'Shows when a live alert is expected to expire when the provider supplies an expiry time.',
+  's-alert-show-meta':'Shows secondary alert information such as affected area and source. Hide it when you want a simpler alert card.',
+  's-bg-source':'Selects where dashboard background images come from: stock imagery, Google Photos, local/NAS folders, or another supported source.',
+  's-stock-category':'Chooses the built-in stock-photo theme used when the background source is set to stock images.',
+  's-stock-query':'Overrides the stock category with your own search phrase. Keep the phrase broad for a healthier photo rotation.',
+  's-stock-resolution':'Requests a preferred stock-image resolution. Choose a size close to the wall display resolution to balance sharpness and bandwidth.',
+  's-media-folders':'One local or mounted NAS directory per line. LibreDisplay scans these paths for supported image files when folder backgrounds are enabled.',
+  's-media-recursive':'Also scans folders below each configured picture directory. Enable this when your photo library is organized into subfolders.',
+  's-photo-interval':'How long each background remains visible before LibreDisplay advances to the next picture.',
+  's-photo-random-start':'Starts each browser session at a different position in the photo list instead of always beginning with the first image.',
+  's-unit':'Sets Fahrenheit or Celsius for current weather, daily forecasts and hourly forecasts.',
+  's-weather-refresh':'How often LibreDisplay requests fresh weather data. A shorter interval updates sooner but uses more network/API traffic.',
+  's-bg-top':'Darkens or lightens the upper portion of the background overlay so calendar text remains readable over bright photos.',
+  's-bg-bottom':'Darkens or lightens the lower portion of the background overlay behind weather, clock and forecast content.',
+  's-bg-transition':'Controls the cross-fade duration when the background image changes. Set lower for faster transitions or higher for a softer slideshow.',
+  's-bg-position':'Chooses which part of a photo is favored when Cover cropping is used. Useful when important subjects are near an edge.',
+  's-font-family':'Sets the default dashboard typeface. Per-element typography overrides made in Arrange can still replace it.',
+  's-locale':'Controls language-sensitive date and time formatting. It does not change weather source data or your configured time zone.',
+  's-cog-position':'Moves the Settings button to a different screen corner without changing the dashboard layout itself.',
+  's-cog-size':'Changes the clickable Settings button size. Larger values are easier to use on touch displays.',
+  's-cog-opacity':'Controls how visible the Settings button is while idle. It becomes more visible when the pointer is active.',
+  's-cog-label':'Shows a small Settings hint during hover or first discovery so new users can find the configuration menu more easily.',
+  's-appearance-preset':'Applies a coordinated presentation starting point. You can continue adjusting individual controls afterward.',
+  's-secondary-opacity':'Changes the strength of secondary labels and supporting text without changing the primary dashboard values.',
+  's-text-shadow':'Adjusts the shadow behind dashboard text. More shadow can improve readability over busy or bright backgrounds.',
+  's-text-color':'Sets the dashboard primary text color. Theme colors and per-element Arrange overrides can still affect individual content.',
+  's-text-hex':'Enter the same primary text color as a hexadecimal value when you need an exact color.',
+  's-ui-calendar':'Scales calendar text globally. Arrange can override the Calendar element or individual calendar text sections afterward.',
+  's-ui-current':'Scales the Current Weather element content globally without changing its Arrange rectangle.',
+  's-ui-clock':'Scales Clock & Date content globally without changing the outer Arrange rectangle.',
+  's-ui-forecast':'Scales both Daily and Hourly forecast typography globally. Each forecast can still be edited separately in Arrange.',
+  's-ui-details':'Scales Weather Details labels, icons and values globally. Arrange can override the Weather Details element afterward.',
+  's-ui-alert':'Scales text and icons inside Weather Alert cards. Alert-card height is controlled separately under Content.',
+  's-calendar-height':'Changes the default height reserved for the calendar band. Saved custom Arrange rectangles take priority once a custom layout is active.',
+  's-bottom-height':'Changes the default vertical space reserved for weather, clock and forecasts before a custom Arrange layout is used.',
+  's-left-width':'Changes the default width of the weather/clock information area. Custom Arrange positions take priority when saved.',
+  's-side-padding':'Adds or removes breathing room along the left and right edges of the default dashboard layout.',
+  's-forecast-gap':'Changes horizontal space between forecast columns. Reduce it when many forecast periods must fit on a smaller display.',
+  's-forecast-row-gap':'Changes vertical space between the Daily and Hourly forecast rows in the default layout.',
+  's-hourly-hours':'Sets how many upcoming hourly forecast periods are rendered. More hours require more horizontal space.',
+  's-daily-days':'Sets how many daily forecast columns are rendered. Choose fewer days for larger, less crowded forecast content.',
+  's-calendar-days':'Sets how many calendar days are loaded into the dashboard calendar band.',
+  's-calendar-columns':'Sets how many calendar day columns are visible per row before additional days continue vertically.',
+  's-calendar-cell-height':'Sets the vertical space available to each calendar row. Increase it when showing more events per day.',
+  's-layout-snap':'When enabled, dragging and resizing in Arrange lands on the selected grid spacing. Turn it off for pixel-level placement.',
+  's-time-format':'Chooses 12-hour or 24-hour clock formatting for the dashboard clock.',
+  's-date-format':'Chooses how the date under the clock is written. This changes presentation only.',
+  's-show-no-events':'Shows No events inside empty calendar days. Disable it for a quieter calendar when many days are empty.',
+  's-show-event-times':'Shows calendar event start times. Disable it when event titles are more important than exact times.',
+  's-show-daily':'Shows or hides the Daily Forecast block. Hiding it does not delete its saved Arrange geometry.',
+  's-show-hourly':'Shows or hides the Hourly Forecast block. Hiding it does not delete its saved Arrange geometry.',
+  's-show-precip':'Shows precipitation probability in Daily and Hourly forecast columns when weather data provides it.',
+  's-show-seconds':'Adds seconds to the dashboard clock. Disable it for a calmer display and fewer visible clock changes.',
+  's-show-ampm':'Shows AM/PM when the clock uses 12-hour time. This setting has no effect in 24-hour mode.',
+  's-show-date':'Shows the formatted date beneath the clock. The date format is controlled separately.',
+  's-show-current-icon':'Shows the large current-condition weather icon beside the Current Weather values.',
+  'integration-directory-category':'Filters the integration directory by provider category without changing any configured integrations.',
+  'integration-directory-state':'Filters the integration directory to all, configured, or not-yet-configured providers.',
+  'integration-directory-search':'Searches installed integration providers by name and description. It does not contact external services.',
+  's-alert-test':'Creates simulated weather alerts locally so you can preview alert layout and motion without waiting for a real warning.',
+  's-alert-size':'Changes the vertical space used by each alert card. Text size is controlled separately in Arrange.',
+  's-alert-motion':'Choose stepped rotation, continuous scrolling when needed, or a static alert list.',
+  's-alert-motion-speed':'Sets the continuous-scroll speed in pixels per second. It is used only when Alert motion is Continuous.',
+  's-alert-scroll':'Sets how long each stepped alert position remains visible before advancing.',
+  's-alert-refresh':'Sets how often LibreDisplay checks for new live weather alerts.',
+  's-alert-opacity':'Changes the alert-card surface opacity without changing text size.',
+  's-alert-min-severity':'Filters live alerts below the selected severity. Simulated test alerts remain mixed so every style can be previewed.',
+  's-photos':'The Google Photos shared-album URL used when Google Photos is selected as the background source.',
+  's-photo-order':'Controls whether background photos advance in their listed order or shuffle.',
+  's-photo-preload':'Loads the next image before the transition to reduce flashes or blank frames.',
+  's-bg-blur':'Blurs the background image only. A small blur can make foreground text easier to read over detailed photos.',
+  's-bg-fit':'Cover fills the screen and may crop edges. Contain keeps the whole image visible and may leave unused space.',
+  's-settings-ui-size':'Changes only the Settings interface size. Dashboard element sizes remain controlled separately.',
+  's-motion-preference':'Automatic follows the device preference. Reduced motion minimizes decorative animation while keeping data updates working.',
+  's-high-contrast':'Strengthens borders and secondary text contrast throughout Settings for easier visual separation.',
+  's-focus-outline':'Keeps a strong keyboard-focus ring visible when navigating Settings with Tab, Shift+Tab, Enter or Space.',
+  's-calendar-scroll-mode':'Manual keeps the calendar stationary. Slow auto-scroll moves it only when calendar content is taller than the available area.',
+  's-calendar-scroll-speed':'Sets the calendar auto-scroll speed and is used only when Calendar overflow is set to Slow auto-scroll.',
+  's-calendar-max-events':'Limits the number of calendar entries shown in each day cell before the remaining events are omitted from that cell.',
+  's-layout-grid':'Sets the movement/resizing grid used by Arrange when Snap is enabled. Smaller values allow finer placement.',
+  's-settings-search':'Searches setting names, section summaries, aliases and context-help text across every Settings category.'
+};
+
+function settingsControlLabel(control){
+  if(!(control instanceof Element))return null;
+  const escaped=window.CSS?.escape?CSS.escape(control.id||''):String(control.id||'').replace(/[^a-zA-Z0-9_-]/g,'');
+  return control.closest('label')||(escaped?document.querySelector(`label[for="${escaped}"]`):null)||control.closest('.s-row')?.querySelector(':scope > label')||null;
+}
+function cleanSettingsLabelText(label){
+  if(!label)return 'Setting';
+  const clone=label.cloneNode(true);
+  clone.querySelectorAll('.help-tip,.range-value').forEach(el=>el.remove());
+  return String(clone.textContent||'Setting').replace(/\s+/g,' ').trim().replace(/[—:-]+$/,'')||'Setting';
+}
+function makeSettingsHelpButton(title,help,auto=true){
+  const btn=document.createElement('button');
+  btn.type='button';btn.className='help-tip'+(auto?' settings-auto-help':'');btn.textContent='?';
+  btn.dataset.help=String(help||'').trim();btn.dataset.helpTitle=String(title||'Setting').trim();
+  btn.setAttribute('aria-label',`${btn.dataset.helpTitle} help`);btn.setAttribute('aria-expanded','false');btn.setAttribute('aria-controls','context-help-popover');
+  return btn;
+}
+function enhanceSettingsControlHelp(){
+  for(const [id,help] of Object.entries(SETTINGS_CONTROL_HELP)){
+    const control=document.getElementById(id);if(!control)continue;
+    const label=settingsControlLabel(control);if(!label||label.querySelector('.help-tip'))continue;
+    label.appendChild(makeSettingsHelpButton(cleanSettingsLabelText(label),help,true));
+  }
+  document.querySelectorAll('.s-section[data-settings-tab]').forEach(section=>{
+    const h=section.querySelector(':scope > h3');if(!h||h.querySelector('.help-tip'))return;
+    const title=cleanSettingsLabelText(h),help=SETTINGS_SECTION_SUMMARIES[section.id]||'';if(!help)return;
+    h.appendChild(makeSettingsHelpButton(title,help,true));
+  });
+}
+
 let activeSettingsTab='overview';
 let settingsViewMode='essential';
 let settingsSectionsEnhanced=false;
@@ -7233,8 +7476,14 @@ function showContextHelp(tip,pinned=false){
   if(contextHelpHideTimer){clearTimeout(contextHelpHideTimer);contextHelpHideTimer=null;}
   if(activeContextHelpTip&&activeContextHelpTip!==tip)activeContextHelpTip.classList.remove('help-active');
   activeContextHelpTip=tip;contextHelpPinned=!!pinned;
-  tip.classList.add('help-active');tip.setAttribute('aria-expanded','true');
-  pop.textContent=text;pop.hidden=false;
+  tip.classList.add('help-active');tip.setAttribute('aria-expanded','true');tip.setAttribute('aria-controls','context-help-popover');
+  const rawTitle=String(tip.dataset.helpTitle||tip.getAttribute('aria-label')||'Setting help').trim();
+  const title=rawTitle.replace(/\s+help$/i,'')||'Setting help';
+  pop.replaceChildren();
+  const head=document.createElement('div');head.className='context-help-title';head.textContent=title;
+  const copy=document.createElement('div');copy.className='context-help-copy';copy.textContent=text;
+  const pin=document.createElement('div');pin.className='context-help-pin';pin.textContent=pinned?'Pinned · click the ? again or press Esc to close':'Click the ? to keep this explanation open';
+  pop.append(head,copy,pin);pop.hidden=false;
   requestAnimationFrame(()=>positionContextHelp(tip));
 }
 function hideContextHelp(force=false){
@@ -7255,6 +7504,7 @@ function initContextHelp(){
   document.addEventListener('pointerout',e=>{const tip=e.target?.closest?.('.help-tip');if(tip&&!tip.contains(e.relatedTarget))scheduleHideContextHelp();});
   document.addEventListener('focusin',e=>{const tip=e.target?.closest?.('.help-tip');if(tip&&!contextHelpPinned)showContextHelp(tip,false);});
   document.addEventListener('focusout',e=>{const tip=e.target?.closest?.('.help-tip');if(tip)scheduleHideContextHelp();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&activeContextHelpTip)hideContextHelp(true);});
   document.addEventListener('click',e=>{
     const tip=e.target?.closest?.('.help-tip');
     if(tip){

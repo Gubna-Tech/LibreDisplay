@@ -484,7 +484,7 @@ class ReleaseContractTests(unittest.TestCase):
             "Math.max(.1,Math.min(1,sw/tw,sh/th))",
             "body.remote-layout-proxy #remote-layout-preview-stage{top:112px;right:350px}",
             "frame.onload=null;frame.removeAttribute('src');frame.src='about:blank';",
-            "layoutEditorRecoveredLegacy=false;layoutSessionViewport=null;",
+            "layoutInspectorDragState=null;layoutSessionViewport=null;",
             "const hadSession=layoutEditorActive||!!layoutEditorOriginal;",
         ):
             self.assertIn(marker, html)
@@ -493,10 +493,37 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertNotIn("Math.max(.1,Math.min(4,sw/tw,sh/th))", html)
         self.assertNotIn("using 1920×1080 fallback", html)
         self.assertIn("Arrange unavailable · the wall display has not reported a valid viewport yet", html)
-        self.assertIn("function legacyBuiltInCollisionCount(rects)", html)
+        self.assertNotIn("legacyBuiltInCollisionCount", html)
         self.assertIn("--ld-layout-fit-current", html)
         clock_custom = html.split("body.custom-layout #clock-block {", 1)[1].split("}", 1)[0]
         self.assertNotIn("padding:0 !important", clock_custom)
+
+    def test_v143_arrange_round_trip_and_editability_contract(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        for marker in (
+            "function validStoredLayoutRect(r)",
+            "function cloneLayoutRect(r)",
+            "function layoutRectForDisplay(key,r)",
+            "function customBlockRectForDisplay(block,r=block?.rect)",
+            "function normalizeCustomBlockDraftRects(blocks)",
+            "layoutCustomBlocksDraft=normalizeCustomBlockDraftRects",
+            "entries.sort((a,b)=>(Number(b.r.w)*Number(b.r.h))-(Number(a.r.w)*Number(a.r.h)))",
+            "daily:{selector:'#wx-forecast',label:'Daily Forecast'",
+            "hourly:{selector:'#wx-hourly-block',label:'Hourly Forecast'",
+        ):
+            self.assertIn(marker, html)
+        self.assertNotIn("layoutEditorRecoveredLegacy", html)
+        self.assertNotIn("legacyBuiltInCollisionCount", html)
+
+    def test_v143_weather_details_arrange_grid_tracks_rendered_cells(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        for marker in (
+            "function syncWeatherDetailsArrangeGrid(el)",
+            "const count=el.querySelectorAll(':scope > .wx-detail').length",
+            "const cols=weatherDetailColumnCount(count)",
+            "if(details)syncWeatherDetailsArrangeGrid(details);",
+        ):
+            self.assertIn(marker, html)
 
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
