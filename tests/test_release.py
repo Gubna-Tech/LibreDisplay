@@ -472,6 +472,20 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertNotIn("body.custom-layout .wx-details {\n  width:auto !important;", html)
         self.assertIn("body.custom-layout .wx-details {\n  width:auto;", html)
 
+    def test_v136_arrange_editor_geometry_and_close_guards(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        for marker in (
+            "function layoutVisualRect(key,el)",
+            "function gridTrackPixels(el)",
+            "const atMinimum=px.width<=def.minW+1||px.height<=def.minH+1",
+            "if(layoutEditorActive||remoteLayoutProxyActive||document.getElementById('remote-layout-preview-shell')?.classList.contains('show'))return;",
+            "let remoteLayoutPreviewSession=0;",
+            "frame.onload=null;frame.src='about:blank';",
+            "const hadSession=layoutEditorActive||!!layoutEditorOriginal;",
+        ):
+            self.assertIn(marker, html)
+        self.assertIn("session!==remoteLayoutPreviewSession||!shell.classList.contains('show')", html)
+
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
         for marker in ("bc-chart-area", "bc-chart-points", "bc-chart-grid", "function analyzeImportedSettings", "product:'LibreDisplay',format:2"):
