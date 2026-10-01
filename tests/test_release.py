@@ -186,16 +186,23 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("Google Photos provided another page", html)
         self.assertNotIn("Function('\"use strict\";return (", html)
 
-    def test_v123_settings_startup_cannot_strand_empty_shell(self):
+    def test_v124_dashboard_hydrates_before_noncritical_settings_data(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
         self.assertIn('<div id="setup" class="hidden">', html)
         self.assertIn('id="settings-init-error"', html)
         self.assertIn('function fetchWithTimeout', html)
-        self.assertIn("fetchWithTimeout(serverPath('/api/config')", html)
-        self.assertIn('Promise.allSettled([', html)
+        self.assertIn('function loadNoncriticalStartupData', html)
+        self.assertIn('Promise.allSettled(jobs)', html)
         self.assertIn('function showSettingsInitializationError', html)
         self.assertIn('switchSettingsTab(rememberedTab,false);', html)
         self.assertLess(html.index('switchSettingsTab(rememberedTab,false);'), html.index("document.getElementById('s-city').value=cfg.city||'';"))
+        self.assertIn("const res=await fetch(serverPath('/api/config'),{cache:'no-store'});", html)
+        self.assertIn("const res=await fetch(serverPath('/api/session-info'),{cache:'no-store'});", html)
+        self.assertNotIn("fetchWithTimeout(serverPath('/api/config')", html)
+        init_start = html.index('async function init(){')
+        init_end = html.index('init().catch(error=>{', init_start)
+        init_body = html[init_start:init_end]
+        self.assertLess(init_body.index('applySettings();'), init_body.index('loadNoncriticalStartupData();'))
         self.assertIn("init().catch(error=>{", html)
         self.assertIn('showSettingsInitializationError(error);', html)
 
