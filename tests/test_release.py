@@ -288,6 +288,30 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("persistCfgToServer(JSON.parse(JSON.stringify(cfg)));", html)
         self.assertIn("if(e.key==='Escape'&&activeContextHelpTip)", html)
 
+    def test_v128_settings_preview_and_navigation_cleanup(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        for marker in (
+            'id="s-preview-button"',
+            'id="settings-preview-return"',
+            'function previewDashboardFromSettings',
+            'function returnToSettingsPreview',
+            'function requestCloseSetup',
+            "settingsPreviewMode=true;",
+            "syncAlertRuntimeStateFromForm();",
+            "setTimeout(()=>restartAlertScroller(),100);",
+            "SETTINGS_SEARCH_ALIASES",
+            "settingsSectionSearchText",
+            "calander",
+            "Unsaved changes · preview only",
+            "aria-expanded",
+        ):
+            self.assertIn(marker, html)
+        self.assertNotIn("Click to collapse or expand this section", html)
+        self.assertIn('onclick="requestCloseSetup()"', html)
+        self.assertIn("if(e.key==='Escape'&&settingsPreviewMode)", html)
+        self.assertIn("if(settingsDirty&&!confirm('Discard unsaved changes?", html)
+        self.assertIn("Use Preview dashboard at the bottom of Settings", html)
+
     def test_chart_controls_and_versioned_import(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
         for marker in ("bc-chart-area", "bc-chart-points", "bc-chart-grid", "function analyzeImportedSettings", "product:'LibreDisplay',format:2"):

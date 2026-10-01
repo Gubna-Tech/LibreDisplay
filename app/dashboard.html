@@ -1184,6 +1184,12 @@ body.layout-editing .custom-block { pointer-events:none !important; user-select:
   color:rgba(255,255,255,.38);
 }
 .settings-dirty.dirty { color:#fde68a; }
+.settings-preview-button{white-space:nowrap}
+#settings-preview-return{position:fixed;left:50%;top:14px;z-index:295;display:none;align-items:center;gap:9px;transform:translateX(-50%);padding:8px 12px;border:1px solid var(--ld-border-strong);border-radius:999px;background:color-mix(in srgb,var(--ld-surface) 94%,transparent);color:var(--ld-text);box-shadow:0 10px 30px var(--ld-shadow);font:700 11px/1.1 var(--ld-app-font);cursor:pointer;backdrop-filter:blur(10px)}
+#settings-preview-return.show{display:flex}
+#settings-preview-return small{color:var(--ld-muted);font-size:9px;font-weight:550}
+#settings-preview-return:hover{border-color:var(--ld-accent);background:var(--ld-surface-2)}
+@media(max-width:620px){#settings-preview-return{top:9px;max-width:calc(100vw - 18px);border-radius:10px}#settings-preview-return small{display:none}.s-actions{flex-wrap:wrap}.settings-preview-button{flex:1 1 100%}}
 .cal-meta-row { grid-template-columns:26px minmax(0,1fr) 44px 94px 74px; }
 .cal-enabled {
   align-self:center;
@@ -1420,7 +1426,7 @@ html:not(.cursor-active) * {
  <div class="setup-box">
   <div class="setup-head">
    <div class="setup-brand"><div class="setup-brand-mark" aria-hidden="true">LD</div><div><div class="setup-eyebrow">LibreDisplay · by Gubna</div><h2>Settings &amp; configuration</h2><div class="setup-tagline">Your home. Your dashboard. Your data.</div><div id="settings-save-state" class="settings-save-state">All changes saved</div></div></div>
-   <button class="setup-close" type="button" onclick="closeSetup()" title="Close without saving" aria-label="Close settings">×</button>
+   <button class="setup-close" type="button" onclick="requestCloseSetup()" aria-label="Close settings">×</button>
   </div>
   <p class="sub">Configure the display locally or from a paired device. Settings stay on your LibreDisplay server, with a browser-local fallback for recovery.</p>
 
@@ -1507,7 +1513,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.2.7</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.2.8</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -1637,7 +1643,7 @@ html:not(.cursor-active) * {
    <div class="howto">Uses active National Weather Service alerts for the configured location (U.S.). Up to 10 alerts are shown. Test mode generates 10 simulated alerts locally so you can tune the layout at any time.</div>
    <div class="settings-grid alert-settings-grid">
     <label class="checkline"><input id="s-alerts-enabled" type="checkbox" checked onchange="handleAlertsEnabledChange()"> Enable weather alerts</label>
-    <label class="checkline"><input id="s-alert-test" type="checkbox" onchange="handleAlertTestModeChange()"> Test mode — generate 10 alerts <button class="help-tip" type="button" aria-label="Test mode help" data-help="Creates 10 simulated alerts entirely in the browser. No live alert request is required, making this useful for tuning layout and motion at any time.">?</button></label>
+    <label class="checkline"><input id="s-alert-test" type="checkbox" onchange="handleAlertTestModeChange()"> Test mode — generate 10 alerts <button class="help-tip" type="button" aria-label="Test mode help" data-help="Creates 10 simulated alerts entirely in the browser. Use Preview dashboard at the bottom of Settings to hide the menu and watch the current unsaved motion settings full-screen before you save.">?</button></label>
     <div class="s-row"><label>Alert card height <span id="s-alert-size-value" class="range-value">29%</span> <button class="help-tip" type="button" aria-label="Alert card height help" data-help="Changes the vertical space used by each alert card. It does not change alert text size; use Arrange → Weather Alerts for text sizing.">?</button></label><input id="s-alert-size" type="range" min="25" max="33" step="1" value="29" oninput="previewAlertSize(this.value)"></div>
     <div class="s-row"><label>Alert motion <button class="help-tip" type="button" aria-label="Alert motion help" data-help="Step advances card-by-card. Continuous moves the full list smoothly when it is taller than the alert area. Static disables automatic movement.">?</button></label><select id="s-alert-motion" onchange="handleAlertMotionChange()"><option value="step">Smooth step / rotate</option><option value="continuous">Continuous loop — only when needed</option><option value="static">No automatic motion</option></select></div>
     <div class="s-row"><label>Continuous scroll speed <span id="s-alert-motion-speed-value" class="range-value">36 px/s</span> <button class="help-tip" type="button" aria-label="Continuous alert speed help" data-help="Used only when Alert motion is Continuous. Higher values move the alert list faster.">?</button></label><input id="s-alert-motion-speed" type="range" min="4" max="120" step="1" value="36" oninput="previewAlertMotionSpeed(this.value)"><div class="range-ends"><span>Slow</span><span>Fast</span></div></div>
@@ -1895,7 +1901,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.2.7</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.2.8</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -1930,8 +1936,9 @@ html:not(.cursor-active) * {
 
   <div class="s-actions">
    <div id="settings-dirty" class="settings-dirty">No unsaved changes</div>
+   <button id="s-preview-button" class="btn-util settings-preview-button" type="button" onclick="previewDashboardFromSettings()">Preview dashboard</button>
    <button id="s-save-button" class="btn-save" onclick="saveSetup()">Save &amp; Apply</button>
-   <button class="btn-skip" onclick="closeSetup()">Cancel</button>
+   <button class="btn-skip" onclick="requestCloseSetup()">Cancel</button>
   </div>
  </div>
 </div>
@@ -1983,6 +1990,7 @@ html:not(.cursor-active) * {
 
 
 <button id="cog" onclick="openSetup()" title="Settings">⚙</button>
+<button id="settings-preview-return" type="button" onclick="returnToSettingsPreview()" aria-hidden="true"><span>← Return to Settings</span><small>Previewing unsaved changes</small></button>
 
 
 <div id="layout-editor-layer" aria-hidden="true"></div>
@@ -2074,7 +2082,7 @@ html:not(.cursor-active) * {
 <div id="offline-pill">Offline · cached data</div>
 
 <script>
-const DASHBOARD_BUILD = '1.2.7';
+const DASHBOARD_BUILD = '1.2.8';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -5658,8 +5666,8 @@ function markSettingsDirty(){
   settingsDirty=true;
   const badge=document.getElementById('settings-dirty');
   const state=document.getElementById('settings-save-state');
-  if(badge){badge.textContent='Unsaved changes';badge.classList.add('dirty');}
-  if(state){state.textContent='Unsaved changes';state.style.color='#fde68a';}
+  if(badge){badge.textContent='Unsaved changes · preview only';badge.classList.add('dirty');}
+  if(state){state.textContent='Unsaved changes — Save & Apply to keep them';state.style.color='#fde68a';}
 }
 function markSettingsClean(){
   settingsDirty=false;
@@ -6098,7 +6106,38 @@ async function saveSetup(){
   applySettings();
 }
 
+let settingsPreviewMode=false;
+function setSettingsPreviewReturnVisible(on){
+  const btn=document.getElementById('settings-preview-return');if(!btn)return;
+  btn.classList.toggle('show',!!on);btn.setAttribute('aria-hidden',on?'false':'true');
+}
+function previewDashboardFromSettings(){
+  const setup=document.getElementById('setup');if(!setup||setup.classList.contains('hidden'))return;
+  hideContextHelp(true);
+  syncAlertRuntimeStateFromForm();
+  settingsPreviewMode=true;
+  setup.classList.add('hidden');
+  setSettingsPreviewReturnVisible(true);
+  fetchWeatherAlerts();
+  setTimeout(()=>restartAlertScroller(),100);
+}
+function returnToSettingsPreview(){
+  if(!settingsPreviewMode)return;
+  const setup=document.getElementById('setup');
+  settingsPreviewMode=false;
+  setSettingsPreviewReturnVisible(false);
+  setup?.classList.remove('hidden');
+  setTimeout(()=>restartAlertScroller(),80);
+}
+function requestCloseSetup(){
+  if(settingsPreviewMode){returnToSettingsPreview();return;}
+  if(settingsDirty&&!confirm('Discard unsaved changes? Your dashboard will return to the last saved settings.'))return;
+  closeSetup(true);
+}
+
 function closeSetup(revertPreview=true){
+  settingsPreviewMode=false;
+  setSettingsPreviewReturnVisible(false);
   settingsInitializing=false;
   setWizardMode(false);
   document.getElementById('setup').classList.add('hidden');
@@ -6109,6 +6148,7 @@ function closeSetup(revertPreview=true){
 function skipSetup(){closeSetup();}
 
 function openSetup(startWizard=false){
+  if(settingsPreviewMode){returnToSettingsPreview();return;}
   setTimeout(()=>{loadRemoteInfo();loadCacheStatus();loadDisplayEndpoints();loadHouseholdSettings();loadIntegrationHealth();checkSoftwareUpdate(false);},0);
   settingsInitializing=true;
   clearSettingsInitializationError();
@@ -6236,14 +6276,18 @@ function enhanceSettingsSections(){
   document.querySelectorAll('.s-section[data-settings-tab]').forEach(section=>{
     const h=section.querySelector(':scope > h3');
     if(!h)return;
-    h.title='Click to collapse or expand this section';
-    h.addEventListener('click',()=>toggleSettingsSection(section.id));
+    h.removeAttribute('title');
+    h.setAttribute('role','button');
+    h.setAttribute('tabindex','0');
+    h.addEventListener('click',e=>{if(e.target?.closest?.('.help-tip'))return;toggleSettingsSection(section.id);});
+    h.addEventListener('keydown',e=>{if(e.target?.closest?.('.help-tip'))return;if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleSettingsSection(section.id);}});
     if(!section.querySelector(':scope > .section-summary')){
       const summary=document.createElement('div');summary.className='section-summary';
       summary.textContent=SETTINGS_SECTION_SUMMARIES[section.id]||'';
       h.insertAdjacentElement('afterend',summary);
     }
     if(collapsed.includes(section.id))section.classList.add('section-collapsed');
+    h.setAttribute('aria-expanded',section.classList.contains('section-collapsed')?'false':'true');
   });
 }
 function saveCollapsedSettingsSections(){
@@ -6254,10 +6298,11 @@ function toggleSettingsSection(id,force){
   const section=document.getElementById(id);if(!section)return;
   const collapsed=force===undefined?!section.classList.contains('section-collapsed'):!!force;
   section.classList.toggle('section-collapsed',collapsed);
+  section.querySelector(':scope > h3')?.setAttribute('aria-expanded',collapsed?'false':'true');
   saveCollapsedSettingsSections();
 }
 function setAllSettingsSectionsCollapsed(collapsed){
-  document.querySelectorAll('.s-section[data-settings-tab].tab-active:not(.settings-advanced-hidden)').forEach(s=>s.classList.toggle('section-collapsed',!!collapsed));
+  document.querySelectorAll('.s-section[data-settings-tab].tab-active:not(.settings-advanced-hidden)').forEach(s=>{s.classList.toggle('section-collapsed',!!collapsed);s.querySelector(':scope > h3')?.setAttribute('aria-expanded',collapsed?'false':'true');});
   saveCollapsedSettingsSections();
 }
 function settingsSectionRoleAllowed(section){return !(section?.dataset?.ownerOnly==='1'&&SESSION_ROLE!=='owner');}
@@ -6277,7 +6322,7 @@ function buildSettingsSectionJump(){
 }
 function jumpToSettingsSection(id){
   const section=document.getElementById(id);if(!section)return;
-  section.classList.remove('section-collapsed');saveCollapsedSettingsSections();
+  section.classList.remove('section-collapsed');section.querySelector(':scope > h3')?.setAttribute('aria-expanded','true');saveCollapsedSettingsSections();
   section.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function applySettingsSectionVisibility(){
@@ -6321,6 +6366,20 @@ function switchSettingsTab(tab,scrollTop=true){
   }
 }
 
+const SETTINGS_SEARCH_ALIASES={
+  'settings-calendars':'calendar calendars calander agenda events ics google proton outlook icloud',
+  'settings-alerts':'alerts warning warnings severe weather test preview rotate rotation scroll scrolling motion',
+  'settings-backgrounds':'background backgrounds picture pictures photo photos images slideshow google album nas media folder',
+  'settings-appearance':'appearance arrange layout editor inspector resize sizing font text color colour spacing alignment',
+  'settings-settings-button':'settings cog gear button corner opacity',
+  'settings-software-update':'update upgrade release version github',
+  'settings-utilities':'backup restore diagnostics recovery cache export import'
+};
+function settingsSectionSearchText(section){
+  const attrs=[...section.querySelectorAll('[data-help],[aria-label],[placeholder],[title]')].flatMap(el=>[el.dataset?.help,el.getAttribute('aria-label'),el.getAttribute('placeholder'),el.getAttribute('title')]).filter(Boolean).join(' ');
+  return `${section.textContent} ${section.id} ${section.dataset.settingsTab||''} ${SETTINGS_SECTION_SUMMARIES[section.id]||''} ${SETTINGS_SEARCH_ALIASES[section.id]||''} ${attrs}`.toLowerCase();
+}
+
 function filterSettings(value){
   const q=String(value||'').trim().toLowerCase();
   const status=document.getElementById('settings-search-status');
@@ -6333,10 +6392,10 @@ function filterSettings(value){
   let matches=0,advancedMatches=0;
   sections.forEach(section=>{
     section.classList.remove('settings-advanced-hidden');
-    const hay=(section.textContent+' '+section.id+' '+section.dataset.settingsTab+' '+(SETTINGS_SECTION_SUMMARIES[section.id]||'')).toLowerCase();
+    const hay=settingsSectionSearchText(section);
     const on=hay.includes(q);
     section.classList.toggle('tab-active',on);
-    if(on){section.classList.remove('section-collapsed');matches++;if(section.dataset.settingsLevel==='advanced')advancedMatches++;}
+    if(on){section.classList.remove('section-collapsed');section.querySelector(':scope > h3')?.setAttribute('aria-expanded','true');matches++;if(section.dataset.settingsLevel==='advanced')advancedMatches++;}
   });
   document.getElementById('settings-empty-state')?.classList.remove('show');
   if(status){
@@ -6391,6 +6450,7 @@ async function enterFullscreen(){
 
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&activeContextHelpTip){e.preventDefault();hideContextHelp(true);return;}
+  if(e.key==='Escape'&&settingsPreviewMode){e.preventDefault();returnToSettingsPreview();return;}
   if(layoutEditorActive){
     if(e.key==='Escape'){e.preventDefault();cancelLayoutEditor();return;}
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveLayoutEditor();return;}
@@ -6402,7 +6462,7 @@ document.addEventListener('keydown',e=>{
   const open=!document.getElementById('setup').classList.contains('hidden');
   if(!open)return;
   if(e.key==='Escape'){
-    e.preventDefault();closeSetup();return;
+    e.preventDefault();requestCloseSetup();return;
   }
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){
     e.preventDefault();saveSetup();return;
@@ -6555,6 +6615,7 @@ function initContextHelp(){
   window.addEventListener('resize',()=>{if(activeContextHelpTip)positionContextHelp();});
 }
 initContextHelp();
+window.addEventListener('beforeunload',e=>{const setup=document.getElementById('setup');if(settingsDirty&&(settingsPreviewMode||(setup&&!setup.classList.contains('hidden')))){e.preventDefault();e.returnValue='';}});
 
 async function loadLocalAccounts(){const host=document.getElementById('account-list'),status=document.getElementById('account-status');if(!host||SESSION_ROLE!=='owner')return;try{const r=await fetch(serverPath('/api/users'),{cache:'no-store'}),d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||('HTTP '+r.status));const rows=Array.isArray(d.users)?d.users:[];host.innerHTML=rows.length?rows.map(u=>`<div class="account-row"><b>${escHtml(u.username)}</b><span>${escHtml(u.role)}</span><span class="account-endpoints">${escHtml(u.role==='owner'?'All displays':(u.endpoints||[]).join(', ')||'No displays')}</span><span><button class="btn-util" type="button" onclick="editLocalAccount('${escHtml(u.username)}','${escHtml(u.role)}','${escHtml((u.endpoints||[]).join(','))}')">Edit</button> <button class="btn-util" type="button" onclick="deleteLocalAccount('${escHtml(u.username)}')">Delete</button></span></div>`).join(''):'<div class="settings-note">No local accounts yet. The local display and pairing link remain Owner access.</div>';if(status)status.textContent='';}catch(e){if(status)status.textContent='Could not load accounts: '+(e.message||e);}}
 function editLocalAccount(username,role,endpoints){const u=document.getElementById('account-username'),r=document.getElementById('account-role'),e=document.getElementById('account-endpoints'),p=document.getElementById('account-password');if(u)u.value=username;if(r)r.value=role;if(e)e.value=endpoints;if(p)p.value='';}
