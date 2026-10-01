@@ -185,26 +185,48 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("let token=extractGoogleInitialPageToken(html)", html)
         self.assertIn("Google Photos provided another page", html)
         self.assertNotIn("Function('\"use strict\";return (", html)
+        self.assertEqual(html.count("</script>"), 1)
+        self.assertIn("text.indexOf(');</scr'+'ipt>'", html)
 
-    def test_v124_dashboard_hydrates_before_noncritical_settings_data(self):
+    def test_v125_restores_v121_known_good_dashboard_hydration_path(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
-        self.assertIn('<div id="setup" class="hidden">', html)
+        self.assertIn('<div id="setup">', html)
+        self.assertNotIn('function fetchWithTimeout', html)
+        self.assertNotIn('fetchWithTimeout(', html)
         self.assertIn('id="settings-init-error"', html)
-        self.assertIn('function fetchWithTimeout', html)
-        self.assertIn('function loadNoncriticalStartupData', html)
-        self.assertIn('Promise.allSettled(jobs)', html)
         self.assertIn('function showSettingsInitializationError', html)
         self.assertIn('switchSettingsTab(rememberedTab,false);', html)
         self.assertLess(html.index('switchSettingsTab(rememberedTab,false);'), html.index("document.getElementById('s-city').value=cfg.city||'';"))
-        self.assertIn("const res=await fetch(serverPath('/api/config'),{cache:'no-store'});", html)
-        self.assertIn("const res=await fetch(serverPath('/api/session-info'),{cache:'no-store'});", html)
-        self.assertNotIn("fetchWithTimeout(serverPath('/api/config')", html)
-        init_start = html.index('async function init(){')
-        init_end = html.index('init().catch(error=>{', init_start)
-        init_body = html[init_start:init_end]
-        self.assertLess(init_body.index('applySettings();'), init_body.index('loadNoncriticalStartupData();'))
-        self.assertIn("init().catch(error=>{", html)
-        self.assertIn('showSettingsInitializationError(error);', html)
+
+        start = html.index('async function init(){')
+        end = html.index('\n}\ninit();', start)
+        init = html[start:end]
+        expected_order = [
+            "await loadSessionInfo();",
+            "if(SESSION_ROLE==='owner')await loadLocalAccounts();",
+            "await loadIntegrations();",
+            "await loadHousehold(false);",
+            "await loadCfg();",
+            "await loadProfiles();",
+            "if(!READ_ONLY_DISPLAY_MODE)await loadScenes();",
+            "applyUiCustomization(cfg);",
+            "renderCalendar([]);",
+            "applySettings();",
+            "startLiveDisplayConnection();",
+            "startRemoteConfigPolling();",
+        ]
+        positions = [init.index(marker) for marker in expected_order]
+        self.assertEqual(positions, sorted(positions))
+        self.assertNotIn('Promise.allSettled', init)
+        self.assertIn('\ninit();', html)
+        self.assertNotIn('init().catch(', html)
+
+        apply_start = html.index('function applySettings(){')
+        apply_end = html.index('\n}\n\n\n// Browser cursor fallback.', apply_start)
+        apply_body = html[apply_start:apply_end]
+        for marker in ('fetchWeather();', 'fetchWeatherAlerts();', 'loadCalendars();'):
+            self.assertIn(marker, apply_body)
+        self.assertIn("loadPhotos(cfg.photosUrl);", apply_body)
 
     def test_v121_layout_editor_customization_controls(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")

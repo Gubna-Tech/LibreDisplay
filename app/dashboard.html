@@ -1410,7 +1410,7 @@ html:not(.cursor-active) * {
 <div id="bg"></div>
 
 
-<div id="setup" class="hidden">
+<div id="setup">
  <div class="setup-box">
   <div class="setup-head">
    <div class="setup-brand"><div class="setup-brand-mark" aria-hidden="true">LD</div><div><div class="setup-eyebrow">LibreDisplay · by Gubna</div><h2>Settings &amp; configuration</h2><div class="setup-tagline">Your home. Your dashboard. Your data.</div><div id="settings-save-state" class="settings-save-state">All changes saved</div></div></div>
@@ -1501,7 +1501,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.2.4</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.2.5</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -1889,7 +1889,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.2.4</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.2.5</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -2052,7 +2052,7 @@ html:not(.cursor-active) * {
 <div id="offline-pill">Offline · cached data</div>
 
 <script>
-const DASHBOARD_BUILD = '1.2.4';
+const DASHBOARD_BUILD = '1.2.5';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -2078,7 +2078,7 @@ let integrationManifestMap=new Map();
 window.LibreDisplayIntegrationRenderers=window.LibreDisplayIntegrationRenderers||{};
 async function loadIntegrations(){
   try{
-    const res=await fetchWithTimeout(serverPath('/api/integrations'),{cache:'no-store'});
+    const res=await fetch(serverPath('/api/integrations'),{cache:'no-store'});
     if(!res.ok)return;
     const data=await res.json();
     integrationManifests=Array.isArray(data?.integrations)?data.integrations:[];
@@ -2471,7 +2471,7 @@ async function loadProfiles(){
   let localObj=null, serverObj=null;
   try{const s=localStorage.getItem(PROFILES_KEY);if(s)localObj=normalizeProfileStore(JSON.parse(s));}catch(e){}
   try{
-    const res=await fetchWithTimeout(serverPath('/api/profiles'),{cache:'no-store'});
+    const res=await fetch(serverPath('/api/profiles'),{cache:'no-store'});
     if(res.ok){const data=await res.json();if(data?.exists&&data.profiles)serverObj=normalizeProfileStore(data.profiles);}
   }catch(e){}
   const ls=Number(localObj?.updatedAt)||0, ss=Number(serverObj?.updatedAt)||0;
@@ -3895,7 +3895,7 @@ function extractGoogleInitialPageToken(html){
   const callbackRx=/AF_initDataCallback\(/g;
   for(const callback of text.matchAll(callbackRx)){
     const callbackStart=(callback.index||0)+callback[0].length;
-    const callbackEnd=text.indexOf(');</script>',callbackStart);
+    const callbackEnd=text.indexOf(');</scr'+'ipt>',callbackStart);
     const end=callbackEnd>=0?callbackEnd:Math.min(text.length,callbackStart+8*1024*1024);
     const chunk=text.slice(callbackStart,end);
     const dataMatch=/\bdata\s*:\s*/.exec(chunk);
@@ -4537,7 +4537,7 @@ function videoEmbedUrl(raw,c={}){
 }
 
 async function loadHousehold(includeAdmin=true){
-  try{const res=await fetchWithTimeout(serverPath('/api/household'),{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();householdCache=data.household||{members:[],chores:[],rewards:[],childLock:{}};if(householdCache.adminStore)householdAdminStore=householdCache.adminStore;return householdCache;}catch(e){if(includeAdmin){const st=document.getElementById('family-status');if(st)st.textContent='Household data unavailable: '+(e.message||e);}return householdCache;}
+  try{const res=await fetch(serverPath('/api/household'),{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();householdCache=data.household||{members:[],chores:[],rewards:[],childLock:{}};if(householdCache.adminStore)householdAdminStore=householdCache.adminStore;return householdCache;}catch(e){if(includeAdmin){const st=document.getElementById('family-status');if(st)st.textContent='Household data unavailable: '+(e.message||e);}return householdCache;}
 }
 function familyClientId(prefix,text){const clean=String(text||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40)||Math.random().toString(36).slice(2,9);return prefix+'-'+clean;}
 async function householdAction(action,payload={},allowPrompt=true){
@@ -5559,14 +5559,6 @@ function startLiveDisplayConnection(){
 }
 function startRemoteConfigPolling(){if(remoteConfigPollTimer)clearInterval(remoteConfigPollTimer);remoteConfigPollTimer=setInterval(pollServerConfig,30000);}
 
-const STARTUP_FETCH_TIMEOUT_MS=5000;
-function fetchWithTimeout(url,options={},timeoutMs=STARTUP_FETCH_TIMEOUT_MS){
-  if(typeof AbortController==='undefined')return fetch(url,options);
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),Math.max(500,Number(timeoutMs)||STARTUP_FETCH_TIMEOUT_MS));
-  const opts={...options,signal:controller.signal};
-  return fetch(url,opts).finally(()=>clearTimeout(timer));
-}
 function settingsRecoveryMessage(error){
   const raw=String(error?.message||error||'Settings initialization did not finish.').replace(/\s+/g,' ').trim();
   return raw.length>260?raw.slice(0,257)+'…':raw;
@@ -5803,7 +5795,7 @@ function normalizeClientSceneStore(raw){
 }
 async function loadScenes(){
   const status=document.getElementById('scene-status');
-  try{const res=await fetchWithTimeout(serverPath('/api/scenes'),{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();sceneStore=normalizeClientSceneStore(data.scenes);sceneActive=data.active||{};renderScenes();if(status)status.textContent=sceneActive[ACTIVE_ENDPOINT]?`Active scheduled profile: ${profileStore.items.find(p=>p.id===sceneActive[ACTIVE_ENDPOINT])?.name||sceneActive[ACTIVE_ENDPOINT]}`:'No scheduled scene is active right now.';}catch(e){if(status)status.textContent='Could not load schedules: '+(e.message||e);}
+  try{const res=await fetch(serverPath('/api/scenes'),{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();sceneStore=normalizeClientSceneStore(data.scenes);sceneActive=data.active||{};renderScenes();if(status)status.textContent=sceneActive[ACTIVE_ENDPOINT]?`Active scheduled profile: ${profileStore.items.find(p=>p.id===sceneActive[ACTIVE_ENDPOINT])?.name||sceneActive[ACTIVE_ENDPOINT]}`:'No scheduled scene is active right now.';}catch(e){if(status)status.textContent='Could not load schedules: '+(e.message||e);}
 }
 function renderScenes(){
   const auto=document.getElementById('scene-automatic');if(auto)auto.checked=sceneStore.automatic!==false;
@@ -6431,7 +6423,7 @@ function initSettingsWheelGuard(){
 }
 initSettingsWheelGuard();
 
-async function loadLocalAccounts(){const host=document.getElementById('account-list'),status=document.getElementById('account-status');if(!host||SESSION_ROLE!=='owner')return;try{const r=await fetchWithTimeout(serverPath('/api/users'),{cache:'no-store'}),d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||('HTTP '+r.status));const rows=Array.isArray(d.users)?d.users:[];host.innerHTML=rows.length?rows.map(u=>`<div class="account-row"><b>${escHtml(u.username)}</b><span>${escHtml(u.role)}</span><span class="account-endpoints">${escHtml(u.role==='owner'?'All displays':(u.endpoints||[]).join(', ')||'No displays')}</span><span><button class="btn-util" type="button" onclick="editLocalAccount('${escHtml(u.username)}','${escHtml(u.role)}','${escHtml((u.endpoints||[]).join(','))}')">Edit</button> <button class="btn-util" type="button" onclick="deleteLocalAccount('${escHtml(u.username)}')">Delete</button></span></div>`).join(''):'<div class="settings-note">No local accounts yet. The local display and pairing link remain Owner access.</div>';if(status)status.textContent='';}catch(e){if(status)status.textContent='Could not load accounts: '+(e.message||e);}}
+async function loadLocalAccounts(){const host=document.getElementById('account-list'),status=document.getElementById('account-status');if(!host||SESSION_ROLE!=='owner')return;try{const r=await fetch(serverPath('/api/users'),{cache:'no-store'}),d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||('HTTP '+r.status));const rows=Array.isArray(d.users)?d.users:[];host.innerHTML=rows.length?rows.map(u=>`<div class="account-row"><b>${escHtml(u.username)}</b><span>${escHtml(u.role)}</span><span class="account-endpoints">${escHtml(u.role==='owner'?'All displays':(u.endpoints||[]).join(', ')||'No displays')}</span><span><button class="btn-util" type="button" onclick="editLocalAccount('${escHtml(u.username)}','${escHtml(u.role)}','${escHtml((u.endpoints||[]).join(','))}')">Edit</button> <button class="btn-util" type="button" onclick="deleteLocalAccount('${escHtml(u.username)}')">Delete</button></span></div>`).join(''):'<div class="settings-note">No local accounts yet. The local display and pairing link remain Owner access.</div>';if(status)status.textContent='';}catch(e){if(status)status.textContent='Could not load accounts: '+(e.message||e);}}
 function editLocalAccount(username,role,endpoints){const u=document.getElementById('account-username'),r=document.getElementById('account-role'),e=document.getElementById('account-endpoints'),p=document.getElementById('account-password');if(u)u.value=username;if(r)r.value=role;if(e)e.value=endpoints;if(p)p.value='';}
 async function saveLocalAccount(action){const status=document.getElementById('account-status');try{const username=(document.getElementById('account-username')?.value||'').trim(),role=document.getElementById('account-role')?.value||'viewer',password=document.getElementById('account-password')?.value||'',endpoints=(document.getElementById('account-endpoints')?.value||'').split(',').map(x=>x.trim()).filter(Boolean);const body={action,username,role,endpoints};if(password)body.password=password;const r=await fetch(serverPath('/api/users'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||('HTTP '+r.status));if(status)status.textContent=action==='create'?'Account created.':'Account updated. Existing sessions for that user are invalidated when the password changes.';document.getElementById('account-password').value='';await loadLocalAccounts();}catch(e){if(status)status.textContent='Could not save account: '+(e.message||e);}}
 async function deleteLocalAccount(username){if(!confirm(`Delete local account “${username}”?`))return;const status=document.getElementById('account-status');try{const r=await fetch(serverPath('/api/users'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',username}),cache:'no-store'}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||('HTTP '+r.status));if(status)status.textContent='Account deleted and its active sessions invalidated.';await loadLocalAccounts();}catch(e){if(status)status.textContent='Could not delete account: '+(e.message||e);}}
@@ -6464,26 +6456,15 @@ function revealSettingsCog(){
   try{localStorage.setItem('libredisplay_settings_hint_seen',String(seen+1));}catch(e){}
 }
 
-async function loadNoncriticalStartupData(){
-  const profileAndScenes=loadProfiles().then(()=>{
-    renderProfileSelect();
-    return READ_ONLY_DISPLAY_MODE?null:loadScenes();
-  });
-  const jobs=[
-    SESSION_ROLE==='owner'?loadLocalAccounts():Promise.resolve(),
-    loadIntegrations(),
-    loadHousehold(false),
-    profileAndScenes
-  ];
-  const results=await Promise.allSettled(jobs);
-  results.forEach((result,index)=>{if(result.status==='rejected')console.warn('noncritical startup task failed',index,result.reason);});
-}
-
 async function init(){
   applyProductTheme('libre-night');
-  document.getElementById('setup')?.classList.add('hidden');
   await loadSessionInfo();
+  if(SESSION_ROLE==='owner')await loadLocalAccounts();
+  await loadIntegrations();
+  await loadHousehold(false);
   await loadCfg();
+  await loadProfiles();
+  if(!READ_ONLY_DISPLAY_MODE)await loadScenes();
   bindCalendarColorControls();
   bindTextColorControls();
   previewAlertSize(cfg.alertCardPct);
@@ -6491,24 +6472,22 @@ async function init(){
   applyUiCustomization(cfg);
   renderCalendar([]);
   if(cfg.onboardingComplete&&cfg.lat&&cfg.lon){
+    document.getElementById('setup').classList.add('hidden');
     applySettings();
     if((REMOTE_SETTINGS_MODE||OPEN_SETTINGS_MODE)&&!READ_ONLY_DISPLAY_MODE)openSetup(false);
     else setTimeout(revealSettingsCog,800);
   }else if(READ_ONLY_DISPLAY_MODE){
+    document.getElementById('setup').classList.add('hidden');
     applySettings();
   }else{
     wizardStepIndex=0;
     openSetup(true);
   }
-  loadNoncriticalStartupData();
   startLiveDisplayConnection();
   startRemoteConfigPolling();
   if(!READ_ONLY_DISPLAY_MODE)setTimeout(()=>{loadRemoteInfo();loadCacheStatus();loadDisplayEndpoints();},300);
 }
-init().catch(error=>{
-  console.error('LibreDisplay startup failed',error);
-  showSettingsInitializationError(error);
-});
+init();
 </script>
 </body>
 </html>
