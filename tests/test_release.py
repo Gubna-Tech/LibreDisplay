@@ -154,7 +154,7 @@ class ReleaseContractTests(unittest.TestCase):
 
     def test_calm_settings_information_architecture(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
-        self.assertIn("const SETTINGS_TABS=['overview','content','family','look','integrations','system']", html)
+        self.assertIn("const SETTINGS_TABS=['overview','weather','calendars','backgrounds','look','layout','family','integrations','system']", html)
         for section in ('settings-integrations', 'settings-accessibility'):
             self.assertIn(f'id="{section}"', html)
         self.assertIn('data-tab="family"', html)
@@ -199,7 +199,7 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertLess(html.index('switchSettingsTab(rememberedTab,false);'), html.index("document.getElementById('s-city').value=cfg.city||'';"))
 
         start = html.index('async function init(){')
-        end = html.index('\n}\ninit();', start)
+        end = html.index('\n}\nconst dashboardInitPromise=init();', start)
         init = html[start:end]
         expected_order = [
             "await loadSessionInfo();",
@@ -218,7 +218,7 @@ class ReleaseContractTests(unittest.TestCase):
         positions = [init.index(marker) for marker in expected_order]
         self.assertEqual(positions, sorted(positions))
         self.assertNotIn('Promise.allSettled', init)
-        self.assertIn('\ninit();', html)
+        self.assertIn('\nconst dashboardInitPromise=init();', html)
         self.assertNotIn('init().catch(', html)
 
         apply_start = html.index('function applySettings(){')
@@ -354,7 +354,7 @@ class ReleaseContractTests(unittest.TestCase):
             'class="settings-content"',
             'id="settings-page-title"',
             '<b>Home</b><small>Status, displays &amp; shortcuts</small>',
-            '<b>Personalization</b><small>Themes, layout &amp; accessibility</small>',
+            '<b>Personalization</b><small>Themes, text &amp; accessibility</small>',
             "const SETTINGS_TAB_TITLES=",
             "function updateSettingsPageHeader(searchQuery='')",
             "title.textContent='Search results'",
@@ -514,6 +514,22 @@ class ReleaseContractTests(unittest.TestCase):
             self.assertIn(marker, html)
         self.assertNotIn("layoutEditorRecoveredLegacy", html)
         self.assertNotIn("legacyBuiltInCollisionCount", html)
+
+    def test_v143_remote_arrange_reopen_waits_for_hydration_and_persistence(self):
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        for marker in (
+            "const dashboardInitPromise=init();",
+            "if(LAYOUT_PREVIEW_MODE)dashboardInitPromise.then(()=>autoStartLayoutPreviewWhenReady())",
+            "return persistCfgToServer(JSON.parse(JSON.stringify(cfg)))",
+            "async function saveLayoutEditor()",
+            "const persisted=await saveCfg();",
+            "if(LAYOUT_PREVIEW_MODE&&!persisted?.ok)",
+            "async function handleEmbeddedLayoutEditorAction(action)",
+            "await pollServerConfig();",
+        ):
+            self.assertIn(marker, html)
+        self.assertNotIn("setTimeout(()=>notifyLayoutPreviewParent('saved'),160)", html)
+        self.assertNotIn("if(LAYOUT_PREVIEW_MODE)autoStartLayoutPreviewWhenReady();", html)
 
     def test_v143_weather_details_arrange_grid_tracks_rendered_cells(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")

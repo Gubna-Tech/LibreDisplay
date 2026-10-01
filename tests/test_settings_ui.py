@@ -36,6 +36,35 @@ class SettingsUiTests(unittest.TestCase):
         summary_ids = set(re.findall(r"'([^']+)'\s*:", m.group(1)))
         self.assertTrue(section_ids.issubset(summary_ids), section_ids - summary_ids)
 
+    def test_settings_navigation_is_task_oriented(self):
+        tabs = re.findall(r'<button class="settings-tab-btn[^>]*data-tab="([^"]+)"', HTML)
+        self.assertEqual(tabs, [
+            'overview', 'weather', 'calendars', 'backgrounds', 'look',
+            'layout', 'family', 'integrations', 'system'
+        ])
+        self.assertNotIn('data-settings-tab="content"', HTML)
+        expected = {
+            'settings-location': 'weather',
+            'settings-alerts': 'weather',
+            'settings-weather-options': 'weather',
+            'settings-weather-details': 'weather',
+            'settings-calendars': 'calendars',
+            'settings-backgrounds': 'backgrounds',
+            'settings-background-style': 'backgrounds',
+            'settings-layout-presentation': 'look',
+            'settings-layout': 'layout',
+            'settings-layout-geometry': 'layout',
+        }
+        for section_id, tab in expected.items():
+            self.assertRegex(HTML, rf'id="{section_id}"[^>]*data-settings-tab="{tab}"')
+
+    def test_layout_tuning_is_split_into_focused_cards(self):
+        self.assertNotIn('id="settings-appearance"', HTML)
+        self.assertIn('id="settings-layout-presentation"', HTML)
+        self.assertIn('id="settings-layout"', HTML)
+        self.assertIn('id="settings-layout-geometry"', HTML)
+        self.assertIn("if(tab==='content')tab='weather';", HTML)
+
 
 if __name__ == '__main__':
     unittest.main()

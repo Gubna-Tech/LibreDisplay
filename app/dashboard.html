@@ -1437,7 +1437,7 @@ html:not(.cursor-active) * {
 
 .scene-list,.template-grid{display:grid;gap:9px;margin-top:10px}.scene-row{padding:10px;border:1px solid var(--ld-border);border-radius:10px;background:color-mix(in srgb,var(--ld-surface-2) 55%,transparent)}.scene-row-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}.scene-fields{display:grid;grid-template-columns:minmax(150px,1.4fr) repeat(2,minmax(105px,.7fr));gap:8px;margin-top:8px}.scene-days{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.scene-days label{font-size:10px;color:var(--ld-muted);padding:4px 6px;border:1px solid var(--ld-border);border-radius:6px}.template-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.template-card{padding:12px;border:1px solid var(--ld-border);border-radius:11px;background:var(--ld-surface-2);color:var(--ld-text);text-align:left;cursor:pointer}.template-card:hover{border-color:var(--ld-accent)}.template-card b{display:block;margin-bottom:4px}.template-card span{font-size:10px;color:var(--ld-muted);line-height:1.4}@media(max-width:800px){.scene-fields,.template-grid{grid-template-columns:1fr}}
 
-.settings-tabs{grid-template-columns:repeat(6,minmax(0,1fr));}
+.settings-tabs{grid-template-columns:repeat(9,minmax(0,1fr));}
 .integration-directory-toolbar{display:grid;grid-template-columns:minmax(180px,1fr) minmax(140px,.5fr) minmax(140px,.5fr);gap:8px;margin:10px 0}.integration-directory-toolbar input,.integration-directory-toolbar select{width:100%;box-sizing:border-box}
 .integration-directory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}.integration-directory-card{display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:center;padding:12px;border:1px solid var(--ld-border);border-radius:13px;background:var(--ld-surface-2)}.integration-directory-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--ld-surface-3);color:var(--ld-accent);font-weight:800}.integration-directory-copy{min-width:0;display:flex;flex-direction:column;gap:2px}.integration-directory-copy span{font-size:12px;color:var(--ld-muted);line-height:1.35}.integration-directory-copy small{font-size:10px;color:var(--ld-subtle)}.integration-directory-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}.integration-configured-badge,.integration-health-state{font-size:10px;font-weight:800;padding:4px 7px;border-radius:999px;border:1px solid var(--ld-border-strong);color:var(--ld-accent);white-space:nowrap}
 .integration-health-list{display:grid;gap:7px}.integration-health-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 11px;border:1px solid var(--ld-border);border-radius:11px;background:var(--ld-surface-2)}.integration-health-row>div:first-child{min-width:0;display:flex;flex-direction:column;gap:2px}.integration-health-row span,.integration-health-row small{color:var(--ld-muted);font-size:11px}.integration-health-row small{color:var(--ld-danger,#fb7185)}.integration-health-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.state-error,.state-missing,.state-unconfigured{color:var(--ld-danger,#fb7185);border-color:color-mix(in srgb,var(--ld-danger,#fb7185) 45%,transparent)}.state-stale{color:var(--ld-warning,#fbbf24);border-color:color-mix(in srgb,var(--ld-warning,#fbbf24) 45%,transparent)}
@@ -1698,7 +1698,7 @@ html:not(.cursor-active) * {
    <div class="setup-brand"><div class="setup-brand-mark" aria-hidden="true">LD</div><div><div class="setup-eyebrow">LibreDisplay · by Gubna</div><h2>Settings &amp; configuration</h2><div class="setup-tagline">Your home. Your dashboard. Your data.</div><div id="settings-save-state" class="settings-save-state">All changes saved</div></div></div>
    <button class="setup-close" type="button" onclick="requestCloseSetup()" aria-label="Close settings">×</button>
   </div>
-  <p class="sub">Configure the display locally or from a paired device. Settings stay on your LibreDisplay server, with a browser-local fallback for recovery.</p>
+  <p class="sub">Configure the display locally or from a paired device. Use the categories on the left to focus on one job at a time; settings stay on your LibreDisplay server, with a browser-local fallback for recovery.</p>
 
   <div id="wizard-shell" class="wizard-shell">
    <div class="wizard-brand-row"><div class="wizard-brand-mark">LD</div><div><b>Welcome to LibreDisplay</b><span>Private, local-first, and built to make the display yours.</span></div></div>
@@ -1723,11 +1723,14 @@ html:not(.cursor-active) * {
 
     <div class="settings-tabs" role="tablist" aria-label="Settings categories">
      <button class="settings-tab-btn active" type="button" role="tab" aria-selected="true" data-tab="overview" onclick="switchSettingsTab('overview')"><span class="settings-nav-icon" aria-hidden="true">⌂</span><span class="settings-nav-copy"><b>Home</b><small>Status, displays &amp; shortcuts</small></span></button>
-     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="content" onclick="switchSettingsTab('content')"><span class="settings-nav-icon" aria-hidden="true">▦</span><span class="settings-nav-copy"><b>Content</b><small>Calendars, weather &amp; photos</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="weather" onclick="switchSettingsTab('weather')"><span class="settings-nav-icon" aria-hidden="true">☁</span><span class="settings-nav-copy"><b>Weather</b><small>Location, forecast &amp; alerts</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="calendars" onclick="switchSettingsTab('calendars')"><span class="settings-nav-icon" aria-hidden="true">▦</span><span class="settings-nav-copy"><b>Calendars</b><small>Feeds, events &amp; display rules</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="backgrounds" onclick="switchSettingsTab('backgrounds')"><span class="settings-nav-icon" aria-hidden="true">▧</span><span class="settings-nav-copy"><b>Backgrounds</b><small>Photos, folders &amp; slideshow</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="look" onclick="switchSettingsTab('look')"><span class="settings-nav-icon" aria-hidden="true">◐</span><span class="settings-nav-copy"><b>Personalization</b><small>Themes, text &amp; accessibility</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="layout" onclick="switchSettingsTab('layout')"><span class="settings-nav-icon" aria-hidden="true">⌗</span><span class="settings-nav-copy"><b>Layout</b><small>Arrange, sizing &amp; visibility</small></span></button>
      <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="family" data-owner-only="1" onclick="switchSettingsTab('family')"><span class="settings-nav-icon" aria-hidden="true">✓</span><span class="settings-nav-copy"><b>Family</b><small>Household, chores &amp; rewards</small></span></button>
-     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="look" onclick="switchSettingsTab('look')"><span class="settings-nav-icon" aria-hidden="true">◐</span><span class="settings-nav-copy"><b>Personalization</b><small>Themes, layout &amp; accessibility</small></span></button>
      <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="integrations" onclick="switchSettingsTab('integrations')"><span class="settings-nav-icon" aria-hidden="true">◇</span><span class="settings-nav-copy"><b>Integrations</b><small>Providers &amp; connections</small></span></button>
-     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="system" onclick="switchSettingsTab('system')"><span class="settings-nav-icon" aria-hidden="true">⚙</span><span class="settings-nav-copy"><b>System</b><small>Accounts, updates &amp; recovery</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="system" onclick="switchSettingsTab('system')"><span class="settings-nav-icon" aria-hidden="true">⚙</span><span class="settings-nav-copy"><b>System</b><small>Accounts, automation &amp; maintenance</small></span></button>
     </div>
 
     <div class="settings-sidebar-tools">
@@ -1774,8 +1777,10 @@ html:not(.cursor-active) * {
    <div class="howto">The common editing jobs are one click away. These work from the wall display or from a paired phone/computer.</div>
    <div class="quick-edit-grid">
     <button class="quick-edit-card" type="button" onclick="launchLayoutEditorFromSettings()"><b>Arrange dashboard</b><span>Drag, resize, add, duplicate, and configure dashboard blocks.</span></button>
-    <button class="quick-edit-card" type="button" onclick="switchSettingsTab('content')"><b>Content</b><span>Calendars, weather, alerts, photos, and background sources.</span></button>
-    <button class="quick-edit-card" type="button" onclick="switchSettingsTab('look')"><b>Personalization</b><span>Themes, accessibility, templates, and dashboard presentation.</span></button>
+    <button class="quick-edit-card" type="button" onclick="switchSettingsTab('weather')"><b>Weather</b><span>Location, forecast preferences, details, and severe-weather alerts.</span></button>
+    <button class="quick-edit-card" type="button" onclick="switchSettingsTab('calendars')"><b>Calendars</b><span>Calendar feeds, event display rules, refresh timing, and legend behavior.</span></button>
+    <button class="quick-edit-card" type="button" onclick="switchSettingsTab('backgrounds')"><b>Backgrounds</b><span>Photos, stock images, local folders, rotation, and slideshow presentation.</span></button>
+    <button class="quick-edit-card" type="button" onclick="switchSettingsTab('look')"><b>Personalization</b><span>Themes, typography, accessibility, and the Settings button.</span></button>
     <button class="quick-edit-card" type="button" onclick="switchSettingsTab('integrations')"><b>Integrations</b><span>Browse providers, see configured blocks, and check connection health.</span></button>
    </div>
    <div class="s-subhead">Dashboard health</div>
@@ -1895,13 +1900,13 @@ html:not(.cursor-active) * {
    <div id="family-status" class="settings-note" style="margin-top:8px;"></div>
   </div>
 
-  <div class="s-section" id="settings-location" data-settings-tab="content">
+  <div class="s-section" id="settings-location" data-settings-tab="weather">
    <h3>Location &amp; Weather</h3>
    <div class="s-row"><label>City</label><input id="s-city" placeholder="Chicago"></div>
    <div class="s-row"><label>Display label (optional)</label><input id="s-locname" placeholder="Home · Chicago"></div>
   </div>
 
-  <div class="s-section" id="settings-calendars" data-settings-tab="content">
+  <div class="s-section" id="settings-calendars" data-settings-tab="calendars">
    <h3>Calendars <button class="help-tip" type="button" aria-label="Calendar help" data-help="Add and test ICS feeds before saving. Display range, event count, and calendar auto-scroll are controlled in Appearance and can be fine-tuned further in Arrange mode.">?</button></h3>
    <div class="howto">Add as many calendars as you need. LibreDisplay accepts standard iCalendar/ICS subscription links from Google Calendar, Proton Calendar, Outlook/Microsoft 365, iCloud shared calendars, Nextcloud, Fastmail, and other providers that expose an ICS feed. You can also import a local <code>.ics</code> file.</div>
    <div class="calendar-slot-tools">
@@ -1928,7 +1933,7 @@ html:not(.cursor-active) * {
    </div>
   </div>
 
-  <div class="s-section" id="settings-alerts" data-settings-tab="content">
+  <div class="s-section" id="settings-alerts" data-settings-tab="weather">
    <h3>Weather alerts <button class="help-tip" type="button" aria-label="Weather alert help" data-help="Test mode is generated locally and should keep running with Settings closed. Motion controls apply to both simulated and real alerts.">?</button></h3>
    <div class="howto">Uses active National Weather Service alerts for the configured location (U.S.). Up to 10 alerts are shown. Test mode generates 10 simulated alerts locally so you can tune the layout at any time.</div>
    <div class="settings-grid alert-settings-grid">
@@ -1947,7 +1952,7 @@ html:not(.cursor-active) * {
   </div>
 
 
-  <div class="s-section" id="settings-alert-appearance" data-settings-level="advanced" data-settings-tab="content">
+  <div class="s-section" id="settings-alert-appearance" data-settings-level="advanced" data-settings-tab="weather">
    <h3>Alert appearance &amp; filtering <button class="help-tip" type="button" aria-label="Alert filtering help" data-help="Severity filtering applies to real National Weather Service alerts. Test mode intentionally keeps mixed severities so you can preview the layout.">?</button></h3>
    <div class="settings-grid">
     <div class="s-row"><label>Alert card opacity <span id="s-alert-opacity-value" class="range-value">100%</span> <button class="help-tip" type="button" aria-label="Alert opacity help" data-help="Changes the visibility of the alert card surface. Text size and individual alert text styling are controlled separately in Arrange mode.">?</button></label><input id="s-alert-opacity" type="range" min="55" max="100" step="1" value="100" oninput="previewAppearance()"></div>
@@ -1959,7 +1964,7 @@ html:not(.cursor-active) * {
    </div>
   </div>
 
-  <div class="s-section" id="settings-backgrounds" data-settings-tab="content">
+  <div class="s-section" id="settings-backgrounds" data-settings-tab="backgrounds">
    <h3>Pictures &amp; backgrounds <button class="help-tip" type="button" aria-label="Background help" data-help="Choose one active source. Google Photos shared albums paginate up to 1,000 images; local or NAS folders and stock sources can also rotate automatically.">?</button></h3>
    <div class="howto">Choose the picture source and tune its rotation in one place. Use Google Photos, built-in stock categories, local folders, mounted NAS/network folders, or no photo background.</div>
    <div class="settings-grid">
@@ -2017,7 +2022,7 @@ html:not(.cursor-active) * {
    <div id="background-status" class="howto" style="display:none;margin-top:10px;"></div>
   </div>
 
-  <div class="s-section" id="settings-weather-options" data-settings-tab="content">
+  <div class="s-section" id="settings-weather-options" data-settings-tab="weather">
    <h3>Weather preferences</h3>
    <div class="settings-grid">
     <div class="s-row"><label>Temperature</label><select id="s-unit"><option value="F">Fahrenheit (°F)</option><option value="C">Celsius (°C)</option></select></div>
@@ -2025,7 +2030,7 @@ html:not(.cursor-active) * {
    </div>
   </div>
 
-  <div class="s-section" id="settings-weather-details" data-settings-level="advanced" data-settings-tab="content">
+  <div class="s-section" id="settings-weather-details" data-settings-level="advanced" data-settings-tab="weather">
    <h3>Weather Details element</h3>
    <div class="howto">Build the Weather Details element row-by-row. Enable only the metrics you want, then drag rows or use the arrow buttons to change their display order. Air Quality and UV use the same cached Open-Meteo air-quality source as the optional Air Quality block.</div>
    <input id="s-weather-details-state" type="hidden">
@@ -2037,7 +2042,7 @@ html:not(.cursor-active) * {
    </div>
   </div>
 
-  <div class="s-section" id="settings-background-style" data-settings-level="advanced" data-settings-tab="content">
+  <div class="s-section" id="settings-background-style" data-settings-level="advanced" data-settings-tab="backgrounds">
    <h3>Background appearance</h3>
    <div class="howto">These controls preview live and only affect how the current background is presented on screen.</div>
    <div class="settings-grid">
@@ -2101,15 +2106,9 @@ html:not(.cursor-active) * {
    </div>
   </div>
 
-  <div class="s-section" id="settings-appearance" data-settings-level="advanced" data-settings-tab="look">
-   <h3>Layout &amp; display tuning</h3>
-   <div class="howto">The current dashboard is the 100% default. Changes preview live while this menu is open; Esc/Cancel restores the saved layout. Presets only change appearance controls — never calendar URLs or account data.</div>
-
-   <div class="preset-row">
-    <div class="s-row" style="margin-bottom:0;"><label>Appearance preset</label><select id="s-appearance-preset"><option value="custom">Custom (current)</option><option value="default">Balanced default</option><option value="compact">Compact</option><option value="large">Large text</option><option value="photo">Photo first</option><option value="calendar">Calendar focused</option></select></div>
-    <button class="btn-util" type="button" onclick="applyAppearancePreset()">Apply preset</button>
-   </div>
-
+  <div class="s-section" id="settings-layout-presentation" data-settings-level="advanced" data-settings-tab="look">
+   <h3>Text &amp; element sizing</h3>
+   <div class="howto">Fine-tune dashboard text treatment and the default content scale for major built-in elements. Arrange can still override individual elements later.</div>
    <div class="s-subhead">Text treatment</div>
    <div class="settings-grid">
     <div class="s-row"><label>Secondary text opacity <span id="s-secondary-opacity-value" class="range-value">88%</span></label><input id="s-secondary-opacity" type="range" min="45" max="100" step="1" value="88" oninput="previewAppearance()"></div>
@@ -2127,22 +2126,15 @@ html:not(.cursor-active) * {
     <div class="s-row"><label>Weather alert text <span id="s-ui-alert-value" class="range-value">100%</span></label><input id="s-ui-alert" type="range" min="75" max="150" step="1" value="100" oninput="previewAppearance()"></div>
    </div>
 
-   <div class="s-subhead">Layout geometry <button class="help-tip" type="button" aria-label="Layout geometry help" data-help="These controls change the default dashboard regions. Use Arrange mode when you want to position or resize individual elements freely.">?</button></div>
-   <div class="settings-grid">
-    <div class="s-row"><label>Calendar band height <span id="s-calendar-height-value" class="range-value">150px</span></label><input id="s-calendar-height" type="range" min="120" max="210" step="2" value="150" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Bottom area height <span id="s-bottom-height-value" class="range-value">330px</span></label><input id="s-bottom-height" type="range" min="270" max="410" step="2" value="330" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Left info width <span id="s-left-width-value" class="range-value">470px</span></label><input id="s-left-width" type="range" min="410" max="560" step="2" value="470" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Screen side padding <span id="s-side-padding-value" class="range-value">28px</span></label><input id="s-side-padding" type="range" min="10" max="48" step="1" value="28" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Forecast column spacing <span id="s-forecast-gap-value" class="range-value">5px</span></label><input id="s-forecast-gap" type="range" min="0" max="16" step="1" value="5" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Forecast row spacing <span id="s-forecast-row-gap-value" class="range-value">18px</span></label><input id="s-forecast-row-gap" type="range" min="4" max="36" step="1" value="18" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Hourly forecast range</label><select id="s-hourly-hours" onchange="previewAppearance()"><option value="3">3 hours</option><option value="6">6 hours</option><option value="9">9 hours</option><option value="12">12 hours</option><option value="18">18 hours</option><option value="24">24 hours</option></select></div>
-    <div class="s-row"><label>Daily forecast range</label><select id="s-daily-days" onchange="previewAppearance()"><option value="3">3 days</option><option value="5">5 days</option><option value="7">7 days</option><option value="10">10 days</option><option value="12">12 days</option><option value="14">14 days</option></select></div>
-    <div class="s-row"><label>Calendar range</label><select id="s-calendar-days" onchange="previewAppearance()"><option value="3">3 days</option><option value="5">5 days</option><option value="6">6 days</option><option value="7">7 days</option><option value="14">14 days</option><option value="21">21 days</option><option value="30">30 days</option><option value="45">45 days</option><option value="60">60 days</option></select></div>
-    <div class="s-row"><label>Calendar columns</label><select id="s-calendar-columns" onchange="previewAppearance()"><option value="3">3 columns</option><option value="4">4 columns</option><option value="5">5 columns</option><option value="6">6 columns</option><option value="7">7 columns</option><option value="8">8 columns</option><option value="9">9 columns</option><option value="10">10 columns</option></select></div>
-    <div class="s-row"><label>Calendar cell height <span id="s-calendar-cell-height-value" class="range-value">150px</span></label><input id="s-calendar-cell-height" type="range" min="90" max="240" step="5" value="150" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Calendar overflow <button class="help-tip" type="button" aria-label="Calendar overflow help" data-help="Manual keeps the calendar band stationary. Slow auto-scroll moves it only when the calendar content is taller than the available area.">?</button></label><select id="s-calendar-scroll-mode" onchange="previewAppearance()"><option value="off">Manual / no auto-scroll</option><option value="auto">Slow auto-scroll</option></select></div>
-    <div class="s-row"><label>Calendar scroll speed <span id="s-calendar-scroll-speed-value" class="range-value">12 px/s</span> <button class="help-tip" type="button" aria-label="Calendar scroll speed help" data-help="Used only when Calendar overflow is set to Slow auto-scroll.">?</button></label><input id="s-calendar-scroll-speed" type="range" min="2" max="60" step="1" value="12" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Calendar events per day <button class="help-tip" type="button" aria-label="Calendar events per day help" data-help="Maximum number of entries shown in each day cell. This affects how much calendar content must fit or scroll.">?</button></label><select id="s-calendar-max-events" onchange="previewAppearance()"><option value="1">1 event</option><option value="2">2 events</option><option value="3">3 events</option><option value="4">4 events</option><option value="5">5 events</option><option value="6">6 events</option></select></div>
+  </div>
+
+  <div class="s-section" id="settings-layout" data-settings-tab="layout">
+   <h3>Dashboard layout</h3>
+   <div class="howto">The current dashboard is the 100% default. Changes preview live while this menu is open; Esc/Cancel restores the saved layout. Presets only change appearance controls — never calendar URLs or account data.</div>
+
+   <div class="preset-row">
+    <div class="s-row" style="margin-bottom:0;"><label>Appearance preset</label><select id="s-appearance-preset"><option value="custom">Custom (current)</option><option value="default">Balanced default</option><option value="compact">Compact</option><option value="large">Large text</option><option value="photo">Photo first</option><option value="calendar">Calendar focused</option></select></div>
+    <button class="btn-util" type="button" onclick="applyAppearancePreset()">Apply preset</button>
    </div>
 
    <div class="s-subhead">Advanced layout editor <button class="help-tip" type="button" aria-label="Arrange mode help" data-help="Arrange changes presentation only. Select an element to move or resize it, then use the movable inspector to style the whole block or individual titles, values, labels, and event text.">?</button></div>
@@ -2173,6 +2165,29 @@ html:not(.cursor-active) * {
     <label class="checkline"><input id="s-show-date" type="checkbox" onchange="previewAppearance()"> Show date under clock</label>
     <label class="checkline"><input id="s-show-current-icon" type="checkbox" onchange="previewAppearance()"> Show current weather icon</label>
     <div class="howto">Weather Details contents and order are configured from the Weather tab.</div>
+   </div>
+
+  </div>
+
+  <div class="s-section" id="settings-layout-geometry" data-settings-level="advanced" data-settings-tab="layout">
+   <h3>Geometry &amp; ranges</h3>
+   <div class="howto">Power-user controls for the default dashboard regions, forecast density, calendar range, spacing, and scrolling behavior.</div>
+   <div class="s-subhead">Layout geometry <button class="help-tip" type="button" aria-label="Layout geometry help" data-help="These controls change the default dashboard regions. Use Arrange mode when you want to position or resize individual elements freely.">?</button></div>
+   <div class="settings-grid">
+    <div class="s-row"><label>Calendar band height <span id="s-calendar-height-value" class="range-value">150px</span></label><input id="s-calendar-height" type="range" min="120" max="210" step="2" value="150" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Bottom area height <span id="s-bottom-height-value" class="range-value">330px</span></label><input id="s-bottom-height" type="range" min="270" max="410" step="2" value="330" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Left info width <span id="s-left-width-value" class="range-value">470px</span></label><input id="s-left-width" type="range" min="410" max="560" step="2" value="470" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Screen side padding <span id="s-side-padding-value" class="range-value">28px</span></label><input id="s-side-padding" type="range" min="10" max="48" step="1" value="28" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Forecast column spacing <span id="s-forecast-gap-value" class="range-value">5px</span></label><input id="s-forecast-gap" type="range" min="0" max="16" step="1" value="5" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Forecast row spacing <span id="s-forecast-row-gap-value" class="range-value">18px</span></label><input id="s-forecast-row-gap" type="range" min="4" max="36" step="1" value="18" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Hourly forecast range</label><select id="s-hourly-hours" onchange="previewAppearance()"><option value="3">3 hours</option><option value="6">6 hours</option><option value="9">9 hours</option><option value="12">12 hours</option><option value="18">18 hours</option><option value="24">24 hours</option></select></div>
+    <div class="s-row"><label>Daily forecast range</label><select id="s-daily-days" onchange="previewAppearance()"><option value="3">3 days</option><option value="5">5 days</option><option value="7">7 days</option><option value="10">10 days</option><option value="12">12 days</option><option value="14">14 days</option></select></div>
+    <div class="s-row"><label>Calendar range</label><select id="s-calendar-days" onchange="previewAppearance()"><option value="3">3 days</option><option value="5">5 days</option><option value="6">6 days</option><option value="7">7 days</option><option value="14">14 days</option><option value="21">21 days</option><option value="30">30 days</option><option value="45">45 days</option><option value="60">60 days</option></select></div>
+    <div class="s-row"><label>Calendar columns</label><select id="s-calendar-columns" onchange="previewAppearance()"><option value="3">3 columns</option><option value="4">4 columns</option><option value="5">5 columns</option><option value="6">6 columns</option><option value="7">7 columns</option><option value="8">8 columns</option><option value="9">9 columns</option><option value="10">10 columns</option></select></div>
+    <div class="s-row"><label>Calendar cell height <span id="s-calendar-cell-height-value" class="range-value">150px</span></label><input id="s-calendar-cell-height" type="range" min="90" max="240" step="5" value="150" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Calendar overflow <button class="help-tip" type="button" aria-label="Calendar overflow help" data-help="Manual keeps the calendar band stationary. Slow auto-scroll moves it only when the calendar content is taller than the available area.">?</button></label><select id="s-calendar-scroll-mode" onchange="previewAppearance()"><option value="off">Manual / no auto-scroll</option><option value="auto">Slow auto-scroll</option></select></div>
+    <div class="s-row"><label>Calendar scroll speed <span id="s-calendar-scroll-speed-value" class="range-value">12 px/s</span> <button class="help-tip" type="button" aria-label="Calendar scroll speed help" data-help="Used only when Calendar overflow is set to Slow auto-scroll.">?</button></label><input id="s-calendar-scroll-speed" type="range" min="2" max="60" step="1" value="12" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Calendar events per day <button class="help-tip" type="button" aria-label="Calendar events per day help" data-help="Maximum number of entries shown in each day cell. This affects how much calendar content must fit or scroll.">?</button></label><select id="s-calendar-max-events" onchange="previewAppearance()"><option value="1">1 event</option><option value="2">2 events</option><option value="3">3 events</option><option value="4">4 events</option><option value="5">5 events</option><option value="6">6 events</option></select></div>
    </div>
 
   </div>
@@ -2782,9 +2797,15 @@ async function persistCfgToServer(snapshot){
   try{
     const res=await fetch(serverPath('/api/config'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:snapshot}),cache:'no-store'});
     if(!res.ok)throw new Error(await res.text());
+    const data=await res.json().catch(()=>({}));
     serverConfigAvailable=true;serverConfigLastError='';
-  }catch(e){serverConfigLastError=String(e?.message||e);}
-  updateSettingsOverview?.();
+    updateSettingsOverview?.();
+    return {ok:true,savedAt:Number(data?.savedAt||snapshot?._savedAt||0),endpoint:String(data?.endpoint||ACTIVE_ENDPOINT)};
+  }catch(e){
+    serverConfigLastError=String(e?.message||e);
+    updateSettingsOverview?.();
+    return {ok:false,error:serverConfigLastError};
+  }
 }
 
 function saveCfg(){
@@ -2795,7 +2816,7 @@ function saveCfg(){
     if(prev&&prev!==next)localStorage.setItem(CFG_BACKUP_KEY,prev);
     localStorage.setItem(CFG_KEY,next);
   }catch(e){}
-  persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
+  return persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
 }
 
 function normalizeProfileStore(raw){
@@ -5717,8 +5738,13 @@ function reloadRemoteLayoutPreview(){
   frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);};
   frame.src=`/layout-preview?endpoint=${encodeURIComponent(ACTIVE_ENDPOINT)}&layoutPreview=1&_=${Date.now()}`;
 }
-function handleEmbeddedLayoutEditorAction(action){
-  if(action==='saved'){closeRemoteLayoutPreview();setTimeout(()=>{pollServerConfig();openSetup(false);},180);return;}
+async function handleEmbeddedLayoutEditorAction(action){
+  if(action==='saved'){
+    closeRemoteLayoutPreview();
+    await pollServerConfig();
+    openSetup(false);
+    return;
+  }
   if(action==='cancelled'){closeRemoteLayoutPreview();openSetup(false);}
 }
 function notifyLayoutPreviewParent(action){
@@ -5739,13 +5765,27 @@ function stopLayoutEditorUi(){
   if(layer)layer.innerHTML='';closeBlockCatalog();document.getElementById('block-config-modal')?.classList.remove('show');layoutCustomBlocksDraft=[];layoutContentScaleDraft={};layoutElementStyleDraft={};layoutPartStyleDraft={};layoutSelectedPart='whole';layoutScaleEditActive=false;layoutStyleEditField='';layoutPartFineEditField='';layoutInspectorDragState=null;layoutSessionViewport=null;
   document.removeEventListener('pointermove',moveLayoutPointer);document.removeEventListener('pointerup',endLayoutPointer);
 }
-function saveLayoutEditor(){
-  if(!layoutEditorActive)return;
-  cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));cfg.layoutContentScale=JSON.parse(JSON.stringify(layoutContentScaleDraft));cfg.layoutElementStyle=JSON.parse(JSON.stringify(layoutElementStyleDraft));cfg.layoutPartStyle=JSON.parse(JSON.stringify(layoutPartStyleDraft));cfg.customBlocks=JSON.parse(JSON.stringify(layoutCustomBlocksDraft));customBlockRenderSignature='';
-  cfg.layoutGridPx=Number(document.getElementById('layout-toolbar-grid')?.value)||20;
-  cfg.layoutSnap=document.getElementById('layout-toolbar-snap')?.checked!==false;
-  saveCfg();stopLayoutEditorUi();layoutEditorOriginal=null;layoutCustomBlocksOriginal=[];applyUiCustomization(cfg);updateLayoutModeStatus(cfg);
-  if(LAYOUT_PREVIEW_MODE&&window.parent!==window)setTimeout(()=>notifyLayoutPreviewParent('saved'),160);
+let layoutSaveInFlight=false;
+async function saveLayoutEditor(){
+  if(!layoutEditorActive||layoutSaveInFlight)return;
+  layoutSaveInFlight=true;
+  const saveButton=document.getElementById('layout-save');
+  if(saveButton){saveButton.disabled=true;saveButton.textContent='Saving…';}
+  try{
+    cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));cfg.layoutContentScale=JSON.parse(JSON.stringify(layoutContentScaleDraft));cfg.layoutElementStyle=JSON.parse(JSON.stringify(layoutElementStyleDraft));cfg.layoutPartStyle=JSON.parse(JSON.stringify(layoutPartStyleDraft));cfg.customBlocks=JSON.parse(JSON.stringify(layoutCustomBlocksDraft));customBlockRenderSignature='';
+    cfg.layoutGridPx=Number(document.getElementById('layout-toolbar-grid')?.value)||20;
+    cfg.layoutSnap=document.getElementById('layout-toolbar-snap')?.checked!==false;
+    const persisted=await saveCfg();
+    if(LAYOUT_PREVIEW_MODE&&!persisted?.ok){
+      alert('Could not save the Arrange layout to this display. The editor will stay open so you can retry. '+(persisted?.error||'Server save failed.'));
+      return;
+    }
+    stopLayoutEditorUi();layoutEditorOriginal=null;layoutCustomBlocksOriginal=[];applyUiCustomization(cfg);updateLayoutModeStatus(cfg);
+    if(LAYOUT_PREVIEW_MODE&&window.parent!==window)notifyLayoutPreviewParent('saved');
+  }finally{
+    layoutSaveInFlight=false;
+    if(saveButton){saveButton.disabled=false;saveButton.textContent='Save & Lock';}
+  }
 }
 function cancelLayoutEditor(){
   const hadSession=layoutEditorActive||!!layoutEditorOriginal;
@@ -6949,20 +6989,26 @@ function openSetup(startWizard=false){
   }
 }
 
-const SETTINGS_TABS=['overview','content','family','look','integrations','system'];
+const SETTINGS_TABS=['overview','weather','calendars','backgrounds','look','layout','family','integrations','system'];
 const SETTINGS_TAB_TITLES={
   overview:'Home',
-  content:'Content',
-  family:'Family',
+  weather:'Weather',
+  calendars:'Calendars',
+  backgrounds:'Backgrounds',
   look:'Personalization',
+  layout:'Layout',
+  family:'Family',
   integrations:'Integrations',
   system:'System'
 };
 const SETTINGS_TAB_HINTS={
   overview:'Dashboard status, displays, common actions, and a quick path to the settings you use most.',
-  content:'Calendars, weather, alerts, photos, and the information shown on your dashboard.',
+  weather:'Weather location, forecast behavior, Weather Details, and severe-weather alerts.',
+  calendars:'Calendar feeds, imported files, event presentation, refresh timing, and display rules.',
+  backgrounds:'Photo sources, local or NAS folders, slideshow rotation, and background presentation.',
+  look:'Themes, typography, accessibility, templates, and the Settings-button experience.',
+  layout:'Arrange the dashboard, choose what is visible, and tune sizing, spacing, ranges, and default geometry.',
   family:'Household members, chores, rewards, and touch-mode behavior.',
-  look:'Themes, accessibility, Settings-button behavior, templates, and dashboard presentation.',
   integrations:'Browse installed providers, add integration blocks, and review connection health.',
   system:'Accounts, remote access, profiles, scenes, updates, backup, diagnostics, and recovery.'
 };
@@ -7000,7 +7046,9 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-accessibility':'Language, reduced motion, contrast and keyboard focus.',
   'settings-settings-button':'Move and soften the Settings cog so it stays available without distracting from the dashboard.',
   'settings-integrations':'Browse installed providers and review connection health.',
-  'settings-appearance':'Typography, element sizing, forecast ranges and layout controls.',
+  'settings-layout-presentation':'Text treatment and default content sizing for built-in dashboard elements.',
+  'settings-layout':'Arrange the dashboard, apply layout presets, and choose clock/content visibility.',
+  'settings-layout-geometry':'Power-user geometry, forecast density, calendar range, spacing and scrolling controls.',
   'settings-software-update':'Check the installed release and see the one-command update instruction.',
   'settings-utilities':'Backup, restore, cache, diagnostics and recovery tools.'
 };
@@ -7230,6 +7278,7 @@ function applySettingsSectionVisibility(){
 }
 
 function switchSettingsTab(tab,scrollTop=true){
+  if(tab==='content')tab='weather';
   tab=SETTINGS_TABS.includes(tab)?tab:'overview';
   if(tab!=='overview'&&![...document.querySelectorAll(`.s-section[data-settings-tab="${tab}"]`)].some(settingsSectionRoleAllowed))tab='overview';
   activeSettingsTab=tab;
@@ -7257,7 +7306,9 @@ const SETTINGS_SEARCH_ALIASES={
   'settings-alerts':'alerts warning warnings severe weather test preview rotate rotation scroll scrolling motion',
   'settings-backgrounds':'background backgrounds picture pictures photo photos images slideshow google album nas media folder',
   'settings-accessibility':'accessibility readable readability larger large text contrast focus keyboard motion language settings size eyesight vision',
-  'settings-appearance':'appearance arrange layout editor inspector resize sizing font text color colour spacing alignment',
+  'settings-layout-presentation':'appearance typography sizing font text color colour content scale',
+  'settings-layout':'appearance arrange layout editor inspector resize visibility clock forecast show hide snap grid',
+  'settings-layout-geometry':'layout geometry spacing ranges columns calendar forecast sizing scroll alignment',
   'settings-settings-button':'settings cog gear button corner opacity',
   'settings-software-update':'update upgrade release version github',
   'settings-utilities':'backup restore diagnostics recovery cache export import'
@@ -7628,9 +7679,9 @@ function autoStartLayoutPreviewWhenReady(attempt=0){
   if(document.getElementById('setup')?.classList.contains('hidden')&&cfg&&typeof cfg==='object'){document.body.classList.add('layout-preview-embedded');setTimeout(startLayoutEditor,100);return;}
   if(attempt<120)setTimeout(()=>autoStartLayoutPreviewWhenReady(attempt+1),50);
 }
-init();
+const dashboardInitPromise=init();
 setTimeout(()=>startDisplayHydrationRecovery(),1200);
-if(LAYOUT_PREVIEW_MODE)autoStartLayoutPreviewWhenReady();
+if(LAYOUT_PREVIEW_MODE)dashboardInitPromise.then(()=>autoStartLayoutPreviewWhenReady()).catch(()=>autoStartLayoutPreviewWhenReady());
 </script>
 </body>
 </html>
