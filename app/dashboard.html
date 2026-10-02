@@ -1050,6 +1050,7 @@ body.layout-editing .custom-block { pointer-events:none !important; user-select:
 }
 .preset-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:end; margin-bottom:12px; }
 .preset-row .btn-util { height:38px; white-space:nowrap; }
+.layout-preset-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0 10px}.layout-preset-card{display:grid;grid-template-columns:142px minmax(0,1fr);gap:11px;align-items:center;padding:9px;border:1px solid var(--ld-border);border-radius:12px;background:var(--ld-surface-2);color:var(--ld-text);text-align:left;cursor:pointer;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}.layout-preset-card:hover{border-color:var(--ld-border-strong);background:color-mix(in srgb,var(--ld-surface-2) 86%,var(--ld-accent) 14%)}.layout-preset-card.selected{border-color:var(--ld-accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--ld-accent) 56%,transparent);background:color-mix(in srgb,var(--ld-surface-2) 88%,var(--ld-accent) 12%)}.layout-preset-card:focus-visible{outline:2px solid var(--ld-accent);outline-offset:2px}.layout-preset-stage{position:relative;aspect-ratio:16/9;overflow:hidden;border:1px solid var(--ld-border);border-radius:8px;background:linear-gradient(145deg,#0d1411,#080b09)}.layout-preset-stage::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 58% 45%,rgba(71,207,121,.08),transparent 46%);pointer-events:none}.layout-preset-block{position:absolute;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid color-mix(in srgb,var(--ld-accent) 48%,rgba(255,255,255,.18));border-radius:3px;background:color-mix(in srgb,var(--ld-accent) 12%,rgba(255,255,255,.04));color:rgba(255,255,255,.72);font-size:6px;font-weight:750;letter-spacing:.35px;line-height:1;text-transform:uppercase}.layout-preset-block[data-layout-block="alerts"]{border-style:dashed;background:rgba(245,185,66,.08);border-color:rgba(245,185,66,.48);color:rgba(255,216,124,.82)}.layout-preset-copy b{display:flex;align-items:center;gap:7px;font-size:11px}.layout-preset-copy span{display:block;margin-top:4px;color:var(--ld-muted);font-size:9px;line-height:1.45}.layout-preset-copy small{display:block;margin-top:6px;color:var(--ld-subtle);font-size:8px;line-height:1.35}.layout-preset-badge{display:inline-flex;align-items:center;padding:2px 5px;border:1px solid var(--ld-border);border-radius:999px;color:var(--ld-muted);font-size:7px;font-weight:650;text-transform:uppercase;letter-spacing:.3px}.layout-preset-card.selected .layout-preset-badge{border-color:color-mix(in srgb,var(--ld-accent) 55%,var(--ld-border));color:var(--ld-accent)}.layout-preset-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}.layout-preset-actions .settings-note{margin:0;flex:1 1 240px}.layout-preset-current-note{margin-top:7px}.layout-preset-card[data-layout-preset="current"] .layout-preset-stage{background:linear-gradient(145deg,#111713,#090c0a)}@media(max-width:900px){.layout-preset-grid{grid-template-columns:1fr}.layout-preset-card{grid-template-columns:132px minmax(0,1fr)}}@media(max-width:560px){.layout-preset-card{grid-template-columns:1fr}.layout-preset-stage{max-width:220px}.layout-preset-actions .btn-util{width:100%}}
 
 .weather-location-search { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; }
 .weather-location-search .btn-util { min-height:38px; white-space:nowrap; }
@@ -1883,7 +1884,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.5.1</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.5.2</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -2218,12 +2219,14 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-layout" data-settings-tab="layout">
    <h3>Dashboard layout</h3>
-   <div class="howto">The current dashboard is the 100% default. Changes preview live while this menu is open; Esc/Cancel restores the saved layout. Applying a preset previews its built-in layout immediately; Save &amp; Apply replaces any saved built-in Arrange positions. Presets never change calendar URLs, accounts, data sources, or added custom blocks.</div>
+   <div class="howto">Choose a layout visually before saving it. The cards below show where the built-in dashboard elements will go. Selecting a card stages that layout only for preview; your saved dashboard is untouched until <b>Save &amp; Apply</b>. Use <b>Preview selected layout</b> to inspect it full-screen with your real calendar, weather, background, and added custom blocks. Cancel/Esc restores the saved layout.</div>
 
-   <div class="preset-row">
-    <div class="s-row" style="margin-bottom:0;"><label>Layout preset</label><select id="s-appearance-preset"><option value="custom">Current custom layout</option><option value="default">Balanced default</option><option value="compact">Compact</option><option value="large">Large text</option><option value="photo">Photo first</option><option value="calendar">Calendar focused</option></select></div>
-    <button class="btn-util" type="button" onclick="applyAppearancePreset()">Apply preset</button>
+   <div id="layout-preset-gallery" class="layout-preset-grid" role="radiogroup" aria-label="Dashboard layout presets"></div>
+   <div class="layout-preset-actions">
+    <button id="layout-preset-preview-button" class="btn-util" type="button" onclick="previewSelectedLayoutFromSettings()">Preview selected layout</button>
+    <div id="layout-preset-status" class="settings-note" role="status" aria-live="polite">Current saved layout selected.</div>
    </div>
+   <div class="settings-note layout-preset-current-note">Preset layouts reposition only LibreDisplay's built-in elements. Added custom blocks stay exactly where you placed them. Applying a preset clears prior built-in Arrange overrides so the selected preset is what gets saved.</div>
 
    <div class="s-subhead">Advanced layout editor <button class="help-tip" type="button" aria-label="Arrange mode help" data-help="Arrange changes presentation only. Select an element to move or resize it, then use the movable inspector to style the whole block or individual titles, values, labels, and event text.">?</button></div>
    <div class="howto">Unlock the dashboard to drag and resize each major element independently. Select any element to open its inspector for content size, font, text color, opacity, horizontal/vertical content alignment, and precise screen placement. Arrow keys nudge a selected block; Shift + arrow resizes it. The Add Block catalog supports multiple reusable custom blocks. Positions are stored proportionally so layouts scale across similar screen resolutions.</div>
@@ -2336,7 +2339,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.5.1</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.5.2</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -2561,7 +2564,7 @@ html:not(.cursor-active) * {
 <div id="screen-care-overlay" aria-hidden="true"></div>
 
 <script>
-const DASHBOARD_BUILD = '1.5.1';
+const DASHBOARD_BUILD = '1.5.2';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -6363,16 +6366,68 @@ function updateAppearanceLabels(v){
   for(const [id,val,suffix] of map){const el=document.getElementById(id);if(el)el.textContent=String(val)+suffix;}
 }
 
-let settingsPresetLayoutPending=false;
+const LAYOUT_PRESET_ORDER=['current','default','compact','large','photo','calendar','portrait'];
+const LAYOUT_PRESET_LABELS={calendar:'CAL',current:'NOW',clock:'TIME',details:'INFO',daily:'DAYS',hourly:'HOURS',alerts:'ALERT'};
+const BALANCED_LAYOUT_THUMBNAIL={
+  calendar:{x:.02,y:.03,w:.96,h:.18},alerts:{x:.22,y:.28,w:.56,h:.22},current:{x:.03,y:.68,w:.15,h:.22},clock:{x:.20,y:.67,w:.23,h:.20},details:{x:.03,y:.91,w:.40,h:.07},daily:{x:.47,y:.68,w:.50,h:.12},hourly:{x:.47,y:.83,w:.50,h:.12}
+};
+const LAYOUT_PRESETS={
+  default:{name:'Balanced',description:'LibreDisplay’s standard composition: calendar across the top, weather and clock at lower left, forecasts at lower right.',mode:'default',blocks:{},contentScale:{},thumbnail:BALANCED_LAYOUT_THUMBNAIL},
+  compact:{name:'Compact',description:'Tighter edge placement with smaller built-in content, leaving more open background in the center.',mode:'custom',contentScale:{calendar:88,current:88,clock:88,details:88,daily:88,hourly:88,alerts:90},blocks:{calendar:{x:.015,y:.02,w:.97,h:.15},alerts:{x:.20,y:.23,w:.60,h:.18},current:{x:.02,y:.66,w:.14,h:.22},clock:{x:.17,y:.66,w:.20,h:.20},details:{x:.02,y:.90,w:.35,h:.07},daily:{x:.40,y:.67,w:.58,h:.12},hourly:{x:.40,y:.82,w:.58,h:.12}}},
+  large:{name:'Large & readable',description:'Larger calendar, clock, weather, and forecast regions for viewing from farther away.',mode:'custom',contentScale:{calendar:114,current:114,clock:116,details:110,daily:110,hourly:110,alerts:110},blocks:{calendar:{x:.02,y:.02,w:.96,h:.23},alerts:{x:.19,y:.30,w:.62,h:.20},current:{x:.02,y:.60,w:.20,h:.29},clock:{x:.24,y:.61,w:.24,h:.25},details:{x:.02,y:.91,w:.46,h:.07},daily:{x:.51,y:.59,w:.47,h:.16},hourly:{x:.51,y:.79,w:.47,h:.16}}},
+  photo:{name:'Photo first',description:'Keeps the center of the screen open so a photo background stays prominent while key information hugs the edges.',mode:'custom',contentScale:{calendar:90,current:94,clock:94,details:90,daily:90,hourly:90,alerts:94},blocks:{calendar:{x:.03,y:.03,w:.58,h:.18},clock:{x:.66,y:.04,w:.31,h:.18},alerts:{x:.27,y:.26,w:.46,h:.17},current:{x:.03,y:.70,w:.16,h:.22},details:{x:.03,y:.93,w:.34,h:.06},daily:{x:.44,y:.72,w:.53,h:.11},hourly:{x:.44,y:.86,w:.53,h:.11}}},
+  calendar:{name:'Calendar focus',description:'Keeps the calendar prominent across the top while grouping weather and forecasts closely beneath it.',mode:'custom',contentScale:{calendar:118,current:92,clock:94,details:92,daily:92,hourly:92,alerts:94},blocks:{calendar:{x:.02,y:.03,w:.96,h:.20},alerts:{x:.20,y:.26,w:.60,h:.14},current:{x:.02,y:.45,w:.18,h:.27},clock:{x:.22,y:.46,w:.25,h:.22},details:{x:.02,y:.76,w:.45,h:.08},daily:{x:.51,y:.43,w:.47,h:.18},hourly:{x:.51,y:.65,w:.47,h:.18}}},
+  portrait:{name:'Stacked / portrait',description:'A vertically stacked composition for portrait displays, tablets, and narrow wall screens.',mode:'custom',contentScale:{calendar:92,current:94,clock:94,details:92,daily:90,hourly:90,alerts:92},blocks:{calendar:{x:.04,y:.03,w:.92,h:.29},alerts:{x:.14,y:.25,w:.72,h:.14},clock:{x:.04,y:.37,w:.43,h:.15},current:{x:.52,y:.36,w:.44,h:.18},details:{x:.04,y:.56,w:.92,h:.09},daily:{x:.04,y:.68,w:.92,h:.11},hourly:{x:.04,y:.83,w:.92,h:.11}}}
+};
+let settingsLayoutPresetKey='current';
+function cloneLayoutPresetValue(v){return JSON.parse(JSON.stringify(v));}
+function currentLayoutPresetThumbnail(){
+  if(cfg.layoutMode==='custom'&&cfg.layoutBlocks&&Object.keys(cfg.layoutBlocks).length)return cfg.layoutBlocks;
+  return BALANCED_LAYOUT_THUMBNAIL;
+}
+function layoutPresetThumbnailBlocks(key){
+  if(key==='current')return currentLayoutPresetThumbnail();
+  const preset=LAYOUT_PRESETS[key];return preset?.thumbnail||preset?.blocks||BALANCED_LAYOUT_THUMBNAIL;
+}
+function layoutPresetBlockHtml(key,r){
+  if(!r||![r.x,r.y,r.w,r.h].every(v=>Number.isFinite(Number(v))))return '';
+  const left=Math.max(0,Math.min(100,Number(r.x)*100)),top=Math.max(0,Math.min(100,Number(r.y)*100)),width=Math.max(2,Math.min(100-left,Number(r.w)*100)),height=Math.max(2,Math.min(100-top,Number(r.h)*100));
+  return `<span class="layout-preset-block" data-layout-block="${escHtml(key)}" style="left:${left.toFixed(2)}%;top:${top.toFixed(2)}%;width:${width.toFixed(2)}%;height:${height.toFixed(2)}%">${escHtml(LAYOUT_PRESET_LABELS[key]||key)}</span>`;
+}
+function layoutPresetCardHtml(key){
+  const current=key==='current',preset=current?null:LAYOUT_PRESETS[key],name=current?'Current saved layout':preset.name,description=current?(cfg.layoutMode==='custom'?'Your saved custom Arrange layout.':'Your saved Balanced layout.'):preset.description;
+  const blocks=layoutPresetThumbnailBlocks(key),thumb=Object.entries(blocks).map(([block,r])=>layoutPresetBlockHtml(block,r)).join('');
+  const selected=settingsLayoutPresetKey===key;
+  return `<button class="layout-preset-card${selected?' selected':''}" data-layout-preset="${escHtml(key)}" type="button" role="radio" aria-checked="${selected?'true':'false'}" onclick="selectLayoutPreset('${escHtml(key)}')"><span class="layout-preset-stage" aria-hidden="true">${thumb}</span><span class="layout-preset-copy"><b>${escHtml(name)} <span class="layout-preset-badge">${current?'Saved':'Preset'}</span></b><span>${escHtml(description)}</span><small>${current?'No preset will be committed when you save unless you choose another card.':'Select to stage it, then use Preview selected layout for a full-screen live preview.'}</small></span></button>`;
+}
+function renderLayoutPresetGallery(){
+  const host=document.getElementById('layout-preset-gallery');if(!host)return;
+  host.innerHTML=LAYOUT_PRESET_ORDER.map(layoutPresetCardHtml).join('');
+  const status=document.getElementById('layout-preset-status');if(status){const preset=LAYOUT_PRESETS[settingsLayoutPresetKey];status.textContent=settingsLayoutPresetKey==='current'?'Current saved layout selected. Choose a preset to stage a different arrangement.':`Previewing ${preset?.name||'layout'} — not saved yet.`;}
+}
+function applyLayoutPresetToSource(source,key=settingsLayoutPresetKey){
+  if(!source||key==='current')return source;
+  const preset=LAYOUT_PRESETS[key];if(!preset)return source;
+  source.layoutMode=preset.mode==='custom'?'custom':'default';
+  source.layoutBlocks=preset.mode==='custom'?cloneLayoutPresetValue(preset.blocks||{}):{};
+  source.layoutContentScale=cloneLayoutPresetValue(preset.contentScale||{});
+  source.layoutElementStyle={};
+  source.layoutPartStyle={};
+  return source;
+}
+function selectLayoutPreset(key){
+  if(key!=='current'&&!LAYOUT_PRESETS[key])return;
+  settingsLayoutPresetKey=key;
+  previewAppearance();
+  renderLayoutPresetGallery();
+  markSettingsDirty();
+}
+function previewSelectedLayoutFromSettings(){
+  previewAppearance();
+  previewDashboardFromSettings();
+}
 function previewAppearance(){
-  const temp=appearanceFromForm();
-  if(settingsPresetLayoutPending){
-    temp.layoutMode='default';
-    temp.layoutBlocks={};
-    temp.layoutContentScale={};
-    temp.layoutElementStyle={};
-    temp.layoutPartStyle={};
-  }
+  const temp=applyLayoutPresetToSource(appearanceFromForm(),settingsLayoutPresetKey);
   updateFontPreview();
   window.__uiPreviewCfg=temp;
   updateAppearanceLabels(temp);
@@ -6389,13 +6444,6 @@ const APPEARANCE_DEFAULTS={
   bgShadeTop:52,bgShadeBottom:55,bgBlurPx:0,bgTransitionSec:1.5,bgFit:'cover',bgPosition:'center',alertOpacityPct:100,alertMinSeverity:'all',alertShowExpiry:true,alertShowMeta:true,locale:'auto',motionPreference:'auto',highContrast:false,focusOutline:false,settingsUiSize:'standard',burnInProtection:false,burnInIdleMin:30,burnInBrightnessPct:40,settingsCogPosition:'bottom-right',settingsCogOpacity:42,settingsCogSize:46,settingsCogLabel:true
 };
 
-const APPEARANCE_PRESETS={
-  default:{...APPEARANCE_DEFAULTS},
-  compact:{...APPEARANCE_DEFAULTS,uiCalendarPct:90,uiCurrentPct:90,uiClockPct:90,uiForecastPct:92,uiDetailsPct:90,uiAlertPct:92,calendarBandHeight:136,bottomPanelHeight:300,leftPanelWidth:440,sidePaddingPx:20,forecastGapPx:3,forecastRowGapPx:14},
-  large:{...APPEARANCE_DEFAULTS,uiCalendarPct:116,uiCurrentPct:112,uiClockPct:110,uiForecastPct:112,uiDetailsPct:110,uiAlertPct:112,calendarBandHeight:170,bottomPanelHeight:370,leftPanelWidth:510,forecastGapPx:6,forecastRowGapPx:22},
-  photo:{...APPEARANCE_DEFAULTS,uiCalendarPct:94,uiCurrentPct:95,uiClockPct:95,uiForecastPct:95,uiDetailsPct:94,uiAlertPct:100,calendarBandHeight:138,bottomPanelHeight:310,leftPanelWidth:450,bgShadeTop:32,bgShadeBottom:40,textShadowPct:90},
-  calendar:{...APPEARANCE_DEFAULTS,uiCalendarPct:112,uiCurrentPct:94,uiClockPct:94,uiForecastPct:94,uiDetailsPct:94,calendarBandHeight:190,bottomPanelHeight:300,leftPanelWidth:445,calendarMaxEvents:6}
-};
 
 function setAppearanceForm(v){
   const locale=document.getElementById('s-locale');if(locale)locale.value=v.locale||'auto';
@@ -6433,23 +6481,11 @@ function setAppearanceForm(v){
 
 const PRESET_CONTENT_PRESERVE_KEYS=['weatherDetailsOrder','weatherDetailsEnabled','showSunset','showWind','showHumidity','calendarTimeStyle','calendarLegend','calendarShowContinuation','burnInProtection','burnInIdleMin','burnInBrightnessPct'];
 function preservePresetState(target,current){for(const prop of PRESET_CONTENT_PRESERVE_KEYS)target[prop]=JSON.parse(JSON.stringify(current[prop]));return target;}
-function applyAppearancePreset(){
-  const key=document.getElementById('s-appearance-preset')?.value||'custom';
-  if(key==='custom'){
-    if(settingsPresetLayoutPending){settingsPresetLayoutPending=false;previewAppearance();markSettingsDirty();}
-    return;
-  }
-  const current=appearanceFromForm();
-  const preset=preservePresetState({...current,...(APPEARANCE_PRESETS[key]||APPEARANCE_PRESETS.default),uiTheme:current.uiTheme,fontFamily:current.fontFamily,primaryTextColor:current.primaryTextColor,locale:current.locale,motionPreference:current.motionPreference,highContrast:current.highContrast,focusOutline:current.focusOutline,settingsUiSize:current.settingsUiSize,settingsCogPosition:current.settingsCogPosition,settingsCogOpacity:current.settingsCogOpacity,settingsCogSize:current.settingsCogSize,settingsCogLabel:current.settingsCogLabel},current);
-  settingsPresetLayoutPending=true;
-  setAppearanceForm(preset);
-  previewAppearance();markSettingsDirty();
-}
 
 function resetAppearanceForm(){
-  const preset=document.getElementById('s-appearance-preset');if(preset)preset.value='default';
+  settingsLayoutPresetKey='default';
   setAppearanceForm(APPEARANCE_DEFAULTS);
-  previewAppearance();markSettingsDirty();
+  previewAppearance();renderLayoutPresetGallery();markSettingsDirty();
 }
 
 function exportSettings(){
@@ -7375,12 +7411,13 @@ const STARTER_TEMPLATES={
   morning:{uiTheme:'libre-night',uiClockPct:125,uiCalendarPct:108,uiCurrentPct:108,uiForecastPct:102,calendarBandHeight:164,bottomPanelHeight:340,leftPanelWidth:500,sidePaddingPx:30,forecastRowGapPx:18,calendarDays:7,calendarColumns:7,showDailyForecast:true,showHourlyForecast:true,secondaryOpacity:92},
   metrics:{uiTheme:'graphite',uiClockPct:90,uiCalendarPct:90,uiCurrentPct:92,uiForecastPct:90,calendarBandHeight:132,bottomPanelHeight:300,leftPanelWidth:430,sidePaddingPx:20,forecastRowGapPx:12,calendarCellHeight:125,secondaryOpacity:90}
 };
+const STARTER_TEMPLATE_LAYOUTS={family:'calendar',photo:'photo',minimal:'compact',weather:'large',portrait:'portrait',smarthome:'default',morning:'large',metrics:'compact'};
 function applyStarterTemplate(key){
   const patch=STARTER_TEMPLATES[key];if(!patch)return;
   const current=appearanceFromForm(),preview=preservePresetState({...current,...JSON.parse(JSON.stringify(patch))},current);
-  settingsPresetLayoutPending=true;
-  setAppearanceForm(preview);previewAppearance();markSettingsDirty();
-  const el=document.getElementById('template-status');if(el)el.textContent='Template preview active — built-in elements are showing the template layout now. Cancel/Esc restores your saved arrangement; Save & Apply replaces the saved built-in arrangement with this presentation.';
+  settingsLayoutPresetKey=STARTER_TEMPLATE_LAYOUTS[key]||'default';
+  setAppearanceForm(preview);previewAppearance();renderLayoutPresetGallery();markSettingsDirty();
+  const el=document.getElementById('template-status');if(el)el.textContent=`Template preview active — ${LAYOUT_PRESETS[settingsLayoutPresetKey]?.name||'Balanced'} layout staged. Use Layout → Preview selected layout for a full-screen preview; Cancel/Esc restores your saved dashboard.`;
 }
 
 function currentWizardDisplayName(){
@@ -7725,13 +7762,9 @@ async function saveSetup(options={}){
   cfg.alertRefreshMin=Math.min(30,Math.max(3,Number(document.getElementById('s-alert-refresh').value)||5));
   alertRuntimeState=null;
   Object.assign(cfg,appearanceFromForm());
-  if(settingsPresetLayoutPending){
-    cfg.layoutMode='default';
-    cfg.layoutBlocks={};
-    cfg.layoutContentScale={};
-    cfg.layoutElementStyle={};
-    cfg.layoutPartStyle={};
-    settingsPresetLayoutPending=false;
+  if(settingsLayoutPresetKey!=='current'){
+    applyLayoutPresetToSource(cfg,settingsLayoutPresetKey);
+    settingsLayoutPresetKey='current';
   }
   cfg.onboardingComplete=true;
   const persistence=await saveCfg();
@@ -7748,6 +7781,7 @@ function setSettingsPreviewReturnVisible(on){
 }
 function previewDashboardFromSettings(){
   const setup=document.getElementById('setup');if(!setup||setup.classList.contains('hidden'))return;
+  previewAppearance();
   hideContextHelp(true);
   syncAlertRuntimeStateFromForm();
   settingsPreviewMode=true;
@@ -7772,7 +7806,7 @@ function requestCloseSetup(){
 }
 
 function restoreSavedSettingsPreview(){
-  settingsPresetLayoutPending=false;
+  settingsLayoutPresetKey='current';
   window.__uiPreviewCfg=null;alertRuntimeState=null;
   // Always restore the Settings form itself, even when the modal is being closed.
   // This prevents a discarded preset/template from becoming the starting point
@@ -7807,7 +7841,7 @@ setInterval(()=>{if(!document.hidden&&!document.getElementById('setup')?.classLi
 
 function openSetup(startWizard=false){
   if(settingsPreviewMode){returnToSettingsPreview();return;}
-  settingsPresetLayoutPending=false;
+  settingsLayoutPresetKey='current';
   setTimeout(()=>{loadRemoteInfo();loadCacheStatus();loadDisplayEndpoints();loadHouseholdSettings();loadIntegrationHealth();checkSoftwareUpdate(false);loadReleaseRollbacks();},0);
   settingsInitializing=true;
   clearSettingsInitializationError();
@@ -7868,7 +7902,8 @@ function openSetup(startWizard=false){
     previewAlertMotionSpeed(cfg.alertMotionPx);
     bindTextColorControls();
     setAppearanceForm(cfg);
-    const preset=document.getElementById('s-appearance-preset');if(preset)preset.value='custom';
+    settingsLayoutPresetKey='current';
+    renderLayoutPresetGallery();
     updateAppearanceLabels(cfg);
     applyUiCustomization(cfg);
     setAlertStatus(lastAlertStatus.text,lastAlertStatus.error);
@@ -7944,7 +7979,7 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-integrations':'Browse installed providers, test live connections, and review refresh health without exposing credentials.',
   'settings-provider-health':'Review weather, calendars, backgrounds, alerts, and integrations in one privacy-safe troubleshooting view.',
   'settings-layout-presentation':'Text treatment and default content sizing for built-in dashboard elements.',
-  'settings-layout':'Arrange the dashboard, apply layout presets, and choose clock/content visibility.',
+  'settings-layout':'Preview and apply dashboard layouts, arrange elements, and choose clock/content visibility.',
   'settings-layout-geometry':'Power-user geometry, forecast density, calendar range, spacing and scrolling controls.',
   'settings-display-readiness':'Checks target-screen viewport, orientation, browser scale, and local kiosk heartbeat so display problems are visible without changing the layout.',
   'settings-system-health':'Host uptime, deployment mode, storage headroom, and local runtime health.',
@@ -7996,7 +8031,6 @@ const SETTINGS_CONTROL_HELP={
   's-cog-size':'Changes the clickable Settings button size. Larger values are easier to use on touch displays.',
   's-cog-opacity':'Controls how visible the Settings button is while idle. It becomes more visible when the pointer is active.',
   's-cog-label':'Shows a small Settings hint during hover or first discovery so new users can find the configuration menu more easily.',
-  's-appearance-preset':'Applies a coordinated presentation starting point. You can continue adjusting individual controls afterward.',
   's-secondary-opacity':'Changes the strength of secondary labels and supporting text without changing the primary dashboard values.',
   's-text-shadow':'Adjusts the shadow behind dashboard text. More shadow can improve readability over busy or bright backgrounds.',
   's-text-color':'Sets the dashboard primary text color. Theme colors and per-element Arrange overrides can still affect individual content.',
