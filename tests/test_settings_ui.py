@@ -299,6 +299,22 @@ class SettingsUiTests(unittest.TestCase):
         self.assertIn('Each font name above is rendered in that font', HTML)
         self.assertIn('function styleFontSelectOptions()', HTML)
 
+    def test_background_rotation_uses_double_buffered_preload_without_blank_frames(self):
+        self.assertIn('id="bg-image-a"', HTML)
+        self.assertIn('id="bg-image-b"', HTML)
+        self.assertIn('function prepareUpcomingBackground()', HTML)
+        self.assertIn('function loadBackgroundIntoLayer(layer,remoteUrl,priority=', HTML)
+        self.assertIn('function revealBackgroundLayer(layer,remoteUrl)', HTML)
+        self.assertIn("if(bgPreparedIndex!==null&&bgPreparedUrl&&bgImages[bgPreparedIndex]===bgPreparedUrl)return bgPreparedIndex;", HTML)
+        reveal = re.search(r"async function revealBackgroundLayer\(layer,remoteUrl\)\{(.*?)\n\}", HTML, re.S)
+        self.assertIsNotNone(reveal)
+        body = reveal.group(1)
+        self.assertIn("layer.classList.add('show');", body)
+        self.assertIn("active.classList.remove('show');", body)
+        self.assertLess(body.index("layer.classList.add('show');"), body.index("active.classList.remove('show');"))
+        self.assertIn('await bgPreparePromise;', HTML)
+        self.assertIn('prepareUpcomingBackground();', HTML)
+
     def test_system_health_and_update_actions_are_discoverable(self):
         self.assertIn('id="settings-system-health"', HTML)
         self.assertIn('id="settings-backup-recovery"', HTML)

@@ -50,13 +50,23 @@ class ResilienceContractTests(unittest.TestCase):
     def test_offline_reconnect_path_preserves_last_good_data(self):
         for marker in (
             "serverConnectionState",
-            "Reconnecting · showing last known data",
+            "SERVER_RECONNECT_NOTICE_DELAY_MS=8000",
+            "Connection interrupted · showing last known data",
             "Provider delayed · showing last known data",
-            "liveEventSource.onopen=()=>setServerConnectionState('online')",
+            "liveEventSource.onopen=markServerTransportOpen",
+            "liveEventSource.onerror=noteServerTransportError",
             "retryDisplayHydration('server-reconnected')",
             "window.addEventListener('offline'",
         ):
             self.assertIn(marker, HTML)
+
+    def test_transient_live_stream_reconnects_are_quiet_and_fast(self):
+        server_source = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
+        self.assertIn("function clearServerReconnectNotice()", HTML)
+        self.assertIn("function markServerTransportOpen()", HTML)
+        self.assertIn("function noteServerTransportError()", HTML)
+        self.assertIn("liveEventSource?.readyState!==EventSource.OPEN", HTML)
+        self.assertIn('retry: 1000\\n: LibreDisplay live connection', server_source)
 
     def test_native_kiosk_watchdog_checks_server_and_browser_heartbeat(self):
         self.assertIn('DASHBOARD_KIOSK_WATCHDOG', START)

@@ -36,15 +36,19 @@ body {
 }
 
 
-#bg {
+.bg-layer {
   position:fixed; inset:0; z-index:0;
-  background-size:var(--bg-size,cover); background-position:var(--bg-position,center);
-  transition:opacity 1.5s ease; opacity:0;
+  transition:opacity 1.5s ease; opacity:0; pointer-events:none; overflow:hidden;
+  will-change:opacity;
 }
-#bg.show { opacity:1; }
-
-#bg::before {
-  content:''; position:absolute; inset:0;
+.bg-layer.show { opacity:1; }
+.bg-layer > img {
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:var(--bg-size,cover); object-position:var(--bg-position,center);
+  display:block;
+}
+.bg-layer::before {
+  content:''; position:absolute; inset:0; z-index:1; pointer-events:none;
   background:linear-gradient(
     to bottom,
     rgba(0,0,0,var(--bg-shade-top,.52)) 0%,
@@ -1781,7 +1785,8 @@ html:not(.cursor-active) * {
 </head>
 <body>
 
-<div id="bg"></div>
+<div id="bg" class="bg-layer" aria-hidden="true"><img id="bg-image-a" alt="" decoding="async"></div>
+<div id="bg-next" class="bg-layer" aria-hidden="true"><img id="bg-image-b" alt="" decoding="async"></div>
 
 
 <div id="setup" class="hidden" aria-hidden="true">
@@ -1900,7 +1905,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.5.5</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.5.6</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -2113,7 +2118,7 @@ html:not(.cursor-active) * {
      </select></div>
      <div class="s-row"><label>Photo order <button class="help-tip" type="button" aria-label="Photo order help" data-help="Sequential follows source order. Shuffle cycle shows every image once before reshuffling. Random chooses independently while avoiding immediate repeats.">?</button></label><select id="s-photo-order"><option value="sequential">Sequential — source order</option><option value="shuffle">Shuffle cycle — every photo once</option><option value="random">Random — avoid immediate repeats</option></select></div>
      <label class="checkline"><input id="s-photo-random-start" type="checkbox"> Random starting photo</label>
-     <label class="checkline"><input id="s-photo-preload" type="checkbox" checked> Preload the next photo <button class="help-tip" type="button" aria-label="Photo preload help" data-help="Loads the next image before the transition to reduce flashes or blank frames. This uses a little more network and memory.">?</button></label>
+     <label class="checkline"><input id="s-photo-preload" type="checkbox" checked> Preload the next photo <button class="help-tip" type="button" aria-label="Photo preload help" data-help="Loads and decodes the exact upcoming image in a hidden background layer before the transition. The current photo stays visible until the next one is ready, preventing blank or black frames. This uses a little more network and memory.">?</button></label>
     </div>
     <div class="settings-note">Shuffle cycle shows every available image once before reshuffling. Random chooses a new image each change and avoids showing the same image twice in a row.</div>
    </div>
@@ -2360,7 +2365,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.5.5</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.5.6</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -2613,7 +2618,7 @@ html:not(.cursor-active) * {
 <div id="screen-care-overlay" aria-hidden="true"></div>
 
 <script>
-const DASHBOARD_BUILD = '1.5.5';
+const DASHBOARD_BUILD = '1.5.6';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -2823,6 +2828,7 @@ let cfg = {
   _savedAt:0
 };
 let bgImages=[], bgSourceImages=[], bgIdx=0, bgLastUrl='';
+let bgActiveLayerId='bg', bgPreparedIndex=null, bgPreparedUrl='', bgPreparePromise=null, bgTransitionBusy=false, bgSourceSerial=0;
 let stockRecentUrls=[], stockFetchInFlight=false;
 let lastBackgroundStatus={text:'',error:false,updatedAt:0};
 let wxData=null;
@@ -4765,11 +4771,14 @@ async function loadFolderBackgrounds(paths=cfg.mediaFolders,recursive=cfg.mediaR
   paths=[...new Set((paths||[]).map(x=>String(x||'').trim()).filter(Boolean))].slice(0,32);
   if(!paths.length){setBackgroundStatus('Add at least one local or mounted NAS picture folder.',true);return;}
   try{
+    const sourceSerial=++bgSourceSerial;
     if(bgTimer){clearInterval(bgTimer);bgTimer=null;}
+    clearBackgroundPrepared(true);
     bgImages=[];bgSourceImages=[];bgIdx=0;bgLastUrl='';
     setBackgroundStatus('Scanning local / NAS picture folders…');
     const res=await fetch(serverPath('/api/media/scan'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paths,recursive:recursive!==false}),cache:'no-store'});
     const data=await res.json().catch(()=>({}));
+    if(sourceSerial!==bgSourceSerial)return;
     if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));
     bgSourceImages=(data.images||[]).map(x=>x.url).filter(Boolean);
     if(!bgSourceImages.length){
@@ -4780,7 +4789,8 @@ async function loadFolderBackgrounds(paths=cfg.mediaFolders,recursive=cfg.mediaR
     const sourceCount=(data.sources||[]).filter(x=>Number(x.count)>0).length;
     const limit=data.limitReached?' · scan limit reached':'';
     setBackgroundStatus(`${bgSourceImages.length} local/network photos · ${sourceCount} source${sourceCount===1?'':'s'}${limit} · ${cfg.photoIntervalSec?formatBackgroundInterval(cfg.photoIntervalSec):'rotation off'}`);
-    showBg(bgIdx);scheduleBackgroundRotation();
+    await showBg(bgIdx,0,sourceSerial);
+    if(sourceSerial===bgSourceSerial)scheduleBackgroundRotation();
   }catch(e){
     console.warn('folder background error',e);
     setBackgroundStatus('Folder background error: '+(e?.message||String(e)),true);
@@ -4830,7 +4840,7 @@ function prepareBackgroundOrder(images,keepCurrent=false){
   }
 }
 
-function nextBackgroundIndex(){
+function chooseNextBackgroundIndex(){
   if(bgImages.length<=1)return 0;
   if(cfg.photoOrder==='random'){
     let next=bgIdx;
@@ -4838,7 +4848,7 @@ function nextBackgroundIndex(){
     return next;
   }
   if(cfg.photoOrder==='shuffle'&&bgIdx>=bgImages.length-1){
-    const previous=bgImages[bgIdx];
+    const previous=bgLastUrl||bgImages[bgIdx];
     bgImages=shuffledCopy(bgSourceImages);
     if(bgImages.length>1&&bgImages[0]===previous){
       [bgImages[0],bgImages[1]]=[bgImages[1],bgImages[0]];
@@ -4848,11 +4858,131 @@ function nextBackgroundIndex(){
   return (bgIdx+1)%bgImages.length;
 }
 
+function nextBackgroundIndex(){
+  if(bgPreparedIndex!==null&&bgPreparedUrl&&bgImages[bgPreparedIndex]===bgPreparedUrl)return bgPreparedIndex;
+  return chooseNextBackgroundIndex();
+}
+
+function backgroundLayerById(id){return document.getElementById(id);}
+function backgroundLayerImage(layer){return layer?.querySelector('img')||null;}
+function activeBackgroundLayer(){return backgroundLayerById(bgActiveLayerId)||backgroundLayerById('bg');}
+function inactiveBackgroundLayer(){return backgroundLayerById(bgActiveLayerId==='bg'?'bg-next':'bg');}
+function backgroundTransitionDurationMs(layer=null){
+  if(document.documentElement.classList.contains('ld-reduce-motion'))return 0;
+  const el=layer||inactiveBackgroundLayer();
+  if(el){
+    const css=getComputedStyle(el),durations=String(css.transitionDuration||'').split(','),delays=String(css.transitionDelay||'').split(',');
+    const toMs=value=>{const v=String(value||'').trim();return v.endsWith('ms')?(parseFloat(v)||0):v.endsWith('s')?(parseFloat(v)||0)*1000:0;};
+    let maxMs=0;
+    for(let i=0;i<durations.length;i++)maxMs=Math.max(maxMs,toMs(durations[i])+toMs(delays[Math.min(i,delays.length-1)]));
+    if(maxMs>0)return maxMs;
+  }
+  return Math.max(0,Number(cfg.bgTransitionSec)||0)*1000;
+}
+function nextAnimationFrame(){return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));}
+function waitForBackgroundLayerVisible(layer){
+  const ms=backgroundTransitionDurationMs(layer);
+  if(ms<=5)return Promise.resolve();
+  return new Promise(resolve=>{
+    let settled=false;
+    const done=()=>{if(settled)return;settled=true;layer.removeEventListener('transitionend',onEnd);clearTimeout(timer);resolve();};
+    const onEnd=e=>{if(e.target===layer&&e.propertyName==='opacity')done();};
+    const timer=setTimeout(done,ms+120);
+    layer.addEventListener('transitionend',onEnd);
+  });
+}
+function clearBackgroundPrepared(clearLayer=false){
+  bgPreparedIndex=null;bgPreparedUrl='';bgPreparePromise=null;
+  if(clearLayer){
+    const layer=inactiveBackgroundLayer(),img=backgroundLayerImage(layer);
+    if(layer&&!layer.classList.contains('show')){
+      layer.dataset.remoteUrl='';
+      if(img)img.removeAttribute('src');
+    }
+  }
+}
+function clearBackgroundLayers(){
+  clearBackgroundPrepared(false);
+  for(const id of ['bg','bg-next']){
+    const layer=backgroundLayerById(id),img=backgroundLayerImage(layer);
+    if(!layer)continue;
+    layer.classList.remove('show');layer.style.zIndex='0';layer.dataset.remoteUrl='';
+    if(img)img.removeAttribute('src');
+  }
+  bgActiveLayerId='bg';
+}
+function loadBackgroundIntoLayer(layer,remoteUrl,priority='low'){
+  if(!layer||!remoteUrl)return Promise.resolve(false);
+  const img=backgroundLayerImage(layer);if(!img)return Promise.resolve(false);
+  const assetUrl=backgroundAssetUrl(remoteUrl);
+  if(layer.dataset.remoteUrl===remoteUrl&&img.getAttribute('src')===assetUrl&&img.complete&&img.naturalWidth>0){
+    return typeof img.decode==='function'?img.decode().then(()=>true).catch(()=>true):Promise.resolve(true);
+  }
+  return new Promise(resolve=>{
+    let settled=false;
+    const finish=async ok=>{
+      if(settled)return;settled=true;img.onload=null;img.onerror=null;
+      if(ok&&typeof img.decode==='function'){try{await img.decode();}catch(_e){}}
+      resolve(!!ok&&img.naturalWidth>0);
+    };
+    img.onload=()=>finish(true);
+    img.onerror=()=>finish(false);
+    try{img.fetchPriority=priority;}catch(_e){}
+    layer.dataset.remoteUrl=remoteUrl;
+    img.src=assetUrl;
+    if(img.complete)setTimeout(()=>finish(img.naturalWidth>0),0);
+  });
+}
 function preloadBackgroundIndex(idx){
-  if(!cfg.photoPreload||!bgImages.length)return;
+  if(!cfg.photoPreload||!bgImages.length)return Promise.resolve(false);
   const i=((idx%bgImages.length)+bgImages.length)%bgImages.length;
-  const img=new Image();
-  img.src=backgroundAssetUrl(bgImages[i]);
+  const remoteUrl=bgImages[i];if(!remoteUrl)return Promise.resolve(false);
+  const layer=inactiveBackgroundLayer();
+  return loadBackgroundIntoLayer(layer,remoteUrl,'low');
+}
+function prepareUpcomingBackground(){
+  if(!cfg.photoPreload||bgImages.length<=1){clearBackgroundPrepared(false);return;}
+  let idx=null;
+  if(cfg.photoOrder==='random'){
+    idx=bgIdx;
+    while(idx===bgIdx)idx=Math.floor(Math.random()*bgImages.length);
+  }else if(cfg.photoOrder==='shuffle'&&bgIdx>=bgImages.length-1){
+    // The next shuffle order is intentionally chosen only when rotation occurs.
+    // The current image remains visible while that boundary image loads.
+    clearBackgroundPrepared(false);return;
+  }else{
+    idx=(bgIdx+1)%bgImages.length;
+  }
+  const remoteUrl=bgImages[idx];
+  if(bgPreparedIndex===idx&&bgPreparedUrl===remoteUrl&&bgPreparePromise)return;
+  bgPreparedIndex=idx;bgPreparedUrl=remoteUrl;
+  bgPreparePromise=preloadBackgroundIndex(idx).then(ok=>{
+    if(!ok&&bgPreparedUrl===remoteUrl){bgPreparedIndex=null;bgPreparedUrl='';bgPreparePromise=null;}
+    return ok;
+  });
+}
+
+async function revealBackgroundLayer(layer,remoteUrl){
+  const active=activeBackgroundLayer();
+  const hasCurrent=!!(active&&active.classList.contains('show')&&backgroundLayerImage(active)?.naturalWidth);
+  layer.style.zIndex='1';
+  if(active&&active!==layer)active.style.zIndex='0';
+  layer.classList.remove('show');
+  await nextAnimationFrame();
+  layer.classList.add('show');
+  await waitForBackgroundLayerVisible(layer);
+  if(active&&active!==layer){
+    active.style.transition='none';
+    active.classList.remove('show');
+    void active.offsetWidth;
+    active.style.transition='';
+    const oldImage=backgroundLayerImage(active);
+    active.dataset.remoteUrl='';
+    if(oldImage)oldImage.removeAttribute('src');
+  }
+  layer.style.zIndex='0';
+  bgActiveLayerId=layer.id;
+  bgLastUrl=remoteUrl;
 }
 
 function scheduleBackgroundRotation(){
@@ -4877,8 +5007,10 @@ function stockSearchTerm(category=cfg.stockCategory,custom=cfg.stockQuery){
 async function loadStockBackground(category=cfg.stockCategory,custom=cfg.stockQuery,resolution=cfg.stockResolution){
   if(stockFetchInFlight)return;
   stockFetchInFlight=true;
+  const sourceSerial=++bgSourceSerial;
   try{
     if(bgTimer){clearInterval(bgTimer);bgTimer=null;}
+    clearBackgroundPrepared(true);
     const query=stockSearchTerm(category,custom);
     const dims=/^(\d{3,4})x(\d{3,4})$/.exec(String(resolution||'3840x2160'))||['',3840,2160];
     const w=Number(dims[1]),h=Number(dims[2]);
@@ -4887,6 +5019,7 @@ async function loadStockBackground(category=cfg.stockCategory,custom=cfg.stockQu
     for(let attempt=0;attempt<3&&!chosen;attempt++){
       const endpoint='https://www.sourcesplash.com/api/random?'+new URLSearchParams({q:query,w:String(w),h:String(h),_t:String(Date.now()+attempt)}).toString();
       const text=await fetchRemoteText(endpoint);
+      if(sourceSerial!==bgSourceSerial)return;
       let data=null;
       try{data=JSON.parse(text);}catch(e){throw new Error('Stock image service returned an unexpected response');}
       const candidate=typeof data?.url==='string'?data.url:'';
@@ -4898,26 +5031,31 @@ async function loadStockBackground(category=cfg.stockCategory,custom=cfg.stockQu
     bgSourceImages=[...stockRecentUrls];
     bgImages=[chosen];
     bgIdx=0;
-    showBg(0);
+    await showBg(0,0,sourceSerial);
+    if(sourceSerial!==bgSourceSerial)return;
     setBackgroundStatus(`Stock background · ${query} · ${w}×${h} requested · ${cfg.photoIntervalSec?formatBackgroundInterval(cfg.photoIntervalSec):'rotation off'}`);
   }catch(e){
     console.warn('stock background error',e);
     setBackgroundStatus('Stock background error: '+(e?.message||String(e)),true);
   }finally{
     stockFetchInFlight=false;
-    scheduleBackgroundRotation();
+    if(sourceSerial===bgSourceSerial)scheduleBackgroundRotation();
   }
 }
 
 async function loadPhotos(albumUrl){
   if(!albumUrl){setBackgroundStatus('No Google Photos album configured.');return;}
   try{
+    const sourceSerial=++bgSourceSerial;
     if(bgTimer){clearInterval(bgTimer);bgTimer=null;}
+    clearBackgroundPrepared(true);
     bgImages=[];bgSourceImages=[];bgIdx=0;bgLastUrl='';
     setBackgroundStatus('Loading shared album…');
 
     const html=await fetchRemoteText(albumUrl);
+    if(sourceSerial!==bgSourceSerial)return;
     const album=await extractAllGooglePhotoUrls(html);
+    if(sourceSerial!==bgSourceSerial)return;
     bgSourceImages=album.urls;
 
     if(!bgSourceImages.length){
@@ -4928,8 +5066,8 @@ async function loadPhotos(albumUrl){
     console.info('Google Photos background: '+bgSourceImages.length+' candidate images found'+(album.paginated?' across '+album.pages+' pages':''));
     const albumNote=album.limitReached?` · ${GOOGLE_PHOTOS_MAX_ITEMS}-photo limit reached`:(album.paginated?` · ${album.pages} Google pages loaded`:'');
     setBackgroundStatus(`${bgSourceImages.length} photos found${albumNote} · ${cfg.photoOrder==='shuffle'?'shuffle cycle':cfg.photoOrder==='random'?'random no-repeat':'album order'} · ${cfg.photoIntervalSec?formatBackgroundInterval(cfg.photoIntervalSec):'rotation off'}`);
-    showBg(bgIdx);
-    scheduleBackgroundRotation();
+    await showBg(bgIdx,0,sourceSerial);
+    if(sourceSerial===bgSourceSerial)scheduleBackgroundRotation();
   }catch(e){
     console.warn('photos err',e);
     setBackgroundStatus('Background error: '+(e?.message||String(e)),true);
@@ -4944,35 +5082,40 @@ function formatBackgroundInterval(sec){
   return sec+'s';
 }
 
-function showBg(idx,attempt=0){
-  if(!bgImages.length)return;
-  if(attempt>=bgImages.length){
+async function showBg(idx,attempt=0,sourceSerial=bgSourceSerial){
+  if(!bgImages.length||bgTransitionBusy||sourceSerial!==bgSourceSerial)return false;
+  bgTransitionBusy=true;
+  try{
+    let cursor=((idx%bgImages.length)+bgImages.length)%bgImages.length;
+    let tries=Math.max(0,Number(attempt)||0);
+    while(tries<bgImages.length){
+      const remoteUrl=bgImages[cursor];
+      const layer=inactiveBackgroundLayer();
+      let ready=false;
+      if(bgPreparedUrl===remoteUrl&&bgPreparePromise){
+        ready=await bgPreparePromise;
+      }else{
+        ready=await loadBackgroundIntoLayer(layer,remoteUrl,'high');
+      }
+      if(sourceSerial!==bgSourceSerial)return false;
+      if(ready){
+        await revealBackgroundLayer(layer,remoteUrl);
+        bgIdx=cursor;
+        if(bgPreparedUrl===remoteUrl)clearBackgroundPrepared(false);
+        prepareUpcomingBackground();
+        return true;
+      }
+      console.warn('Could not load background image',remoteUrl);
+      if(bgPreparedUrl===remoteUrl)clearBackgroundPrepared(true);
+      cursor=(cursor+1)%bgImages.length;
+      tries++;
+    }
     console.warn('Background: none of the candidate images could be loaded');
     setBackgroundStatus(cfg.backgroundSource==='stock'?'Stock image was returned but could not be displayed.':cfg.backgroundSource==='folders'?'Folder scan succeeded, but none of the images could be displayed.':'Album loaded, but none of its extracted images could be displayed.',true);
-    return;
+    return false;
+  }finally{
+    bgTransitionBusy=false;
   }
-
-  bgIdx=((idx%bgImages.length)+bgImages.length)%bgImages.length;
-  const el=document.getElementById('bg');
-  const remoteUrl=bgImages[bgIdx];
-  const proxiedUrl=backgroundAssetUrl(remoteUrl);
-  const img=new Image();
-
-  img.onload=()=>{
-    el.classList.remove('show');
-    setTimeout(()=>{
-      el.style.backgroundImage=`url("${proxiedUrl.replace(/"/g,'\\"')}")`;
-      el.classList.add('show');
-      bgLastUrl=remoteUrl;
-      const next=cfg.photoOrder==='random'?(bgImages.length>1?(bgIdx+1)%bgImages.length:bgIdx):(bgIdx+1)%bgImages.length;
-      preloadBackgroundIndex(next);
-    },250);
-  };
-  img.onerror=()=>{
-    console.warn('Could not load background image',remoteUrl);
-    setTimeout(()=>showBg((bgIdx+1)%bgImages.length,attempt+1),250);
-  };
-  img.src=proxiedUrl;
 }
 
 function nextBackgroundNow(){
@@ -4993,7 +5136,8 @@ function reshuffleBackgroundNow(){
     setBackgroundStatus(bgSourceImages.length?'Only one photo is available to shuffle.':'Load an album before reshuffling.',!bgSourceImages.length);
     return;
   }
-  const current=bgImages[bgIdx];
+  const current=bgLastUrl||bgImages[bgIdx];
+  clearBackgroundPrepared(true);
   bgImages=shuffledCopy(bgSourceImages);
   if(bgImages[0]===current)[bgImages[0],bgImages[1]]=[bgImages[1],bgImages[0]];
   bgIdx=0;
@@ -5004,10 +5148,10 @@ function reshuffleBackgroundNow(){
 function reloadBackgroundNow(){
   const source=document.getElementById('s-bg-source')?.value||cfg.backgroundSource;
   if(source==='none'){
+    ++bgSourceSerial;
     if(bgTimer){clearInterval(bgTimer);bgTimer=null;}
-    bgImages=[];bgSourceImages=[];stockRecentUrls=[];
-    const bg=document.getElementById('bg');
-    bg.classList.remove('show');bg.style.backgroundImage='';
+    bgImages=[];bgSourceImages=[];stockRecentUrls=[];bgLastUrl='';
+    clearBackgroundLayers();
     setBackgroundStatus('Photo background disabled.');
     return;
   }
@@ -6338,7 +6482,7 @@ function applyUiCustomization(source=cfg){
     .wx-hourly{grid-template-columns:repeat(${hourlyCols},minmax(0,1fr));gap:${gap}px}
     #calendar-legend{top:${calH+3}px;left:${sidePad}px;right:${sidePad}px}
     #alert-zone{top:${calH+(source.calendarLegend?36:14)}px;bottom:${bottomH+30}px;left:${sidePad}px;right:${sidePad}px}
-    #bg{filter:blur(${blur}px);transform:${blur?`scale(${(1+blur/300).toFixed(3)})`:'none'};transition:opacity ${transition}s ease}
+    #bg,#bg-next{filter:blur(${blur}px);transform:${blur?`scale(${(1+blur/300).toFixed(3)})`:'none'};transition:opacity ${transition}s ease}
     .day-num{font-size:${scaledClamp(30,2.55,42,cal*ps('calendar','dayNumber'))};color:${textColor};${pe('calendar','dayNumber')}}
     .day-label{font-size:${scaledClamp(14,1.18,20,cal*ps('calendar','dayLabel'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('calendar','dayLabel')}}
     .no-events{font-size:${scaledClamp(12,1,17,cal*ps('calendar','emptyText'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${tertiary.toFixed(3)});${pe('calendar','emptyText')}}
@@ -6845,15 +6989,16 @@ async function deleteDisplayEndpoint(id){const row=displayEndpoints.find(e=>e.id
 function cacheSourceName(url){
   try{return new URL(url).hostname.replace(/^www\./,'');}catch(e){return 'remote data';}
 }
-let serverConnectionState=navigator.onLine===false?'offline':'online',serverReconnectRefreshPending=false;
+let serverConnectionState=navigator.onLine===false?'offline':'online',serverReconnectRefreshPending=false,serverReconnectNoticeTimer=null;
+const SERVER_RECONNECT_NOTICE_DELAY_MS=8000;
 function updateOfflinePill(){
   const pill=document.getElementById('offline-pill');if(!pill)return;
   const stale=staleCacheSources.size>0,networkOffline=navigator.onLine===false,serverDown=serverConnectionState!=='online';
   const active=stale||networkOffline||serverDown;let state='online',text='';
   if(networkOffline){state='offline';text=stale?'Offline · showing last known data':'Offline · waiting for network';}
-  else if(serverDown){state='reconnecting';text=stale?'Reconnecting · showing last known data':'Reconnecting to LibreDisplay…';}
+  else if(serverDown){state='reconnecting';text=stale?'Connection interrupted · showing last known data':'Connection interrupted · retrying automatically';}
   else if(stale){state='cached';text='Provider delayed · showing last known data';}
-  pill.dataset.state=state;pill.classList.toggle('show',active);pill.textContent=text;
+  pill.dataset.state=state;pill.classList.toggle('show',active);if(pill.textContent!==text)pill.textContent=text;
   updateSettingsOverview?.();
 }
 function setServerConnectionState(state){
@@ -6861,6 +7006,13 @@ function setServerConnectionState(state){
   if(serverConnectionState==='online'&&previous!=='online'&&!serverReconnectRefreshPending&&(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)){
     serverReconnectRefreshPending=true;setTimeout(async()=>{try{await pollServerConfig();await Promise.allSettled([refreshDataNow(),retryDisplayHydration('server-reconnected')]);}finally{serverReconnectRefreshPending=false;}},450);
   }
+}
+function clearServerReconnectNotice(){if(serverReconnectNoticeTimer){clearTimeout(serverReconnectNoticeTimer);serverReconnectNoticeTimer=null;}}
+function markServerTransportOpen(){clearServerReconnectNotice();setServerConnectionState('online');}
+function noteServerTransportError(){
+  if(navigator.onLine===false){clearServerReconnectNotice();setServerConnectionState('offline');return;}
+  if(serverConnectionState==='reconnecting'||serverReconnectNoticeTimer)return;
+  serverReconnectNoticeTimer=setTimeout(()=>{serverReconnectNoticeTimer=null;if(navigator.onLine!==false&&liveEventSource?.readyState!==EventSource.OPEN)setServerConnectionState('reconnecting');},SERVER_RECONNECT_NOTICE_DELAY_MS);
 }
 function noteCacheResponse(url,res){
   const name=cacheSourceName(url);
@@ -7031,12 +7183,13 @@ function bindDisplayViewportHeartbeat(){
   window.visualViewport?.addEventListener('resize',()=>scheduleDisplayHeartbeat(80),{passive:true});
 }
 function startLiveDisplayConnection(){
+  clearServerReconnectNotice();
   try{liveEventSource?.close();}catch(e){}liveEventSource=null;
   try{
     liveEventSource=new EventSource(serverPath('/api/events'));
-    liveEventSource.onopen=()=>setServerConnectionState('online');liveEventSource.onerror=()=>setServerConnectionState(navigator.onLine===false?'offline':'reconnecting');
+    liveEventSource.onopen=markServerTransportOpen;liveEventSource.onerror=noteServerTransportError;
     liveEventSource.addEventListener('config',()=>pollServerConfig());liveEventSource.addEventListener('household',async()=>{await loadHousehold(false);refreshFamilyBlocks();});liveEventSource.addEventListener('refresh',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE){refreshDataNow();scheduleDisplayHeartbeat(40);}});liveEventSource.addEventListener('heartbeat',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)scheduleDisplayHeartbeat(0);});liveEventSource.addEventListener('reload',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)location.reload();});liveEventSource.addEventListener('reauth',()=>location.reload());
-  }catch(e){setServerConnectionState(navigator.onLine===false?'offline':'reconnecting');}
+  }catch(e){noteServerTransportError();}
   bindDisplayViewportHeartbeat();sendDisplayHeartbeat();if(heartbeatTimer)clearInterval(heartbeatTimer);heartbeatTimer=setInterval(sendDisplayHeartbeat,30000);updateOfflinePill();
 }
 function startRemoteConfigPolling(){if(remoteConfigPollTimer)clearInterval(remoteConfigPollTimer);remoteConfigPollTimer=setInterval(pollServerConfig,REMOTE_SETTINGS_MODE?5000:30000);}
@@ -8266,7 +8419,7 @@ const SETTINGS_CONTROL_HELP={
   's-alert-min-severity':'Filters live alerts below the selected severity. Simulated test alerts remain mixed so every style can be previewed.',
   's-photos':'The Google Photos shared-album URL used when Google Photos is selected as the background source.',
   's-photo-order':'Controls whether background photos advance in their listed order or shuffle.',
-  's-photo-preload':'Loads the next image before the transition to reduce flashes or blank frames.',
+  's-photo-preload':'Loads and decodes the exact upcoming image before the transition while keeping the current photo visible until it is ready.',
   's-bg-blur':'Blurs the background image only. A small blur can make foreground text easier to read over detailed photos.',
   's-bg-fit':'Cover fills the screen and may crop edges. Contain keeps the whole image visible and may leave unused space.',
   's-settings-ui-size':'Changes only the Settings interface size. Dashboard element sizes remain controlled separately.',
@@ -8599,11 +8752,10 @@ function applySettings(){
   }else if(cfg.backgroundSource==='google'&&cfg.photosUrl){
     loadPhotos(cfg.photosUrl);
   }else{
+    ++bgSourceSerial;
     if(bgTimer){clearInterval(bgTimer);bgTimer=null;}
-    bgImages=[];bgSourceImages=[];stockRecentUrls=[];
-    const bg=document.getElementById('bg');
-    bg.classList.remove('show');
-    bg.style.backgroundImage='';
+    bgImages=[];bgSourceImages=[];stockRecentUrls=[];bgLastUrl='';
+    clearBackgroundLayers();
     if(cfg.backgroundSource==='none')setBackgroundStatus('Photo background disabled.');
   }
   weatherTimer=setInterval(fetchWeather,cfg.weatherRefreshMin*60*1000);
@@ -8797,8 +8949,8 @@ function startDisplayHydrationRecovery(attempt=0){
   }
   displayHydrationRecoveryStarted=true;
   [5000,15000,35000,75000,150000].forEach(ms=>setTimeout(()=>retryDisplayHydration('startup+'+Math.round(ms/1000)+'s'),ms));
-  window.addEventListener('online',()=>{setServerConnectionState('reconnecting');setTimeout(()=>retryDisplayHydration('online'),350);});
-  window.addEventListener('offline',()=>setServerConnectionState('offline'));
+  window.addEventListener('online',()=>{noteServerTransportError();setTimeout(()=>retryDisplayHydration('online'),350);});
+  window.addEventListener('offline',()=>{clearServerReconnectNotice();setServerConnectionState('offline');});
   window.addEventListener('pageshow',()=>setTimeout(()=>retryDisplayHydration('pageshow'),500));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>retryDisplayHydration('visible'),500);});
 }

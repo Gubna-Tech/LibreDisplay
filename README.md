@@ -36,7 +36,7 @@ rm -rf ~/LibreDisplay-Setup && mkdir -p ~/LibreDisplay-Setup
 **4. Download the latest LibreDisplay release:**
 
 ```bash
-curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.5.5.zip -o /tmp/LibreDisplay.zip
+curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.5.6.zip -o /tmp/LibreDisplay.zip
 ```
 
 **5. Extract LibreDisplay:**
@@ -48,7 +48,7 @@ unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup
 **6. Open the LibreDisplay setup folder:**
 
 ```bash
-cd ~/LibreDisplay-Setup/LibreDisplay-1.5.5
+cd ~/LibreDisplay-Setup/LibreDisplay-1.5.6
 ```
 
 **7. Allow the installer to run:**
@@ -94,7 +94,7 @@ Useful places to remember:
 
 - **Weather** — location, forecasts, details, and severe-weather alerts
 - **Calendars** — calendar feeds, imported ICS files, and event display rules
-- **Backgrounds** — photo sources, local/NAS folders, and slideshow behavior
+- **Backgrounds** — photo sources, local/NAS folders, slideshow behavior, and seamless next-photo preloading
 - **Family** — household members, chores, points, and rewards
 - **Personalization** — themes, templates, typography, and accessibility
 - **Layout** — visual layout presets with schematic previews, full-screen live preview, dashboard visibility, geometry, and the Arrange editor
@@ -103,6 +103,8 @@ Useful places to remember:
 - **System** — host health, software updates, displays, display profiles, accounts, backups, diagnostics, remote access, and advanced options
 
 Small **?** buttons beside less-obvious controls provide quick hover/click help without filling the interface with extra instructions.
+
+Photo slideshows use a double-buffered background renderer. With **Preload the next photo** enabled (the default), LibreDisplay loads and decodes the exact upcoming Google Photos or local/NAS image in a hidden layer before the rotation is due. The current photo remains fully visible until the replacement is ready, then the new image fades over it. Slow storage or network-backed photos therefore delay the transition instead of exposing a blank/black frame. Stock-photo changes use the same hold-current-until-ready transition once the next stock image URL is returned.
 
 
 ### Display profiles and templates
@@ -149,7 +151,7 @@ For support or troubleshooting, choose **Download diagnostics**. The generated J
 
 Open **Settings > System > Display readiness & kiosk resilience** to check the target screen without changing its layout. LibreDisplay reports the currently observed viewport, portrait/landscape orientation, browser visual scale/device-pixel ratio, and the most recent local kiosk heartbeat. It warns when a viewport is unusually small or browser scaling is not at 100%, which helps separate display/zoom problems from saved Arrange geometry.
 
-Native kiosk installations now have two local watchdogs in `scripts/start.sh`: the server is restarted after repeated `/healthz` failures, and Chromium is restarted when the local dashboard heartbeat stops advancing while the browser process is still alive. The browser heartbeat contains only local endpoint/version/viewport timing information. The screen-side page also tracks EventSource/network state, continues showing last-known cached provider data while disconnected, and automatically refreshes saved configuration/data when the LibreDisplay server reconnects. Screen-only Viewer installs keep Chromium background timers/rendering enabled so long-running weather/calendar refreshes are not throttled simply because the window is kiosked.
+Native kiosk installations now have two local watchdogs in `scripts/start.sh`: the server is restarted after repeated `/healthz` failures, and Chromium is restarted when the local dashboard heartbeat stops advancing while the browser process is still alive. The browser heartbeat contains only local endpoint/version/viewport timing information. The screen-side page also tracks EventSource/network state, continues showing last-known cached provider data while disconnected, and automatically refreshes saved configuration/data when the LibreDisplay server reconnects. Brief EventSource handoffs and momentary Wi-Fi/LAN jitter are handled silently with a reconnect grace period, so the display does not flash a connection warning for self-healing sub-eight-second interruptions; persistent losses still surface a calm status while automatic retry continues. Screen-only Viewer installs keep Chromium background timers/rendering enabled so long-running weather/calendar refreshes are not throttled simply because the window is kiosked.
 
 Under **Settings > Personalization > Accessibility & language**, optional **Always-on display care** can dim the entire rendered screen after 15, 30, 60, or 120 minutes without local interaction. Any pointer, touch, wheel, or keyboard interaction wakes it immediately. This uses a non-interactive overlay only: it does not move, resize, or rewrite any saved Arrange element. Screen care is off by default.
 
@@ -218,7 +220,7 @@ On the viewer Raspberry Pi, run the next commands **one at a time, in order**.
 **2. Download the viewer setup helper:**
 
 ```bash
-curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.5.5/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
+curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.5.6/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
 ```
 
 **3. Allow the viewer installer to run:**

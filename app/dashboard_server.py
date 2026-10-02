@@ -2601,7 +2601,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.send_header("Connection", "keep-alive")
             self.send_header("X-Accel-Buffering", "no")
             self.end_headers()
-            self.wfile.write(b": LibreDisplay live connection\n\n")
+            self.wfile.write(b"retry: 1000\n: LibreDisplay live connection\n\n")
             self.wfile.flush()
             started = time.time()
             while time.time() - started < 55:
