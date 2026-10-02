@@ -621,7 +621,9 @@ body.custom-layout #calendar-legend { position:fixed; }
 /* Built-in content is fitted inside its Arrange rectangle without changing the
    rectangle itself. Chromium's zoom participates in layout, so text, gaps,
    and line boxes shrink together instead of merely being visually transformed. */
-body.custom-layout .wx-main > .wx-current { zoom:var(--ld-layout-fit-current,1); }
+body.custom-layout .wx-main > .wx-current,
+body.custom-layout .wx-main > .wx-feels,
+body.custom-layout .wx-main > .wx-cond { zoom:var(--ld-layout-fit-current,1); }
 body.custom-layout #clock-block > .clock-time,
 body.custom-layout #clock-block > .clock-date { zoom:var(--ld-layout-fit-clock,1); }
 body.custom-layout .wx-details > .wx-detail { zoom:var(--ld-layout-fit-details,1); }
@@ -630,6 +632,7 @@ body.custom-layout #top-strip[data-ld-v-align="top"]{align-content:start}body.cu
 body.custom-layout #top-strip[data-ld-h-align="left"] .day-col{text-align:left}body.custom-layout #top-strip[data-ld-h-align="center"] .day-col{text-align:center}body.custom-layout #top-strip[data-ld-h-align="right"] .day-col{text-align:right}
 body.custom-layout #top-strip[data-ld-h-align="left"] .day-heading,body.custom-layout #top-strip[data-ld-h-align="left"] .event-time,body.custom-layout #top-strip[data-ld-h-align="left"] .event-title-no-time{justify-content:flex-start}body.custom-layout #top-strip[data-ld-h-align="center"] .day-heading,body.custom-layout #top-strip[data-ld-h-align="center"] .event-time,body.custom-layout #top-strip[data-ld-h-align="center"] .event-title-no-time{justify-content:center}body.custom-layout #top-strip[data-ld-h-align="right"] .day-heading,body.custom-layout #top-strip[data-ld-h-align="right"] .event-time,body.custom-layout #top-strip[data-ld-h-align="right"] .event-title-no-time{justify-content:flex-end}
 body.custom-layout .wx-main[data-ld-v-align="top"]{justify-content:flex-start}body.custom-layout .wx-main[data-ld-v-align="middle"]{justify-content:center}body.custom-layout .wx-main[data-ld-v-align="bottom"]{justify-content:flex-end}
+body.custom-layout .wx-main[data-ld-h-align="left"]{align-items:flex-start;text-align:left}body.custom-layout .wx-main[data-ld-h-align="center"]{align-items:center;text-align:center}body.custom-layout .wx-main[data-ld-h-align="right"]{align-items:flex-end;text-align:right}
 body.custom-layout .wx-main[data-ld-h-align="left"] .wx-current{align-items:flex-start;text-align:left}body.custom-layout .wx-main[data-ld-h-align="center"] .wx-current{align-items:center;text-align:center}body.custom-layout .wx-main[data-ld-h-align="right"] .wx-current{align-items:flex-end;text-align:right}
 body.custom-layout #clock-block[data-ld-v-align="top"]{justify-content:flex-start}body.custom-layout #clock-block[data-ld-v-align="middle"]{justify-content:center}body.custom-layout #clock-block[data-ld-v-align="bottom"]{justify-content:flex-end}
 body.custom-layout #clock-block[data-ld-h-align="left"]{align-items:flex-start;text-align:left}body.custom-layout #clock-block[data-ld-h-align="center"]{align-items:center;text-align:center}body.custom-layout #clock-block[data-ld-h-align="right"]{align-items:flex-end;text-align:right}
@@ -1050,7 +1053,7 @@ body.layout-editing .custom-block { pointer-events:none !important; user-select:
 }
 .preset-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:end; margin-bottom:12px; }
 .preset-row .btn-util { height:38px; white-space:nowrap; }
-.layout-preset-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0 10px}.layout-preset-card{display:grid;grid-template-columns:142px minmax(0,1fr);gap:11px;align-items:center;padding:9px;border:1px solid var(--ld-border);border-radius:12px;background:var(--ld-surface-2);color:var(--ld-text);text-align:left;cursor:pointer;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}.layout-preset-card:hover{border-color:var(--ld-border-strong);background:color-mix(in srgb,var(--ld-surface-2) 86%,var(--ld-accent) 14%)}.layout-preset-card.selected{border-color:var(--ld-accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--ld-accent) 56%,transparent);background:color-mix(in srgb,var(--ld-surface-2) 88%,var(--ld-accent) 12%)}.layout-preset-card:focus-visible{outline:2px solid var(--ld-accent);outline-offset:2px}.layout-preset-stage{position:relative;aspect-ratio:16/9;overflow:hidden;border:1px solid var(--ld-border);border-radius:8px;background:linear-gradient(145deg,#0d1411,#080b09)}.layout-preset-stage::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 58% 45%,rgba(71,207,121,.08),transparent 46%);pointer-events:none}.layout-preset-block{position:absolute;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid color-mix(in srgb,var(--ld-accent) 48%,rgba(255,255,255,.18));border-radius:3px;background:color-mix(in srgb,var(--ld-accent) 12%,rgba(255,255,255,.04));color:rgba(255,255,255,.72);font-size:6px;font-weight:750;letter-spacing:.35px;line-height:1;text-transform:uppercase}.layout-preset-block[data-layout-block="alerts"]{border-style:dashed;background:rgba(245,185,66,.08);border-color:rgba(245,185,66,.48);color:rgba(255,216,124,.82)}.layout-preset-copy b{display:flex;align-items:center;gap:7px;font-size:11px}.layout-preset-copy span{display:block;margin-top:4px;color:var(--ld-muted);font-size:9px;line-height:1.45}.layout-preset-copy small{display:block;margin-top:6px;color:var(--ld-subtle);font-size:8px;line-height:1.35}.layout-preset-badge{display:inline-flex;align-items:center;padding:2px 5px;border:1px solid var(--ld-border);border-radius:999px;color:var(--ld-muted);font-size:7px;font-weight:650;text-transform:uppercase;letter-spacing:.3px}.layout-preset-card.selected .layout-preset-badge{border-color:color-mix(in srgb,var(--ld-accent) 55%,var(--ld-border));color:var(--ld-accent)}.layout-preset-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}.layout-preset-actions .settings-note{margin:0;flex:1 1 240px}.layout-preset-current-note{margin-top:7px}.layout-preset-card[data-layout-preset="current"] .layout-preset-stage{background:linear-gradient(145deg,#111713,#090c0a)}@media(max-width:900px){.layout-preset-grid{grid-template-columns:1fr}.layout-preset-card{grid-template-columns:132px minmax(0,1fr)}}@media(max-width:560px){.layout-preset-card{grid-template-columns:1fr}.layout-preset-stage{max-width:220px}.layout-preset-actions .btn-util{width:100%}}
+.layout-preset-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0 10px}.layout-preset-card{display:grid;grid-template-columns:154px minmax(0,1fr);gap:12px;align-items:center;padding:10px;border:1px solid var(--ld-border);border-radius:13px;background:var(--ld-surface-2);color:var(--ld-text);text-align:left;cursor:pointer;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease,transform .15s ease}.layout-preset-card:hover{border-color:var(--ld-border-strong);background:color-mix(in srgb,var(--ld-surface-2) 86%,var(--ld-accent) 14%);transform:translateY(-1px)}.layout-preset-card.selected{border-color:var(--ld-accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--ld-accent) 56%,transparent),0 10px 28px rgba(0,0,0,.18);background:color-mix(in srgb,var(--ld-surface-2) 88%,var(--ld-accent) 12%)}.layout-preset-card:focus-visible{outline:2px solid var(--ld-accent);outline-offset:2px}.layout-preset-stage{position:relative;aspect-ratio:16/9;overflow:hidden;border:1px solid var(--ld-border);border-radius:9px;background:linear-gradient(145deg,#17231b 0%,#0d1510 38%,#070908 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)}.layout-preset-stage::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 52% 42%,rgba(90,190,126,.17),transparent 42%),linear-gradient(135deg,rgba(255,255,255,.035),transparent 36%);pointer-events:none}.layout-preset-stage::after{content:"";position:absolute;inset:0;box-shadow:inset 0 -28px 38px rgba(0,0,0,.28);pointer-events:none}.layout-preset-photo-zone{position:absolute;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.08);border-radius:5px;background:linear-gradient(145deg,rgba(57,94,72,.25),rgba(10,20,14,.06));color:rgba(255,255,255,.25);font-size:6px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}.layout-preset-block{position:absolute;z-index:2;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid color-mix(in srgb,var(--ld-accent) 50%,rgba(255,255,255,.18));border-radius:4px;background:rgba(5,10,7,.70);box-shadow:0 2px 8px rgba(0,0,0,.18);color:rgba(255,255,255,.78);font-size:6px;font-weight:760;letter-spacing:.35px;line-height:1;text-transform:uppercase}.layout-preset-block[data-layout-block="calendar"]{background:rgba(4,7,5,.88);border-color:rgba(255,255,255,.16)}.layout-preset-block[data-layout-block="current"],.layout-preset-block[data-layout-block="clock"]{background:rgba(5,11,7,.48)}.layout-preset-block[data-layout-block="daily"],.layout-preset-block[data-layout-block="hourly"],.layout-preset-block[data-layout-block="details"]{background:rgba(5,10,7,.62)}.layout-preset-block[data-layout-block="alerts"]{border-style:dashed;background:rgba(245,185,66,.10);border-color:rgba(245,185,66,.52);color:rgba(255,216,124,.86)}.layout-preset-copy b{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11px}.layout-preset-copy>span{display:block;margin-top:4px;color:var(--ld-muted);font-size:9px;line-height:1.45}.layout-preset-copy small{display:block;margin-top:6px;color:var(--ld-subtle);font-size:8px;line-height:1.4}.layout-preset-meta{display:flex!important;gap:5px;align-items:center;flex-wrap:wrap;margin-top:7px!important}.layout-preset-badge{display:inline-flex!important;align-items:center;padding:2px 5px;border:1px solid var(--ld-border);border-radius:999px;color:var(--ld-muted)!important;font-size:7px!important;font-weight:680;text-transform:uppercase;letter-spacing:.3px;line-height:1.2!important;margin:0!important}.layout-preset-badge.featured{border-color:color-mix(in srgb,var(--ld-accent) 55%,var(--ld-border));color:var(--ld-accent)!important}.layout-preset-card.selected .layout-preset-badge{border-color:color-mix(in srgb,var(--ld-accent) 55%,var(--ld-border));color:var(--ld-accent)!important}.layout-preset-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}.layout-preset-actions .settings-note{margin:0;flex:1 1 240px}.layout-preset-current-note{margin-top:7px}.layout-preset-card[data-layout-preset="current"] .layout-preset-stage{background:linear-gradient(145deg,#111713,#090c0a)}@media(max-width:1040px){.layout-preset-card{grid-template-columns:138px minmax(0,1fr)}}@media(max-width:900px){.layout-preset-grid{grid-template-columns:1fr}.layout-preset-card{grid-template-columns:150px minmax(0,1fr)}}@media(max-width:560px){.layout-preset-card{grid-template-columns:1fr}.layout-preset-stage{max-width:250px}.layout-preset-actions .btn-util{width:100%}}
 
 .weather-location-search { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; }
 .weather-location-search .btn-util { min-height:38px; white-space:nowrap; }
@@ -1884,7 +1887,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.5.2</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.5.3</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -2219,14 +2222,14 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-layout" data-settings-tab="layout">
    <h3>Dashboard layout</h3>
-   <div class="howto">Choose a layout visually before saving it. The cards below show where the built-in dashboard elements will go. Selecting a card stages that layout only for preview; your saved dashboard is untouched until <b>Save &amp; Apply</b>. Use <b>Preview selected layout</b> to inspect it full-screen with your real calendar, weather, background, and added custom blocks. Cancel/Esc restores the saved layout.</div>
+   <div class="howto">Choose from LibreDisplay’s expanded layout library. These are original command-center compositions built around the patterns that work best on wall displays: calendar-first, photo-first, split planner, weather-focused, compact, and portrait. Selecting a card stages the layout only for preview; your saved dashboard is untouched until <b>Save &amp; Apply</b>. Use <b>Preview selected layout</b> to inspect it full-screen with your real calendar, weather, background, and added custom blocks. Cancel/Esc restores the saved layout.</div>
 
    <div id="layout-preset-gallery" class="layout-preset-grid" role="radiogroup" aria-label="Dashboard layout presets"></div>
    <div class="layout-preset-actions">
     <button id="layout-preset-preview-button" class="btn-util" type="button" onclick="previewSelectedLayoutFromSettings()">Preview selected layout</button>
     <div id="layout-preset-status" class="settings-note" role="status" aria-live="polite">Current saved layout selected.</div>
    </div>
-   <div class="settings-note layout-preset-current-note">Preset layouts reposition only LibreDisplay's built-in elements. Added custom blocks stay exactly where you placed them. Applying a preset clears prior built-in Arrange overrides so the selected preset is what gets saved.</div>
+   <div class="settings-note layout-preset-current-note">Preset layouts stage the built-in positions, alignment, and content density (calendar range/columns and forecast range) as one balanced composition. Added custom blocks stay exactly where you placed them. Applying a preset replaces prior built-in Arrange geometry/style overrides with the selected composition; your accounts, data sources, integrations, theme, and background stay intact.</div>
 
    <div class="s-subhead">Advanced layout editor <button class="help-tip" type="button" aria-label="Arrange mode help" data-help="Arrange changes presentation only. Select an element to move or resize it, then use the movable inspector to style the whole block or individual titles, values, labels, and event text.">?</button></div>
    <div class="howto">Unlock the dashboard to drag and resize each major element independently. Select any element to open its inspector for content size, font, text color, opacity, horizontal/vertical content alignment, and precise screen placement. Arrow keys nudge a selected block; Shift + arrow resizes it. The Add Block catalog supports multiple reusable custom blocks. Positions are stored proportionally so layouts scale across similar screen resolutions.</div>
@@ -2274,7 +2277,7 @@ html:not(.cursor-active) * {
     <div class="s-row"><label>Hourly forecast range</label><select id="s-hourly-hours" onchange="previewAppearance()"><option value="3">3 hours</option><option value="6">6 hours</option><option value="9">9 hours</option><option value="12">12 hours</option><option value="18">18 hours</option><option value="24">24 hours</option></select></div>
     <div class="s-row"><label>Daily forecast range</label><select id="s-daily-days" onchange="previewAppearance()"><option value="3">3 days</option><option value="5">5 days</option><option value="7">7 days</option><option value="10">10 days</option><option value="12">12 days</option><option value="14">14 days</option></select></div>
     <div class="s-row"><label>Calendar range</label><select id="s-calendar-days" onchange="previewAppearance()"><option value="3">3 days</option><option value="5">5 days</option><option value="6">6 days</option><option value="7">7 days</option><option value="14">14 days</option><option value="21">21 days</option><option value="30">30 days</option><option value="45">45 days</option><option value="60">60 days</option></select></div>
-    <div class="s-row"><label>Calendar columns</label><select id="s-calendar-columns" onchange="previewAppearance()"><option value="3">3 columns</option><option value="4">4 columns</option><option value="5">5 columns</option><option value="6">6 columns</option><option value="7">7 columns</option><option value="8">8 columns</option><option value="9">9 columns</option><option value="10">10 columns</option></select></div>
+    <div class="s-row"><label>Calendar columns</label><select id="s-calendar-columns" onchange="previewAppearance()"><option value="2">2 columns</option><option value="3">3 columns</option><option value="4">4 columns</option><option value="5">5 columns</option><option value="6">6 columns</option><option value="7">7 columns</option><option value="8">8 columns</option><option value="9">9 columns</option><option value="10">10 columns</option></select></div>
     <div class="s-row"><label>Calendar cell height <span id="s-calendar-cell-height-value" class="range-value">150px</span></label><input id="s-calendar-cell-height" type="range" min="90" max="240" step="5" value="150" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Calendar overflow <button class="help-tip" type="button" aria-label="Calendar overflow help" data-help="Manual keeps the calendar band stationary. Slow auto-scroll moves it only when the calendar content is taller than the available area.">?</button></label><select id="s-calendar-scroll-mode" onchange="previewAppearance()"><option value="off">Manual / no auto-scroll</option><option value="auto">Slow auto-scroll</option></select></div>
     <div class="s-row"><label>Calendar scroll speed <span id="s-calendar-scroll-speed-value" class="range-value">12 px/s</span> <button class="help-tip" type="button" aria-label="Calendar scroll speed help" data-help="Used only when Calendar overflow is set to Slow auto-scroll.">?</button></label><input id="s-calendar-scroll-speed" type="range" min="2" max="60" step="1" value="12" oninput="previewAppearance()"></div>
@@ -2337,13 +2340,14 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-software-update" data-settings-tab="system" data-owner-only="1">
    <h3>Software update</h3>
-   <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
+   <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.5.2</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.5.3</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
    <div class="software-update-actions"><button class="btn-util" type="button" onclick="checkSoftwareUpdate(true)">Check now</button><button id="software-update-now" class="btn-util update-now-btn" type="button" onclick="startSoftwareUpdate()" style="display:none;">Update now</button><a id="software-update-release-link" class="software-update-link" target="_blank" rel="noopener noreferrer">View release notes ↗</a></div>
+   <div id="software-update-auto-status" class="settings-note" style="margin-top:8px;">Auto-checks when Settings opens and every 15 minutes while it remains open.</div>
    <div id="software-update-action-status" class="settings-note" style="display:none;margin-top:8px;"></div>
   </div>
 
@@ -2564,7 +2568,7 @@ html:not(.cursor-active) * {
 <div id="screen-care-overlay" aria-hidden="true"></div>
 
 <script>
-const DASHBOARD_BUILD = '1.5.2';
+const DASHBOARD_BUILD = '1.5.3';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -2896,7 +2900,7 @@ function ensureCfgDefaults(){
   cfg.hourlyForecastHours=[3,6,9,12,18,24].includes(Number(cfg.hourlyForecastHours))?Number(cfg.hourlyForecastHours):cfg.forecastColumns;
   cfg.dailyForecastDays=[3,5,7,10,12,14].includes(Number(cfg.dailyForecastDays))?Number(cfg.dailyForecastDays):Math.min(14,cfg.forecastColumns);
   cfg.calendarDays=[3,5,6,7,14,21,30,45,60].includes(Number(cfg.calendarDays))?Number(cfg.calendarDays):7;
-  cfg.calendarColumns=Math.min(10,Math.max(3,Number(cfg.calendarColumns)||7));
+  cfg.calendarColumns=Math.min(10,Math.max(2,Number(cfg.calendarColumns)||7));
   cfg.calendarCellHeight=Math.min(240,Math.max(90,num(cfg.calendarCellHeight,150)));
   cfg.calendarScrollMode=['off','auto'].includes(cfg.calendarScrollMode)?cfg.calendarScrollMode:'off';
   cfg.calendarScrollSpeed=Math.min(60,Math.max(2,num(cfg.calendarScrollSpeed,12)));
@@ -5508,8 +5512,10 @@ function clearBuiltInLayoutAutoFit(){
 }
 function clampLayoutFit(v){return Math.max(.5,Math.min(1,Number.isFinite(v)?v:1));}
 function currentWeatherFitScale(el){
-  const content=el?.querySelector('.wx-current');if(!el||!content||el.clientWidth<2||el.clientHeight<2)return 1;
-  const needW=Math.max(1,content.scrollWidth,content.getBoundingClientRect().width),needH=Math.max(1,content.scrollHeight,content.getBoundingClientRect().height);
+  if(!el||el.clientWidth<2||el.clientHeight<2)return 1;
+  const kids=[...el.children].filter(x=>x instanceof HTMLElement&&getComputedStyle(x).display!=='none');if(!kids.length)return 1;
+  const needW=Math.max(1,...kids.map(x=>Math.max(x.scrollWidth,x.getBoundingClientRect().width)));
+  const needH=Math.max(1,el.scrollHeight);
   return clampLayoutFit(Math.min((el.clientWidth-2)/needW,(el.clientHeight-2)/needH));
 }
 function clockFitScale(el){
@@ -6201,7 +6207,7 @@ function applyUiCustomization(source=cfg){
   const leftW=q(source.leftPanelWidth,410,560,470), sidePad=q(source.sidePaddingPx,10,48,28);
   const dailyCols=Math.min(14,Math.max(3,Number(source.dailyForecastDays)||Number(source.forecastColumns)||12));
   const hourlyCols=Math.min(24,Math.max(3,Number(source.hourlyForecastHours)||Number(source.forecastColumns)||12));
-  const calCols=Math.min(10,Math.max(3,Number(source.calendarColumns)||7));
+  const calCols=Math.min(10,Math.max(2,Number(source.calendarColumns)||7));
   const calCellH=Math.min(240,Math.max(90,Number(source.calendarCellHeight)||150));
   const textColor=normalizeHexColor(source.primaryTextColor,'#ffffff');
   const rgb=hexRgb(textColor);
@@ -6366,18 +6372,24 @@ function updateAppearanceLabels(v){
   for(const [id,val,suffix] of map){const el=document.getElementById(id);if(el)el.textContent=String(val)+suffix;}
 }
 
-const LAYOUT_PRESET_ORDER=['current','default','compact','large','photo','calendar','portrait'];
-const LAYOUT_PRESET_LABELS={calendar:'CAL',current:'NOW',clock:'TIME',details:'INFO',daily:'DAYS',hourly:'HOURS',alerts:'ALERT'};
+const LAYOUT_PRESET_ORDER=['current','family','split','gallery','calendar','agenda','weather','large','compact','minimal','portrait','portraitphoto','default'];
+const LAYOUT_PRESET_LABELS={calendar:'CAL',current:'WX',clock:'TIME',details:'INFO',daily:'DAYS',hourly:'HOURS',alerts:'ALERT'};
 const BALANCED_LAYOUT_THUMBNAIL={
   calendar:{x:.02,y:.03,w:.96,h:.18},alerts:{x:.22,y:.28,w:.56,h:.22},current:{x:.03,y:.68,w:.15,h:.22},clock:{x:.20,y:.67,w:.23,h:.20},details:{x:.03,y:.91,w:.40,h:.07},daily:{x:.47,y:.68,w:.50,h:.12},hourly:{x:.47,y:.83,w:.50,h:.12}
 };
 const LAYOUT_PRESETS={
-  default:{name:'Balanced',description:'LibreDisplay’s standard composition: calendar across the top, weather and clock at lower left, forecasts at lower right.',mode:'default',blocks:{},contentScale:{},thumbnail:BALANCED_LAYOUT_THUMBNAIL},
-  compact:{name:'Compact',description:'Tighter edge placement with smaller built-in content, leaving more open background in the center.',mode:'custom',contentScale:{calendar:88,current:88,clock:88,details:88,daily:88,hourly:88,alerts:90},blocks:{calendar:{x:.015,y:.02,w:.97,h:.15},alerts:{x:.20,y:.23,w:.60,h:.18},current:{x:.02,y:.66,w:.14,h:.22},clock:{x:.17,y:.66,w:.20,h:.20},details:{x:.02,y:.90,w:.35,h:.07},daily:{x:.40,y:.67,w:.58,h:.12},hourly:{x:.40,y:.82,w:.58,h:.12}}},
-  large:{name:'Large & readable',description:'Larger calendar, clock, weather, and forecast regions for viewing from farther away.',mode:'custom',contentScale:{calendar:114,current:114,clock:116,details:110,daily:110,hourly:110,alerts:110},blocks:{calendar:{x:.02,y:.02,w:.96,h:.23},alerts:{x:.19,y:.30,w:.62,h:.20},current:{x:.02,y:.60,w:.20,h:.29},clock:{x:.24,y:.61,w:.24,h:.25},details:{x:.02,y:.91,w:.46,h:.07},daily:{x:.51,y:.59,w:.47,h:.16},hourly:{x:.51,y:.79,w:.47,h:.16}}},
-  photo:{name:'Photo first',description:'Keeps the center of the screen open so a photo background stays prominent while key information hugs the edges.',mode:'custom',contentScale:{calendar:90,current:94,clock:94,details:90,daily:90,hourly:90,alerts:94},blocks:{calendar:{x:.03,y:.03,w:.58,h:.18},clock:{x:.66,y:.04,w:.31,h:.18},alerts:{x:.27,y:.26,w:.46,h:.17},current:{x:.03,y:.70,w:.16,h:.22},details:{x:.03,y:.93,w:.34,h:.06},daily:{x:.44,y:.72,w:.53,h:.11},hourly:{x:.44,y:.86,w:.53,h:.11}}},
-  calendar:{name:'Calendar focus',description:'Keeps the calendar prominent across the top while grouping weather and forecasts closely beneath it.',mode:'custom',contentScale:{calendar:118,current:92,clock:94,details:92,daily:92,hourly:92,alerts:94},blocks:{calendar:{x:.02,y:.03,w:.96,h:.20},alerts:{x:.20,y:.26,w:.60,h:.14},current:{x:.02,y:.45,w:.18,h:.27},clock:{x:.22,y:.46,w:.25,h:.22},details:{x:.02,y:.76,w:.45,h:.08},daily:{x:.51,y:.43,w:.47,h:.18},hourly:{x:.51,y:.65,w:.47,h:.18}}},
-  portrait:{name:'Stacked / portrait',description:'A vertically stacked composition for portrait displays, tablets, and narrow wall screens.',mode:'custom',contentScale:{calendar:92,current:94,clock:94,details:92,daily:90,hourly:90,alerts:92},blocks:{calendar:{x:.04,y:.03,w:.92,h:.29},alerts:{x:.14,y:.25,w:.72,h:.14},clock:{x:.04,y:.37,w:.43,h:.15},current:{x:.52,y:.36,w:.44,h:.18},details:{x:.04,y:.56,w:.92,h:.09},daily:{x:.04,y:.68,w:.92,h:.11},hourly:{x:.04,y:.83,w:.92,h:.11}}}
+  family:{name:'Family Command Center',category:'Family',bestFor:'Landscape · busy households',featured:true,description:'A structured family dashboard with a generous week planner, a calm time/weather rail, and balanced forecasts along the footer.',mode:'custom',view:{calendarDays:7,calendarColumns:4,calendarMaxEvents:3,calendarCellHeight:160,dailyForecastDays:7,hourlyForecastHours:9},contentScale:{calendar:112,current:110,clock:112,details:100,daily:104,hourly:104,alerts:96},partStyle:{calendar:{dayLabel:{scale:94},eventTime:{scale:94}},current:{condition:{scale:96}},clock:{seconds:{scale:90}}},elementStyle:{calendar:{hAlign:'left',vAlign:'top'},clock:{hAlign:'right',vAlign:'middle'},current:{hAlign:'right',vAlign:'middle'},details:{hAlign:'right',vAlign:'middle'},daily:{hAlign:'center',vAlign:'middle'},hourly:{hAlign:'center',vAlign:'middle'}},blocks:{calendar:{x:.035,y:.055,w:.615,h:.39},clock:{x:.69,y:.055,w:.275,h:.19},current:{x:.69,y:.265,w:.275,h:.27},details:{x:.69,y:.565,w:.275,h:.12},alerts:{x:.12,y:.50,w:.50,h:.10},daily:{x:.035,y:.735,w:.445,h:.16},hourly:{x:.52,y:.735,w:.445,h:.16}}},
+  split:{name:'Photo + Planner',category:'Photo',bestFor:'Landscape · photo + calendar',featured:true,description:'A refined split screen with a quiet photo field on the left, a strong planner column on the right, and matching forecast rows below.',mode:'custom',photoZone:{x:.035,y:.235,w:.305,h:.35},view:{calendarDays:7,calendarColumns:4,calendarMaxEvents:3,calendarCellHeight:180,dailyForecastDays:7,hourlyForecastHours:9},contentScale:{calendar:100,current:112,clock:116,details:100,daily:100,hourly:100,alerts:94},partStyle:{calendar:{dayLabel:{scale:92},eventTime:{scale:92}},clock:{seconds:{scale:90}},current:{condition:{scale:96}}},elementStyle:{clock:{hAlign:'left',vAlign:'middle'},current:{hAlign:'left',vAlign:'middle'},details:{hAlign:'left',vAlign:'middle'},calendar:{hAlign:'left',vAlign:'top'},daily:{hAlign:'center',vAlign:'middle'},hourly:{hAlign:'center',vAlign:'middle'}},blocks:{clock:{x:.035,y:.05,w:.305,h:.18},current:{x:.035,y:.60,w:.305,h:.25},details:{x:.035,y:.87,w:.305,h:.095},calendar:{x:.395,y:.05,w:.57,h:.46},alerts:{x:.45,y:.525,w:.46,h:.09},daily:{x:.395,y:.64,w:.57,h:.13},hourly:{x:.395,y:.81,w:.57,h:.13}}},
+  gallery:{name:'Gallery Week',category:'Photo',bestFor:'Widescreen · photo first',featured:true,description:'A photo-first composition with balanced corner anchors, a clean week band, and evenly weighted forecast rows.',mode:'custom',photoZone:{x:.305,y:.09,w:.39,h:.37},view:{calendarDays:7,calendarColumns:7,calendarMaxEvents:3,calendarCellHeight:170,dailyForecastDays:7,hourlyForecastHours:9},contentScale:{calendar:100,current:110,clock:118,details:96,daily:102,hourly:102,alerts:92},partStyle:{calendar:{dayLabel:{scale:94},eventTime:{scale:92}},clock:{seconds:{scale:88}},current:{condition:{scale:94}}},elementStyle:{clock:{hAlign:'left',vAlign:'middle'},current:{hAlign:'right',vAlign:'middle'},details:{hAlign:'right',vAlign:'middle'},calendar:{hAlign:'left',vAlign:'top'},daily:{hAlign:'center',vAlign:'middle'},hourly:{hAlign:'center',vAlign:'middle'}},blocks:{clock:{x:.035,y:.05,w:.265,h:.18},current:{x:.73,y:.05,w:.235,h:.245},details:{x:.70,y:.315,w:.265,h:.105},alerts:{x:.31,y:.47,w:.38,h:.09},calendar:{x:.035,y:.565,w:.93,h:.22},daily:{x:.035,y:.815,w:.445,h:.13},hourly:{x:.52,y:.815,w:.445,h:.13}}},
+  calendar:{name:'Calendar Wall',category:'Calendar',bestFor:'Wall display · week at a glance',featured:true,description:'A true calendar-first wall view with a larger week canvas and a disciplined lower information shelf instead of scattered blocks.',mode:'custom',view:{calendarDays:7,calendarColumns:7,calendarMaxEvents:4,calendarCellHeight:240,dailyForecastDays:7,hourlyForecastHours:9},contentScale:{calendar:120,current:112,clock:118,details:100,daily:104,hourly:104,alerts:98},partStyle:{calendar:{dayLabel:{scale:94},eventTime:{scale:96}},clock:{seconds:{scale:90}},current:{condition:{scale:96}}},elementStyle:{calendar:{hAlign:'left',vAlign:'top'},clock:{hAlign:'left',vAlign:'middle'},current:{hAlign:'left',vAlign:'middle'},details:{hAlign:'left',vAlign:'middle'},daily:{hAlign:'center',vAlign:'middle'},hourly:{hAlign:'center',vAlign:'middle'}},blocks:{calendar:{x:.035,y:.045,w:.93,h:.44},alerts:{x:.25,y:.505,w:.50,h:.09},clock:{x:.035,y:.635,w:.215,h:.185},current:{x:.275,y:.625,w:.215,h:.225},details:{x:.035,y:.855,w:.455,h:.105},daily:{x:.525,y:.625,w:.44,h:.14},hourly:{x:.525,y:.805,w:.44,h:.14}}},
+  agenda:{name:'Planner + Weather Rail',category:'Planner',bestFor:'Landscape · event-heavy homes',description:'A planner-led composition with a broad readable schedule, a deliberately spaced weather rail, and forecasts spanning the footer.',mode:'custom',view:{calendarDays:6,calendarColumns:3,calendarMaxEvents:4,calendarCellHeight:200,dailyForecastDays:7,hourlyForecastHours:9},contentScale:{calendar:110,current:108,clock:112,details:98,daily:102,hourly:102,alerts:94},partStyle:{calendar:{dayLabel:{scale:94},eventTime:{scale:96}},clock:{seconds:{scale:90}},current:{condition:{scale:96}}},elementStyle:{calendar:{hAlign:'left',vAlign:'top'},clock:{hAlign:'right',vAlign:'middle'},current:{hAlign:'right',vAlign:'middle'},details:{hAlign:'right',vAlign:'middle'},daily:{hAlign:'center',vAlign:'middle'},hourly:{hAlign:'center',vAlign:'middle'}},blocks:{calendar:{x:.035,y:.05,w:.625,h:.51},clock:{x:.70,y:.05,w:.265,h:.18},current:{x:.70,y:.255,w:.265,h:.27},details:{x:.70,y:.555,w:.265,h:.125},alerts:{x:.12,y:.59,w:.49,h:.09},daily:{x:.035,y:.755,w:.445,h:.15},hourly:{x:.52,y:.755,w:.445,h:.15}}},
+  weather:{name:'Weather Center',category:'Weather',bestFor:'Forecast-heavy displays',description:'A weather-led dashboard with a larger current-conditions column, paired forecast bands, and a secondary planner that still reads cleanly.',mode:'custom',view:{calendarDays:5,calendarColumns:5,calendarMaxEvents:2,calendarCellHeight:180,dailyForecastDays:7,hourlyForecastHours:9},contentScale:{calendar:98,current:126,clock:116,details:108,daily:110,hourly:110,alerts:96},partStyle:{calendar:{dayLabel:{scale:94},eventTime:{scale:92}},clock:{seconds:{scale:88}},current:{condition:{scale:100}}},elementStyle:{current:{hAlign:'left',vAlign:'middle'},clock:{hAlign:'left',vAlign:'middle'},details:{hAlign:'left',vAlign:'middle'},calendar:{hAlign:'left',vAlign:'top'},daily:{hAlign:'center',vAlign:'middle'},hourly:{hAlign:'center',vAlign:'middle'}},blocks:{current:{x:.035,y:.07,w:.285,h:.32},clock:{x:.035,y:.425,w:.285,h:.18},details:{x:.035,y:.635,w:.285,h:.14},daily:{x:.365,y:.065,w:.60,h:.18},hourly:{x:.365,y:.285,w:.60,h:.18},calendar:{x:.365,y:.525,w:.60,h:.27},alerts:{x:.25,y:.835,w:.50,h:.09}}},
+  large:{name:'Across the Room',category:'Readable',bestFor:'TV · longer viewing distance',description:'A distance-readable layout with fewer, larger calendar and forecast columns so the screen stays legible instead of merely scaled up.',mode:'custom',view:{calendarDays:5,calendarColumns:5,calendarMaxEvents:2,calendarCellHeight:190,dailyForecastDays:5,hourlyForecastHours:6},contentScale:{calendar:132,current:136,clock:138,details:116,daily:114,hourly:114,alerts:106},partStyle:{calendar:{dayLabel:{scale:96},eventTime:{scale:100}},clock:{seconds:{scale:88}},current:{condition:{scale:102}}},elementStyle:{clock:{hAlign:'left',vAlign:'middle'},current:{hAlign:'right',vAlign:'middle'},details:{hAlign:'left',vAlign:'middle'},calendar:{hAlign:'left',vAlign:'top'},daily:{hAlign:'center',vAlign:'middle'},hourly:{hAlign:'center',vAlign:'middle'}},blocks:{calendar:{x:.035,y:.045,w:.93,h:.27},alerts:{x:.25,y:.335,w:.50,h:.06},clock:{x:.035,y:.41,w:.36,h:.22},current:{x:.605,y:.405,w:.36,h:.245},details:{x:.035,y:.68,w:.36,h:.11},daily:{x:.44,y:.68,w:.525,h:.115},hourly:{x:.44,y:.825,w:.525,h:.115}}},
+  compact:{name:'Countertop Grid',category:'Compact',bestFor:'Tablet · 16:10 · small monitor',description:'A compact two-column grid with tuned content density, stronger alignment, and useful breathing room for custom blocks below.',mode:'custom',view:{calendarDays:5,calendarColumns:5,calendarMaxEvents:2,calendarCellHeight:165,dailyForecastDays:5,hourlyForecastHours:6},contentScale:{calendar:96,current:102,clock:104,details:92,daily:94,hourly:94,alerts:90},partStyle:{calendar:{dayLabel:{scale:92},eventTime:{scale:92}},clock:{seconds:{scale:88}},current:{condition:{scale:94}}},elementStyle:{calendar:{hAlign:'left',vAlign:'top'},clock:{hAlign:'right',vAlign:'middle'},current:{hAlign:'right',vAlign:'middle'},details:{hAlign:'right',vAlign:'middle'},daily:{hAlign:'center',vAlign:'middle'},hourly:{hAlign:'center',vAlign:'middle'}},blocks:{calendar:{x:.035,y:.045,w:.585,h:.30},clock:{x:.67,y:.045,w:.295,h:.16},current:{x:.67,y:.235,w:.295,h:.245},details:{x:.67,y:.505,w:.295,h:.12},daily:{x:.035,y:.405,w:.585,h:.13},hourly:{x:.035,y:.565,w:.585,h:.13},alerts:{x:.13,y:.73,w:.49,h:.085}}},
+  minimal:{name:'Minimal Photo',category:'Minimal',bestFor:'Photo frame · calm spaces',featured:true,description:'A calmer photo-frame layout with stronger corner anchors and a restrained five-day footer that leaves the center truly open.',mode:'custom',photoZone:{x:.245,y:.20,w:.51,h:.44},view:{calendarDays:5,calendarColumns:5,calendarMaxEvents:1,calendarCellHeight:115,dailyForecastDays:5,hourlyForecastHours:6},contentScale:{calendar:92,current:112,clock:126,details:92,daily:92,hourly:92,alerts:88},partStyle:{calendar:{dayLabel:{scale:90},eventTime:{scale:90}},clock:{seconds:{scale:86}},current:{condition:{scale:94}}},elementStyle:{clock:{hAlign:'left',vAlign:'middle'},current:{hAlign:'right',vAlign:'middle'},details:{hAlign:'right',vAlign:'middle'},calendar:{hAlign:'left',vAlign:'top'},daily:{hAlign:'center',vAlign:'middle'},hourly:{hAlign:'center',vAlign:'middle'}},blocks:{clock:{x:.035,y:.05,w:.30,h:.18},current:{x:.735,y:.05,w:.23,h:.245},details:{x:.70,y:.315,w:.265,h:.105},alerts:{x:.35,y:.655,w:.30,h:.075},calendar:{x:.035,y:.745,w:.565,h:.18},daily:{x:.645,y:.74,w:.32,h:.095},hourly:{x:.645,y:.85,w:.32,h:.105}}},
+  portrait:{name:'Portrait Planner',category:'Portrait',bestFor:'Vertical wall display · tablet',description:'A genuinely vertical planner: time and weather form a compact header, the schedule wraps into readable rows, and forecasts anchor the lower screen.',mode:'custom',view:{calendarDays:6,calendarColumns:2,calendarMaxEvents:3,calendarCellHeight:180,dailyForecastDays:5,hourlyForecastHours:6},contentScale:{calendar:102,current:110,clock:114,details:96,daily:100,hourly:100,alerts:90},partStyle:{calendar:{dayLabel:{scale:96},eventTime:{scale:96}},clock:{seconds:{scale:88}},current:{condition:{scale:96}}},elementStyle:{clock:{hAlign:'left',vAlign:'middle'},current:{hAlign:'right',vAlign:'middle'},details:{hAlign:'center',vAlign:'middle'},calendar:{hAlign:'left',vAlign:'top'},daily:{hAlign:'center',vAlign:'middle'},hourly:{hAlign:'center',vAlign:'middle'}},blocks:{clock:{x:.06,y:.04,w:.40,h:.11},current:{x:.54,y:.04,w:.40,h:.145},details:{x:.06,y:.19,w:.88,h:.075},calendar:{x:.06,y:.285,w:.88,h:.32},alerts:{x:.15,y:.62,w:.70,h:.04},daily:{x:.06,y:.67,w:.88,h:.09},hourly:{x:.06,y:.79,w:.88,h:.09}}},
+  portraitphoto:{name:'Portrait Gallery',category:'Portrait',bestFor:'Vertical display · photo first',description:'A portrait photo composition with a balanced information header, a two-row planner, and compact forecast cards that no longer feel detached.',mode:'custom',photoZone:{x:.06,y:.17,w:.42,h:.29},view:{calendarDays:5,calendarColumns:3,calendarMaxEvents:2,calendarCellHeight:180,dailyForecastDays:5,hourlyForecastHours:6},contentScale:{calendar:96,current:106,clock:112,details:92,daily:96,hourly:96,alerts:88},partStyle:{calendar:{dayLabel:{scale:94},eventTime:{scale:94}},clock:{seconds:{scale:88}},current:{condition:{scale:94}}},elementStyle:{clock:{hAlign:'left',vAlign:'middle'},current:{hAlign:'right',vAlign:'middle'},details:{hAlign:'right',vAlign:'middle'},calendar:{hAlign:'left',vAlign:'top'},daily:{hAlign:'center',vAlign:'middle'},hourly:{hAlign:'center',vAlign:'middle'}},blocks:{clock:{x:.06,y:.04,w:.40,h:.105},current:{x:.54,y:.04,w:.40,h:.145},details:{x:.54,y:.20,w:.40,h:.075},calendar:{x:.06,y:.50,w:.88,h:.255},alerts:{x:.18,y:.775,w:.64,h:.055},daily:{x:.06,y:.85,w:.42,h:.08},hourly:{x:.52,y:.85,w:.42,h:.08}}},
+  default:{name:'Libre Balanced',category:'Classic',bestFor:'General landscape use',description:'The original LibreDisplay composition with a wide calendar band and familiar weather/forecast regions.',mode:'default',blocks:{},contentScale:{},elementStyle:{},thumbnail:BALANCED_LAYOUT_THUMBNAIL}
 };
 let settingsLayoutPresetKey='current';
 function cloneLayoutPresetValue(v){return JSON.parse(JSON.stringify(v));}
@@ -6394,11 +6406,17 @@ function layoutPresetBlockHtml(key,r){
   const left=Math.max(0,Math.min(100,Number(r.x)*100)),top=Math.max(0,Math.min(100,Number(r.y)*100)),width=Math.max(2,Math.min(100-left,Number(r.w)*100)),height=Math.max(2,Math.min(100-top,Number(r.h)*100));
   return `<span class="layout-preset-block" data-layout-block="${escHtml(key)}" style="left:${left.toFixed(2)}%;top:${top.toFixed(2)}%;width:${width.toFixed(2)}%;height:${height.toFixed(2)}%">${escHtml(LAYOUT_PRESET_LABELS[key]||key)}</span>`;
 }
+function layoutPresetPhotoZoneHtml(zone){
+  if(!zone||![zone.x,zone.y,zone.w,zone.h].every(v=>Number.isFinite(Number(v))))return '';
+  const left=Math.max(0,Math.min(100,Number(zone.x)*100)),top=Math.max(0,Math.min(100,Number(zone.y)*100)),width=Math.max(2,Math.min(100-left,Number(zone.w)*100)),height=Math.max(2,Math.min(100-top,Number(zone.h)*100));
+  return `<span class="layout-preset-photo-zone" style="left:${left.toFixed(2)}%;top:${top.toFixed(2)}%;width:${width.toFixed(2)}%;height:${height.toFixed(2)}%">photo</span>`;
+}
 function layoutPresetCardHtml(key){
-  const current=key==='current',preset=current?null:LAYOUT_PRESETS[key],name=current?'Current saved layout':preset.name,description=current?(cfg.layoutMode==='custom'?'Your saved custom Arrange layout.':'Your saved Balanced layout.'):preset.description;
-  const blocks=layoutPresetThumbnailBlocks(key),thumb=Object.entries(blocks).map(([block,r])=>layoutPresetBlockHtml(block,r)).join('');
+  const current=key==='current',preset=current?null:LAYOUT_PRESETS[key],name=current?'Current saved layout':preset.name,description=current?(cfg.layoutMode==='custom'?'Your saved custom Arrange layout.':'Your saved Libre Balanced layout.'):preset.description;
+  const blocks=layoutPresetThumbnailBlocks(key),photo=current?'':layoutPresetPhotoZoneHtml(preset?.photoZone),thumb=photo+Object.entries(blocks).map(([block,r])=>layoutPresetBlockHtml(block,r)).join('');
   const selected=settingsLayoutPresetKey===key;
-  return `<button class="layout-preset-card${selected?' selected':''}" data-layout-preset="${escHtml(key)}" type="button" role="radio" aria-checked="${selected?'true':'false'}" onclick="selectLayoutPreset('${escHtml(key)}')"><span class="layout-preset-stage" aria-hidden="true">${thumb}</span><span class="layout-preset-copy"><b>${escHtml(name)} <span class="layout-preset-badge">${current?'Saved':'Preset'}</span></b><span>${escHtml(description)}</span><small>${current?'No preset will be committed when you save unless you choose another card.':'Select to stage it, then use Preview selected layout for a full-screen live preview.'}</small></span></button>`;
+  const meta=current?'<span class="layout-preset-badge">Saved</span>':`<span class="layout-preset-badge${preset.featured?' featured':''}">${escHtml(preset.featured?'Featured':preset.category||'Layout')}</span><span class="layout-preset-badge">${escHtml(preset.bestFor||'Flexible')}</span>`;
+  return `<button class="layout-preset-card${selected?' selected':''}" data-layout-preset="${escHtml(key)}" type="button" role="radio" aria-checked="${selected?'true':'false'}" onclick="selectLayoutPreset('${escHtml(key)}')"><span class="layout-preset-stage" aria-hidden="true">${thumb}</span><span class="layout-preset-copy"><b>${escHtml(name)}</b><span>${escHtml(description)}</span><span class="layout-preset-meta">${meta}</span><small>${current?'Choose another card to stage a new arrangement. Nothing changes until you save.':'Select to stage it, then use Preview selected layout for a full-screen live preview.'}</small></span></button>`;
 }
 function renderLayoutPresetGallery(){
   const host=document.getElementById('layout-preset-gallery');if(!host)return;
@@ -6411,8 +6429,9 @@ function applyLayoutPresetToSource(source,key=settingsLayoutPresetKey){
   source.layoutMode=preset.mode==='custom'?'custom':'default';
   source.layoutBlocks=preset.mode==='custom'?cloneLayoutPresetValue(preset.blocks||{}):{};
   source.layoutContentScale=cloneLayoutPresetValue(preset.contentScale||{});
-  source.layoutElementStyle={};
-  source.layoutPartStyle={};
+  source.layoutElementStyle=cloneLayoutPresetValue(preset.elementStyle||{});
+  source.layoutPartStyle=cloneLayoutPresetValue(preset.partStyle||{});
+  if(preset.view&&typeof preset.view==='object')Object.assign(source,cloneLayoutPresetValue(preset.view));
   return source;
 }
 function selectLayoutPreset(key){
@@ -6926,6 +6945,9 @@ function setHealth(id,text,state=''){
 let softwareUpdateState=null;
 let softwareUpdateCheckPromise=null;
 let softwareUpdateMonitorActive=false;
+let softwareUpdateAutoTimer=null;
+let softwareUpdateAutoLastStarted=0;
+const SOFTWARE_UPDATE_AUTO_CHECK_MS=15*60*1000;
 let systemHealthState=null;
 let systemHealthRefreshTimer=null;
 let systemHealthRefreshPromise=null;
@@ -6940,6 +6962,11 @@ function renderSoftwareUpdateStatus(){
   const badge=document.getElementById('settings-update-badge');
   if(current)current.textContent='v'+DASHBOARD_BUILD;
   const d=softwareUpdateState;
+  const autoStatus=document.getElementById('software-update-auto-status');
+  if(autoStatus){
+    const checked=Number(d?.checkedAt)||0,when=checked?new Date(checked*1000).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'';
+    autoStatus.textContent=checked?`Automatic update detection is on · last checked ${when}${d?.stale?' · showing last successful result':''}.`:'Automatic update detection is on · checking when Settings opens and every 15 minutes while open.';
+  }
   if(badge)badge.classList.toggle('show',SESSION_ROLE==='owner'&&!!d?.ok&&!!d.updateAvailable);
   if(releaseLink){
     const href=d?.releaseUrl&&safeHttpUrl(d.releaseUrl)?safeHttpUrl(d.releaseUrl):'';
@@ -6966,7 +6993,7 @@ function renderSoftwareUpdateStatus(){
   }
 }
 async function checkSoftwareUpdate(force=false){
-  if(softwareUpdateCheckPromise&&!force)return softwareUpdateCheckPromise;
+  if(softwareUpdateCheckPromise)return softwareUpdateCheckPromise;
   const run=(async()=>{
     try{
       const suffix=force?'?force=1':'';
@@ -6980,6 +7007,23 @@ async function checkSoftwareUpdate(force=false){
   })();
   softwareUpdateCheckPromise=run;
   try{return await run;}finally{softwareUpdateCheckPromise=null;}
+}
+function settingsPanelOpen(){return !document.getElementById('setup')?.classList.contains('hidden');}
+async function autoDetectSoftwareUpdate(reason='heartbeat'){
+  if(document.hidden||!settingsPanelOpen()||SESSION_ROLE!=='owner')return softwareUpdateState;
+  const now=Date.now();
+  if(reason!=='manual'&&now-softwareUpdateAutoLastStarted<60000)return softwareUpdateState;
+  softwareUpdateAutoLastStarted=now;
+  return checkSoftwareUpdate(true);
+}
+function startSoftwareUpdateAutoDetection(){
+  stopSoftwareUpdateAutoDetection();
+  if(SESSION_ROLE!=='owner')return;
+  setTimeout(()=>autoDetectSoftwareUpdate('open'),250);
+  softwareUpdateAutoTimer=setInterval(()=>autoDetectSoftwareUpdate('heartbeat'),SOFTWARE_UPDATE_AUTO_CHECK_MS);
+}
+function stopSoftwareUpdateAutoDetection(){
+  if(softwareUpdateAutoTimer){clearInterval(softwareUpdateAutoTimer);softwareUpdateAutoTimer=null;}
 }
 function setSoftwareUpdateActionStatus(text,state=''){
   const el=document.getElementById('software-update-action-status');if(!el)return;
@@ -7411,7 +7455,7 @@ const STARTER_TEMPLATES={
   morning:{uiTheme:'libre-night',uiClockPct:125,uiCalendarPct:108,uiCurrentPct:108,uiForecastPct:102,calendarBandHeight:164,bottomPanelHeight:340,leftPanelWidth:500,sidePaddingPx:30,forecastRowGapPx:18,calendarDays:7,calendarColumns:7,showDailyForecast:true,showHourlyForecast:true,secondaryOpacity:92},
   metrics:{uiTheme:'graphite',uiClockPct:90,uiCalendarPct:90,uiCurrentPct:92,uiForecastPct:90,calendarBandHeight:132,bottomPanelHeight:300,leftPanelWidth:430,sidePaddingPx:20,forecastRowGapPx:12,calendarCellHeight:125,secondaryOpacity:90}
 };
-const STARTER_TEMPLATE_LAYOUTS={family:'calendar',photo:'photo',minimal:'compact',weather:'large',portrait:'portrait',smarthome:'default',morning:'large',metrics:'compact'};
+const STARTER_TEMPLATE_LAYOUTS={family:'family',photo:'gallery',minimal:'minimal',weather:'weather',portrait:'portrait',smarthome:'compact',morning:'large',metrics:'agenda'};
 function applyStarterTemplate(key){
   const patch=STARTER_TEMPLATES[key];if(!patch)return;
   const current=appearanceFromForm(),preview=preservePresetState({...current,...JSON.parse(JSON.stringify(patch))},current);
@@ -7824,6 +7868,7 @@ function restoreSavedSettingsPreview(){
 }
 function closeSetup(revertPreview=true){
   stopSystemHealthAutoRefresh();
+  stopSoftwareUpdateAutoDetection();
   settingsPreviewMode=false;
   setSettingsPreviewReturnVisible(false);
   settingsInitializing=false;
@@ -7835,14 +7880,13 @@ function closeSetup(revertPreview=true){
 }
 function skipSetup(){closeSetup();}
 
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){setTimeout(ensureAlertMotionRunning,120);if(!document.getElementById('setup')?.classList.contains('hidden')){setTimeout(()=>checkSoftwareUpdate(false),400);if(SESSION_ROLE==='owner')setTimeout(()=>loadSystemHealth(),250);}}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){setTimeout(ensureAlertMotionRunning,120);if(settingsPanelOpen()){setTimeout(()=>autoDetectSoftwareUpdate('visible'),400);if(SESSION_ROLE==='owner')setTimeout(()=>loadSystemHealth(),250);}}});
 window.addEventListener('resize',()=>setTimeout(ensureAlertMotionRunning,120));
-setInterval(()=>{if(!document.hidden&&!document.getElementById('setup')?.classList.contains('hidden'))checkSoftwareUpdate(false);},30*60*1000);
 
 function openSetup(startWizard=false){
   if(settingsPreviewMode){returnToSettingsPreview();return;}
   settingsLayoutPresetKey='current';
-  setTimeout(()=>{loadRemoteInfo();loadCacheStatus();loadDisplayEndpoints();loadHouseholdSettings();loadIntegrationHealth();checkSoftwareUpdate(false);loadReleaseRollbacks();},0);
+  setTimeout(()=>{loadRemoteInfo();loadCacheStatus();loadDisplayEndpoints();loadHouseholdSettings();loadIntegrationHealth();loadReleaseRollbacks();},0);
   settingsInitializing=true;
   clearSettingsInitializationError();
   ensureCfgDefaults();
@@ -7856,6 +7900,7 @@ function openSetup(startWizard=false){
   switchSettingsTab(rememberedTab,false);
   document.getElementById('setup').classList.remove('hidden');document.getElementById('setup').setAttribute('aria-hidden','false');
   startSystemHealthAutoRefresh();
+  startSoftwareUpdateAutoDetection();
   try{
     bindCalendarColorControls();
     bindCalendarUxInputs();

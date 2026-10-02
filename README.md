@@ -36,7 +36,7 @@ rm -rf ~/LibreDisplay-Setup && mkdir -p ~/LibreDisplay-Setup
 **4. Download the latest LibreDisplay release:**
 
 ```bash
-curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.5.2.zip -o /tmp/LibreDisplay.zip
+curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.5.3.zip -o /tmp/LibreDisplay.zip
 ```
 
 **5. Extract LibreDisplay:**
@@ -48,7 +48,7 @@ unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup
 **6. Open the LibreDisplay setup folder:**
 
 ```bash
-cd ~/LibreDisplay-Setup/LibreDisplay-1.5.2
+cd ~/LibreDisplay-Setup/LibreDisplay-1.5.3
 ```
 
 **7. Allow the installer to run:**
@@ -109,11 +109,11 @@ Small **?** buttons beside less-obvious controls provide quick hover/click help 
 
 Open **Settings > System > Display profiles** to save a known-good dashboard as a named profile, duplicate it before experimenting, capture another configured display as a profile, or explicitly apply a profile to a selected display. Profile application is per-display and never edits the saved profile itself. Scenes & schedules can continue using those profiles for time-based switching.
 
-Layout presets are shown as visual cards so you can see the intended arrangement before trying it. Selecting a preset stages only the built-in LibreDisplay elements; choose **Preview selected layout** to inspect it full-screen with your real dashboard content. The saved display is untouched until **Save & Apply**. Applying a preset replaces prior built-in Arrange positions/styles with that preset, while added custom blocks remain where you placed them. **Cancel/Esc restores the exact saved layout.** Starter templates use the same preview pipeline while also staging their documented presentation settings; Weather Details selection/order and data-source/account configuration remain preserved.
+Layout presets are shown as visual cards so you can see the intended arrangement before trying it. The expanded layout library includes original family-command, split photo/planner, gallery-first, calendar-wall, planner-rail, weather-center, across-the-room, compact-tablet, minimal-photo, and portrait compositions. Each preset carries a tuned content-density profile—calendar range and columns, forecast range, typography, spacing, and alignment—so the screen is composed as a whole instead of squeezing the same amount of information into every shape. Selecting a preset stages only the built-in LibreDisplay presentation; choose **Preview selected layout** to inspect it full-screen with your real dashboard content. The saved display is untouched until **Save & Apply**. Applying a preset replaces prior built-in Arrange positions/alignment and the preset-controlled density values, while added custom blocks, accounts, data sources, integrations, theme, and background remain intact. **Cancel/Esc restores the exact saved layout.** Starter templates use the same preview pipeline while also staging their documented presentation settings; Weather Details selection/order and data-source/account configuration remain preserved.
 
 ## Updating LibreDisplay
 
-Native Raspberry Pi installations check the official GitHub releases from **Settings > System > Software update**. When a newer release is available, owners see an update notice and can choose **Update now**. LibreDisplay creates a safety backup, downloads the official release, keeps your settings, media, and custom plugins, installs the update, and restarts the device.
+Native Raspberry Pi installations check the official GitHub releases automatically whenever **Settings** opens and every 15 minutes while Settings remains open. **Settings > System > Software update** still includes **Check now** for an immediate manual refresh. When a newer release is available, owners see an update notice and can choose **Update now**. LibreDisplay creates a safety backup, downloads the official release, keeps your settings, media, and custom plugins, installs the update, and restarts the device.
 
 The terminal updater remains available as a recovery/advanced path:
 
@@ -218,7 +218,7 @@ On the viewer Raspberry Pi, run the next commands **one at a time, in order**.
 **2. Download the viewer setup helper:**
 
 ```bash
-curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.5.2/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
+curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.5.3/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
 ```
 
 **3. Allow the viewer installer to run:**

@@ -85,7 +85,7 @@ class SettingsUiTests(unittest.TestCase):
     def test_layout_preset_gallery_stages_without_mutating_saved_config(self):
         self.assertIn('id="layout-preset-gallery"', HTML)
         self.assertIn('id="layout-preset-preview-button"', HTML)
-        self.assertIn("const LAYOUT_PRESET_ORDER=['current','default','compact','large','photo','calendar','portrait'];", HTML)
+        self.assertIn("const LAYOUT_PRESET_ORDER=['current','family','split','gallery','calendar','agenda','weather','large','compact','minimal','portrait','portraitphoto','default'];", HTML)
         self.assertIn('function renderLayoutPresetGallery()', HTML)
         self.assertIn('function selectLayoutPreset(key)', HTML)
         self.assertIn('function previewSelectedLayoutFromSettings()', HTML)
@@ -97,11 +97,17 @@ class SettingsUiTests(unittest.TestCase):
         self.assertIn('renderLayoutPresetGallery();', select.group(1))
 
     def test_layout_presets_have_real_distinct_geometry_and_live_preview(self):
-        self.assertIn("compact:{name:'Compact'", HTML)
-        self.assertIn("large:{name:'Large & readable'", HTML)
-        self.assertIn("photo:{name:'Photo first'", HTML)
-        self.assertIn("calendar:{name:'Calendar focus'", HTML)
-        self.assertIn("portrait:{name:'Stacked / portrait'", HTML)
+        self.assertIn("family:{name:'Family Command Center'", HTML)
+        self.assertIn("split:{name:'Photo + Planner'", HTML)
+        self.assertIn("gallery:{name:'Gallery Week'", HTML)
+        self.assertIn("calendar:{name:'Calendar Wall'", HTML)
+        self.assertIn("agenda:{name:'Planner + Weather Rail'", HTML)
+        self.assertIn("weather:{name:'Weather Center'", HTML)
+        self.assertIn("large:{name:'Across the Room'", HTML)
+        self.assertIn("compact:{name:'Countertop Grid'", HTML)
+        self.assertIn("minimal:{name:'Minimal Photo'", HTML)
+        self.assertIn("portrait:{name:'Portrait Planner'", HTML)
+        self.assertIn("portraitphoto:{name:'Portrait Gallery'", HTML)
         self.assertIn("mode:'custom'", HTML)
         apply_source = re.search(r"function applyLayoutPresetToSource\(source,key=settingsLayoutPresetKey\)\{(.*?)\n\}", HTML, re.S)
         self.assertIsNotNone(apply_source)
@@ -109,8 +115,9 @@ class SettingsUiTests(unittest.TestCase):
         self.assertIn("source.layoutMode=preset.mode==='custom'?'custom':'default';", body)
         self.assertIn('source.layoutBlocks=', body)
         self.assertIn('source.layoutContentScale=', body)
-        self.assertIn('source.layoutElementStyle={};', body)
-        self.assertIn('source.layoutPartStyle={};', body)
+        self.assertIn('source.layoutElementStyle=cloneLayoutPresetValue(preset.elementStyle||{});', body)
+        self.assertIn('source.layoutPartStyle=cloneLayoutPresetValue(preset.partStyle||{});', body)
+        self.assertIn("if(preset.view&&typeof preset.view==='object')Object.assign(source,cloneLayoutPresetValue(preset.view));", body)
         preview = re.search(r"function previewAppearance\(\)\{(.*?)\n\}", HTML, re.S)
         self.assertIsNotNone(preview)
         self.assertIn('applyLayoutPresetToSource(appearanceFromForm(),settingsLayoutPresetKey)', preview.group(1))
@@ -133,7 +140,7 @@ class SettingsUiTests(unittest.TestCase):
         self.assertIn('applySettings();', restore_body)
 
     def test_starter_templates_use_the_same_layout_preview_pipeline(self):
-        self.assertIn("const STARTER_TEMPLATE_LAYOUTS={family:'calendar',photo:'photo',minimal:'compact'", HTML)
+        self.assertIn("const STARTER_TEMPLATE_LAYOUTS={family:'family',photo:'gallery',minimal:'minimal',weather:'weather'", HTML)
         starter = re.search(r"function applyStarterTemplate\(key\)\{(.*?)\n\}", HTML, re.S)
         self.assertIsNotNone(starter)
         body = starter.group(1)
@@ -162,6 +169,48 @@ class SettingsUiTests(unittest.TestCase):
         self.assertIn('stopSystemHealthAutoRefresh();', HTML)
         self.assertIn('Auto-refresh every 15 seconds', HTML)
         self.assertIn('Refresh now', HTML)
+
+
+    def test_layout_library_is_expanded_and_descriptive(self):
+        for label in [
+            'Family Command Center', 'Photo + Planner', 'Gallery Week', 'Calendar Wall',
+            'Planner + Weather Rail', 'Weather Center', 'Across the Room', 'Countertop Grid',
+            'Minimal Photo', 'Portrait Planner', 'Portrait Gallery'
+        ]:
+            self.assertIn(label, HTML)
+        self.assertIn('layout-preset-photo-zone', HTML)
+        self.assertIn("preset.bestFor", HTML)
+        self.assertIn("preset.featured", HTML)
+        self.assertIn('Preset layouts stage the built-in positions, alignment, and content density', HTML)
+
+    def test_layout_presets_tune_density_and_portrait_calendar_columns(self):
+        self.assertIn('<option value="2">2 columns</option>', HTML)
+        self.assertIn('cfg.calendarColumns=Math.min(10,Math.max(2,Number(cfg.calendarColumns)||7));', HTML)
+        self.assertIn('const calCols=Math.min(10,Math.max(2,Number(source.calendarColumns)||7));', HTML)
+        self.assertIn("family:{name:'Family Command Center'", HTML)
+        self.assertIn('view:{calendarDays:7,calendarColumns:4,calendarMaxEvents:3,calendarCellHeight:160,dailyForecastDays:7,hourlyForecastHours:9}', HTML)
+        self.assertIn("portrait:{name:'Portrait Planner'", HTML)
+        self.assertIn('view:{calendarDays:6,calendarColumns:2,calendarMaxEvents:3,calendarCellHeight:180,dailyForecastDays:5,hourlyForecastHours:6}', HTML)
+
+    def test_custom_layout_weather_alignment_and_fit_cover_all_current_conditions(self):
+        self.assertIn('.wx-main[data-ld-h-align="right"]{align-items:flex-end;text-align:right}', HTML)
+        self.assertIn('body.custom-layout .wx-main > .wx-feels', HTML)
+        self.assertIn('body.custom-layout .wx-main > .wx-cond', HTML)
+        fit = re.search(r"function currentWeatherFitScale\(el\)\{(.*?)\n\}", HTML, re.S)
+        self.assertIsNotNone(fit)
+        self.assertIn('const kids=[...el.children]', fit.group(1))
+        self.assertIn('const needH=Math.max(1,el.scrollHeight);', fit.group(1))
+
+    def test_software_update_auto_detection_runs_on_settings_open_and_heartbeat(self):
+        self.assertIn('const SOFTWARE_UPDATE_AUTO_CHECK_MS=15*60*1000;', HTML)
+        self.assertIn('function startSoftwareUpdateAutoDetection()', HTML)
+        self.assertIn("autoDetectSoftwareUpdate('open')", HTML)
+        self.assertIn("autoDetectSoftwareUpdate('heartbeat')", HTML)
+        self.assertIn('startSoftwareUpdateAutoDetection();', HTML)
+        self.assertIn('stopSoftwareUpdateAutoDetection();', HTML)
+        self.assertIn("autoDetectSoftwareUpdate('visible')", HTML)
+        self.assertIn('Auto-checks when Settings opens and every 15 minutes', HTML)
+        self.assertIn('onclick="checkSoftwareUpdate(true)"', HTML)
 
     def test_display_profiles_support_multi_display_management(self):
         self.assertIn('id="s-profile-endpoint"', HTML)
