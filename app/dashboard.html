@@ -1883,7 +1883,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.5.0</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.5.1</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -2138,7 +2138,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-templates" data-settings-tab="look">
    <h3>Starter templates</h3>
-   <div class="howto">Apply a presentation/layout starting point without replacing your calendar links, photo folders, location, or integration credentials. Save &amp; Apply when you like the result.</div>
+   <div class="howto">Apply a presentation/layout starting point without replacing your calendar links, photo folders, location, integrations, or added custom blocks. The template previews immediately; Save &amp; Apply replaces any saved built-in Arrange positions, while Cancel/Esc restores them.</div>
    <div class="template-grid">
     <button class="template-card" type="button" onclick="applyStarterTemplate('family')"><b>Family board</b><span>Calendar-forward layout with useful weather context.</span></button>
     <button class="template-card" type="button" onclick="applyStarterTemplate('photo')"><b>Photo first</b><span>Lighter overlays that let family photos dominate.</span></button>
@@ -2218,10 +2218,10 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-layout" data-settings-tab="layout">
    <h3>Dashboard layout</h3>
-   <div class="howto">The current dashboard is the 100% default. Changes preview live while this menu is open; Esc/Cancel restores the saved layout. Presets only change appearance controls — never calendar URLs or account data.</div>
+   <div class="howto">The current dashboard is the 100% default. Changes preview live while this menu is open; Esc/Cancel restores the saved layout. Applying a preset previews its built-in layout immediately; Save &amp; Apply replaces any saved built-in Arrange positions. Presets never change calendar URLs, accounts, data sources, or added custom blocks.</div>
 
    <div class="preset-row">
-    <div class="s-row" style="margin-bottom:0;"><label>Appearance preset</label><select id="s-appearance-preset"><option value="custom">Custom (current)</option><option value="default">Balanced default</option><option value="compact">Compact</option><option value="large">Large text</option><option value="photo">Photo first</option><option value="calendar">Calendar focused</option></select></div>
+    <div class="s-row" style="margin-bottom:0;"><label>Layout preset</label><select id="s-appearance-preset"><option value="custom">Current custom layout</option><option value="default">Balanced default</option><option value="compact">Compact</option><option value="large">Large text</option><option value="photo">Photo first</option><option value="calendar">Calendar focused</option></select></div>
     <button class="btn-util" type="button" onclick="applyAppearancePreset()">Apply preset</button>
    </div>
 
@@ -2319,7 +2319,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-system-health" data-settings-tab="system" data-owner-only="1">
    <h3>System health</h3>
-   <div class="howto">A local, privacy-safe view of the LibreDisplay host. Use this when troubleshooting storage, uptime, deployment mode, or update readiness.</div>
+   <div class="howto">A local, privacy-safe live view of the LibreDisplay host. It refreshes automatically while Settings is open so storage, uptime, deployment mode, and runtime health stay current.</div>
    <div class="system-health-meta">
     <div class="health-card"><div class="health-label">Deployment</div><div id="system-health-deployment" class="health-value">Checking…</div></div>
     <div class="health-card"><div class="health-label">Uptime</div><div id="system-health-uptime" class="health-value">Checking…</div></div>
@@ -2328,14 +2328,15 @@ html:not(.cursor-active) * {
     <div class="health-card"><div class="health-label">Host</div><div id="system-health-host" class="health-value">Checking…</div></div>
     <div class="health-card"><div class="health-label">Load average</div><div id="system-health-load" class="health-value">Checking…</div></div>
    </div>
-   <div class="utility-actions" style="margin-top:9px;"><button class="btn-util" type="button" onclick="loadSystemHealth()">Refresh health</button><button class="btn-util" type="button" onclick="downloadDiagnostics()">Download diagnostics</button></div>
+   <div id="system-health-refresh-status" class="settings-note" role="status" aria-live="polite" style="margin-top:9px;">Auto-refresh every 15 seconds while Settings is open.</div>
+   <div class="utility-actions" style="margin-top:9px;"><button class="btn-util" type="button" onclick="loadSystemHealth()">Refresh now</button><button class="btn-util" type="button" onclick="downloadDiagnostics()">Download diagnostics</button></div>
   </div>
 
   <div class="s-section" id="settings-software-update" data-settings-tab="system" data-owner-only="1">
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.5.0</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.5.1</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -2560,7 +2561,7 @@ html:not(.cursor-active) * {
 <div id="screen-care-overlay" aria-hidden="true"></div>
 
 <script>
-const DASHBOARD_BUILD = '1.5.0';
+const DASHBOARD_BUILD = '1.5.1';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -6362,8 +6363,16 @@ function updateAppearanceLabels(v){
   for(const [id,val,suffix] of map){const el=document.getElementById(id);if(el)el.textContent=String(val)+suffix;}
 }
 
+let settingsPresetLayoutPending=false;
 function previewAppearance(){
   const temp=appearanceFromForm();
+  if(settingsPresetLayoutPending){
+    temp.layoutMode='default';
+    temp.layoutBlocks={};
+    temp.layoutContentScale={};
+    temp.layoutElementStyle={};
+    temp.layoutPartStyle={};
+  }
   updateFontPreview();
   window.__uiPreviewCfg=temp;
   updateAppearanceLabels(temp);
@@ -6423,13 +6432,16 @@ function setAppearanceForm(v){
 }
 
 const PRESET_CONTENT_PRESERVE_KEYS=['weatherDetailsOrder','weatherDetailsEnabled','showSunset','showWind','showHumidity','calendarTimeStyle','calendarLegend','calendarShowContinuation','burnInProtection','burnInIdleMin','burnInBrightnessPct'];
-const CUSTOM_LAYOUT_PRESET_PRESERVE_KEYS=['calendarBandHeight','bottomPanelHeight','leftPanelWidth','sidePaddingPx','forecastGapPx','forecastRowGapPx','forecastColumns','calendarCellHeight','calendarDays','calendarColumns','hourlyForecastHours','dailyForecastDays','calendarScrollMode','calendarScrollSpeed','calendarMaxEvents','layoutGridPx','layoutSnap','showNoEvents','showEventTimes','showDailyForecast','showHourlyForecast','showPrecip','showSeconds','showAmPm','showDate','showCurrentIcon'];
-function preservePresetState(target,current){for(const prop of PRESET_CONTENT_PRESERVE_KEYS)target[prop]=JSON.parse(JSON.stringify(current[prop]));if(cfg.layoutMode==='custom')for(const prop of CUSTOM_LAYOUT_PRESET_PRESERVE_KEYS)target[prop]=JSON.parse(JSON.stringify(current[prop]));return target;}
+function preservePresetState(target,current){for(const prop of PRESET_CONTENT_PRESERVE_KEYS)target[prop]=JSON.parse(JSON.stringify(current[prop]));return target;}
 function applyAppearancePreset(){
   const key=document.getElementById('s-appearance-preset')?.value||'custom';
-  if(key==='custom')return;
+  if(key==='custom'){
+    if(settingsPresetLayoutPending){settingsPresetLayoutPending=false;previewAppearance();markSettingsDirty();}
+    return;
+  }
   const current=appearanceFromForm();
   const preset=preservePresetState({...current,...(APPEARANCE_PRESETS[key]||APPEARANCE_PRESETS.default),uiTheme:current.uiTheme,fontFamily:current.fontFamily,primaryTextColor:current.primaryTextColor,locale:current.locale,motionPreference:current.motionPreference,highContrast:current.highContrast,focusOutline:current.focusOutline,settingsUiSize:current.settingsUiSize,settingsCogPosition:current.settingsCogPosition,settingsCogOpacity:current.settingsCogOpacity,settingsCogSize:current.settingsCogSize,settingsCogLabel:current.settingsCogLabel},current);
+  settingsPresetLayoutPending=true;
   setAppearanceForm(preset);
   previewAppearance();markSettingsDirty();
 }
@@ -6879,6 +6891,10 @@ let softwareUpdateState=null;
 let softwareUpdateCheckPromise=null;
 let softwareUpdateMonitorActive=false;
 let systemHealthState=null;
+let systemHealthRefreshTimer=null;
+let systemHealthRefreshPromise=null;
+let systemHealthUpdatedAt=0;
+const SYSTEM_HEALTH_REFRESH_MS=15000;
 function renderSoftwareUpdateStatus(){
   const current=document.getElementById('software-update-current');
   const status=document.getElementById('software-update-status');
@@ -7061,13 +7077,38 @@ function renderSystemHealth(){
   set('system-health-host',[d.platform,d.machine,`Python ${d.python}`].filter(Boolean).join(' · ')||'Unknown','good');
   set('system-health-load',Array.isArray(d.loadAverage)&&d.loadAverage.length?d.loadAverage.join(' · '):'Unavailable','');
 }
+function renderSystemHealthRefreshStatus(refreshing=false){
+  const el=document.getElementById('system-health-refresh-status');if(!el)return;
+  if(refreshing){el.textContent='Refreshing system health…';return;}
+  if(systemHealthUpdatedAt){const age=healthAgeText((Date.now()-systemHealthUpdatedAt)/1000);el.textContent=systemHealthState?.ok?`Auto-refresh every 15 seconds · Updated ${age}`:`Auto-refresh every 15 seconds · Last refresh failed ${age} · retrying automatically`;return;}
+  el.textContent='Auto-refresh every 15 seconds while Settings is open.';
+}
 async function loadSystemHealth(){
-  try{
-    const r=await fetch(serverPath('/api/system-health'),{cache:'no-store'});
-    systemHealthState=r.ok?await r.json():{ok:false};
-  }catch(e){systemHealthState={ok:false};}
-  renderSystemHealth();renderDisplayReadiness();
-  return systemHealthState;
+  if(systemHealthRefreshPromise)return systemHealthRefreshPromise;
+  renderSystemHealthRefreshStatus(true);
+  systemHealthRefreshPromise=(async()=>{
+    try{
+      const r=await fetch(serverPath('/api/system-health'),{cache:'no-store'});
+      systemHealthState=r.ok?await r.json():{ok:false};
+    }catch(e){systemHealthState={ok:false};}
+    systemHealthUpdatedAt=Date.now();
+    renderSystemHealth();renderDisplayReadiness();renderSystemHealthRefreshStatus(false);
+    return systemHealthState;
+  })();
+  try{return await systemHealthRefreshPromise;}finally{systemHealthRefreshPromise=null;}
+}
+function stopSystemHealthAutoRefresh(){
+  if(systemHealthRefreshTimer){clearInterval(systemHealthRefreshTimer);systemHealthRefreshTimer=null;}
+}
+function startSystemHealthAutoRefresh(){
+  stopSystemHealthAutoRefresh();
+  if(SESSION_ROLE!=='owner')return;
+  loadSystemHealth();
+  systemHealthRefreshTimer=setInterval(()=>{
+    const setup=document.getElementById('setup');
+    if(document.hidden||!setup||setup.classList.contains('hidden'))return;
+    loadSystemHealth();
+  },SYSTEM_HEALTH_REFRESH_MS);
 }
 function providerHealthPill(status,label){return `<span class="integration-health-state state-${escHtml(status)}">${escHtml(label)}</span>`;}
 function renderProviderHealth(){
@@ -7337,8 +7378,9 @@ const STARTER_TEMPLATES={
 function applyStarterTemplate(key){
   const patch=STARTER_TEMPLATES[key];if(!patch)return;
   const current=appearanceFromForm(),preview=preservePresetState({...current,...JSON.parse(JSON.stringify(patch))},current);
+  settingsPresetLayoutPending=true;
   setAppearanceForm(preview);previewAppearance();markSettingsDirty();
-  const el=document.getElementById('template-status');if(el)el.textContent='Template preview only — your saved layout has not changed. Cancel/Esc restores the exact saved view; Save & Apply keeps this presentation.';
+  const el=document.getElementById('template-status');if(el)el.textContent='Template preview active — built-in elements are showing the template layout now. Cancel/Esc restores your saved arrangement; Save & Apply replaces the saved built-in arrangement with this presentation.';
 }
 
 function currentWizardDisplayName(){
@@ -7683,6 +7725,14 @@ async function saveSetup(options={}){
   cfg.alertRefreshMin=Math.min(30,Math.max(3,Number(document.getElementById('s-alert-refresh').value)||5));
   alertRuntimeState=null;
   Object.assign(cfg,appearanceFromForm());
+  if(settingsPresetLayoutPending){
+    cfg.layoutMode='default';
+    cfg.layoutBlocks={};
+    cfg.layoutContentScale={};
+    cfg.layoutElementStyle={};
+    cfg.layoutPartStyle={};
+    settingsPresetLayoutPending=false;
+  }
   cfg.onboardingComplete=true;
   const persistence=await saveCfg();
   markSettingsClean();
@@ -7712,6 +7762,7 @@ function returnToSettingsPreview(){
   settingsPreviewMode=false;
   setSettingsPreviewReturnVisible(false);
   setup?.classList.remove('hidden');setup?.setAttribute('aria-hidden','false');
+  if(SESSION_ROLE==='owner')loadSystemHealth();
   setTimeout(()=>restartAlertScroller(),80);
 }
 function requestCloseSetup(){
@@ -7721,6 +7772,7 @@ function requestCloseSetup(){
 }
 
 function restoreSavedSettingsPreview(){
+  settingsPresetLayoutPending=false;
   window.__uiPreviewCfg=null;alertRuntimeState=null;
   // Always restore the Settings form itself, even when the modal is being closed.
   // This prevents a discarded preset/template from becoming the starting point
@@ -7737,6 +7789,7 @@ function restoreSavedSettingsPreview(){
   applySettings();
 }
 function closeSetup(revertPreview=true){
+  stopSystemHealthAutoRefresh();
   settingsPreviewMode=false;
   setSettingsPreviewReturnVisible(false);
   settingsInitializing=false;
@@ -7748,13 +7801,14 @@ function closeSetup(revertPreview=true){
 }
 function skipSetup(){closeSetup();}
 
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){setTimeout(ensureAlertMotionRunning,120);if(!document.getElementById('setup')?.classList.contains('hidden'))setTimeout(()=>checkSoftwareUpdate(false),400);}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){setTimeout(ensureAlertMotionRunning,120);if(!document.getElementById('setup')?.classList.contains('hidden')){setTimeout(()=>checkSoftwareUpdate(false),400);if(SESSION_ROLE==='owner')setTimeout(()=>loadSystemHealth(),250);}}});
 window.addEventListener('resize',()=>setTimeout(ensureAlertMotionRunning,120));
 setInterval(()=>{if(!document.hidden&&!document.getElementById('setup')?.classList.contains('hidden'))checkSoftwareUpdate(false);},30*60*1000);
 
 function openSetup(startWizard=false){
   if(settingsPreviewMode){returnToSettingsPreview();return;}
-  setTimeout(()=>{loadRemoteInfo();loadCacheStatus();loadDisplayEndpoints();loadHouseholdSettings();loadIntegrationHealth();checkSoftwareUpdate(false);loadSystemHealth();loadReleaseRollbacks();},0);
+  settingsPresetLayoutPending=false;
+  setTimeout(()=>{loadRemoteInfo();loadCacheStatus();loadDisplayEndpoints();loadHouseholdSettings();loadIntegrationHealth();checkSoftwareUpdate(false);loadReleaseRollbacks();},0);
   settingsInitializing=true;
   clearSettingsInitializationError();
   ensureCfgDefaults();
@@ -7767,6 +7821,7 @@ function openSetup(startWizard=false){
   try{rememberedTab=sessionStorage.getItem('libredisplay_settings_tab')||'overview';}catch(e){}
   switchSettingsTab(rememberedTab,false);
   document.getElementById('setup').classList.remove('hidden');document.getElementById('setup').setAttribute('aria-hidden','false');
+  startSystemHealthAutoRefresh();
   try{
     bindCalendarColorControls();
     bindCalendarUxInputs();

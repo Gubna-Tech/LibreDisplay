@@ -36,7 +36,7 @@ rm -rf ~/LibreDisplay-Setup && mkdir -p ~/LibreDisplay-Setup
 **4. Download the latest LibreDisplay release:**
 
 ```bash
-curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.5.0.zip -o /tmp/LibreDisplay.zip
+curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.5.1.zip -o /tmp/LibreDisplay.zip
 ```
 
 **5. Extract LibreDisplay:**
@@ -48,7 +48,7 @@ unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup
 **6. Open the LibreDisplay setup folder:**
 
 ```bash
-cd ~/LibreDisplay-Setup/LibreDisplay-1.5.0
+cd ~/LibreDisplay-Setup/LibreDisplay-1.5.1
 ```
 
 **7. Allow the installer to run:**
@@ -125,7 +125,7 @@ libredisplay check
 libredisplay update
 ```
 
-The first upgrade from an older release to v1.5.0 may ask for `sudo` in Terminal once so LibreDisplay can install its narrowly scoped update helper. After that, supported native installations can install future releases from Settings without entering a terminal command. Automatic unattended updates are not enabled; installing an update always requires an explicit owner action.
+The first upgrade from a pre-v1.5.0 release may ask for `sudo` in Terminal once so LibreDisplay can install its narrowly scoped update helper. After that, supported native installations can install future releases from Settings without entering a terminal command. Automatic unattended updates are not enabled; installing an update always requires an explicit owner action.
 
 Docker installations still update from the Docker host with `./scripts/docker-setup.sh update`; LibreDisplay shows available releases in Settings but does not attempt to rebuild its own host container.
 
@@ -218,7 +218,7 @@ On the viewer Raspberry Pi, run the next commands **one at a time, in order**.
 **2. Download the viewer setup helper:**
 
 ```bash
-curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.5.0/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
+curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.5.1/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
 ```
 
 **3. Allow the viewer installer to run:**

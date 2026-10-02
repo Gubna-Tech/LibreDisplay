@@ -376,8 +376,9 @@ class ReleaseContractTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         assets = ROOT / "assets"
         self.assertTrue((assets / ".gitkeep").is_file())
-        self.assertEqual(sorted(p.name for p in assets.iterdir()), ['.gitkeep'])
-        self.assertNotIn('<img src="assets/', readme)
+        self.assertEqual(sorted(p.name for p in assets.iterdir()), ['.gitkeep', 'libredisplay-promo.png'])
+        self.assertIn('<img src="assets/libredisplay-promo.png"', readme)
+        self.assertTrue((assets / 'libredisplay-promo.png').is_file())
         self.assertIn("if(setupOpen&&(!REMOTE_SETTINGS_MODE||settingsDirty||settingsPreviewMode))return;", html)
         self.assertIn("setTimeout(()=>{openSetup(false);setTimeout(ensureAlertMotionRunning,120);},0);", html)
         self.assertIn("remoteConfigPollTimer=setInterval(pollServerConfig,REMOTE_SETTINGS_MODE?5000:30000)", html)
