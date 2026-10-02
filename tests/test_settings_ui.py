@@ -85,7 +85,7 @@ class SettingsUiTests(unittest.TestCase):
     def test_layout_preset_gallery_stages_without_mutating_saved_config(self):
         self.assertIn('id="layout-preset-gallery"', HTML)
         self.assertIn('id="layout-preset-preview-button"', HTML)
-        self.assertIn("const LAYOUT_PRESET_ORDER=['current','family','split','gallery','calendar','agenda','weather','large','compact','minimal','portrait','portraitphoto','default'];", HTML)
+        self.assertIn("const LAYOUT_PRESET_ORDER=['current','family','split','gallery','calendar','agenda','weather','morning','smarthub','familyops','office','insights','travel','large','compact','minimal','portrait','portraitphoto','default'];", HTML)
         self.assertIn('function renderLayoutPresetGallery()', HTML)
         self.assertIn('function selectLayoutPreset(key)', HTML)
         self.assertIn('function previewSelectedLayoutFromSettings()', HTML)
@@ -109,7 +109,7 @@ class SettingsUiTests(unittest.TestCase):
         self.assertIn("portrait:{name:'Portrait Planner'", HTML)
         self.assertIn("portraitphoto:{name:'Portrait Gallery'", HTML)
         self.assertIn("mode:'custom'", HTML)
-        apply_source = re.search(r"function applyLayoutPresetToSource\(source,key=settingsLayoutPresetKey\)\{(.*?)\n\}", HTML, re.S)
+        apply_source = re.search(r"function applyLayoutPresetToSource\(source,key=settingsLayoutPresetKey,options=\{\}\)\{(.*?)\n\}", HTML, re.S)
         self.assertIsNotNone(apply_source)
         body = apply_source.group(1)
         self.assertIn("source.layoutMode=preset.mode==='custom'?'custom':'default';", body)
@@ -120,7 +120,7 @@ class SettingsUiTests(unittest.TestCase):
         self.assertIn("if(preset.view&&typeof preset.view==='object')Object.assign(source,cloneLayoutPresetValue(preset.view));", body)
         preview = re.search(r"function previewAppearance\(\)\{(.*?)\n\}", HTML, re.S)
         self.assertIsNotNone(preview)
-        self.assertIn('applyLayoutPresetToSource(appearanceFromForm(),settingsLayoutPresetKey)', preview.group(1))
+        self.assertIn('applyLayoutPresetToSource(appearanceFromForm(),settingsLayoutPresetKey,{preview:true})', preview.group(1))
         full = re.search(r"function previewDashboardFromSettings\(\)\{(.*?)\n\}", HTML, re.S)
         self.assertIsNotNone(full)
         self.assertIn('previewAppearance();', full.group(1))
@@ -130,7 +130,7 @@ class SettingsUiTests(unittest.TestCase):
         self.assertIsNotNone(save)
         body = save.group(1)
         self.assertIn("if(settingsLayoutPresetKey!=='current')", body)
-        self.assertIn('applyLayoutPresetToSource(cfg,settingsLayoutPresetKey);', body)
+        self.assertIn('applyLayoutPresetToSource(cfg,settingsLayoutPresetKey,{commit:true});', body)
         self.assertIn("settingsLayoutPresetKey='current';", body)
         restore = re.search(r"function restoreSavedSettingsPreview\(\)\{(.*?)\n\}", HTML, re.S)
         self.assertIsNotNone(restore)
@@ -149,6 +149,35 @@ class SettingsUiTests(unittest.TestCase):
         self.assertIn('previewAppearance();', body)
         self.assertIn('renderLayoutPresetGallery();', body)
         self.assertNotIn('saveCfg(', body)
+
+
+    def test_showcase_layouts_surface_real_integrations_without_saving_placeholders(self):
+        for marker in [
+            "morning:{name:'Morning Briefing'",
+            "smarthub:{name:'Smart Home Hub'",
+            "familyops:{name:'Family Operations'",
+            "office:{name:'Team Board'",
+            "insights:{name:'Markets & Conditions'",
+            "travel:{name:'Travel Day'",
+        ]:
+            self.assertIn(marker, HTML)
+        self.assertIn('showcaseSlots:', HTML)
+        self.assertIn('function stageLayoutShowcaseBlocks(blocks,slots)', HTML)
+        self.assertIn('function renderLayoutShowcase(source=cfg)', HTML)
+        self.assertIn("if(options.preview){source._layoutShowcaseSlots=", HTML)
+        self.assertNotIn('source.customBlocks.push({type:', HTML)
+        self.assertIn("smarthome:'smarthub'", HTML)
+        self.assertIn("morning:'morning'", HTML)
+        self.assertIn("metrics:'insights'", HTML)
+
+    def test_premade_layout_autofit_covers_calendar_and_forecast_content(self):
+        self.assertIn('function calendarFitScale(el)', HTML)
+        self.assertIn("padTop=Math.max(0,parseFloat(css.paddingTop)||0)", HTML)
+        self.assertIn("usableH=Math.max(1,el.clientHeight-padTop-padBottom-rowGap*(rows-1))", HTML)
+        self.assertIn('function forecastFitScale(block,gridSelector,itemSelector)', HTML)
+        self.assertIn("--ld-layout-fit-daily", HTML)
+        self.assertIn("--ld-layout-fit-hourly", HTML)
+        self.assertIn('builtInLayoutAutoFitResizeObserver=new ResizeObserver', HTML)
 
     def test_preset_previews_preserve_weather_details_and_restore_form(self):
         self.assertIn("const PRESET_CONTENT_PRESERVE_KEYS=['weatherDetailsOrder','weatherDetailsEnabled','showSunset','showWind','showHumidity'", HTML)
