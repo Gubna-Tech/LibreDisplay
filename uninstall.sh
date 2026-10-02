@@ -22,6 +22,7 @@ done
 INSTALL_DIR="$HOME/libredisplay"
 DATA_DIR="$INSTALL_DIR/data"
 BACKUP_DIR="$HOME/libredisplay-backups"
+ROLLBACK_DIR="$HOME/libredisplay-rollbacks"
 LABWC_DIR="$HOME/.config/labwc"
 AUTOSTART_FILE="$LABWC_DIR/autostart"
 RC_FILE="$LABWC_DIR/rc.xml"
@@ -31,7 +32,7 @@ if [ "$ASSUME_YES" -ne 1 ]; then
   printf '========================\n'
   if [ "$PURGE" -eq 1 ]; then
     printf 'PURGE MODE: LibreDisplay settings, profiles, pairing keys, cache, local project media,\n'
-    printf 'LibreDisplay backups, Docker state, NAS credentials, and managed mounts will be removed.\n'
+    printf 'LibreDisplay backups, version rollback snapshots, Docker state, NAS credentials, and managed mounts will be removed.\n'
   else
     printf 'LibreDisplay will be removed. Dashboard data and project-local media will first be saved\n'
     printf 'to a timestamped folder in your home directory.\n'
@@ -163,17 +164,22 @@ sudo rm -rf /etc/libredisplay 2>/dev/null || true
 if [ -f /usr/local/bin/libredisplay ] && grep -q 'REPOSITORY = "Gubna-Tech/LibreDisplay"' /usr/local/bin/libredisplay 2>/dev/null; then
   sudo rm -f /usr/local/bin/libredisplay
 fi
+SUDOERS_NAME=$(id -un | tr -cd 'A-Za-z0-9_.-')
+sudo rm -f "/etc/sudoers.d/libredisplay-$SUDOERS_NAME" 2>/dev/null || true
+if [ -f /usr/local/libexec/libredisplay-privileged ]; then
+  sudo rm -f /usr/local/libexec/libredisplay-privileged 2>/dev/null || true
+fi
 sudo systemctl daemon-reload 2>/dev/null || true
 
 rm -rf "$INSTALL_DIR"
 
 if [ "$PURGE" -eq 1 ]; then
-  rm -rf "$BACKUP_DIR"
+  rm -rf "$BACKUP_DIR" "$ROLLBACK_DIR"
 fi
 
 printf '\nLibreDisplay has been removed.\n'
 if [ "$PURGE" -eq 1 ]; then
-  printf 'LibreDisplay application data and LibreDisplay backup archives were purged.\n'
+  printf 'LibreDisplay application data, backup archives, and version rollback snapshots were purged.\n'
 fi
 printf 'Shared Debian packages were left installed so unrelated applications are not damaged.\n'
 printf 'If a non-empty /mnt/libredisplay directory remains, it contains data not removed by LibreDisplay.\n'

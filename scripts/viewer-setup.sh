@@ -199,6 +199,9 @@ while :; do
     --noerrdialogs \
     --disable-infobars \
     --disable-session-crashed-bubble \
+    --disable-background-timer-throttling \
+    --disable-backgrounding-occluded-windows \
+    --disable-renderer-backgrounding \
     --no-first-run \
     --password-store=basic \
     --disable-pinch \

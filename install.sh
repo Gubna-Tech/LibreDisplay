@@ -137,9 +137,21 @@ chmod 600 "$DATA_DIR/libredisplay.env"
 printf '%s\n' "$VERSION" > "$DATA_DIR/.installed"
 chmod 600 "$DATA_DIR/.installed"
 
-chmod 755 "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh" "$INSTALL_DIR/uninstall.sh" "$INSTALL_DIR/scripts/"*.sh "$INSTALL_DIR/scripts/libredisplay" "$INSTALL_DIR/app/dashboard_server.py"
+chmod 755 "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh" "$INSTALL_DIR/uninstall.sh" "$INSTALL_DIR/scripts/"*.sh "$INSTALL_DIR/scripts/libredisplay" "$INSTALL_DIR/scripts/libredisplay-privileged" "$INSTALL_DIR/scripts/release-rollback.py" "$INSTALL_DIR/app/dashboard_server.py"
 
 sudo install -m 755 "$INSTALL_DIR/scripts/libredisplay" /usr/local/bin/libredisplay
+
+# Install the narrowly scoped privileged helper used by the Settings update button.
+PRIV_HELPER=/usr/local/libexec/libredisplay-privileged
+SUDOERS_NAME=$(id -un | tr -cd 'A-Za-z0-9_.-')
+sudo install -d -m 755 /usr/local/libexec
+sudo install -o root -g root -m 755 "$INSTALL_DIR/scripts/libredisplay-privileged" "$PRIV_HELPER"
+sudoers_tmp=$(mktemp)
+printf '%s ALL=(root) NOPASSWD: %s probe, %s install-cli, %s reboot\n' "$(id -un)" "$PRIV_HELPER" "$PRIV_HELPER" "$PRIV_HELPER" > "$sudoers_tmp"
+chmod 600 "$sudoers_tmp"
+if command -v visudo >/dev/null 2>&1; then sudo visudo -cf "$sudoers_tmp" >/dev/null; fi
+sudo install -o root -g root -m 440 "$sudoers_tmp" "/etc/sudoers.d/libredisplay-$SUDOERS_NAME"
+rm -f "$sudoers_tmp"
 find "$INSTALL_DIR" -type f -name '*.md' -exec chmod 644 {} \;
 chmod 644 "$INSTALL_DIR/app/dashboard.html" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.yml" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/LICENSE"
 for file in .env.example .gitignore; do

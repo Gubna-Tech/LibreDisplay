@@ -143,15 +143,56 @@ class UpdateStatusTests(unittest.TestCase):
         self.assertIsNone(server.semantic_version_tuple("latest"))
 
     def test_github_update_status_reports_newer_release_without_secrets(self):
-        payload = json.dumps({"tag_name": "v9.9.9"}).encode("utf-8")
+        payload = json.dumps({
+            "tag_name": "v9.9.9",
+            "name": "LibreDisplay v9.9.9",
+            "html_url": "https://github.com/Gubna-Tech/LibreDisplay/releases/tag/v9.9.9",
+            "published_at": "2026-10-01T12:00:00Z",
+        }).encode("utf-8")
         with mock.patch.object(server, "safe_fetch", return_value=(200, {"Content-Type": "application/json"}, payload, server.GITHUB_RELEASE_API)):
             result = server.github_update_status(force=True)
         self.assertTrue(result["ok"])
         self.assertTrue(result["updateAvailable"])
         self.assertEqual(result["latestVersion"], "9.9.9")
-        self.assertNotIn("url", json.dumps(result).lower())
+        self.assertEqual(result["releaseUrl"], "https://github.com/Gubna-Tech/LibreDisplay/releases/tag/v9.9.9")
         self.assertNotIn("token", json.dumps(result).lower())
+        self.assertNotIn("assets_url", result)
         self.assertIn(result["deployment"], {"native", "docker", "source"})
+
+    def test_in_app_update_capability_is_disabled_outside_native_install(self):
+        with mock.patch.object(server, "update_deployment_mode", return_value="docker"):
+            capable, reason = server.in_app_update_capability()
+        self.assertFalse(capable)
+        self.assertIn("Docker", reason)
+
+    def test_start_in_app_update_launches_existing_cli_only_after_release_check(self):
+        server.UPDATE_RUN_STATE.clear()
+        server.UPDATE_RUN_STATE.update({"state": "idle", "startedAt": 0, "targetVersion": "", "error": ""})
+        status = {"ok": True, "currentVersion": server.APP_VERSION, "latestVersion": "9.9.9", "updateAvailable": True, "deployment": "native", "canUpdateInApp": True}
+        proc = mock.Mock(pid=4321)
+        proc.wait.return_value = 1
+        with tempfile.TemporaryDirectory(prefix="libredisplay-update-test-") as tmp, \
+             mock.patch.object(server, "UPDATE_LOG_PATH", Path(tmp) / "update.log"), \
+             mock.patch.object(server, "github_update_status", return_value=status), \
+             mock.patch.object(server.subprocess, "Popen", return_value=proc) as popen, \
+             mock.patch.object(server.threading, "Thread") as thread:
+            result = server.start_in_app_update()
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["state"], "running")
+        self.assertEqual(result["targetVersion"], "9.9.9")
+        args = popen.call_args.args[0]
+        self.assertEqual(args[-1], "update")
+        self.assertTrue(str(args[0]).endswith("scripts/libredisplay"))
+        thread.assert_called_once()
+
+    def test_system_health_payload_is_privacy_safe(self):
+        payload = server.system_health_payload()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["version"], server.APP_VERSION)
+        self.assertIn(payload["deployment"], {"native", "docker", "source"})
+        text = json.dumps(payload).lower()
+        self.assertNotIn("dashboard_config", text)
+        self.assertNotIn("token", text)
 
 
 class ReleaseContractTests(unittest.TestCase):
@@ -218,6 +259,69 @@ class ReleaseContractTests(unittest.TestCase):
         for secret in ("super-secret-token", "another-secret", "client-secret"):
             self.assertNotIn(secret, payload)
         self.assertNotIn("settings", rows[0])
+
+    def test_integration_error_classification_is_actionable(self):
+        self.assertEqual(server.integration_error_kind("HTTP 401 Unauthorized"), "authentication")
+        self.assertEqual(server.integration_error_kind("HTTP 429 Too Many Requests"), "rate-limit")
+        self.assertEqual(server.integration_error_kind("Connection timed out"), "network")
+        self.assertEqual(server.integration_error_kind("Missing required setting: Token"), "configuration")
+
+    def test_public_integration_error_redacts_credentials_and_url_details(self):
+        message = "Bearer abc.def request https://api.example.test/tasks?token=secret123 failed api_key=anothersecret"
+        clean = server.public_integration_error(message)
+        self.assertIn("api.example.test", clean)
+        for secret in ("abc.def", "secret123", "anothersecret"):
+            self.assertNotIn(secret, clean)
+
+    def test_integration_status_includes_refresh_and_safe_timestamps(self):
+        config_path = server.endpoint_config_path("main")
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config = {"customBlocks": [{
+            "id": "tasks-health", "type": "integration", "name": "Tasks health",
+            "config": {"plugin": "google-tasks", "refreshMin": 7, "settings": {
+                "taskListId": "@default", "accessToken": "health-secret",
+            }}
+        }]}
+        config_path.write_text(json.dumps(config), encoding="utf-8")
+        plugin = server.PLUGINS["google-tasks"]
+        clean_settings = server.integration_clean_settings(config["customBlocks"][0], plugin)
+        key = server.integration_cache_key("google-tasks", clean_settings)
+        now = 2_000_000_000
+        with mock.patch.object(server.time, "time", return_value=now):
+            with server.BROKER_LOCK:
+                server.BROKER_STATUS[key] = {
+                    "status": "stale", "savedAt": now - 600, "age": 600,
+                    "lastSuccessAt": now - 600, "lastAttemptAt": now - 5,
+                    "error": "HTTP 401 Unauthorized",
+                }
+            row = server.integration_status_rows("main")[0]
+        self.assertEqual(row["refreshMin"], 7)
+        self.assertEqual(row["lastSuccessAt"], now - 600)
+        self.assertEqual(row["lastAttemptAt"], now - 5)
+        self.assertEqual(row["errorKind"], "authentication")
+        self.assertEqual(row["nextRefreshAt"], now - 600 + 7 * 60)
+        self.assertNotIn("health-secret", json.dumps(row))
+        with server.BROKER_LOCK:
+            server.BROKER_STATUS.pop(key, None)
+
+    def test_force_live_broker_check_preserves_last_good_cache_on_failure(self):
+        key = "health-force-live-cache"
+        server.invalidate_broker_key(key)
+        server.broker_save(key, b'{"ok":true}', "application/json", "plugin:test")
+        with mock.patch.object(server.time, "time", return_value=2_000_000_100):
+            data, content_type, state, age = server.broker_fetch(
+                key, 300, lambda: (_ for _ in ()).throw(RuntimeError("Connection timed out")),
+                "plugin:test", force=True,
+            )
+        self.assertEqual(data, b'{"ok":true}')
+        self.assertEqual(content_type, "application/json")
+        self.assertEqual(state, "stale")
+        self.assertTrue(server.broker_load(key))
+        with server.BROKER_LOCK:
+            status = dict(server.BROKER_STATUS.get(key) or {})
+        self.assertEqual(status.get("status"), "stale")
+        self.assertEqual(status.get("lastAttemptAt"), 2_000_000_100)
+        server.invalidate_broker_key(key)
 
     def test_integration_catalog_has_expected_plugins(self):
         manifests = server.plugin_manifests()

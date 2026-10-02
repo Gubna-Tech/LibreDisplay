@@ -96,10 +96,57 @@ class SettingsUiTests(unittest.TestCase):
         self.assertIsNotNone(restore)
         self.assertIn('applySettings();', restore.group(1))
 
+
+    def test_preset_previews_preserve_weather_details_and_restore_form(self):
+        self.assertIn("const PRESET_CONTENT_PRESERVE_KEYS=['weatherDetailsOrder','weatherDetailsEnabled','showSunset','showWind','showHumidity'", HTML)
+        self.assertIn('function preservePresetState(target,current)', HTML)
+        appearance = re.search(r"function applyAppearancePreset\(\)\{(.*?)\n\}", HTML, re.S)
+        self.assertIsNotNone(appearance)
+        self.assertIn('preservePresetState(', appearance.group(1))
+        starter = re.search(r"function applyStarterTemplate\(key\)\{(.*?)\n\}", HTML, re.S)
+        self.assertIsNotNone(starter)
+        self.assertIn('preservePresetState(', starter.group(1))
+        restore = re.search(r"function restoreSavedSettingsPreview\(\)\{(.*?)\n\}", HTML, re.S)
+        self.assertIsNotNone(restore)
+        body = restore.group(1)
+        self.assertIn('setAppearanceForm(cfg);', body)
+        self.assertIn('if(wxData)renderWeather(wxData);', body)
+        self.assertIn("renderCalendar(window.__lastCalendarEvents||[]);", body)
+
+    def test_display_profiles_support_multi_display_management(self):
+        self.assertIn('id="s-profile-endpoint"', HTML)
+        self.assertIn('duplicateSelectedProfile()', HTML)
+        self.assertIn('applySelectedProfileToDisplay()', HTML)
+        self.assertIn('captureTargetDisplayAsProfile()', HTML)
+        self.assertIn('activeByEndpoint', HTML)
+        self.assertIn('function endpointConfigPath(endpoint)', HTML)
+        self.assertIn('This replaces that display\'s saved dashboard configuration.', HTML)
+
     def test_location_display_name_is_optional_not_coordinate_source(self):
         self.assertIn("cfg.locName=requestedLabel;", HTML)
         self.assertIn('Shown above Current Weather on the dashboard.', HTML)
         self.assertNotIn("cfg.locName=requestedLabel||`${r.name}, ${r.country_code}`", HTML)
+
+    def test_provider_health_and_live_integration_checks_are_discoverable(self):
+        self.assertIn('id="settings-provider-health"', HTML)
+        self.assertIn('id="integration-health-summary"', HTML)
+        self.assertIn('function checkAllIntegrationsNow()', HTML)
+        self.assertIn('function forceIntegrationCheck(blockId)', HTML)
+        self.assertIn('&check=1&nonce=', HTML)
+        self.assertIn('function renderProviderHealth()', HTML)
+        self.assertIn('Remote data cache', HTML)
+
+    def test_system_health_and_update_actions_are_discoverable(self):
+        self.assertIn('id="settings-system-health"', HTML)
+        self.assertIn('id="settings-backup-recovery"', HTML)
+        self.assertIn('id="restore-point-list"', HTML)
+        self.assertIn('exportPortableBackup()', HTML)
+        self.assertIn('id="software-update-now"', HTML)
+        self.assertIn('id="settings-update-badge"', HTML)
+        self.assertIn('function loadSystemHealth()', HTML)
+        self.assertIn('function downloadDiagnostics()', HTML)
+        self.assertIn('function startSoftwareUpdate()', HTML)
+        self.assertIn('Update Now creates a safety backup', HTML)
 
 
 if __name__ == '__main__':

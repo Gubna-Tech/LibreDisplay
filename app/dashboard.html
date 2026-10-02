@@ -518,6 +518,11 @@ body {
   backdrop-filter:blur(4px);
 }
 #offline-pill.show { display:block; }
+#offline-pill[data-state=offline],#offline-pill[data-state=reconnecting]{border-color:rgba(251,191,36,.38);background:rgba(45,32,4,.82);color:#fff4c2}
+#screen-care-overlay{position:fixed;inset:0;z-index:19;pointer-events:none;background:#000;opacity:0;transition:opacity .6s ease}
+body.ld-burnin-dim #screen-care-overlay{opacity:var(--ld-burnin-overlay,.55)}
+body.layout-editing #screen-care-overlay,body.remote-layout-proxy #screen-care-overlay{opacity:0!important}
+.display-readiness-list{display:grid;gap:7px;margin-top:9px}.display-readiness-item{padding:9px 10px;border:1px solid var(--ld-border);border-radius:10px;background:color-mix(in srgb,var(--ld-surface-2) 88%,transparent);font-size:11px;line-height:1.4}.display-readiness-item.good{border-color:color-mix(in srgb,var(--ld-success) 40%,var(--ld-border))}.display-readiness-item.warn{border-color:color-mix(in srgb,var(--ld-warning) 45%,var(--ld-border))}
 .remote-url-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; }
 .remote-url-row input { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:11px; }
 .media-paths { width:100%; min-height:88px; resize:vertical; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; line-height:1.45; }
@@ -1263,6 +1268,14 @@ body.layout-editing .custom-block { pointer-events:none !important; user-select:
 .cal-entry.calendar-hidden { display:none; }
 .cal-entry.calendar-disabled { opacity:.52; }
 .calendar-slot-tools { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 12px; }
+.backup-recovery-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px; }
+.backup-recovery-card { border:1px solid var(--ld-border);border-radius:12px;background:rgba(255,255,255,.025);padding:12px; }
+.restore-point-list { display:grid;gap:8px;margin-top:10px; }
+.restore-point-row { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid var(--ld-border);border-radius:10px;padding:10px 12px;background:rgba(255,255,255,.02); }
+.restore-point-title { font-weight:700;font-size:13px; }
+.restore-point-meta { color:var(--ld-muted);font-size:11px;line-height:1.4;margin-top:2px; }
+.restore-point-actions { display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end; }
+@media(max-width:760px){.backup-recovery-grid{grid-template-columns:1fr}.restore-point-row{grid-template-columns:1fr}.restore-point-actions{justify-content:flex-start}}
 #diagnostics-status { margin-top:9px; }
 .profile-grid {
   display:grid;
@@ -1422,6 +1435,18 @@ body.layout-editing .custom-block { pointer-events:none !important; user-select:
 .wizard-progress-label { color:var(--ld-subtle); }.wizard-progress-track { background:var(--ld-surface-3); }.wizard-progress-bar { background:linear-gradient(90deg,var(--ld-accent),var(--ld-accent-strong)); }
 .wizard-title { color:var(--ld-text); font-size:21px; letter-spacing:-.3px; }.wizard-desc { color:var(--ld-muted); max-width:720px; }
 .wizard-extra { margin-top:14px; }.wizard-feature-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }.wizard-feature-grid>div { padding:12px; border:1px solid var(--ld-border); border-radius:11px; background:color-mix(in srgb,var(--ld-surface-3) 58%,transparent); }.wizard-feature-grid b { display:block; color:var(--ld-text); font-size:11px; margin-bottom:4px; }.wizard-feature-grid span { display:block; color:var(--ld-muted); font-size:10px; line-height:1.45; }.wizard-inline-note { padding:9px 11px; border-left:3px solid var(--ld-accent); background:color-mix(in srgb,var(--ld-accent) 7%,transparent); color:var(--ld-muted); border-radius:0 8px 8px 0; font-size:10px; }
+.wizard-form-card { padding:13px; border:1px solid var(--ld-border); border-radius:12px; background:color-mix(in srgb,var(--ld-surface-3) 58%,transparent); }
+.wizard-form-card .s-row { margin:0; }.wizard-form-card .s-row + .wizard-inline-note { margin-top:9px; }
+.wizard-health-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:10px; }
+.wizard-health-card { padding:11px; border:1px solid var(--ld-border); border-radius:11px; background:color-mix(in srgb,var(--ld-surface-3) 58%,transparent); }
+.wizard-health-card b { display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--ld-text); font-size:11px; }
+.wizard-health-card span { display:block; margin-top:4px; color:var(--ld-muted); font-size:10px; line-height:1.4; }
+.wizard-health-dot { width:8px; height:8px; border-radius:50%; background:var(--ld-subtle); flex:0 0 auto; }
+.wizard-health-dot.good { background:var(--ld-success); box-shadow:0 0 8px color-mix(in srgb,var(--ld-success) 40%,transparent); }
+.wizard-health-dot.warn { background:var(--ld-warning); }.wizard-health-dot.bad { background:var(--ld-danger); }
+.wizard-health-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:10px; }
+.wizard-health-status { color:var(--ld-muted); font-size:10px; line-height:1.45; }
+@media(max-width:700px){.wizard-health-grid{grid-template-columns:1fr}}
 .wizard-summary-card b { color:var(--ld-text); }.wizard-summary-card span { color:var(--ld-muted); }
 .theme-choice-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; margin:4px 0 14px; }
 .theme-choice-card { min-width:0; text-align:left; padding:10px; border:1px solid var(--ld-border); border-radius:11px; background:color-mix(in srgb,var(--ld-surface-2) 72%,transparent); color:var(--ld-text); cursor:pointer; font-family:var(--ld-app-font); }
@@ -1470,7 +1495,7 @@ html:not(.cursor-active) * {
 .settings-tabs{grid-template-columns:repeat(9,minmax(0,1fr));}
 .integration-directory-toolbar{display:grid;grid-template-columns:minmax(180px,1fr) minmax(140px,.5fr) minmax(140px,.5fr);gap:8px;margin:10px 0}.integration-directory-toolbar input,.integration-directory-toolbar select{width:100%;box-sizing:border-box}
 .integration-directory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}.integration-directory-card{display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:center;padding:12px;border:1px solid var(--ld-border);border-radius:13px;background:var(--ld-surface-2)}.integration-directory-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--ld-surface-3);color:var(--ld-accent);font-weight:800}.integration-directory-copy{min-width:0;display:flex;flex-direction:column;gap:2px}.integration-directory-copy span{font-size:12px;color:var(--ld-muted);line-height:1.35}.integration-directory-copy small{font-size:10px;color:var(--ld-subtle)}.integration-directory-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}.integration-configured-badge,.integration-health-state{font-size:10px;font-weight:800;padding:4px 7px;border-radius:999px;border:1px solid var(--ld-border-strong);color:var(--ld-accent);white-space:nowrap}
-.integration-health-list{display:grid;gap:7px}.integration-health-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 11px;border:1px solid var(--ld-border);border-radius:11px;background:var(--ld-surface-2)}.integration-health-row>div:first-child{min-width:0;display:flex;flex-direction:column;gap:2px}.integration-health-row span,.integration-health-row small{color:var(--ld-muted);font-size:11px}.integration-health-row small{color:var(--ld-danger,#fb7185)}.integration-health-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.state-error,.state-missing,.state-unconfigured{color:var(--ld-danger,#fb7185);border-color:color-mix(in srgb,var(--ld-danger,#fb7185) 45%,transparent)}.state-stale{color:var(--ld-warning,#fbbf24);border-color:color-mix(in srgb,var(--ld-warning,#fbbf24) 45%,transparent)}
+.integration-health-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}.integration-health-summary-card{padding:10px 11px;border:1px solid var(--ld-border);border-radius:11px;background:var(--ld-surface-2)}.integration-health-summary-card b{display:block;font-size:18px;line-height:1.1}.integration-health-summary-card span{display:block;margin-top:3px;font-size:10px;color:var(--ld-muted)}.integration-health-list{display:grid;gap:7px}.integration-health-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 11px;border:1px solid var(--ld-border);border-radius:11px;background:var(--ld-surface-2)}.integration-health-row>div:first-child{min-width:0;display:flex;flex-direction:column;gap:3px}.integration-health-row span,.integration-health-row small{color:var(--ld-muted);font-size:11px}.integration-health-row .integration-health-error{color:var(--ld-danger,#fb7185)}.integration-health-meta{display:flex;gap:7px 12px;flex-wrap:wrap;color:var(--ld-subtle);font-size:10px}.integration-health-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.integration-health-state.state-fresh,.integration-health-state.state-ready{color:var(--ld-success,#4ade80);border-color:color-mix(in srgb,var(--ld-success,#4ade80) 45%,transparent)}.state-error,.state-missing,.state-unconfigured{color:var(--ld-danger,#fb7185);border-color:color-mix(in srgb,var(--ld-danger,#fb7185) 45%,transparent)}.state-stale,.state-cached{color:var(--ld-warning,#fbbf24);border-color:color-mix(in srgb,var(--ld-warning,#fbbf24) 45%,transparent)}.provider-health-list{display:grid;gap:7px}.provider-health-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 11px;border:1px solid var(--ld-border);border-radius:11px;background:var(--ld-surface-2)}.provider-health-copy{min-width:0}.provider-health-copy b{display:block}.provider-health-copy span{display:block;margin-top:2px;color:var(--ld-muted);font-size:11px}.provider-health-copy small{display:block;margin-top:4px;color:var(--ld-subtle);font-size:10px}.provider-health-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}@media(max-width:760px){.integration-health-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.integration-health-row,.provider-health-row{grid-template-columns:1fr}.integration-health-actions,.provider-health-actions{justify-content:flex-start}}
 .integration-setup-group{padding:10px;border:1px solid var(--ld-border);border-radius:12px;background:var(--ld-surface-2)}.integration-setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.integration-setup-more{border:1px solid var(--ld-border);border-radius:12px;padding:10px}.integration-setup-more summary{cursor:pointer;font-weight:750;color:var(--ld-text)}
 .custom-data-chart .grid line{stroke:currentColor;opacity:.14;stroke-width:.35}.custom-data-chart .point{fill:var(--ld-accent);stroke:var(--ld-surface);stroke-width:.35}
 .ld-reduce-motion *, .ld-reduce-motion *::before,.ld-reduce-motion *::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}.ld-high-contrast{--ld-border:rgba(255,255,255,.28)!important;--ld-border-strong:rgba(74,222,128,.72)!important;--ld-muted:#d1d8d3!important;--ld-subtle:#b8c1bb!important}.ld-focus-outline *:focus{outline:3px solid var(--ld-focus,var(--ld-accent))!important;outline-offset:3px}.ld-focus-outline *:focus:not(:focus-visible){outline:3px solid var(--ld-focus,var(--ld-accent))!important}
@@ -1479,7 +1504,7 @@ html:not(.cursor-active) * {
 @media(max-width:720px){#setup{padding:0}.setup-box{width:100vw;max-width:none;height:100dvh;max-height:none;border-radius:0;padding:14px 14px 88px;overflow:auto}.setup-head{position:sticky;top:-14px;z-index:25;background:var(--ld-surface);padding:14px 0 8px}.settings-tabs{position:sticky;top:61px;z-index:24;display:flex;overflow-x:auto;grid-template-columns:none;background:var(--ld-surface);padding:6px 0}.settings-tab-btn{flex:0 0 auto;min-width:112px}.settings-controlbar,.settings-search{position:relative}.s-actions{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;padding:10px 14px;background:color-mix(in srgb,var(--ld-surface) 96%,transparent);border-top:1px solid var(--ld-border);box-shadow:0 -12px 30px var(--ld-shadow)}.integration-directory-toolbar{grid-template-columns:1fr}.integration-directory-card{grid-template-columns:34px 1fr}.integration-directory-actions{grid-column:1/-1;justify-content:flex-start;padding-left:44px}.integration-health-row{align-items:flex-start;flex-direction:column}.integration-health-actions{justify-content:flex-start}.integration-setup-grid{grid-template-columns:1fr}.settings-collapse-actions{display:none}}
 
 
-/* LibreDisplay v1.3 settings shell — desktop-control-panel layout inspired by familiar OS settings apps. */
+/* Settings shell: desktop-control-panel layout inspired by familiar OS settings apps. */
 #setup { padding:22px; }
 #setup .setup-box {
   width:min(1180px,100%); max-width:1180px; height:min(860px,92vh); max-height:92vh;
@@ -1530,6 +1555,19 @@ html:not(.cursor-active) * {
 #setup .settings-nav-copy b { color:inherit; font-size:12px; line-height:1.2; font-weight:720; }
 #setup .settings-nav-copy small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ld-subtle); font-size:9px; line-height:1.25; font-weight:500; }
 #setup .settings-tab-btn.active .settings-nav-copy small { color:var(--ld-muted); }
+#setup .settings-tab-btn { position:relative; }
+#setup .settings-update-badge { display:none; position:absolute; right:8px; top:7px; min-width:17px; height:17px; padding:0 5px; border-radius:999px; place-items:center; background:var(--ld-warning); color:#1a1200; font-size:9px; font-weight:850; line-height:17px; box-shadow:0 0 0 2px var(--ld-surface); }
+#setup .settings-update-badge.show { display:grid; }
+#setup .software-update-actions { display:flex; flex-wrap:wrap; gap:7px; align-items:center; margin-top:8px; }
+#setup .software-update-link { display:none; color:var(--ld-accent); font-size:11px; font-weight:700; text-decoration:none; }
+#setup .software-update-link.show { display:inline-flex; }
+#setup .software-update-link:hover { text-decoration:underline; }
+#setup .update-now-btn { border-color:color-mix(in srgb,var(--ld-accent) 45%,var(--ld-border)); background:color-mix(in srgb,var(--ld-accent) 14%,var(--ld-surface-2)); color:var(--ld-text); }
+#setup .update-now-btn:disabled { opacity:.52; cursor:not-allowed; }
+#setup .system-health-meta { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:9px; }
+#setup .system-health-meta .health-card { min-height:70px; }
+@media(max-width:900px){#setup .system-health-meta{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){#setup .system-health-meta{grid-template-columns:1fr}}
 #setup .settings-sidebar-tools { margin:15px 2px 0; padding-top:14px; border-top:1px solid var(--ld-border); }
 #setup .settings-mode-wrap label { margin-bottom:7px; }
 #setup .settings-mode-toggle { display:grid; grid-template-columns:1fr 1fr; gap:3px; padding:3px; }
@@ -1585,7 +1623,14 @@ html:not(.cursor-active) * {
 }
 #setup .s-actions .settings-dirty { align-self:center; min-width:120px; }
 #setup .s-actions .btn-save { max-width:520px; }
-#setup.wizard-mode .settings-workspace { display:none !important; }
+#setup.wizard-mode .settings-workspace { display:block !important; flex:none; min-height:0; border-top:0; background:transparent; }
+#setup.wizard-mode .settings-sidebar { display:none !important; }
+#setup.wizard-mode .settings-content { display:block !important; overflow:visible; padding:0; }
+#setup.wizard-mode .settings-page-head,
+#setup.wizard-mode #settings-empty-state,
+#setup.wizard-mode #settings-init-error { display:none !important; }
+#setup.wizard-mode .s-section[data-settings-tab] { display:none; margin-top:14px; }
+#setup.wizard-mode .s-section[data-settings-tab].tab-active { display:block; }
 #setup.wizard-mode .setup-box { height:auto; max-width:920px; padding:24px; overflow-y:auto; }
 #setup.wizard-mode .setup-head { padding:0; }
 #setup.wizard-mode .setup-box .sub { padding:0; margin:11px 0 21px 55px; }
@@ -1618,7 +1663,7 @@ html:not(.cursor-active) * {
   #setup .settings-section-jump { flex:1 1 auto; min-width:0; }
   #setup .s-actions { padding:9px 12px; }
 }
-/* v1.4.5 Settings readability + context-help polish. */
+/* Settings readability and context-help polish. */
 #setup .settings-help-legend {
   display:flex; align-items:center; gap:7px; margin-top:8px; color:var(--ld-subtle);
   font-size:10px; line-height:1.4;
@@ -1732,7 +1777,7 @@ html:not(.cursor-active) * {
 
   <div id="wizard-shell" class="wizard-shell">
    <div class="wizard-brand-row"><div class="wizard-brand-mark">LD</div><div><b>Welcome to LibreDisplay</b><span>Private, local-first, and built to make the display yours.</span></div></div>
-   <div class="wizard-progress-row"><span id="wizard-step-label" class="wizard-progress-label">Step 1 of 8</span><span class="wizard-progress-label">First-run setup</span></div>
+   <div class="wizard-progress-row"><span id="wizard-step-label" class="wizard-progress-label">Step 1 of 11</span><span id="wizard-mode-label" class="wizard-progress-label">First-run setup</span></div>
    <div class="wizard-progress-track"><div id="wizard-progress-bar" class="wizard-progress-bar"></div></div>
    <div id="wizard-title" class="wizard-title">Welcome</div>
    <div id="wizard-desc" class="wizard-desc"></div>
@@ -1760,7 +1805,7 @@ html:not(.cursor-active) * {
      <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="layout" onclick="switchSettingsTab('layout')"><span class="settings-nav-icon" aria-hidden="true">⌗</span><span class="settings-nav-copy"><b>Layout</b><small>Arrange, sizing &amp; visibility</small></span></button>
      <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="family" data-owner-only="1" onclick="switchSettingsTab('family')"><span class="settings-nav-icon" aria-hidden="true">✓</span><span class="settings-nav-copy"><b>Family</b><small>Household, chores &amp; rewards</small></span></button>
      <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="integrations" onclick="switchSettingsTab('integrations')"><span class="settings-nav-icon" aria-hidden="true">◇</span><span class="settings-nav-copy"><b>Integrations</b><small>Providers &amp; connections</small></span></button>
-     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="system" onclick="switchSettingsTab('system')"><span class="settings-nav-icon" aria-hidden="true">⚙</span><span class="settings-nav-copy"><b>System</b><small>Accounts, automation &amp; maintenance</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="system" onclick="switchSettingsTab('system')"><span class="settings-nav-icon" aria-hidden="true">⚙</span><span class="settings-nav-copy"><b>System</b><small>Accounts, automation &amp; maintenance</small></span><span id="settings-update-badge" class="settings-update-badge" aria-label="Software update available">!</span></button>
     </div>
 
     <div class="settings-sidebar-tools">
@@ -1838,7 +1883,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.4.5</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.5.0</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -1885,19 +1930,24 @@ html:not(.cursor-active) * {
   </div>
 
   <div class="s-section" id="settings-profiles" data-settings-level="advanced" data-owner-only="1" data-settings-tab="system">
-   <h3>Profiles</h3>
-   <div class="howto">Save complete dashboard configurations for different rooms, displays, experiments, or people. Profiles include calendars, backgrounds, alerts, and appearance settings. Load a profile to switch the whole dashboard at once. Profiles are snapshots: after changing the dashboard, use “Update selected” when you want those changes written back to that profile.</div>
+   <h3>Display profiles</h3>
+   <div class="howto">Save complete dashboard configurations as named profiles, then reuse them on this display or explicitly apply them to another LibreDisplay endpoint. Profiles are snapshots of dashboard content and presentation; applying one never changes the profile itself. Use “Update selected” only when you intentionally want to replace a profile with the currently saved dashboard.</div>
    <div class="profile-grid">
     <div class="s-row"><label>Saved profile</label><select id="s-profile-select" onchange="updateProfileControls()"><option value="">No saved profiles yet</option></select></div>
     <div class="s-row"><label>Profile name</label><input id="s-profile-name" type="text" maxlength="48" placeholder="e.g. Living Room"></div>
+    <div class="s-row"><label>Target display <button class="help-tip" type="button" aria-label="Profile target display help" data-help="Choose which saved LibreDisplay endpoint should receive a profile. Applying a profile is explicit and does not alter the profile or any other display.">?</button></label><select id="s-profile-endpoint" onchange="updateProfileControls()"><option value="main">Main display</option></select></div>
    </div>
    <div class="profile-actions">
     <button class="btn-util" type="button" onclick="createProfile()">Save current as new</button>
     <button class="btn-util" type="button" onclick="updateSelectedProfile()">Update selected</button>
-    <button class="btn-util" type="button" onclick="loadSelectedProfile()">Load selected</button>
+    <button class="btn-util" type="button" onclick="duplicateSelectedProfile()">Duplicate</button>
+    <button class="btn-util" type="button" onclick="loadSelectedProfile()">Load on this display</button>
+    <button class="btn-util" type="button" onclick="applySelectedProfileToDisplay()">Apply to target display</button>
+    <button class="btn-util" type="button" onclick="captureTargetDisplayAsProfile()">Capture target as profile</button>
     <button class="btn-util" type="button" onclick="renameSelectedProfile()">Rename</button>
     <button class="btn-util" type="button" onclick="deleteSelectedProfile()">Delete</button>
    </div>
+   <div class="settings-note" style="margin-top:8px;">Tip: duplicate a known-good profile before experimenting. Profiles can also be used by Scenes &amp; schedules below.</div>
    <div id="profile-status" class="howto profile-status" style="display:none;"></div>
   </div>
 
@@ -2123,7 +2173,14 @@ html:not(.cursor-active) * {
     <label class="checkline"><input id="s-high-contrast" type="checkbox" onchange="previewAppearance()"> Stronger contrast and borders <button class="help-tip" type="button" aria-label="Contrast help" data-help="Brightens muted Settings text and strengthens borders so controls and secondary information are easier to distinguish.">?</button></label>
     <label class="checkline"><input id="s-focus-outline" type="checkbox" onchange="previewAppearance()"> Always show strong keyboard focus <button class="help-tip" type="button" aria-label="Keyboard focus help" data-help="Makes the currently focused control easier to see when navigating Settings with Tab, Shift+Tab, Enter, or Space.">?</button></label>
    </div>
-   <div class="settings-note">Reduced motion disables decorative transitions and continuous alert/background animation where possible. It does not stop data refreshes.</div>
+   <div class="s-subhead">Always-on display care</div>
+   <div class="howto">Optional screen care can lower static brightness after a period without local interaction. It never moves or rewrites your saved layout and wakes instantly when the screen is used.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-burnin-protection" type="checkbox" onchange="previewAppearance()"> Dim after inactivity <button class="help-tip" type="button" aria-label="Always-on dimming help" data-help="Reduces overall brightness with a non-interactive overlay after the selected idle time. The saved layout and element positions are never changed.">?</button></label>
+    <div class="s-row"><label>Idle time</label><select id="s-burnin-idle" onchange="previewAppearance()"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">1 hour</option><option value="120">2 hours</option></select></div>
+    <div class="s-row"><label>Idle brightness</label><select id="s-burnin-brightness" onchange="previewAppearance()"><option value="25">25%</option><option value="40">40%</option><option value="55">55%</option><option value="70">70%</option></select></div>
+   </div>
+   <div class="settings-note">Reduced motion disables decorative transitions and continuous alert/background animation where possible. It does not stop data refreshes. Screen care is off by default.</div>
   </div>
 
   <div class="s-section" id="settings-settings-button" data-settings-tab="look">
@@ -2232,20 +2289,88 @@ html:not(.cursor-active) * {
    </div>
    <div id="integration-directory-summary" class="settings-note"></div>
    <div id="integration-directory" class="integration-directory"></div>
-   <div class="s-subhead">Configured on this display</div>
+   <div class="s-subhead">Connection health</div>
+   <div class="howto">Health checks use each configured block's saved provider settings without displaying credentials. “Test connection” forces a live provider request instead of accepting a cached response.</div>
+   <div id="integration-health-summary" class="integration-health-summary"></div>
+   <div class="utility-actions" style="margin-bottom:8px;"><button class="btn-util" type="button" onclick="checkAllIntegrationsNow()">Test all configured</button><button class="btn-util" type="button" onclick="loadIntegrationHealth()">Refresh status</button></div>
+   <div id="integration-health-run-status" class="settings-note" style="display:none;margin-bottom:8px;"></div>
    <div id="integration-health-list" class="integration-health-list"><div class="settings-note">Loading integration health…</div></div>
   </div>
 
+  <div class="s-section" id="settings-provider-health" data-settings-tab="system" data-owner-only="1">
+   <h3>Data sources &amp; providers</h3>
+   <div class="howto">A unified view of the services feeding this display. It shows whether data is current, delayed, misconfigured, or offline without exposing private URLs, tokens, or coordinates.</div>
+   <div id="provider-health-list" class="provider-health-list"><div class="settings-note">Loading provider health…</div></div>
+   <div class="utility-actions" style="margin-top:9px;"><button class="btn-util" type="button" onclick="refreshProviderHealth(true)">Refresh data sources</button><button class="btn-util" type="button" onclick="checkAllIntegrationsNow()">Test integrations</button></div>
+  </div>
+
+  <div class="s-section" id="settings-display-readiness" data-settings-tab="system" data-owner-only="1">
+   <h3>Display readiness &amp; kiosk resilience</h3>
+   <div class="howto">Checks the currently reported display viewport and kiosk heartbeat without changing the dashboard. Use it to catch accidental browser zoom, undersized viewports, orientation mismatches, or a stalled local kiosk before they become layout problems.</div>
+   <div class="system-health-meta">
+    <div class="health-card"><div class="health-label">Viewport</div><div id="display-readiness-viewport" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Orientation</div><div id="display-readiness-orientation" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Browser scale</div><div id="display-readiness-scale" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Kiosk heartbeat</div><div id="display-readiness-heartbeat" class="health-value">Checking…</div></div>
+   </div>
+   <div id="display-readiness-notes" class="display-readiness-list"><div class="settings-note">Waiting for display metrics…</div></div>
+   <div class="utility-actions" style="margin-top:9px;"><button class="btn-util" type="button" onclick="refreshDisplayReadiness()">Recheck display</button></div>
+  </div>
+
+  <div class="s-section" id="settings-system-health" data-settings-tab="system" data-owner-only="1">
+   <h3>System health</h3>
+   <div class="howto">A local, privacy-safe view of the LibreDisplay host. Use this when troubleshooting storage, uptime, deployment mode, or update readiness.</div>
+   <div class="system-health-meta">
+    <div class="health-card"><div class="health-label">Deployment</div><div id="system-health-deployment" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Uptime</div><div id="system-health-uptime" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Storage free</div><div id="system-health-storage" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Data directory</div><div id="system-health-data" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Host</div><div id="system-health-host" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Load average</div><div id="system-health-load" class="health-value">Checking…</div></div>
+   </div>
+   <div class="utility-actions" style="margin-top:9px;"><button class="btn-util" type="button" onclick="loadSystemHealth()">Refresh health</button><button class="btn-util" type="button" onclick="downloadDiagnostics()">Download diagnostics</button></div>
+  </div>
 
   <div class="s-section" id="settings-software-update" data-settings-tab="system" data-owner-only="1">
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release periodically. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.4.5</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.5.0</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
-   <div class="utility-actions" style="margin-top:8px;"><button class="btn-util" type="button" onclick="checkSoftwareUpdate(true)">Check now</button></div>
+   <div class="software-update-actions"><button class="btn-util" type="button" onclick="checkSoftwareUpdate(true)">Check now</button><button id="software-update-now" class="btn-util update-now-btn" type="button" onclick="startSoftwareUpdate()" style="display:none;">Update now</button><a id="software-update-release-link" class="software-update-link" target="_blank" rel="noopener noreferrer">View release notes ↗</a></div>
+   <div id="software-update-action-status" class="settings-note" style="display:none;margin-top:8px;"></div>
+  </div>
+
+  <div class="s-section" id="settings-update-history" data-settings-tab="system" data-owner-only="1">
+   <h3>Update history &amp; rollback</h3>
+   <div class="howto">Native updates keep a private pre-update snapshot containing the previous LibreDisplay application plus the sensitive safety backup created at that same point. Rollback verifies the snapshot, keeps your current state recoverable, restores the previous version and its pre-update data, then restarts the device.</div>
+   <div id="release-rollback-status" class="settings-note">Loading update history…</div>
+   <div id="release-rollback-list" class="restore-point-list"><div class="settings-note">Loading rollback snapshots…</div></div>
+   <div class="s-subhead">Recent maintenance</div>
+   <div id="maintenance-history-list" class="settings-note">No update or rollback history recorded yet.</div>
+  </div>
+
+  <div class="s-section" id="settings-backup-recovery" data-settings-tab="system" data-owner-only="1">
+   <h3>Backup & recovery</h3>
+   <div class="howto">Create a portable settings bundle for moving LibreDisplay to another device, or keep local restore points before experimenting. Portable bundles include this display's settings plus Profiles and this display's Scene rules, but not media files, account passwords, pairing secrets, or host/NAS credentials.</div>
+   <div class="backup-recovery-grid">
+    <div class="backup-recovery-card">
+     <div class="health-label">Portable backup</div>
+     <div class="settings-note">Best for migrating settings between LibreDisplay installations.</div>
+     <div class="utility-actions"><button class="btn-util" type="button" onclick="exportPortableBackup()">Export portable backup</button><button class="btn-util" type="button" onclick="document.getElementById('portable-import-file').click()">Import portable backup</button></div>
+     <input id="portable-import-file" type="file" accept="application/json,.json" style="display:none" onchange="importPortableBackupFile(this)">
+    </div>
+    <div class="backup-recovery-card">
+     <div class="health-label">Local restore points</div>
+     <div class="settings-note">Stored privately on this LibreDisplay host. A restore point captures the current display configuration plus the server-wide Profiles and Scenes stores, so restoring one can affect scheduled profiles used by other displays.</div>
+     <div class="utility-actions"><button class="btn-util" type="button" onclick="createRestorePoint()">Create restore point</button><button class="btn-util" type="button" onclick="loadRestorePoints()">Refresh list</button></div>
+    </div>
+   </div>
+   <div id="restore-point-status" class="settings-note" style="margin-top:9px;"></div>
+   <div id="restore-point-list" class="restore-point-list"><div class="settings-note">Loading restore points…</div></div>
+   <div class="howto" style="margin-top:10px;"><b>Need a full server backup?</b> The existing <code>backup.sh</code> / <code>server-backup.py</code> tools remain the correct path when you also need media, plugins, environment secrets, or host/NAS state. Full backups may contain credentials and should be protected like passwords.</div>
   </div>
 
   <div class="s-section" id="settings-utilities" data-settings-level="advanced" data-settings-tab="system">
@@ -2259,6 +2384,7 @@ html:not(.cursor-active) * {
     <button class="btn-util" type="button" onclick="document.getElementById('s-import-file').click()">Import settings</button>
     <button class="btn-util" type="button" onclick="restorePreviousSettings()">Restore previous save</button>
     <button class="btn-util" type="button" onclick="copyDiagnostics()">Copy diagnostics</button>
+    <button class="btn-util" type="button" onclick="downloadDiagnostics()">Download diagnostics</button>
     <button class="btn-util" type="button" onclick="clearOfflineCache()">Clear offline cache</button>
     <input id="s-import-file" type="file" accept="application/json,.json" style="display:none" onchange="importSettingsFile(this)">
    </div>
@@ -2430,10 +2556,11 @@ html:not(.cursor-active) * {
   <div class="block-dialog-actions"><button type="button" onclick="closeBlockConfig()">Cancel</button><button class="primary" type="button" onclick="saveBlockConfig()">Save Block</button></div>
  </div>
 </div>
-<div id="offline-pill">Offline · cached data</div>
+<div id="offline-pill" role="status" aria-live="polite">Offline · cached data</div>
+<div id="screen-care-overlay" aria-hidden="true"></div>
 
 <script>
-const DASHBOARD_BUILD = '1.4.5';
+const DASHBOARD_BUILD = '1.5.0';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -2474,13 +2601,58 @@ async function loadIntegrations(){
 }
 function integrationManifest(id){return integrationManifestMap.get(String(id||''))||null;}
 let integrationHealthRows=[];
+let integrationHealthLoadedAt=0;
 function configuredIntegrationBlocks(){return (cfg.customBlocks||[]).filter(b=>b?.type==='integration'&&b.config?.plugin);}
 function integrationDirectoryCategories(){return [...new Set(integrationManifests.map(x=>x.category||'Other'))].sort((a,b)=>a.localeCompare(b));}
-async function loadIntegrationHealth(){try{const r=await fetch(serverPath('/api/integration-status'),{cache:'no-store'});const d=await r.json();integrationHealthRows=r.ok&&Array.isArray(d.integrations)?d.integrations:[];}catch(e){integrationHealthRows=[];}renderIntegrationDirectory();renderIntegrationHealth();const h=document.getElementById('health-integrations');if(h){const bad=integrationHealthRows.filter(x=>['error','missing','unconfigured'].includes(x.status)).length,configured=configuredIntegrationBlocks().length;h.textContent=configured?`${configured} configured${bad?' · '+bad+' need attention':''}`:'None configured';h.classList.toggle('health-bad',bad>0);}}
-function integrationStateLabel(row){if(!row)return 'Not checked';if(row.status==='fresh')return 'Healthy';if(row.status==='stale')return 'Using cached data';if(row.status==='ready')return 'Ready to check';if(row.status==='cached')return 'Cached · check recommended';if(row.status==='missing')return 'Plugin missing';if(row.status==='unconfigured')return 'Setup needed';if(row.status==='error')return 'Needs attention';return row.status||'Unknown';}
-function renderIntegrationDirectory(){const host=document.getElementById('integration-directory');if(!host)return;const q=String(document.getElementById('integration-directory-search')?.value||'').trim().toLowerCase(),cat=document.getElementById('integration-directory-category'),state=document.getElementById('integration-directory-state')?.value||'all';if(cat&&cat.options.length<=1){for(const name of integrationDirectoryCategories()){const o=document.createElement('option');o.value=name;o.textContent=name;cat.appendChild(o);}}const selected=cat?.value||'all',configured=new Set(configuredIntegrationBlocks().map(b=>b.config.plugin));const rows=integrationManifests.filter(m=>(selected==='all'||m.category===selected)&&(state==='all'||(state==='configured')===configured.has(m.id))&&(!q||`${m.name} ${m.description} ${m.category}`.toLowerCase().includes(q)));host.innerHTML=rows.map(m=>`<div class="integration-directory-card"><div class="integration-directory-icon">${escHtml(m.icon||'◇')}</div><div class="integration-directory-copy"><b>${escHtml(m.name)}</b><span>${escHtml(m.description||'')}</span><small>${escHtml(m.category||'Other')} · ${m.auth==='oauth'?'OAuth-capable':m.auth==='credential'?'Account/API key':'No account required'}</small></div><div class="integration-directory-actions">${configured.has(m.id)?'<span class="integration-configured-badge">Configured</span>':''}<button class="btn-util" type="button" onclick="addIntegrationFromSettings('${escHtml(m.id)}')">Add block</button></div></div>`).join('')||'<div class="settings-note">No providers match this filter.</div>';const sum=document.getElementById('integration-directory-summary');if(sum)sum.textContent=`${rows.length} shown · ${integrationManifests.length} installed · ${configuredIntegrationBlocks().length} configured on this display`;}
-function renderIntegrationHealth(){const host=document.getElementById('integration-health-list');if(!host)return;if(!integrationHealthRows.length){host.innerHTML=configuredIntegrationBlocks().length?'<div class="settings-note">No health check has run yet. Open or refresh an integration block to populate status.</div>':'<div class="settings-note">No integration blocks are configured on this display.</div>';return;}host.innerHTML=integrationHealthRows.map(r=>`<div class="integration-health-row"><div><b>${escHtml(r.name||r.pluginName)}</b><span>${escHtml(r.pluginName||r.pluginId)} · ${escHtml(r.category||'Other')}</span>${r.error?`<small>${escHtml(r.error)}</small>`:''}</div><div class="integration-health-actions"><span class="integration-health-state state-${escHtml(r.status||'ready')}">${escHtml(integrationStateLabel(r))}</span>${r.configured?`<button class="btn-util" type="button" onclick="checkIntegrationNow('${escHtml(r.blockId)}')">Check now</button>`:''}</div></div>`).join('');}
-async function checkIntegrationNow(blockId){const row=integrationHealthRows.find(x=>x.blockId===blockId);try{const r=await fetch(serverPath('/api/integration-data?block='+encodeURIComponent(blockId)+'&check='+Date.now()),{cache:'no-store'});if(!r.ok)throw new Error((await r.text()).slice(0,240));if(row){row.status='fresh';row.error='';}}catch(e){if(row){row.status='error';row.error=String(e?.message||e).slice(0,240);}}await loadIntegrationHealth();}
+function healthAgeText(seconds){const n=Math.max(0,Number(seconds)||0);if(n<10)return 'just now';if(n<60)return `${Math.floor(n)}s ago`;if(n<3600)return `${Math.floor(n/60)}m ago`;if(n<86400)return `${Math.floor(n/3600)}h ago`;return `${Math.floor(n/86400)}d ago`;}
+function healthTimeText(epoch){const n=Number(epoch)||0;if(!n)return 'Never';try{return new Date(n*1000).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}catch{return 'Unknown';}}
+function integrationStateLabel(row){if(!row)return 'Not checked';if(row.status==='fresh')return 'Healthy';if(row.status==='stale')return row.error?'Delayed · cached':'Stale';if(row.status==='ready')return 'Ready to test';if(row.status==='cached')return 'Cached';if(row.status==='missing')return 'Plugin missing';if(row.status==='unconfigured')return 'Setup needed';if(row.status==='error')return 'Offline / error';return row.status||'Unknown';}
+function integrationErrorKindLabel(kind){return ({configuration:'Configuration',authentication:'Authentication',network:'Network',tls:'TLS / certificate','rate-limit':'Rate limit',provider:'Provider service',request:'Request'})[kind]||'';}
+function integrationStatusRank(status){return ({missing:90,error:80,unconfigured:70,stale:60,cached:40,ready:30,fresh:10})[status]??50;}
+function integrationRowsForPlugin(pluginId){return integrationHealthRows.filter(x=>x.pluginId===pluginId);}
+function integrationAggregateForPlugin(pluginId){const rows=integrationRowsForPlugin(pluginId);if(!rows.length)return null;return [...rows].sort((a,b)=>integrationStatusRank(b.status)-integrationStatusRank(a.status))[0];}
+async function loadIntegrationHealth(){
+  try{const r=await fetch(serverPath('/api/integration-status'),{cache:'no-store'});const d=await r.json();integrationHealthRows=r.ok&&Array.isArray(d.integrations)?d.integrations:[];integrationHealthLoadedAt=Date.now();}
+  catch(e){integrationHealthRows=[];integrationHealthLoadedAt=Date.now();}
+  renderIntegrationDirectory();renderIntegrationHealth();renderProviderHealth();
+  const h=document.getElementById('health-integrations');if(h){const bad=integrationHealthRows.filter(x=>['error','missing','unconfigured'].includes(x.status)).length,stale=integrationHealthRows.filter(x=>['stale','cached'].includes(x.status)).length,configured=configuredIntegrationBlocks().length;h.textContent=configured?`${configured} configured${bad?' · '+bad+' need attention':stale?' · '+stale+' delayed/cached':''}`:'None configured';h.className='health-value '+(bad?'bad':stale?'warn':'good');}
+}
+function renderIntegrationDirectory(){
+  const host=document.getElementById('integration-directory');if(!host)return;
+  const q=String(document.getElementById('integration-directory-search')?.value||'').trim().toLowerCase(),cat=document.getElementById('integration-directory-category'),state=document.getElementById('integration-directory-state')?.value||'all';
+  if(cat&&cat.options.length<=1){for(const name of integrationDirectoryCategories()){const o=document.createElement('option');o.value=name;o.textContent=name;cat.appendChild(o);}}
+  const selected=cat?.value||'all',blocks=configuredIntegrationBlocks(),configured=new Set(blocks.map(b=>b.config.plugin));
+  const rows=integrationManifests.filter(m=>(selected==='all'||m.category===selected)&&(state==='all'||(state==='configured')===configured.has(m.id))&&(!q||`${m.name} ${m.description} ${m.category}`.toLowerCase().includes(q)));
+  host.innerHTML=rows.map(m=>{const count=blocks.filter(b=>b.config.plugin===m.id).length,health=integrationAggregateForPlugin(m.id),pill=health?`<span class="integration-health-state state-${escHtml(health.status||'ready')}">${escHtml(integrationStateLabel(health))}</span>`:'';return `<div class="integration-directory-card"><div class="integration-directory-icon">${escHtml(m.icon||'◇')}</div><div class="integration-directory-copy"><b>${escHtml(m.name)}</b><span>${escHtml(m.description||'')}</span><small>${escHtml(m.category||'Other')} · ${m.auth==='oauth'?'OAuth-capable':m.auth==='credential'?'Account/API key':'No account required'}</small></div><div class="integration-directory-actions">${configured.has(m.id)?`<span class="integration-configured-badge">${count} configured</span>${pill}`:''}<button class="btn-util" type="button" onclick="addIntegrationFromSettings('${escHtml(m.id)}')">Add block</button></div></div>`;}).join('')||'<div class="settings-note">No providers match this filter.</div>';
+  const sum=document.getElementById('integration-directory-summary');if(sum)sum.textContent=`${rows.length} shown · ${integrationManifests.length} installed · ${blocks.length} configured on this display`;
+}
+function renderIntegrationHealth(){
+  const host=document.getElementById('integration-health-list'),summary=document.getElementById('integration-health-summary');if(!host)return;
+  const configured=configuredIntegrationBlocks().length,healthy=integrationHealthRows.filter(x=>x.status==='fresh').length,delayed=integrationHealthRows.filter(x=>['stale','cached'].includes(x.status)).length,issues=integrationHealthRows.filter(x=>['error','missing','unconfigured'].includes(x.status)).length;
+  if(summary)summary.innerHTML=`<div class="integration-health-summary-card"><b>${configured}</b><span>Configured blocks</span></div><div class="integration-health-summary-card"><b>${healthy}</b><span>Healthy</span></div><div class="integration-health-summary-card"><b>${delayed}</b><span>Delayed / cached</span></div><div class="integration-health-summary-card"><b>${issues}</b><span>Need attention</span></div>`;
+  if(!integrationHealthRows.length){host.innerHTML=configured?'<div class="settings-note">No health status is available yet. Use Test all configured to make a live request to each provider.</div>':'<div class="settings-note">No integration blocks are configured on this display.</div>';return;}
+  host.innerHTML=integrationHealthRows.map(r=>{const meta=[];meta.push(`Refresh ${Number(r.refreshMin)||5}m`);if(r.lastSuccessAt)meta.push(`Last success ${healthAgeText(Date.now()/1000-r.lastSuccessAt)}`);else meta.push('No successful refresh yet');if(r.lastAttemptAt)meta.push(`Last check ${healthAgeText(Date.now()/1000-r.lastAttemptAt)}`);if(r.status==='stale'&&r.age)meta.push(`Cached data ${healthAgeText(r.age)}`);if(r.nextRefreshAt&&r.status==='fresh')meta.push(`Next due ${healthTimeText(r.nextRefreshAt)}`);const kind=r.errorKind?integrationErrorKindLabel(r.errorKind):'';return `<div class="integration-health-row"><div><b>${escHtml(r.name||r.pluginName)}</b><span>${escHtml(r.pluginName||r.pluginId)} · ${escHtml(r.category||'Other')}</span><div class="integration-health-meta">${meta.map(x=>`<span>${escHtml(x)}</span>`).join('')}</div>${r.error?`<small class="integration-health-error">${kind?escHtml(kind)+': ':''}${escHtml(r.error)}</small>`:''}</div><div class="integration-health-actions"><span class="integration-health-state state-${escHtml(r.status||'ready')}">${escHtml(integrationStateLabel(r))}</span>${r.configured?`<button class="btn-util" type="button" onclick="checkIntegrationNow('${escHtml(r.blockId)}')">Test connection</button>`:''}</div></div>`;}).join('');
+}
+async function forceIntegrationCheck(blockId){
+  const r=await fetch(serverPath('/api/integration-data?block='+encodeURIComponent(blockId)+'&check=1&nonce='+Date.now()),{cache:'no-store'});
+  if(!r.ok){let message=await r.text();try{const d=JSON.parse(message);message=d.error||message;}catch{}throw new Error(String(message||`HTTP ${r.status}`).slice(0,240));}
+  const brokerState=String(r.headers.get('X-LibreDisplay-Broker')||'').toLowerCase();
+  if(brokerState==='stale')throw new Error('Live provider request failed; LibreDisplay kept the last known good cached data.');
+  return true;
+}
+async function checkIntegrationNow(blockId){
+  const status=document.getElementById('integration-health-run-status');if(status){status.style.display='block';status.textContent='Testing provider connection…';}
+  try{await forceIntegrationCheck(blockId);if(status)status.textContent='Connection test succeeded.';}catch(e){if(status)status.textContent='Connection test failed: '+String(e?.message||e).slice(0,240);}
+  await loadIntegrationHealth();
+}
+async function checkAllIntegrationsNow(){
+  if(!integrationHealthRows.length&&configuredIntegrationBlocks().length)await loadIntegrationHealth();
+  const rows=integrationHealthRows.filter(x=>x.configured&&x.blockId);const status=document.getElementById('integration-health-run-status');if(status){status.style.display='block';status.textContent=rows.length?`Testing 0 of ${rows.length} configured integrations…`:'No configured integrations to test.';}if(!rows.length)return;
+  let completed=0,failed=0;const queue=[...rows];
+  async function worker(){while(queue.length){const row=queue.shift();try{await forceIntegrationCheck(row.blockId);}catch{failed++;}completed++;if(status)status.textContent=`Testing ${completed} of ${rows.length} configured integrations…${failed?` · ${failed} failed`:''}`;}}
+  await Promise.all(Array.from({length:Math.min(3,rows.length)},()=>worker()));
+  await loadIntegrationHealth();if(status)status.textContent=failed?`Provider checks complete · ${rows.length-failed} healthy · ${failed} need attention`:`All ${rows.length} configured integration${rows.length===1?'':'s'} responded successfully.`;
+}
 function addIntegrationFromSettings(pluginId){if(settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;closeSetup(true);setTimeout(()=>{startLayoutEditor();beginAddIntegration(pluginId);},80);}
 let calendarEditorRows=[];
 let cfg = {
@@ -2580,19 +2752,22 @@ let cfg = {
   highContrast:false,
   focusOutline:false,
   settingsUiSize:'standard',
+  burnInProtection:false,
+  burnInIdleMin:30,
+  burnInBrightnessPct:40,
   onboardingComplete:false,
   _schemaVersion:2,
   _savedAt:0
 };
 let bgImages=[], bgSourceImages=[], bgIdx=0, bgLastUrl='';
 let stockRecentUrls=[], stockFetchInFlight=false;
-let lastBackgroundStatus={text:'',error:false};
+let lastBackgroundStatus={text:'',error:false,updatedAt:0};
 let wxData=null;
 let weatherTimer=null, calendarTimer=null, alertTimer=null, alertScrollTimer=null, alertScrollRaf=null, calendarAutoScrollTimer=null;
 let alertRuntimeState=null;
 let activeWeatherAlerts=[];
 let alertScrollIndex=0, alertLoopHeight=0, alertLastFrame=0, alertFetchSerial=0;
-let lastAlertStatus={text:'',error:false};
+let lastAlertStatus={text:'',error:false,updatedAt:0};
 let serverConfigAvailable=false, serverConfigLastError='';
 let remoteInfo=null, remoteConfigPollTimer=null;
 const staleCacheSources=new Map();
@@ -2601,15 +2776,19 @@ let householdCache=null,householdAdminStore=null;
 let sceneStore={version:1,automatic:true,baseProfiles:{},items:[]};
 let sceneActive={};
 let isWizardMode=false, wizardStepIndex=0;
+let wizardDisplayNameDraft='',wizardDisplayNameTouched=false,wizardCreateBaseline=true,wizardBaselineCreated=false,wizardHealthRunning=false,wizardHealthRows=[],wizardHealthNotices=[],wizardRestorePointCount=null,wizardLastSaveResult=null;
 const WIZARD_STEPS=[
-  {key:'welcome',title:'Make LibreDisplay yours',desc:'A short guided setup gets the essentials working. Nothing here locks you in — every choice stays editable later.',sections:[],skippable:false},
-  {key:'location',title:'Where is this display?',desc:'Set the city used for weather, severe alerts, sunrise/sunset, and forecast data.',sections:['settings-location','settings-weather-options'],skippable:false},
-  {key:'calendar',title:'Connect your calendars',desc:'Add any compatible ICS calendar feed or import a local .ics file. You can skip this and add feeds later.',sections:['settings-calendars'],skippable:true},
-  {key:'background',title:'Choose your photo source',desc:'Use Google Photos, stock images, local folders, mounted NAS folders, or a clean no-photo background.',sections:['settings-backgrounds'],skippable:true},
-  {key:'alerts',title:'Weather alerts',desc:'Choose whether active severe-weather alerts should take over the center of the display when they matter.',sections:['settings-alerts'],skippable:true},
-  {key:'appearance',title:'Pick a look',desc:'Choose a LibreDisplay theme and font. Libre Night is the dark-first default.',sections:['settings-theme'],skippable:true},
-  {key:'remote',title:'Edit from another device',desc:'LibreDisplay can be managed from a paired phone or computer on your trusted LAN or private VPN.',sections:['settings-remote'],skippable:true},
-  {key:'finish',title:'Ready to launch',desc:'Review the essentials, save once, and the display is ready to run unattended.',sections:[],skippable:false}
+  {key:'welcome',title:'Make LibreDisplay yours',desc:'A guided setup gets the essentials working without hiding the real controls. You can open full Settings at any time.',sections:[],skippable:false},
+  {key:'display',title:'Name this display',desc:'Give this screen a clear room or purpose name so multi-display management stays understandable later.',sections:[],skippable:true},
+  {key:'location',title:'Verify the weather location',desc:'Search and choose the exact city, region, and country used for forecasts, severe alerts, sunrise/sunset, and local weather data.',sections:['settings-location','settings-weather-options'],skippable:false},
+  {key:'calendar',title:'Connect your calendars',desc:'Add compatible ICS calendar feeds or import local .ics files. You can skip this and add feeds later.',sections:['settings-calendars'],skippable:true},
+  {key:'background',title:'Choose your photo source',desc:'Use stock images, Google Photos, local folders, mounted NAS folders, or a clean no-photo background.',sections:['settings-backgrounds'],skippable:true},
+  {key:'alerts',title:'Weather alerts',desc:'Choose whether severe-weather alerts should take over the center of the display when they matter.',sections:['settings-alerts'],skippable:true},
+  {key:'appearance',title:'Pick a look',desc:'Choose a LibreDisplay theme and font. Every choice remains editable later.',sections:['settings-theme'],skippable:true},
+  {key:'remote',title:'Edit from another device',desc:'Optionally enable private-network remote management and pair a trusted phone or computer.',sections:['settings-remote'],skippable:true},
+  {key:'backup',title:'Prepare recovery',desc:'LibreDisplay can create a private baseline restore point after setup so experimentation has an easy way back.',sections:[],skippable:true},
+  {key:'review',title:'Review & save',desc:'Check the essentials before LibreDisplay saves this display and runs a real health check.',sections:[],skippable:false},
+  {key:'health',title:'Final health check',desc:'LibreDisplay is checking the saved configuration, providers, recovery readiness, and local server health.',sections:[],skippable:false}
 ];
 
 const BLOCK_TYPE_INFO={
@@ -2804,6 +2983,9 @@ function ensureCfgDefaults(){
   if(typeof cfg.highContrast!=='boolean')cfg.highContrast=false;
   if(typeof cfg.focusOutline!=='boolean')cfg.focusOutline=false;
   cfg.settingsUiSize=['standard','large','xlarge'].includes(cfg.settingsUiSize)?cfg.settingsUiSize:'standard';
+  if(typeof cfg.burnInProtection!=='boolean')cfg.burnInProtection=false;
+  cfg.burnInIdleMin=[15,30,60,120].includes(Number(cfg.burnInIdleMin))?Number(cfg.burnInIdleMin):30;
+  cfg.burnInBrightnessPct=[25,40,55,70].includes(Number(cfg.burnInBrightnessPct))?Number(cfg.burnInBrightnessPct):40;
   cfg._schemaVersion=2;
   if(typeof cfg.onboardingComplete!=='boolean')cfg.onboardingComplete=!!(cfg.city&&cfg.lat&&cfg.lon);
   cfg._savedAt=Number.isFinite(Number(cfg._savedAt))?Number(cfg._savedAt):0;
@@ -2863,12 +3045,16 @@ function saveCfg(){
 
 function normalizeProfileStore(raw){
   const out=(raw&&typeof raw==='object'&&!Array.isArray(raw))?raw:{};
-  out.version=1;
+  out.version=2;
   out.updatedAt=Number(out.updatedAt)||0;
   out.activeId=String(out.activeId||'');
-  out.items=Array.isArray(out.items)?out.items.filter(x=>x&&typeof x==='object'&&x.id&&x.name&&x.config).slice(0,25):[];
+  out.activeByEndpoint=(out.activeByEndpoint&&typeof out.activeByEndpoint==='object'&&!Array.isArray(out.activeByEndpoint))?out.activeByEndpoint:{};
+  if(out.activeId&&!out.activeByEndpoint[ACTIVE_ENDPOINT])out.activeByEndpoint[ACTIVE_ENDPOINT]=out.activeId;
+  out.items=Array.isArray(out.items)?out.items.filter(x=>x&&typeof x==='object'&&x.id&&x.name&&x.config).slice(0,40).map(x=>({...x,sourceEndpoint:String(x.sourceEndpoint||''),sourceDisplayName:String(x.sourceDisplayName||'')})):[];
   return out;
 }
+function activeProfileIdForEndpoint(endpoint=ACTIVE_ENDPOINT){return String(profileStore.activeByEndpoint?.[endpoint]||((endpoint===ACTIVE_ENDPOINT)?profileStore.activeId:'')||'');}
+function setActiveProfileForEndpoint(endpoint,id){profileStore.activeByEndpoint=profileStore.activeByEndpoint||{};if(id)profileStore.activeByEndpoint[endpoint]=id;else delete profileStore.activeByEndpoint[endpoint];if(endpoint===ACTIVE_ENDPOINT)profileStore.activeId=id||'';}
 
 async function loadProfiles(){
   let localObj=null, serverObj=null;
@@ -2939,6 +3125,8 @@ function u(){return cfg.useFahrenheit?'°F':'°C';}
 let weatherLastError='';
 let weatherLastSource='';
 let weatherLastGridPoint=null;
+let weatherLastAttemptAt=0;
+let weatherLastSuccessAt=0;
 
 function weatherWindUnitParam(source=cfg){return source?.useFahrenheit===false?'kmh':'mph';}
 function weatherWindUnitLabel(source=cfg){return source?.useFahrenheit===false?'km/h':'mph';}
@@ -2959,6 +3147,7 @@ function validateWeatherPayload(d,source=cfg){
 }
 
 async function fetchWeather(){
+  weatherLastAttemptAt=Date.now();
   if(!cfg.lat||!cfg.lon){
     weatherLastError='Location is not configured';
     setTimeout(updateSettingsOverview,0);
@@ -2976,6 +3165,7 @@ async function fetchWeather(){
     weatherLastError='';
     weatherLastSource='Open-Meteo · '+weatherWindUnitLabel(cfg);
     weatherLastGridPoint={latitude:Number(d.latitude),longitude:Number(d.longitude),elevation:Number(d.elevation),timezone:String(d.timezone||'')};
+    weatherLastSuccessAt=Date.now();
     if(!document.getElementById('setup')?.classList.contains('hidden'))renderWeatherLocationSelected();
     wxData=d;
     renderWeather(d);
@@ -3183,7 +3373,7 @@ function ensureAlertMotionRunning(){
 }
 
 function setAlertStatus(text,error=false){
-  lastAlertStatus={text:String(text||''),error:!!error};
+  lastAlertStatus={text:String(text||''),error:!!error,updatedAt:Date.now()};
   const el=document.getElementById('alert-status');
   if(!el)return;
   if(!lastAlertStatus.text){el.style.display='none';el.textContent='';return;}
@@ -4082,12 +4272,12 @@ async function fetchCal(cal,calIdx,{preferFormUrl=false}={}){
     calStatuses[calIdx]={
       label,ok:true,raw:st.raw,upcoming:upcomingCount,
       recurring:st.recurring,overrides:st.overrides,multiDay:st.multiDay,
-      timezones:st.timezones.size,warning:st.warnings.join('; ')
+      timezones:st.timezones.size,warning:st.warnings.join('; '),checkedAt:Date.now()
     };
     updateCalStatusUI();
     return expanded.events;
   }catch(ex){
-    calStatuses[calIdx]={label,ok:false,error:String(ex?.message||ex)};
+    calStatuses[calIdx]={label,ok:false,error:String(ex?.message||ex),checkedAt:Date.now()};
     updateCalStatusUI();
     console.warn('calendar error',label,ex);
     return [];
@@ -4538,7 +4728,7 @@ function scanFolderBackgroundsFromForm(){
 }
 
 function setBackgroundStatus(text,error=false){
-  lastBackgroundStatus={text:String(text||''),error:!!error};
+  lastBackgroundStatus={text:String(text||''),error:!!error,updatedAt:Date.now()};
   setTimeout(updateSettingsOverview,0);
   const el=document.getElementById('background-status');
   if(!el)return;
@@ -5958,6 +6148,29 @@ function measureDashboardFontProbe(fontName){
 
 function uiCfg(){return window.__uiPreviewCfg||cfg;}
 
+let screenCareTimer=null,screenCareLastActivity=Date.now(),screenCareDimmed=false;
+function noteScreenCareActivity(){screenCareLastActivity=Date.now();if(screenCareDimmed){screenCareDimmed=false;document.body.classList.remove('ld-burnin-dim');}}
+function screenCareCanDim(source=uiCfg()){
+  if(!source?.burnInProtection||layoutEditorActive||remoteLayoutProxyActive||LAYOUT_PREVIEW_MODE)return false;
+  const setup=document.getElementById('setup');if(setup&&!setup.classList.contains('hidden'))return false;
+  return READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE;
+}
+function updateScreenCareState(source=uiCfg()){
+  const brightness=Math.min(70,Math.max(25,Number(source?.burnInBrightnessPct)||40));
+  document.documentElement.style.setProperty('--ld-burnin-overlay',String((100-brightness)/100));
+  if(!screenCareCanDim(source)){screenCareDimmed=false;document.body.classList.remove('ld-burnin-dim');return;}
+  const idleMs=Math.max(15,Number(source?.burnInIdleMin)||30)*60000;
+  const shouldDim=Date.now()-screenCareLastActivity>=idleMs;
+  screenCareDimmed=shouldDim;document.body.classList.toggle('ld-burnin-dim',shouldDim);
+}
+function applyScreenCarePreferences(source=cfg){
+  updateScreenCareState(source);
+  if(screenCareTimer)clearInterval(screenCareTimer);
+  if(source?.burnInProtection)screenCareTimer=setInterval(()=>updateScreenCareState(uiCfg()),15000);
+}
+['pointerdown','keydown','touchstart','wheel'].forEach(type=>window.addEventListener(type,noteScreenCareActivity,{passive:true}));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)noteScreenCareActivity();});
+
 function applyAccessibilityPreferences(source=cfg){
   const locale=source.locale&&source.locale!=='auto'?source.locale:(navigator.language||'en-US');
   document.documentElement.lang=String(locale).split('-')[0]||'en';
@@ -5968,6 +6181,7 @@ function applyAccessibilityPreferences(source=cfg){
   document.documentElement.classList.toggle('ld-focus-outline',!!source.focusOutline);
   const setup=document.getElementById('setup');
   if(setup)setup.dataset.uiSize=['large','xlarge'].includes(source.settingsUiSize)?source.settingsUiSize:'standard';
+  applyScreenCarePreferences(source);
 }
 
 function applyUiCustomization(source=cfg){
@@ -6127,6 +6341,9 @@ function appearanceFromForm(){
     highContrast:!!document.getElementById('s-high-contrast')?.checked,
     focusOutline:!!document.getElementById('s-focus-outline')?.checked,
     settingsUiSize:document.getElementById('s-settings-ui-size')?.value||'standard',
+    burnInProtection:!!document.getElementById('s-burnin-protection')?.checked,
+    burnInIdleMin:Number(document.getElementById('s-burnin-idle')?.value)||30,
+    burnInBrightnessPct:Number(document.getElementById('s-burnin-brightness')?.value)||40,
     settingsCogPosition:document.getElementById('s-cog-position')?.value||'bottom-right',
     settingsCogOpacity:Number(document.getElementById('s-cog-opacity')?.value)||42,
     settingsCogSize:Number(document.getElementById('s-cog-size')?.value)||46,
@@ -6160,7 +6377,7 @@ const APPEARANCE_DEFAULTS={
   uiCalendarPct:100,uiCurrentPct:100,uiClockPct:100,uiForecastPct:100,uiDetailsPct:100,uiAlertPct:100,
   calendarBandHeight:150,bottomPanelHeight:330,leftPanelWidth:470,sidePaddingPx:28,forecastGapPx:5,forecastRowGapPx:18,forecastColumns:12,hourlyForecastHours:12,dailyForecastDays:12,calendarDays:7,calendarColumns:7,calendarCellHeight:150,calendarScrollMode:'off',calendarScrollSpeed:12,layoutGridPx:20,layoutSnap:true,calendarMaxEvents:4,
   showNoEvents:true,showEventTimes:true,showDailyForecast:true,showHourlyForecast:true,showPrecip:true,timeFormat:'12',dateFormat:'long',showSeconds:true,showAmPm:true,showDate:true,showCurrentIcon:true,showSunset:true,showWind:true,showHumidity:true,weatherDetailsOrder:['sunset','wind','humidity','sunrise','airquality','uvindex','feelslike','pressure','cloudcover','dewpoint','precipitation'],weatherDetailsEnabled:{sunset:true,wind:true,humidity:true,sunrise:false,airquality:false,uvindex:false,feelslike:false,pressure:false,cloudcover:false,dewpoint:false,precipitation:false},
-  bgShadeTop:52,bgShadeBottom:55,bgBlurPx:0,bgTransitionSec:1.5,bgFit:'cover',bgPosition:'center',alertOpacityPct:100,alertMinSeverity:'all',alertShowExpiry:true,alertShowMeta:true,locale:'auto',motionPreference:'auto',highContrast:false,focusOutline:false,settingsUiSize:'standard',settingsCogPosition:'bottom-right',settingsCogOpacity:42,settingsCogSize:46,settingsCogLabel:true
+  bgShadeTop:52,bgShadeBottom:55,bgBlurPx:0,bgTransitionSec:1.5,bgFit:'cover',bgPosition:'center',alertOpacityPct:100,alertMinSeverity:'all',alertShowExpiry:true,alertShowMeta:true,locale:'auto',motionPreference:'auto',highContrast:false,focusOutline:false,settingsUiSize:'standard',burnInProtection:false,burnInIdleMin:30,burnInBrightnessPct:40,settingsCogPosition:'bottom-right',settingsCogOpacity:42,settingsCogSize:46,settingsCogLabel:true
 };
 
 const APPEARANCE_PRESETS={
@@ -6177,6 +6394,9 @@ function setAppearanceForm(v){
   const contrast=document.getElementById('s-high-contrast');if(contrast)contrast.checked=!!v.highContrast;
   const focus=document.getElementById('s-focus-outline');if(focus)focus.checked=!!v.focusOutline;
   const settingsUiSize=document.getElementById('s-settings-ui-size');if(settingsUiSize)settingsUiSize.value=v.settingsUiSize||'standard';
+  const burnIn=document.getElementById('s-burnin-protection');if(burnIn)burnIn.checked=!!v.burnInProtection;
+  const burnIdle=document.getElementById('s-burnin-idle');if(burnIdle)burnIdle.value=String(v.burnInIdleMin||30);
+  const burnBrightness=document.getElementById('s-burnin-brightness');if(burnBrightness)burnBrightness.value=String(v.burnInBrightnessPct||40);
   renderThemeChoices(v.uiTheme||'libre-night');
   const values={
     's-font-family':v.fontFamily,'s-secondary-opacity':v.secondaryOpacity,'s-text-shadow':v.textShadowPct,
@@ -6202,13 +6422,14 @@ function setAppearanceForm(v){
   updateFontPreview();
 }
 
+const PRESET_CONTENT_PRESERVE_KEYS=['weatherDetailsOrder','weatherDetailsEnabled','showSunset','showWind','showHumidity','calendarTimeStyle','calendarLegend','calendarShowContinuation','burnInProtection','burnInIdleMin','burnInBrightnessPct'];
 const CUSTOM_LAYOUT_PRESET_PRESERVE_KEYS=['calendarBandHeight','bottomPanelHeight','leftPanelWidth','sidePaddingPx','forecastGapPx','forecastRowGapPx','forecastColumns','calendarCellHeight','calendarDays','calendarColumns','hourlyForecastHours','dailyForecastDays','calendarScrollMode','calendarScrollSpeed','calendarMaxEvents','layoutGridPx','layoutSnap','showNoEvents','showEventTimes','showDailyForecast','showHourlyForecast','showPrecip','showSeconds','showAmPm','showDate','showCurrentIcon'];
+function preservePresetState(target,current){for(const prop of PRESET_CONTENT_PRESERVE_KEYS)target[prop]=JSON.parse(JSON.stringify(current[prop]));if(cfg.layoutMode==='custom')for(const prop of CUSTOM_LAYOUT_PRESET_PRESERVE_KEYS)target[prop]=JSON.parse(JSON.stringify(current[prop]));return target;}
 function applyAppearancePreset(){
   const key=document.getElementById('s-appearance-preset')?.value||'custom';
   if(key==='custom')return;
   const current=appearanceFromForm();
-  const preset={...current,...(APPEARANCE_PRESETS[key]||APPEARANCE_PRESETS.default),uiTheme:current.uiTheme,fontFamily:current.fontFamily,primaryTextColor:current.primaryTextColor,locale:current.locale,motionPreference:current.motionPreference,highContrast:current.highContrast,focusOutline:current.focusOutline,settingsUiSize:current.settingsUiSize,settingsCogPosition:current.settingsCogPosition,settingsCogOpacity:current.settingsCogOpacity,settingsCogSize:current.settingsCogSize,settingsCogLabel:current.settingsCogLabel};
-  if(cfg.layoutMode==='custom')for(const prop of CUSTOM_LAYOUT_PRESET_PRESERVE_KEYS)preset[prop]=current[prop];
+  const preset=preservePresetState({...current,...(APPEARANCE_PRESETS[key]||APPEARANCE_PRESETS.default),uiTheme:current.uiTheme,fontFamily:current.fontFamily,primaryTextColor:current.primaryTextColor,locale:current.locale,motionPreference:current.motionPreference,highContrast:current.highContrast,focusOutline:current.focusOutline,settingsUiSize:current.settingsUiSize,settingsCogPosition:current.settingsCogPosition,settingsCogOpacity:current.settingsCogOpacity,settingsCogSize:current.settingsCogSize,settingsCogLabel:current.settingsCogLabel},current);
   setAppearanceForm(preset);
   previewAppearance();markSettingsDirty();
 }
@@ -6237,6 +6458,101 @@ async function importSettingsFile(input){
   finally{if(input)input.value='';}
 }
 
+function setBackupRecoveryStatus(text,error=false){
+  const el=document.getElementById('restore-point-status');if(!el)return;
+  el.textContent=text||'';el.style.color=error?'#fca5a5':'';
+}
+function downloadJsonFile(payload,filename){
+  const blob=new Blob([JSON.stringify(payload,null,2)+'\n'],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),800);
+}
+async function exportPortableBackup(){
+  setBackupRecoveryStatus('Preparing portable backup…');
+  try{
+    const [configRes,profilesRes,scenesRes]=await Promise.all([
+      fetch(serverPath('/api/config'),{cache:'no-store'}),fetch(serverPath('/api/profiles'),{cache:'no-store'}),fetch(serverPath('/api/scenes'),{cache:'no-store'})
+    ]);
+    const configData=await configRes.json().catch(()=>({})),profilesData=await profilesRes.json().catch(()=>({})),scenesData=await scenesRes.json().catch(()=>({}));
+    if(!configRes.ok||!configData.ok)throw new Error(configData.error||'Could not read the saved display configuration.');
+    if(!profilesRes.ok||!profilesData.ok)throw new Error(profilesData.error||'Could not read Profiles.');
+    if(!scenesRes.ok||!scenesData.ok)throw new Error(scenesData.error||'Could not read Scenes.');
+    const allScenes=scenesData.scenes||{version:1,automatic:true,baseProfiles:{},items:[]};
+    const portableScenes={version:1,automatic:allScenes.automatic!==false,baseProfiles:{},items:(allScenes.items||[]).filter(x=>(x?.endpoint||'main')===ACTIVE_ENDPOINT)};
+    if(allScenes.baseProfiles?.[ACTIVE_ENDPOINT])portableScenes.baseProfiles[ACTIVE_ENDPOINT]=allScenes.baseProfiles[ACTIVE_ENDPOINT];
+    const payload={product:'LibreDisplay',kind:'portable-backup',format:1,build:DASHBOARD_BUILD,exportedAt:new Date().toISOString(),sourceEndpoint:ACTIVE_ENDPOINT,config:configData.config||{},profiles:profilesData.profiles||{version:1,updatedAt:0,activeId:'',items:[]},scenes:portableScenes};
+    const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+    downloadJsonFile(payload,`LibreDisplay-${ACTIVE_ENDPOINT}-portable-${stamp}.json`);
+    setBackupRecoveryStatus('Portable backup downloaded. It may contain private calendar URLs or integration credentials, so keep it private.');
+  }catch(e){setBackupRecoveryStatus('Could not create portable backup: '+(e?.message||e),true);}
+}
+function analyzePortableBackup(raw){
+  if(!raw||raw.product!=='LibreDisplay'||raw.kind!=='portable-backup'||Number(raw.format)!==1)throw new Error('That file is not a supported LibreDisplay portable backup.');
+  if(!raw.config||typeof raw.config!=='object'||Array.isArray(raw.config))throw new Error('Portable backup is missing its display configuration.');
+  const profiles=raw.profiles&&typeof raw.profiles==='object'&&!Array.isArray(raw.profiles)?raw.profiles:{version:1,updatedAt:0,activeId:'',items:[]};
+  const scenes=raw.scenes&&typeof raw.scenes==='object'&&!Array.isArray(raw.scenes)?raw.scenes:{version:1,automatic:true,baseProfiles:{},items:[]};
+  const blocks=Array.isArray(raw.config.customBlocks)?raw.config.customBlocks:[],plugins=new Set(integrationManifests.map(x=>x.id));
+  const missing=[...new Set(blocks.filter(b=>b?.type==='integration'&&b.config?.plugin&&!plugins.has(b.config.plugin)).map(b=>b.config.plugin))];
+  return {config:raw.config,profiles,scenes,build:String(raw.build||'unknown'),sourceEndpoint:String(raw.sourceEndpoint||'main'),exportedAt:String(raw.exportedAt||''),profileCount:Array.isArray(profiles.items)?profiles.items.length:0,sceneCount:Array.isArray(scenes.items)?scenes.items.length:0,missing};
+}
+async function importPortableBackupFile(input){
+  const file=input?.files?.[0];if(!file)return;
+  try{
+    if(file.size>10*1024*1024)throw new Error('Portable backup is larger than the 10 MB safety limit.');
+    const raw=JSON.parse(await file.text()),info=analyzePortableBackup(raw);
+    const notes=[`Source build: ${info.build}`,`Source display: ${info.sourceEndpoint}`,`${info.profileCount} Profile${info.profileCount===1?'':'s'}`,`${info.sceneCount} Scene rule${info.sceneCount===1?'':'s'}`];
+    if(info.missing.length)notes.push(`Missing integrations on this server: ${info.missing.join(', ')}`);
+    if(!confirm(`Import this portable LibreDisplay backup into “${ACTIVE_ENDPOINT}”?\n\n${notes.join('\n')}\n\nLibreDisplay will create a local restore point first, then replace this display's saved configuration plus Profiles and Scenes.`))return;
+    setBackupRecoveryStatus('Creating a safety restore point…');
+    const safe=await fetch('/api/restore-points',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create',endpoint:ACTIVE_ENDPOINT,label:'Before portable import'}),cache:'no-store'});const safeData=await safe.json().catch(()=>({}));if(!safe.ok||!safeData.ok)throw new Error(safeData.error||'Could not create the safety restore point.');
+    setBackupRecoveryStatus('Importing configuration, Profiles and Scenes…');
+    const [currentProfilesRes,currentScenesRes]=await Promise.all([fetch('/api/profiles',{cache:'no-store'}),fetch('/api/scenes',{cache:'no-store'})]);
+    const currentProfilesData=await currentProfilesRes.json().catch(()=>({})),currentScenesData=await currentScenesRes.json().catch(()=>({}));
+    if(!currentProfilesRes.ok||!currentProfilesData.ok)throw new Error(currentProfilesData.error||'Could not read existing Profiles before import.');
+    if(!currentScenesRes.ok||!currentScenesData.ok)throw new Error(currentScenesData.error||'Could not read existing Scenes before import.');
+    const existingProfiles=currentProfilesData.profiles&&typeof currentProfilesData.profiles==='object'?currentProfilesData.profiles:{version:1,updatedAt:0,activeId:'',items:[]};
+    const profileMap=new Map((existingProfiles.items||[]).filter(x=>x?.id).map(x=>[x.id,x]));for(const row of info.profiles.items||[]){if(row?.id)profileMap.set(row.id,row);}
+    const mergedProfiles={...existingProfiles,...info.profiles,items:[...profileMap.values()],updatedAt:Date.now()};
+    const existingScenes=currentScenesData.scenes&&typeof currentScenesData.scenes==='object'?currentScenesData.scenes:{version:1,automatic:true,baseProfiles:{},items:[]};
+    const importedItems=(info.scenes.items||[]).map(x=>({...x,endpoint:ACTIVE_ENDPOINT}));
+    const mergedScenes={...existingScenes,items:[...(existingScenes.items||[]).filter(x=>(x?.endpoint||'main')!==ACTIVE_ENDPOINT),...importedItems],baseProfiles:{...(existingScenes.baseProfiles||{})}};
+    const importedBase=info.scenes.baseProfiles?.[info.sourceEndpoint]||info.scenes.baseProfiles?.[ACTIVE_ENDPOINT]||'';if(importedBase)mergedScenes.baseProfiles[ACTIVE_ENDPOINT]=importedBase;else delete mergedScenes.baseProfiles[ACTIVE_ENDPOINT];
+    if(!(existingScenes.items||[]).some(x=>(x?.endpoint||'main')!==ACTIVE_ENDPOINT))mergedScenes.automatic=info.scenes.automatic!==false;
+    const requests=[
+      fetch(serverPath('/api/config'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:{...info.config,_savedAt:Date.now()}}),cache:'no-store'}),
+      fetch('/api/profiles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profiles:mergedProfiles}),cache:'no-store'}),
+      fetch('/api/scenes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scenes:mergedScenes}),cache:'no-store'})
+    ];
+    const results=await Promise.all(requests);for(const res of results){if(!res.ok){const d=await res.json().catch(()=>({}));throw new Error(d.error||`Import failed with HTTP ${res.status}.`);}}
+    setBackupRecoveryStatus('Portable backup imported. Reloading the saved state…');
+    setTimeout(()=>location.reload(),300);
+  }catch(e){setBackupRecoveryStatus('Could not import portable backup: '+(e?.message||e),true);}
+  finally{if(input)input.value='';}
+}
+function formatBackupBytes(value){const n=Math.max(0,Number(value)||0);if(n<1024)return `${n} B`;if(n<1024*1024)return `${(n/1024).toFixed(1)} KB`;return `${(n/1024/1024).toFixed(1)} MB`;}
+function renderRestorePoints(rows){
+  const host=document.getElementById('restore-point-list');if(!host)return;const points=Array.isArray(rows)?rows:[];
+  if(!points.length){host.innerHTML='<div class="settings-note">No local restore points yet.</div>';return;}
+  host.innerHTML=points.map(row=>{const current=row.endpoint===ACTIVE_ENDPOINT,date=row.createdUtc?new Date(row.createdUtc).toLocaleString():'Unknown date',label=row.label||'Restore point';return `<div class="restore-point-row"><div><div class="restore-point-title">${esc(label)}</div><div class="restore-point-meta">${esc(date)} · v${esc(row.version||'unknown')} · display ${esc(row.endpoint||'main')} · ${esc(formatBackupBytes(row.sizeBytes))}</div></div><div class="restore-point-actions"><button class="btn-util" type="button" ${current?'':'disabled title="This restore point belongs to another display"'} onclick="applyRestorePoint('${escHtml(row.id)}')">Restore</button><button class="btn-util" type="button" onclick="deleteRestorePoint('${escHtml(row.id)}')">Delete</button></div></div>`}).join('');
+}
+async function loadRestorePoints(){
+  const host=document.getElementById('restore-point-list');if(!host)return;host.innerHTML='<div class="settings-note">Loading restore points…</div>';
+  try{const res=await fetch('/api/restore-points',{cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||`HTTP ${res.status}`);renderRestorePoints(data.points);setBackupRecoveryStatus(data.points?.length?`${data.points.length} restore point${data.points.length===1?'':'s'} stored locally.`:'No local restore points yet.');}catch(e){host.innerHTML='';setBackupRecoveryStatus('Could not load restore points: '+(e?.message||e),true);}
+}
+async function createRestorePoint(){
+  const label=prompt('Restore point name:','Before changes');if(label===null)return;
+  setBackupRecoveryStatus('Creating restore point…');
+  try{const res=await fetch('/api/restore-points',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create',endpoint:ACTIVE_ENDPOINT,label:label.trim()||'Manual restore point'}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||`HTTP ${res.status}`);renderRestorePoints(data.points);setBackupRecoveryStatus('Restore point created.');}catch(e){setBackupRecoveryStatus('Could not create restore point: '+(e?.message||e),true);}
+}
+async function applyRestorePoint(id){
+  if(!confirm('Restore this point now?\n\nLibreDisplay will automatically create a new “Before restore” point first. The page will reload after the saved configuration, Profiles, and Scenes are restored.'))return;
+  setBackupRecoveryStatus('Restoring saved state…');
+  try{const res=await fetch('/api/restore-points',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'apply',endpoint:ACTIVE_ENDPOINT,id}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||`HTTP ${res.status}`);setBackupRecoveryStatus('Restore complete. Reloading…');setTimeout(()=>location.reload(),300);}catch(e){setBackupRecoveryStatus('Could not restore that point: '+(e?.message||e),true);}
+}
+async function deleteRestorePoint(id){
+  if(!confirm('Delete this local restore point? This cannot be undone.'))return;
+  try{const res=await fetch('/api/restore-points',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',endpoint:ACTIVE_ENDPOINT,id}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||`HTTP ${res.status}`);renderRestorePoints(data.points);setBackupRecoveryStatus('Restore point deleted.');}catch(e){setBackupRecoveryStatus('Could not delete restore point: '+(e?.message||e),true);}
+}
+
 function bindTextColorControls(){
   const picker=document.getElementById('s-text-color'),hex=document.getElementById('s-text-hex');
   if(!picker||!hex||picker.dataset.bound==='1')return;
@@ -6254,15 +6570,54 @@ let displayEndpoints=[];
 let displayDevices=[];
 let endpointsRemoteEnabled=false;
 function endpointDeviceSummary(endpointId){const rows=displayDevices.filter(x=>x.endpoint===endpointId).sort((a,b)=>(b.lastSeen||0)-(a.lastSeen||0)),online=rows.filter(x=>x.online),best=online[0]||rows[0];if(!best)return {online:false,text:'No viewer heartbeat yet'};const res=best.width&&best.height?`${best.width}×${best.height} ${best.width>=best.height?'landscape':'portrait'}`:'resolution unknown',mode=best.mode||'browser',version=best.version?` · v${best.version}`:'',age=Number(best.ageSeconds)||0,last=best.online?'':` · last seen ${age<120?Math.max(1,Math.round(age))+'s':age<7200?Math.round(age/60)+'m':Math.round(age/3600)+'h'} ago`;return {online:!!best.online,text:`${best.online?'Online':'Offline'} · ${res} · ${mode}${version}${last}`};}
+function currentDisplayReadinessDevice(){
+  const rows=(displayDevices||[]).filter(x=>x?.endpoint===ACTIVE_ENDPOINT&&['local','viewer'].includes(String(x.mode||''))).sort((a,b)=>{const ao=a.online?1:0,bo=b.online?1:0;if(ao!==bo)return bo-ao;return Number(b.lastSeen||0)-Number(a.lastSeen||0);});
+  return rows[0]||null;
+}
+function displayReadinessAssessment(row){
+  const localFallback=(LOCAL_CLIENT_MODE||READ_ONLY_DISPLAY_MODE)?{width:Math.round(innerWidth),height:Math.round(innerHeight),viewportWidth:Math.round(innerWidth),viewportHeight:Math.round(innerHeight),visualViewportWidth:Math.round(window.visualViewport?.width||innerWidth),visualViewportHeight:Math.round(window.visualViewport?.height||innerHeight),visualViewportScale:Number(window.visualViewport?.scale)||1,dpr:Number(devicePixelRatio)||1,mode:LOCAL_CLIENT_MODE?'local':'viewer',online:true,lastSeen:Date.now()/1000}:null;
+  const d=row||localFallback;if(!d)return {device:null,notes:[{state:'warn',text:'No current local/viewer heartbeat is available yet. Open the target display and recheck.'}]};
+  const width=Math.round(Number(d.layoutWidth||d.viewportWidth||d.width)||0),height=Math.round(Number(d.layoutHeight||d.viewportHeight||d.height)||0),scale=Number(d.visualViewportScale)||1,dpr=Number(d.dpr)||1;
+  const notes=[];
+  if(width<480||height<270)notes.push({state:'warn',text:'The reported viewport is too small to be treated as a normal wall display. Check browser zoom, OS display scaling, or kiosk launch settings.'});
+  else if(width<960||height<540)notes.push({state:'warn',text:`${width}×${height} is a compact viewport. Use fewer forecast columns or a compact/portrait presentation if text feels crowded.`});
+  else notes.push({state:'good',text:`${width}×${height} provides a normal dashboard viewport.`});
+  if(Math.abs(scale-1)>.03)notes.push({state:'warn',text:`Browser visual scale is ${Math.round(scale*100)}%. Return browser/page zoom to 100% before judging layout or text size.`});
+  else notes.push({state:'good',text:'Browser visual scale is 100%.'});
+  if(width&&height&&height>width)notes.push({state:'good',text:'Portrait orientation detected. The Portrait starter presentation can be useful, but your saved custom layout is never changed automatically.'});
+  else if(width&&height)notes.push({state:'good',text:'Landscape orientation detected.'});
+  if(dpr>2.5)notes.push({state:'good',text:`High-density display detected (device pixel ratio ${dpr.toFixed(2)}). LibreDisplay uses CSS pixels, so Arrange coordinates remain resolution-independent.`});
+  return {device:d,width,height,scale,dpr,notes};
+}
+function renderDisplayReadiness(){
+  const result=displayReadinessAssessment(currentDisplayReadinessDevice()),d=result.device;
+  const set=(id,text,state='')=>setHealth(id,text,state);
+  if(!d){for(const id of ['display-readiness-viewport','display-readiness-orientation','display-readiness-scale','display-readiness-heartbeat'])set(id,'Waiting…','warn');}
+  else{
+    set('display-readiness-viewport',result.width&&result.height?`${result.width}×${result.height}`:'Unknown',result.width>=960&&result.height>=540?'good':'warn');
+    set('display-readiness-orientation',result.width&&result.height?(result.width>=result.height?'Landscape':'Portrait'):'Unknown',result.width&&result.height?'good':'warn');
+    set('display-readiness-scale',`${Math.round(result.scale*100)}% · DPR ${result.dpr.toFixed(2)}`,Math.abs(result.scale-1)>.03?'warn':'good');
+    const kiosk=systemHealthState?.kioskHeartbeat,age=Number(kiosk?.ageSeconds);
+    set('display-readiness-heartbeat',kiosk?.present?(Number.isFinite(age)?`${healthAgeText(age)} · ${kiosk.viewport||'local display'}`:'Reported'):(d.mode==='viewer'?'Remote viewer heartbeat':'Waiting for local kiosk heartbeat'),kiosk?.present&&age<90?'good':d.mode==='viewer'?'good':'warn');
+  }
+  const host=document.getElementById('display-readiness-notes');if(host)host.innerHTML=result.notes.map(n=>`<div class="display-readiness-item ${n.state}">${escHtml(n.text)}</div>`).join('');
+}
+async function refreshDisplayReadiness(){
+  try{await fetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'heartbeat',endpoint:ACTIVE_ENDPOINT}),cache:'no-store'});}catch(e){}
+  await Promise.allSettled([loadDisplayEndpoints(),loadSystemHealth()]);renderDisplayReadiness();
+}
+
 async function loadDisplayEndpoints(){
   const list=document.getElementById('endpoint-list'),status=document.getElementById('endpoint-status');if(!list)return;
   try{
     const [endpointRes,deviceRes]=await Promise.all([fetch(serverPath('/api/endpoints'),{cache:'no-store'}),fetch(serverPath('/api/devices'),{cache:'no-store'})]);
     const data=await endpointRes.json().catch(()=>({})),devices=await deviceRes.json().catch(()=>({}));if(!endpointRes.ok||!data.ok)throw new Error(data.error||('HTTP '+endpointRes.status));
     displayEndpoints=Array.isArray(data.endpoints)?data.endpoints:[];displayDevices=deviceRes.ok&&Array.isArray(devices.devices)?devices.devices:[];endpointsRemoteEnabled=!!data.remoteEnabled;
+    renderProfileEndpointSelect?.();
     list.innerHTML=displayEndpoints.map(e=>{const live=endpointDeviceSummary(e.id);return `<div class="endpoint-row ${e.id===ACTIVE_ENDPOINT?'endpoint-current':''}"><div><div class="endpoint-name">${esc(e.name||e.id)}${e.id===ACTIVE_ENDPOINT?' · current':''}</div><div class="endpoint-meta">/${esc(e.id)} · ${e.configured?'configured':'new display'}</div><div class="endpoint-live ${live.online?'online':''}"><span class="endpoint-live-dot"></span>${esc(live.text)}</div></div><div class="endpoint-actions"><button class="btn-util" type="button" onclick="editDisplayEndpoint('${escHtml(e.id)}')">Edit</button><button class="btn-util" type="button" onclick="sendDisplayCommand('${escHtml(e.id)}','refresh')">Refresh data</button><button class="btn-util" type="button" onclick="sendDisplayCommand('${escHtml(e.id)}','reload')">Reload screen</button><button class="btn-util" type="button" onclick="copyDisplayEndpointLink('${escHtml(e.id)}')">Copy link</button><button class="btn-util" type="button" onclick="renameDisplayEndpoint('${escHtml(e.id)}')">Rename</button><button class="btn-util" type="button" onclick="rotateDisplayEndpoint('${escHtml(e.id)}')">Rotate link</button>${e.id!=='main'?`<button class="btn-util" type="button" onclick="deleteDisplayEndpoint('${escHtml(e.id)}')">Delete</button>`:''}</div></div>`}).join('')||'<div class="settings-note">No displays found.</div>';
     if(status)status.textContent=`Editing “${displayEndpoints.find(e=>e.id===ACTIVE_ENDPOINT)?.name||ACTIVE_ENDPOINT}”. ${displayDevices.filter(x=>x.online).length} viewer${displayDevices.filter(x=>x.online).length===1?'':'s'} online.`+(endpointsRemoteEnabled?'':' Enable Remote management before using Display Links on other devices.');
-  }catch(e){if(status)status.textContent='Display manager unavailable: '+(e.message||e);list.innerHTML='';}
+    syncWizardDisplayNameFromEndpoints?.();renderDisplayReadiness();
+  }catch(e){if(status)status.textContent='Display manager unavailable: '+(e.message||e);list.innerHTML='';renderDisplayReadiness();}
 }
 async function endpointAction(body){const res=await fetch(serverPath('/api/endpoints'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});const data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));return data;}
 async function sendDisplayCommand(endpoint,action){try{const res=await fetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint,action}),cache:'no-store'});const data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));if(action==='reload')setTimeout(loadDisplayEndpoints,1200);}catch(e){alert('Could not send display command: '+(e.message||e));}}
@@ -6280,12 +6635,22 @@ async function deleteDisplayEndpoint(id){const row=displayEndpoints.find(e=>e.id
 function cacheSourceName(url){
   try{return new URL(url).hostname.replace(/^www\./,'');}catch(e){return 'remote data';}
 }
+let serverConnectionState=navigator.onLine===false?'offline':'online',serverReconnectRefreshPending=false;
 function updateOfflinePill(){
   const pill=document.getElementById('offline-pill');if(!pill)return;
-  const active=staleCacheSources.size>0;
-  pill.classList.toggle('show',active);
-  pill.textContent=active?'Offline · cached data':'';
+  const stale=staleCacheSources.size>0,networkOffline=navigator.onLine===false,serverDown=serverConnectionState!=='online';
+  const active=stale||networkOffline||serverDown;let state='online',text='';
+  if(networkOffline){state='offline';text=stale?'Offline · showing last known data':'Offline · waiting for network';}
+  else if(serverDown){state='reconnecting';text=stale?'Reconnecting · showing last known data':'Reconnecting to LibreDisplay…';}
+  else if(stale){state='cached';text='Provider delayed · showing last known data';}
+  pill.dataset.state=state;pill.classList.toggle('show',active);pill.textContent=text;
   updateSettingsOverview?.();
+}
+function setServerConnectionState(state){
+  const previous=serverConnectionState;serverConnectionState=state==='online'?'online':state==='offline'?'offline':'reconnecting';updateOfflinePill();
+  if(serverConnectionState==='online'&&previous!=='online'&&!serverReconnectRefreshPending&&(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)){
+    serverReconnectRefreshPending=true;setTimeout(async()=>{try{await pollServerConfig();await Promise.allSettled([refreshDataNow(),retryDisplayHydration('server-reconnected')]);}finally{serverReconnectRefreshPending=false;}},450);
+  }
 }
 function noteCacheResponse(url,res){
   const name=cacheSourceName(url);
@@ -6457,8 +6822,12 @@ function bindDisplayViewportHeartbeat(){
 }
 function startLiveDisplayConnection(){
   try{liveEventSource?.close();}catch(e){}liveEventSource=null;
-  try{liveEventSource=new EventSource(serverPath('/api/events'));liveEventSource.addEventListener('config',()=>pollServerConfig());liveEventSource.addEventListener('household',async()=>{await loadHousehold(false);refreshFamilyBlocks();});liveEventSource.addEventListener('refresh',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE){refreshDataNow();scheduleDisplayHeartbeat(40);}});liveEventSource.addEventListener('heartbeat',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)scheduleDisplayHeartbeat(0);});liveEventSource.addEventListener('reload',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)location.reload();});liveEventSource.addEventListener('reauth',()=>location.reload());}catch(e){}
-  bindDisplayViewportHeartbeat();sendDisplayHeartbeat();if(heartbeatTimer)clearInterval(heartbeatTimer);heartbeatTimer=setInterval(sendDisplayHeartbeat,30000);
+  try{
+    liveEventSource=new EventSource(serverPath('/api/events'));
+    liveEventSource.onopen=()=>setServerConnectionState('online');liveEventSource.onerror=()=>setServerConnectionState(navigator.onLine===false?'offline':'reconnecting');
+    liveEventSource.addEventListener('config',()=>pollServerConfig());liveEventSource.addEventListener('household',async()=>{await loadHousehold(false);refreshFamilyBlocks();});liveEventSource.addEventListener('refresh',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE){refreshDataNow();scheduleDisplayHeartbeat(40);}});liveEventSource.addEventListener('heartbeat',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)scheduleDisplayHeartbeat(0);});liveEventSource.addEventListener('reload',()=>{if(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)location.reload();});liveEventSource.addEventListener('reauth',()=>location.reload());
+  }catch(e){setServerConnectionState(navigator.onLine===false?'offline':'reconnecting');}
+  bindDisplayViewportHeartbeat();sendDisplayHeartbeat();if(heartbeatTimer)clearInterval(heartbeatTimer);heartbeatTimer=setInterval(sendDisplayHeartbeat,30000);updateOfflinePill();
 }
 function startRemoteConfigPolling(){if(remoteConfigPollTimer)clearInterval(remoteConfigPollTimer);remoteConfigPollTimer=setInterval(pollServerConfig,REMOTE_SETTINGS_MODE?5000:30000);}
 
@@ -6508,21 +6877,36 @@ function setHealth(id,text,state=''){
 }
 let softwareUpdateState=null;
 let softwareUpdateCheckPromise=null;
+let softwareUpdateMonitorActive=false;
+let systemHealthState=null;
 function renderSoftwareUpdateStatus(){
   const current=document.getElementById('software-update-current');
   const status=document.getElementById('software-update-status');
   const instructions=document.getElementById('software-update-instructions');
+  const updateBtn=document.getElementById('software-update-now');
+  const releaseLink=document.getElementById('software-update-release-link');
+  const badge=document.getElementById('settings-update-badge');
   if(current)current.textContent='v'+DASHBOARD_BUILD;
   const d=softwareUpdateState;
+  if(badge)badge.classList.toggle('show',SESSION_ROLE==='owner'&&!!d?.ok&&!!d.updateAvailable);
+  if(releaseLink){
+    const href=d?.releaseUrl&&safeHttpUrl(d.releaseUrl)?safeHttpUrl(d.releaseUrl):'';
+    releaseLink.href=href||'#';
+    releaseLink.classList.toggle('show',!!href&&!!d?.updateAvailable);
+    if(d?.latestVersion)releaseLink.textContent=`View v${d.latestVersion} release notes ↗`;
+  }
+  if(updateBtn){updateBtn.style.display='none';updateBtn.disabled=false;updateBtn.textContent='Update now';}
   if(!d){if(status)status.textContent='Checking GitHub…';if(instructions)instructions.style.display='none';return;}
-  if(!d.ok){if(status)status.textContent='Could not check right now';if(instructions){instructions.style.display='block';instructions.textContent=d.deployment==='docker'?'LibreDisplay will try again later.':'LibreDisplay will try again later. You can also run “libredisplay check” in Terminal.';}return;}
+  if(!d.ok){if(status)status.textContent='Could not check right now';if(instructions){instructions.style.display='block';instructions.textContent='LibreDisplay will try again later. You can also run “libredisplay check” in Terminal.';}return;}
   if(d.updateAvailable){
     if(status)status.textContent=`Update available · v${d.latestVersion}`;
+    if(updateBtn&&d.canUpdateInApp){updateBtn.style.display='inline-flex';updateBtn.textContent=`Update to v${d.latestVersion}`;}
     if(instructions){
       instructions.style.display='block';
-      if(d.updateCommand)instructions.innerHTML=`<b>Update available: v${escHtml(d.latestVersion)}</b><br>Open Terminal and run <code>${escHtml(d.updateCommand)}</code>. LibreDisplay will create a safety backup before installing it.`;
-      else if(d.deployment==='docker')instructions.innerHTML=`<b>Update available: v${escHtml(d.latestVersion)}</b><br>On the Docker host, open the LibreDisplay folder and run <code>./scripts/docker-setup.sh update</code>. LibreDisplay will back up its state, rebuild, and health-check the new release.`;
-      else instructions.innerHTML=`<b>Update available: v${escHtml(d.latestVersion)}</b><br>Installed Raspberry Pi copies update with <code>libredisplay update</code>.`;
+      if(d.canUpdateInApp)instructions.innerHTML=`<b>v${escHtml(d.latestVersion)} is ready.</b><br>Update Now creates a safety backup, installs the official GitHub release, and restarts the native LibreDisplay device. Expect the dashboard to be unavailable briefly.`;
+      else if(d.deployment==='docker')instructions.innerHTML=`<b>Update available: v${escHtml(d.latestVersion)}</b><br>Docker updates must run on the host: <code>./scripts/docker-setup.sh update</code>. ${escHtml(d.inAppUpdateReason||'')}`;
+      else if(d.updateCommand)instructions.innerHTML=`<b>Update available: v${escHtml(d.latestVersion)}</b><br>${escHtml(d.inAppUpdateReason||'Browser updating is not enabled yet.')} You can still run <code>${escHtml(d.updateCommand)}</code> in Terminal.`;
+      else instructions.innerHTML=`<b>Update available: v${escHtml(d.latestVersion)}</b><br>${escHtml(d.inAppUpdateReason||'Use the deployment update procedure for this installation.')}`;
     }
   }else{
     if(status)status.textContent=`Up to date · v${d.currentVersion||DASHBOARD_BUILD}`;
@@ -6545,11 +6929,181 @@ async function checkSoftwareUpdate(force=false){
   softwareUpdateCheckPromise=run;
   try{return await run;}finally{softwareUpdateCheckPromise=null;}
 }
+function setSoftwareUpdateActionStatus(text,state=''){
+  const el=document.getElementById('software-update-action-status');if(!el)return;
+  el.style.display=text?'block':'none';el.textContent=text||'';
+  el.style.color=state==='bad'?'var(--ld-danger)':state==='good'?'var(--ld-success)':state==='warn'?'var(--ld-warning)':'';
+}
+function sleepMs(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+async function monitorSoftwareUpdate(targetVersion){
+  if(softwareUpdateMonitorActive)return;
+  softwareUpdateMonitorActive=true;
+  let sawOffline=false;
+  try{
+    for(let attempt=0;attempt<120;attempt++){
+      await sleepMs(attempt<4?2000:4000);
+      try{
+        const statusResponse=await fetch(serverPath('/api/update-run-status'),{cache:'no-store'});
+        if(statusResponse.status===403&&sawOffline){setSoftwareUpdateActionStatus('LibreDisplay restarted successfully enough to answer requests, but this remote Owner session expired during the reboot. Reopen Settings with a fresh pairing link to verify the new version.','warn');return;}
+        if(statusResponse.ok){
+          const run=await statusResponse.json().catch(()=>({}));
+          if(run.state==='failed'){
+            setSoftwareUpdateActionStatus(run.error||'The update did not complete. Review the update log or run the terminal updater.','bad');
+            const btn=document.getElementById('software-update-now');if(btn)btn.disabled=false;
+            return;
+          }
+          if(run.state==='running'||run.state==='starting')setSoftwareUpdateActionStatus(`Installing v${targetVersion}… The display will restart when installation is complete.`,'warn');
+        }
+        const versionResponse=await fetch(serverPath('/api/update-status'),{cache:'no-store'});
+        if(versionResponse.ok){
+          const info=await versionResponse.json().catch(()=>({}));
+          if(info.currentVersion===targetVersion&&!info.updateAvailable){
+            setSoftwareUpdateActionStatus(`Updated to v${targetVersion}. Reloading Settings…`,'good');
+            await sleepMs(1200);location.reload();return;
+          }
+          if(sawOffline)setSoftwareUpdateActionStatus('LibreDisplay is back online. Verifying the installed version…','warn');
+        }
+      }catch(e){
+        sawOffline=true;
+        setSoftwareUpdateActionStatus('LibreDisplay is restarting. This page will reconnect automatically…','warn');
+      }
+    }
+    setSoftwareUpdateActionStatus('The update is taking longer than expected. The device may still be restarting; reload this page in a moment.','warn');
+  }finally{softwareUpdateMonitorActive=false;}
+}
+async function startSoftwareUpdate(){
+  const d=softwareUpdateState;
+  if(!d?.ok||!d.updateAvailable||!d.canUpdateInApp)return;
+  const target=d.latestVersion;
+  if(!confirm(`Update LibreDisplay from v${d.currentVersion||DASHBOARD_BUILD} to v${target} now?\n\nA safety backup will be created automatically. The native display will restart and may be unavailable for a few minutes.${REMOTE_SETTINGS_MODE?'\n\nBecause this is a remote Settings session, you may need a fresh pairing link after the reboot.':''}`))return;
+  const btn=document.getElementById('software-update-now');if(btn){btn.disabled=true;btn.textContent='Starting update…';}
+  setSoftwareUpdateActionStatus(`Starting the v${target} update…`,'warn');
+  try{
+    const r=await fetch(serverPath('/api/update-now'),{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'});
+    const result=await r.json().catch(()=>({}));
+    if(!r.ok||!result.ok)throw new Error(result.error||`HTTP ${r.status}`);
+    if(result.state==='current'){
+      setSoftwareUpdateActionStatus('LibreDisplay is already up to date.','good');
+      await checkSoftwareUpdate(true);return;
+    }
+    setSoftwareUpdateActionStatus(`Installing v${target}… A safety backup is being created before files are replaced.`,'warn');
+    monitorSoftwareUpdate(target);
+  }catch(e){
+    setSoftwareUpdateActionStatus(`Could not start the update: ${e.message||e}`,'bad');
+    if(btn)btn.disabled=false;
+  }
+}
+let releaseRollbackState=null;
+let releaseRollbackMonitorActive=false;
+function setReleaseRollbackStatus(text,state=''){
+  const el=document.getElementById('release-rollback-status');if(!el)return;
+  el.textContent=text||'';el.style.color=state==='bad'?'var(--ld-danger)':state==='good'?'var(--ld-success)':state==='warn'?'var(--ld-warning)':'';
+}
+function renderReleaseRollbacks(){
+  const host=document.getElementById('release-rollback-list');if(!host)return;
+  const d=releaseRollbackState;
+  if(!d){host.innerHTML='<div class="settings-note">Loading rollback snapshots…</div>';return;}
+  const rows=Array.isArray(d.snapshots)?d.snapshots:[];
+  if(!rows.length){host.innerHTML='<div class="settings-note">No version rollback snapshots yet. LibreDisplay creates one automatically before supported native updates.</div>';setReleaseRollbackStatus(d.reason||'Rollback history will appear after the next native update.');return;}
+  host.innerHTML=rows.map(row=>{const when=row.createdUtc?new Date(row.createdUtc).toLocaleString():'Unknown date',target=row.fromVersion||'unknown',forward=row.toVersion?` before updating to v${escHtml(row.toVersion)}`:'',size=formatHealthBytes(row.sizeBytes||0),can=!!d.canRollback;return `<div class="restore-point-row"><div><div class="restore-point-title">LibreDisplay v${escHtml(target)}</div><div class="restore-point-meta">${escHtml(when)}${forward} · ${escHtml(size)} · verified before restore</div></div><div class="restore-point-actions"><button class="btn-util" type="button" ${can?'':'disabled'} onclick="startReleaseRollback('${escHtml(row.id)}','${escHtml(target)}')">Restore v${escHtml(target)}</button></div></div>`}).join('');
+  if(d.canRollback)setReleaseRollbackStatus(`${rows.length} private rollback snapshot${rows.length===1?'':'s'} available. Only the newest five are retained automatically.`);
+  else setReleaseRollbackStatus(d.reason||'Version rollback is not available on this deployment.','warn');
+  const history=document.getElementById('maintenance-history-list');if(history){const events=Array.isArray(d.history)?d.history.slice(0,6):[];history.innerHTML=events.length?events.map(row=>{const when=row.createdUtc?new Date(row.createdUtc).toLocaleString():'Unknown date';if(row.event==='rollback')return `<div><b>Rollback</b> · v${escHtml(row.fromVersion||'?')} → v${escHtml(row.toVersion||'?')} · ${escHtml(when)}</div>`;if(row.event==='update')return `<div><b>Update</b> · v${escHtml(row.fromVersion||'?')} → v${escHtml(row.toVersion||'?')} · ${escHtml(when)}</div>`;return `<div><b>${escHtml(row.event||'Maintenance')}</b> · ${escHtml(when)}</div>`}).join(''):'No update or rollback history recorded yet.';}
+}
+async function loadReleaseRollbacks(){
+  const host=document.getElementById('release-rollback-list');if(host&&!releaseRollbackState)host.innerHTML='<div class="settings-note">Loading rollback snapshots…</div>';
+  try{const r=await fetch(serverPath('/api/release-rollbacks'),{cache:'no-store'}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||`HTTP ${r.status}`);releaseRollbackState=d;renderReleaseRollbacks();}catch(e){releaseRollbackState={ok:false,snapshots:[]};if(host)host.innerHTML='';setReleaseRollbackStatus('Could not load update history: '+(e?.message||e),'bad');}
+}
+async function monitorReleaseRollback(targetVersion){
+  if(releaseRollbackMonitorActive)return;releaseRollbackMonitorActive=true;let sawOffline=false;
+  try{
+    for(let attempt=0;attempt<120;attempt++){
+      await sleepMs(attempt<4?2000:4000);
+      try{
+        const versionResponse=await fetch(serverPath('/api/update-status'),{cache:'no-store'});
+        if(versionResponse.status===403&&sawOffline){setReleaseRollbackStatus(`LibreDisplay restarted during rollback to v${targetVersion}, but this remote Owner session expired. Reopen Settings with a fresh pairing link to verify the restored version.`,'warn');return;}
+        if(versionResponse.ok){const info=await versionResponse.json().catch(()=>({}));if(info.currentVersion===targetVersion){setReleaseRollbackStatus(`Rollback to v${targetVersion} completed. Reloading Settings…`,'good');await sleepMs(1200);location.reload();return;}if(sawOffline)setReleaseRollbackStatus('LibreDisplay is back online. Verifying the restored version…','warn');}
+        const runResponse=await fetch(serverPath('/api/release-rollback-run-status'),{cache:'no-store'});
+        if(runResponse.ok){const run=await runResponse.json().catch(()=>({}));if(run.state==='failed'){setReleaseRollbackStatus(run.error||'Rollback did not complete. Review data/rollback.log.','bad');return;}}
+      }catch(e){sawOffline=true;setReleaseRollbackStatus(`LibreDisplay is restoring v${targetVersion} and restarting. This page will reconnect automatically…`,'warn');}
+    }
+    setReleaseRollbackStatus('Rollback is taking longer than expected. The device may still be restarting; reload this page in a moment.','warn');
+  }finally{releaseRollbackMonitorActive=false;}
+}
+async function startReleaseRollback(snapshotId,targetVersion){
+  if(!releaseRollbackState?.canRollback)return;
+  const warning=`Restore LibreDisplay v${targetVersion}?\n\nThis is a full pre-update rollback: application files, settings, media, plugins, and project .env return to the state captured before that update. LibreDisplay first creates a new private safety snapshot of the current state so it remains recoverable. The device will restart.${REMOTE_SETTINGS_MODE?'\n\nYour remote Owner session may expire during the restart.':''}`;
+  if(!confirm(warning))return;
+  setReleaseRollbackStatus(`Preparing rollback to v${targetVersion}…`,'warn');
+  try{const r=await fetch(serverPath('/api/release-rollback'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:snapshotId}),cache:'no-store'}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||`HTTP ${r.status}`);setReleaseRollbackStatus(`Restoring v${targetVersion}… A recovery snapshot of the current installation is being created first.`,'warn');monitorReleaseRollback(targetVersion);}catch(e){setReleaseRollbackStatus('Could not start rollback: '+(e?.message||e),'bad');}
+}
+
+function formatHealthBytes(bytes){
+  let n=Number(bytes)||0;const units=['B','KB','MB','GB','TB'];let i=0;
+  while(n>=1024&&i<units.length-1){n/=1024;i++;}
+  return `${n>=10||i===0?n.toFixed(0):n.toFixed(1)} ${units[i]}`;
+}
+function formatHealthUptime(seconds){
+  let n=Math.max(0,Number(seconds)||0);const days=Math.floor(n/86400);n%=86400;const hours=Math.floor(n/3600);n%=3600;const mins=Math.floor(n/60);
+  if(days)return `${days}d ${hours}h`;
+  if(hours)return `${hours}h ${mins}m`;
+  return `${mins}m`;
+}
+function renderSystemHealth(){
+  const d=systemHealthState;
+  const set=(id,text,state='')=>setHealth(id,text,state);
+  if(!d?.ok){for(const id of ['system-health-deployment','system-health-uptime','system-health-storage','system-health-data','system-health-host','system-health-load'])set(id,'Unavailable','warn');return;}
+  set('system-health-deployment',`${d.deployment||'unknown'} · v${d.version||DASHBOARD_BUILD}`,'good');
+  set('system-health-uptime',d.uptimeSeconds==null?'Unavailable':formatHealthUptime(d.uptimeSeconds),d.uptimeSeconds==null?'warn':'good');
+  const free=Number(d.disk?.freeBytes)||0,freePct=Number(d.disk?.freePercent)||0;
+  set('system-health-storage',free?`${formatHealthBytes(free)} free · ${freePct.toFixed(1)}%`: 'Unavailable',freePct&&freePct<10?'bad':freePct&&freePct<20?'warn':'good');
+  set('system-health-data',d.dataWritable?'Writable':'Not writable',d.dataWritable?'good':'bad');
+  set('system-health-host',[d.platform,d.machine,`Python ${d.python}`].filter(Boolean).join(' · ')||'Unknown','good');
+  set('system-health-load',Array.isArray(d.loadAverage)&&d.loadAverage.length?d.loadAverage.join(' · '):'Unavailable','');
+}
+async function loadSystemHealth(){
+  try{
+    const r=await fetch(serverPath('/api/system-health'),{cache:'no-store'});
+    systemHealthState=r.ok?await r.json():{ok:false};
+  }catch(e){systemHealthState={ok:false};}
+  renderSystemHealth();renderDisplayReadiness();
+  return systemHealthState;
+}
+function providerHealthPill(status,label){return `<span class="integration-health-state state-${escHtml(status)}">${escHtml(label)}</span>`;}
+function renderProviderHealth(){
+  const host=document.getElementById('provider-health-list');if(!host)return;
+  const now=Date.now(),rows=[];
+  const weatherConfigured=Number.isFinite(Number(cfg.lat))&&Number.isFinite(Number(cfg.lon));
+  const weatherAge=weatherLastSuccessAt?Math.max(0,(now-weatherLastSuccessAt)/1000):0,weatherStale=weatherLastSuccessAt&&weatherAge>Math.max(900,(Number(cfg.weatherRefreshMin)||10)*120);
+  rows.push({name:'Weather forecast',detail:!weatherConfigured?'No verified location configured':weatherLastError?(wxData?`Latest refresh failed · ${weatherLastError}`:weatherLastError):`${weatherLastSource||'Open-Meteo'}${weatherLastSuccessAt?' · last success '+healthAgeText(weatherAge):''}`,meta:weatherLastGridPoint?.timezone?`Forecast timezone ${weatherLastGridPoint.timezone}`:'',status:!weatherConfigured?'unconfigured':weatherLastError?(wxData?'stale':'error'):weatherStale?'stale':wxData?'fresh':'ready',label:!weatherConfigured?'Setup needed':weatherLastError?(wxData?'Delayed · last good data':'Offline / error'):weatherStale?'Delayed':wxData?'Healthy':'Waiting'});
+  const enabledCalendars=(cfg.calendars||[]).map((c,i)=>({c,s:calStatuses[i]})).filter(x=>x.c.enabled!==false&&(x.c.url||x.c.configured)),calendarErrors=enabledCalendars.filter(x=>x.s?.ok===false).length,calendarPending=enabledCalendars.filter(x=>x.s?.pending).length,calendarOk=enabledCalendars.filter(x=>x.s?.ok===true).length,calendarChecked=Math.max(0,...enabledCalendars.map(x=>Number(x.s?.checkedAt)||0));
+  rows.push({name:'Calendars',detail:enabledCalendars.length?`${calendarOk}/${enabledCalendars.length} healthy${calendarErrors?' · '+calendarErrors+' failed':''}${calendarPending?' · '+calendarPending+' checking':''}`:'No enabled calendars configured',meta:calendarChecked?`Last checked ${healthAgeText((now-calendarChecked)/1000)}`:'',status:!enabledCalendars.length?'unconfigured':calendarErrors?'error':calendarPending?'ready':calendarOk===enabledCalendars.length?'fresh':'ready',label:!enabledCalendars.length?'Not configured':calendarErrors?'Needs attention':calendarPending?'Checking':calendarOk===enabledCalendars.length?'Healthy':'Not checked'});
+  const bgConfigured=cfg.backgroundSource==='none'||cfg.backgroundSource==='stock'||(cfg.backgroundSource==='folders'&&!!cfg.mediaFolders?.length)||(cfg.backgroundSource==='google'&&!!cfg.photosUrl),bgSource=cfg.backgroundSource==='stock'?'Stock images':cfg.backgroundSource==='folders'?'Folders / NAS':cfg.backgroundSource==='google'?'Google Photos':'Disabled',bgLoaded=cfg.backgroundSource==='stock'?!!bgLastUrl:['folders','google'].includes(cfg.backgroundSource)?!!bgSourceImages?.length:cfg.backgroundSource==='none';
+  rows.push({name:'Background source',detail:lastBackgroundStatus.text||`${bgSource}${bgConfigured?'':' · not configured'}`,meta:lastBackgroundStatus.updatedAt?`Last activity ${healthAgeText((now-lastBackgroundStatus.updatedAt)/1000)}`:'',status:lastBackgroundStatus.error?'error':!bgConfigured?'unconfigured':cfg.backgroundSource==='none'?'ready':bgLoaded?'fresh':'ready',label:lastBackgroundStatus.error?'Needs attention':!bgConfigured?'Setup needed':cfg.backgroundSource==='none'?'Disabled':bgLoaded?'Healthy':'Waiting'});
+  if(cfg.alertsEnabled){rows.push({name:'Weather alerts',detail:lastAlertStatus.text||'Waiting for alert provider status',meta:lastAlertStatus.updatedAt?`Last activity ${healthAgeText((now-lastAlertStatus.updatedAt)/1000)}`:'',status:lastAlertStatus.error?'error':'fresh',label:lastAlertStatus.error?'Needs attention':'Healthy'});}
+  else rows.push({name:'Weather alerts',detail:'Disabled in Weather settings',meta:'',status:'ready',label:'Disabled'});
+  const intConfigured=configuredIntegrationBlocks().length,intIssues=integrationHealthRows.filter(x=>['error','missing','unconfigured'].includes(x.status)).length,intDelayed=integrationHealthRows.filter(x=>['stale','cached'].includes(x.status)).length,intHealthy=integrationHealthRows.filter(x=>x.status==='fresh').length;
+  rows.push({name:'Integrations',detail:intConfigured?`${intHealthy}/${intConfigured} healthy${intIssues?' · '+intIssues+' need attention':intDelayed?' · '+intDelayed+' delayed/cached':''}`:'No integration blocks configured',meta:integrationHealthLoadedAt?`Status refreshed ${healthAgeText((now-integrationHealthLoadedAt)/1000)}`:'',status:!intConfigured?'ready':intIssues?'error':intDelayed?'stale':intHealthy===intConfigured?'fresh':'ready',label:!intConfigured?'None configured':intIssues?'Needs attention':intDelayed?'Delayed':intHealthy===intConfigured?'Healthy':'Not checked'});
+  const staleSources=[...new Set([...staleCacheSources.values()].map(v=>v?.name||'remote data'))];
+  rows.push({name:'Remote data cache',detail:staleSources.length?`Serving last known good data for ${staleSources.slice(0,3).join(', ')}${staleSources.length>3?' +'+(staleSources.length-3):''}`:'No stale remote sources are currently being served from cache.',meta:'Live data is always preferred when providers recover.',status:staleSources.length?'stale':'fresh',label:staleSources.length?'Fallback active':'Live preferred'});
+  host.innerHTML=rows.map(r=>`<div class="provider-health-row"><div class="provider-health-copy"><b>${escHtml(r.name)}</b><span>${escHtml(r.detail)}</span>${r.meta?`<small>${escHtml(r.meta)}</small>`:''}</div><div class="provider-health-actions">${providerHealthPill(r.status,r.label)}</div></div>`).join('');
+}
+async function refreshProviderHealth(runData=false){
+  if(runData){
+    const jobs=[fetchWeather(),fetchWeatherAlerts(),loadCalendars()];
+    if(cfg.backgroundSource==='stock')jobs.push(loadStockBackground());
+    else if(cfg.backgroundSource==='folders'&&cfg.mediaFolders?.length)jobs.push(loadFolderBackgrounds(cfg.mediaFolders,cfg.mediaRecursive));
+    else if(cfg.backgroundSource==='google'&&cfg.photosUrl)jobs.push(loadPhotos(cfg.photosUrl));
+    await Promise.allSettled(jobs);
+  }
+  await loadIntegrationHealth();renderProviderHealth();updateSettingsOverview();
+}
+
 function updateSettingsOverview(){
   const localServer=location.protocol==='http:'||location.protocol==='https:';
   setHealth('health-server',localServer?(serverConfigAvailable?'Connected · config synced':'Connected · browser fallback'):'Open through local server',localServer?(serverConfigAvailable?'good':'warn'):'bad');
   const verifiedPlace=weatherLocationTitle(savedWeatherLocation());
-  setHealth('health-weather',wxData?`Forecast loaded${verifiedPlace?' · '+verifiedPlace:''}${weatherLastSource?' · '+weatherLastSource:''}`:(weatherLastError?`Weather error · ${weatherLastError}`:(cfg.lat&&cfg.lon?`Waiting for data${verifiedPlace?' · '+verifiedPlace:''}`:'Location not configured')),wxData?'good':(weatherLastError?'bad':(cfg.lat&&cfg.lon?'warn':'bad')));
+  setHealth('health-weather',weatherLastError?(wxData?`Using last forecast · refresh error`:`Weather error · ${weatherLastError}`):(wxData?`Forecast loaded${verifiedPlace?' · '+verifiedPlace:''}${weatherLastSource?' · '+weatherLastSource:''}`:(cfg.lat&&cfg.lon?`Waiting for data${verifiedPlace?' · '+verifiedPlace:''}`:'Location not configured')),weatherLastError?(wxData?'warn':'bad'):(wxData?'good':(cfg.lat&&cfg.lon?'warn':'bad')));
   const configured=(cfg.calendars||[]).filter(c=>c.url||c.configured).length;
   const enabled=(cfg.calendars||[]).filter(c=>(c.url||c.configured)&&c.enabled!==false).length;
   const failures=(calStatuses||[]).filter(s=>s&&!s.pending&&!s.disabled&&s.ok===false).length;
@@ -6576,26 +7130,44 @@ function updateSettingsOverview(){
   setHealth('health-cache',stale.length?`Using cached data · ${stale.slice(0,2).join(', ')}${stale.length>2?' +'+(stale.length-2):''}`:'Ready · live data preferred',stale.length?'warn':'good');
   const update=softwareUpdateState;
   setHealth('health-software',!update?'Checking GitHub…':(!update.ok?'Check unavailable':(update.updateAvailable?`Update available · v${update.latestVersion}`:`Up to date · v${update.currentVersion||DASHBOARD_BUILD}`)),!update||!update.ok?'warn':(update.updateAvailable?'warn':'good'));
+  renderProviderHealth();
 }
-async function copyDiagnostics(){
-  const diag={
+function buildDiagnosticsPayload(){
+  const host=systemHealthState?.ok?{
+    deployment:systemHealthState.deployment,
+    platform:systemHealthState.platform,
+    machine:systemHealthState.machine,
+    python:systemHealthState.python,
+    uptimeSeconds:systemHealthState.uptimeSeconds,
+    disk:systemHealthState.disk,
+    dataWritable:systemHealthState.dataWritable,
+    loadAverage:systemHealthState.loadAverage
+  }:undefined;
+  return {
     build:DASHBOARD_BUILD,
     generatedAt:new Date().toISOString(),
     protocol:location.protocol,
     storage:{serverConfig:serverConfigAvailable?'synced':'browser-fallback',serverError:serverConfigLastError||undefined,profiles:profileStore.items.length,activeProfile:profileStore.items.find(p=>p.id===profileStore.activeId)?.name||undefined},
+    host,
+    software:softwareUpdateState?.ok?{currentVersion:softwareUpdateState.currentVersion,latestVersion:softwareUpdateState.latestVersion,updateAvailable:softwareUpdateState.updateAvailable,deployment:softwareUpdateState.deployment,canUpdateInApp:softwareUpdateState.canUpdateInApp}:undefined,
     viewport:{width:innerWidth,height:innerHeight,devicePixelRatio:devicePixelRatio||1},
     fullscreen:!!document.fullscreenElement,
     appearance:{theme:cfg.uiTheme||'libre-night',font:cfg.fontFamily||'Inter'},
     weather:{configured:!!(cfg.lat&&cfg.lon),loaded:!!wxData,unit:cfg.useFahrenheit?'imperial':'metric',windUnit:weatherWindUnitLabel(cfg),place:weatherLocationTitle(savedWeatherLocation())||undefined,timezone:cfg.locationTimezone||weatherLastGridPoint?.timezone||undefined,source:weatherLastSource||undefined,error:weatherLastError||undefined},
-    calendars:(cfg.calendars||[]).map((c,i)=>({name:c.label||`Calendar ${i+1}`,type:(String(c.url||'').startsWith('/calendar-files/')?'file':'ics'),enabled:c.enabled!==false,status:calStatuses[i]?.ok===true?'ok':calStatuses[i]?.disabled?'disabled':calStatuses[i]?.pending?'checking':calStatuses[i]?.error?'error':'unknown'})),
-    background:{source:cfg.backgroundSource,configured:cfg.backgroundSource==='stock'||(cfg.backgroundSource==='folders'&&!!cfg.mediaFolders?.length)||!!cfg.photosUrl,photosLoaded:(cfg.backgroundSource==='google'||cfg.backgroundSource==='folders')?(bgSourceImages?.length||0):undefined,stockCategory:cfg.backgroundSource==='stock'?cfg.stockCategory:undefined,stockResolution:cfg.backgroundSource==='stock'?cfg.stockResolution:undefined,mediaFolders:cfg.backgroundSource==='folders'?(cfg.mediaFolders||[]).length:undefined,order:cfg.photoOrder,intervalSec:cfg.photoIntervalSec,status:lastBackgroundStatus?.error?'error':'ok'},
+    calendars:(cfg.calendars||[]).map((c,i)=>({name:c.label||`Calendar ${i+1}`,type:(String(c.url||'').startsWith('/calendar-files/')?'file':'ics'),enabled:c.enabled!==false,status:calStatuses[i]?.ok===true?'ok':calStatuses[i]?.disabled?'disabled':calStatuses[i]?.pending?'checking':calStatuses[i]?.error?'error':'unknown',checkedAt:calStatuses[i]?.checkedAt||undefined})),
+    integrations:integrationHealthRows.map(r=>({name:r.name,plugin:r.pluginId,status:r.status,errorKind:r.errorKind||undefined,lastSuccessAt:r.lastSuccessAt||undefined,lastAttemptAt:r.lastAttemptAt||undefined,refreshMin:r.refreshMin||undefined})),
+    background:{source:cfg.backgroundSource,configured:cfg.backgroundSource==='stock'||(cfg.backgroundSource==='folders'&&!!cfg.mediaFolders?.length)||!!cfg.photosUrl,photosLoaded:(cfg.backgroundSource==='google'||cfg.backgroundSource==='folders')?(bgSourceImages?.length||0):undefined,stockCategory:cfg.backgroundSource==='stock'?cfg.stockCategory:undefined,stockResolution:cfg.backgroundSource==='stock'?cfg.stockResolution:undefined,mediaFolders:cfg.backgroundSource==='folders'?(cfg.mediaFolders||[]).length:undefined,order:cfg.photoOrder,intervalSec:cfg.photoIntervalSec,status:lastBackgroundStatus?.error?'error':'ok',updatedAt:lastBackgroundStatus?.updatedAt||undefined},
     alerts:{enabled:cfg.alertsEnabled,testMode:cfg.alertTestMode,active:activeWeatherAlerts.length,motion:cfg.alertMotionMode},
     refreshMinutes:{weather:cfg.weatherRefreshMin,calendar:cfg.calendarRefreshMin,alerts:cfg.alertRefreshMin},
     remoteSettings:{mode:REMOTE_SETTINGS_MODE?'remote':'local',serverSync:serverConfigAvailable},
     layout:{mode:cfg.layoutMode||'default',gridPx:cfg.layoutGridPx||20,snap:cfg.layoutSnap!==false,blocks:Object.keys(cfg.layoutBlocks||{})},
     offlineCache:{staleSources:[...new Set([...staleCacheSources.values()].map(v=>v?.name||'remote data'))]}
   };
-  const output=JSON.stringify(diag,null,2);
+}
+function diagnosticsJson(){return JSON.stringify(buildDiagnosticsPayload(),null,2);}
+async function copyDiagnostics(){
+  if(!systemHealthState)await loadSystemHealth();
+  const output=diagnosticsJson();
   let copied=false;
   try{await navigator.clipboard.writeText(output);copied=true;}catch(e){}
   if(!copied){
@@ -6603,6 +7175,13 @@ async function copyDiagnostics(){
   }
   const el=document.getElementById('diagnostics-status');
   if(el){el.style.display='block';el.textContent=copied?'Diagnostics copied. Private calendar/background URLs and coordinates were omitted.':'Could not copy automatically. Browser clipboard access was blocked.';}
+}
+async function downloadDiagnostics(){
+  if(!systemHealthState)await loadSystemHealth();
+  const blob=new Blob([diagnosticsJson()+'\n'],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+  a.href=url;a.download=`LibreDisplay-diagnostics-${stamp}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),500);
+  const el=document.getElementById('diagnostics-status');if(el){el.style.display='block';el.textContent='Diagnostics downloaded. Private calendar/background URLs and coordinates were omitted.';}
 }
 function restorePreviousSettings(){
   let prev=null,current=null;
@@ -6635,40 +7214,53 @@ function setProfileStatus(text,error=false){
   const el=document.getElementById('profile-status');if(!el)return;
   el.textContent=text||'';el.style.display=text?'block':'none';el.style.color=error?'#fca5a5':'';
 }
+function profileDisplayName(endpoint){return displayEndpoints.find(e=>e.id===endpoint)?.name||endpoint||'Unknown display';}
+function renderProfileEndpointSelect(){
+  const sel=document.getElementById('s-profile-endpoint');if(!sel)return;
+  const current=sel.value||ACTIVE_ENDPOINT,rows=displayEndpoints.length?displayEndpoints:[{id:ACTIVE_ENDPOINT,name:ACTIVE_ENDPOINT}];
+  sel.innerHTML='';for(const e of rows)sel.append(new Option(`${e.name||e.id}${e.id===ACTIVE_ENDPOINT?' · current':''}`,e.id));
+  sel.value=rows.some(e=>e.id===current)?current:ACTIVE_ENDPOINT;
+}
 function renderProfileSelect(){
   const sel=document.getElementById('s-profile-select');if(!sel)return;
-  const current=sel.value||profileStore.activeId||'';
+  const active=activeProfileIdForEndpoint(),current=sel.value||active||'';
   sel.innerHTML='';
   if(!profileStore.items.length){sel.append(new Option('No saved profiles yet',''));}
   else{
     sel.append(new Option('Choose a profile…',''));
-    profileStore.items.forEach(p=>sel.append(new Option((p.id===profileStore.activeId?'★ ':'')+p.name,p.id)));
+    profileStore.items.forEach(p=>{const origin=p.sourceEndpoint?` · from ${p.sourceDisplayName||profileDisplayName(p.sourceEndpoint)}`:'';sel.append(new Option((p.id===active?'★ ':'')+p.name+origin,p.id));});
   }
-  sel.value=profileStore.items.some(p=>p.id===current)?current:(profileStore.activeId||'');
-  updateProfileControls();
+  sel.value=profileStore.items.some(p=>p.id===current)?current:(active||'');
+  renderProfileEndpointSelect();updateProfileControls();
 }
 function updateProfileControls(){
-  const sel=document.getElementById('s-profile-select'), name=document.getElementById('s-profile-name');
+  const sel=document.getElementById('s-profile-select'),name=document.getElementById('s-profile-name'),target=document.getElementById('s-profile-endpoint');
   const p=profileStore.items.find(x=>x.id===sel?.value);
   if(name&&p)name.value=p.name;
+  if(target&&!target.value)target.value=ACTIVE_ENDPOINT;
 }
 function uniqueProfileId(){return 'p_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);}
 function profileSnapshot(){const snap=JSON.parse(JSON.stringify(cfg));delete snap._savedAt;return snap;}
+function currentDisplayProfileMeta(){return {sourceEndpoint:ACTIVE_ENDPOINT,sourceDisplayName:profileDisplayName(ACTIVE_ENDPOINT)};}
 function createProfile(){
   if(settingsDirty){setProfileStatus('Save & Apply your current changes before creating a profile.',true);return;}
   const name=(document.getElementById('s-profile-name')?.value||'').trim();
   if(!name){setProfileStatus('Enter a profile name first.',true);return;}
   const id=uniqueProfileId();
-  profileStore.items.push({id,name:name.slice(0,48),config:profileSnapshot(),updatedAt:Date.now()});
-  profileStore.activeId=id;persistProfiles();renderProfileSelect();
-  document.getElementById('s-profile-select').value=id;setProfileStatus(`Saved profile “${name}”.`);
+  profileStore.items.push({id,name:name.slice(0,48),config:profileSnapshot(),updatedAt:Date.now(),...currentDisplayProfileMeta()});
+  setActiveProfileForEndpoint(ACTIVE_ENDPOINT,id);persistProfiles();renderProfileSelect();
+  document.getElementById('s-profile-select').value=id;setProfileStatus(`Saved profile “${name}” from ${profileDisplayName(ACTIVE_ENDPOINT)}.`);
 }
 function updateSelectedProfile(){
   if(settingsDirty){setProfileStatus('Save & Apply your current changes before updating a profile.',true);return;}
   const id=document.getElementById('s-profile-select')?.value,p=profileStore.items.find(x=>x.id===id);
   if(!p){setProfileStatus('Choose a saved profile first.',true);return;}
-  p.config=profileSnapshot();p.updatedAt=Date.now();profileStore.activeId=id;persistProfiles();renderProfileSelect();
-  document.getElementById('s-profile-select').value=id;setProfileStatus(`Updated “${p.name}” from the currently saved dashboard settings.`);
+  p.config=profileSnapshot();p.updatedAt=Date.now();Object.assign(p,currentDisplayProfileMeta());setActiveProfileForEndpoint(ACTIVE_ENDPOINT,id);persistProfiles();renderProfileSelect();
+  document.getElementById('s-profile-select').value=id;setProfileStatus(`Updated “${p.name}” from the currently saved ${profileDisplayName(ACTIVE_ENDPOINT)} dashboard.`);
+}
+function duplicateSelectedProfile(){
+  const id=document.getElementById('s-profile-select')?.value,p=profileStore.items.find(x=>x.id===id);if(!p){setProfileStatus('Choose a profile to duplicate first.',true);return;}
+  const copyId=uniqueProfileId(),copyName=(p.name+' copy').slice(0,48);profileStore.items.push({...JSON.parse(JSON.stringify(p)),id:copyId,name:copyName,updatedAt:Date.now()});persistProfiles();renderProfileSelect();document.getElementById('s-profile-select').value=copyId;document.getElementById('s-profile-name').value=copyName;setProfileStatus(`Duplicated “${p.name}”.`);
 }
 function renameSelectedProfile(){
   const id=document.getElementById('s-profile-select')?.value,p=profileStore.items.find(x=>x.id===id);
@@ -6679,15 +7271,28 @@ function renameSelectedProfile(){
 function deleteSelectedProfile(){
   const id=document.getElementById('s-profile-select')?.value,p=profileStore.items.find(x=>x.id===id);
   if(!p){setProfileStatus('Choose a saved profile first.',true);return;}
-  if(!confirm(`Delete profile “${p.name}”? This does not delete the active dashboard settings.`))return;
-  profileStore.items=profileStore.items.filter(x=>x.id!==id);if(profileStore.activeId===id)profileStore.activeId='';persistProfiles();renderProfileSelect();setProfileStatus('Profile deleted.');
+  if(!confirm(`Delete profile “${p.name}”? This does not delete any display's current saved settings.`))return;
+  profileStore.items=profileStore.items.filter(x=>x.id!==id);for(const [endpoint,active] of Object.entries(profileStore.activeByEndpoint||{}))if(active===id)delete profileStore.activeByEndpoint[endpoint];if(profileStore.activeId===id)profileStore.activeId='';persistProfiles();renderProfileSelect();setProfileStatus('Profile deleted.');
 }
-function loadSelectedProfile(){
+async function loadSelectedProfile(){
   const id=document.getElementById('s-profile-select')?.value,p=profileStore.items.find(x=>x.id===id);
   if(!p){setProfileStatus('Choose a saved profile first.',true);return;}
   if(settingsDirty&&!confirm('Discard unsaved changes and load this profile?'))return;
   cfg={...cfg,...JSON.parse(JSON.stringify(p.config))};ensureCfgDefaults();cfg.onboardingComplete=true;
-  profileStore.activeId=id;persistProfiles();saveCfg();alertRuntimeState=null;window.__uiPreviewCfg=null;applySettings();openSetup(false);setProfileStatus(`Loaded “${p.name}”.`);
+  setActiveProfileForEndpoint(ACTIVE_ENDPOINT,id);persistProfiles();await saveCfg();alertRuntimeState=null;window.__uiPreviewCfg=null;applySettings();openSetup(false);setProfileStatus(`Loaded “${p.name}” on ${profileDisplayName(ACTIVE_ENDPOINT)}.`);
+}
+function endpointConfigPath(endpoint){return '/api/config?endpoint='+encodeURIComponent(endpoint||ACTIVE_ENDPOINT);}
+async function applySelectedProfileToDisplay(){
+  const id=document.getElementById('s-profile-select')?.value,p=profileStore.items.find(x=>x.id===id),endpoint=document.getElementById('s-profile-endpoint')?.value||ACTIVE_ENDPOINT;
+  if(!p){setProfileStatus('Choose a saved profile first.',true);return;}
+  const label=profileDisplayName(endpoint);if(!confirm(`Apply profile “${p.name}” to “${label}”?
+
+This replaces that display's saved dashboard configuration. The profile itself is not changed.`))return;
+  try{const next=JSON.parse(JSON.stringify(p.config));next.onboardingComplete=true;next._savedAt=Date.now();const res=await fetch(endpointConfigPath(endpoint),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:next}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));setActiveProfileForEndpoint(endpoint,id);persistProfiles();if(endpoint===ACTIVE_ENDPOINT){cfg={...cfg,...next};ensureCfgDefaults();try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));}catch{}alertRuntimeState=null;window.__uiPreviewCfg=null;applySettings();setAppearanceForm(cfg);}setProfileStatus(`Applied “${p.name}” to ${label}.`);renderProfileSelect();}catch(e){setProfileStatus('Could not apply profile: '+(e.message||e),true);}
+}
+async function captureTargetDisplayAsProfile(){
+  const endpoint=document.getElementById('s-profile-endpoint')?.value||ACTIVE_ENDPOINT,label=profileDisplayName(endpoint);let name=(document.getElementById('s-profile-name')?.value||'').trim();if(!name)name=label;
+  try{const res=await fetch(endpointConfigPath(endpoint),{cache:'no-store'}),data=await res.json();if(!res.ok||!data.ok||!data.config)throw new Error(data.error||'That display does not have a saved configuration yet.');const id=uniqueProfileId();const snap=JSON.parse(JSON.stringify(data.config));delete snap._savedAt;profileStore.items.push({id,name:name.slice(0,48),config:snap,updatedAt:Date.now(),sourceEndpoint:endpoint,sourceDisplayName:label});persistProfiles();renderProfileSelect();document.getElementById('s-profile-select').value=id;document.getElementById('s-profile-name').value=name.slice(0,48);setProfileStatus(`Captured ${label} as profile “${name.slice(0,48)}”.`);}catch(e){setProfileStatus('Could not capture display: '+(e.message||e),true);}
 }
 
 function sceneProfileOptions(selected='',allowEmpty=true){
@@ -6731,14 +7336,35 @@ const STARTER_TEMPLATES={
 };
 function applyStarterTemplate(key){
   const patch=STARTER_TEMPLATES[key];if(!patch)return;
-  const current=appearanceFromForm(),preview={...current,...JSON.parse(JSON.stringify(patch))};
-  if(cfg.layoutMode==='custom')for(const prop of CUSTOM_LAYOUT_PRESET_PRESERVE_KEYS)preview[prop]=current[prop];
+  const current=appearanceFromForm(),preview=preservePresetState({...current,...JSON.parse(JSON.stringify(patch))},current);
   setAppearanceForm(preview);previewAppearance();markSettingsDirty();
-  const el=document.getElementById('template-status');if(el)el.textContent='Template preview applied. Cancel/Esc restores your last saved dashboard; Save & Apply keeps it.';
+  const el=document.getElementById('template-status');if(el)el.textContent='Template preview only — your saved layout has not changed. Cancel/Esc restores the exact saved view; Save & Apply keeps this presentation.';
 }
 
+function currentWizardDisplayName(){
+  return String(displayEndpoints.find(e=>e.id===ACTIVE_ENDPOINT)?.name||(ACTIVE_ENDPOINT==='main'?'Main display':ACTIVE_ENDPOINT));
+}
+function beginWizardSession(){
+  wizardStepIndex=0;
+  wizardDisplayNameDraft=currentWizardDisplayName();
+  wizardDisplayNameTouched=false;
+  wizardCreateBaseline=true;
+  wizardBaselineCreated=false;
+  wizardHealthRunning=false;
+  wizardHealthRows=[];
+  wizardHealthNotices=[];
+  wizardRestorePointCount=null;
+  wizardLastSaveResult=null;
+}
+function syncWizardDisplayNameFromEndpoints(){
+  if(!isWizardMode||wizardDisplayNameTouched)return;
+  wizardDisplayNameDraft=currentWizardDisplayName();
+  if(WIZARD_STEPS[wizardStepIndex]?.key==='display')renderWizardStep();
+}
 function setWizardMode(on){
+  const was=isWizardMode;
   isWizardMode=!!on;
+  if(isWizardMode&&!was)beginWizardSession();
   const setup=document.getElementById('setup');setup?.classList.toggle('wizard-mode',isWizardMode);
   if(isWizardMode){wizardStepIndex=Math.max(0,Math.min(wizardStepIndex,WIZARD_STEPS.length-1));renderWizardStep();}
 }
@@ -6752,48 +7378,123 @@ function renderWizardSummary(){
   const unit=document.getElementById('s-unit')?.value==='C'?'Celsius':'Fahrenheit';
   const themeKey=document.querySelector('.theme-choice-card.selected')?.dataset.theme||cfg.uiTheme||'libre-night';
   const theme=LIBREDISPLAY_THEMES[themeKey]?.name||'Libre Night';
-  el.innerHTML=[['Location',city],['Calendars',`${calendars} connected`],['Background',bgLabel],['Weather',unit],['Alerts',alerts],['Theme',theme]]
+  const remote=remoteInfo?.remoteEnabled?'Enabled for trusted private-network clients':'Disabled';
+  const recovery=wizardCreateBaseline?'Create an Initial setup baseline':'Skip initial restore point';
+  const display=(wizardDisplayNameDraft||currentWizardDisplayName()).trim()||currentWizardDisplayName();
+  el.innerHTML=[['Display',display],['Location',city],['Calendars',calendars?`${calendars} connected`:'None yet'],['Background',bgLabel],['Weather',unit],['Alerts',alerts],['Theme',theme],['Remote editing',remote],['Recovery',recovery]]
     .map(([a,b])=>`<div class="wizard-summary-card"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join('');
+}
+function wizardHealthCard(name,detail,state='warn'){
+  return `<div class="wizard-health-card"><b>${escHtml(name)}<i class="wizard-health-dot ${escHtml(state)}" aria-hidden="true"></i></b><span>${escHtml(detail)}</span></div>`;
+}
+function buildWizardHealthRows(){
+  const rows=[];
+  rows.push({name:'Saved configuration',detail:serverConfigAvailable?'Saved to the LibreDisplay server':'Browser fallback is active; server persistence could not be confirmed',state:serverConfigAvailable?'good':'warn'});
+  rows.push({name:'Weather',detail:weatherLastError?(wxData?'Live refresh failed; last good forecast retained':weatherLastError):(wxData?'Forecast loaded for the verified location':(cfg.lat&&cfg.lon?'Verified location saved; waiting for forecast data':'Location is not configured')),state:weatherLastError?(wxData?'warn':'bad'):(wxData?'good':(cfg.lat&&cfg.lon?'warn':'bad'))});
+  const enabledCalendars=(cfg.calendars||[]).filter(c=>c.enabled!==false&&(c.url||c.configured));
+  const calendarFailures=(calStatuses||[]).filter(x=>x&&!x.pending&&!x.disabled&&x.ok===false).length;
+  rows.push({name:'Calendars',detail:enabledCalendars.length?(calendarFailures?`${calendarFailures} calendar source${calendarFailures===1?'':'s'} need attention`:`${enabledCalendars.length} enabled calendar${enabledCalendars.length===1?'':'s'} configured`):'No calendars configured — this is optional',state:calendarFailures?'bad':'good'});
+  const bgReady=cfg.backgroundSource==='none'||cfg.backgroundSource==='stock'||(cfg.backgroundSource==='folders'&&!!cfg.mediaFolders?.length)||(cfg.backgroundSource==='google'&&!!cfg.photosUrl);
+  rows.push({name:'Background',detail:bgReady?(cfg.backgroundSource==='none'?'Photo background disabled by choice':'Background source configured'):'Background source still needs setup',state:bgReady?'good':'warn'});
+  rows.push({name:'Remote management',detail:remoteInfo?.remoteEnabled?'Enabled on the trusted private network':'Disabled — local-only management is valid',state:'good'});
+  const recoveryReady=wizardBaselineCreated||(Number(wizardRestorePointCount)||0)>0;
+  rows.push({name:'Recovery',detail:recoveryReady?`${wizardBaselineCreated?'Initial setup baseline created':wizardRestorePointCount+' local restore point'+(wizardRestorePointCount===1?'':'s')+' available'}`:(SESSION_ROLE==='owner'?'No local restore point yet':'Restore-point status requires Owner access'),state:recoveryReady?'good':'warn'});
+  if(systemHealthState?.ok){const freePct=Number(systemHealthState.disk?.freePercent)||0;rows.push({name:'Host health',detail:`Data directory ${systemHealthState.dataWritable?'writable':'not writable'}${freePct?` · ${freePct.toFixed(0)}% storage free`:''}`,state:systemHealthState.dataWritable&&(freePct===0||freePct>=10)?'good':systemHealthState.dataWritable?'warn':'bad'});}
+  else rows.push({name:'Host health',detail:'System health is not available yet',state:'warn'});
+  if(softwareUpdateState?.ok)rows.push({name:'Software',detail:softwareUpdateState.updateAvailable?`v${softwareUpdateState.latestVersion} is available`:`Up to date · v${softwareUpdateState.currentVersion||DASHBOARD_BUILD}`,state:softwareUpdateState.updateAvailable?'warn':'good'});
+  else rows.push({name:'Software',detail:'GitHub release check unavailable or still pending',state:'warn'});
+  return rows;
+}
+function renderWizardHealth(){
+  const extra=document.getElementById('wizard-extra');if(!extra)return;
+  const rows=wizardHealthRows.length?wizardHealthRows:buildWizardHealthRows();
+  extra.innerHTML=`<div class="wizard-health-grid">${rows.map(r=>wizardHealthCard(r.name,r.detail,r.state)).join('')}</div><div class="wizard-health-actions"><button class="btn-util" type="button" onclick="runWizardHealthChecks()" ${wizardHealthRunning?'disabled':''}>${wizardHealthRunning?'Checking…':'Run checks again'}</button><span class="wizard-health-status">${wizardHealthRunning?'Testing live data sources and local health. This can take a few seconds.':'Warnings are informational; optional features can stay disabled.'}</span></div>`;
+}
+function renderWizardExtra(step){
+  const extra=document.getElementById('wizard-extra');if(!extra)return;
+  extra.className='wizard-extra'+(step.key==='welcome'?' welcome':'');
+  if(step.key==='welcome'){
+    extra.innerHTML='<div class="wizard-feature-grid"><div><b>Guided, not separate</b><span>The wizard uses LibreDisplay’s real Settings controls, so there is no hidden second configuration path.</span></div><div><b>Exact location</b><span>Weather setup requires choosing the exact region, country, coordinates, and timezone before saving.</span></div><div><b>Recoverable</b><span>Optionally create a local baseline restore point immediately after first setup.</span></div></div>';
+  }else if(step.key==='display'){
+    if(SESSION_ROLE!=='owner')extra.innerHTML='<div class="wizard-inline-note">Display naming requires Owner access. You can continue with the existing name.</div>';
+    else extra.innerHTML=`<div class="wizard-form-card"><div class="s-row"><label for="wizard-display-name">Display name</label><input id="wizard-display-name" type="text" maxlength="80" value="${escHtml(wizardDisplayNameDraft||currentWizardDisplayName())}" placeholder="Living Room, Kitchen, Office…" oninput="wizardDisplayNameDraft=this.value;wizardDisplayNameTouched=true"></div><div class="wizard-inline-note">This is the friendly name shown in multi-display management. The internal endpoint ID remains unchanged.</div></div>`;
+  }else if(step.key==='remote'){
+    extra.innerHTML='<div class="wizard-inline-note">Remote editing is optional. Keep it disabled for a local-only installation, or enable it only on a trusted LAN/private VPN. Never port-forward LibreDisplay directly to the public internet.</div>';
+  }else if(step.key==='backup'){
+    extra.innerHTML=`<div class="wizard-form-card"><label class="checkline"><input id="wizard-create-baseline" type="checkbox" ${wizardCreateBaseline?'checked':''} onchange="wizardCreateBaseline=this.checked"> Create a private “Initial setup baseline” restore point after saving</label><div class="wizard-inline-note">Recommended. This captures the saved display configuration plus Profiles and Scenes after setup. Full .ldbackup files remain the option for media, plugins, environment secrets, and host/NAS state.</div></div>`;
+  }else if(step.key==='health')renderWizardHealth();
+  else extra.innerHTML='';
 }
 function renderWizardStep(){
   if(!isWizardMode)return;
   const step=WIZARD_STEPS[wizardStepIndex];
   document.querySelectorAll('.s-section[data-settings-tab]').forEach(el=>el.classList.remove('tab-active'));
-  for(const id of step.sections){document.getElementById(id)?.classList.add('tab-active');}
-  const summary=document.getElementById('wizard-summary');summary?.classList.toggle('visible',step.key==='finish');
-  if(step.key==='finish')renderWizardSummary();
-  const extra=document.getElementById('wizard-extra');
-  if(extra){
-    extra.className='wizard-extra'+(step.key==='welcome'?' welcome':'');
-    if(step.key==='welcome')extra.innerHTML='<div class="wizard-feature-grid"><div><b>Local-first</b><span>Your settings and media sources stay under your control.</span></div><div><b>Flexible</b><span>Pi, Docker, local folders, NAS photos, calendars and custom layouts.</span></div><div><b>Remote editing</b><span>Pair a trusted phone or computer without exposing the display publicly.</span></div></div>';
-    else if(step.key==='remote')extra.innerHTML='<div class="wizard-inline-note">You can safely skip this step if the display will only be edited locally.</div>';
-    else extra.innerHTML='';
-  }
-  const label=document.getElementById('wizard-step-label'),bar=document.getElementById('wizard-progress-bar'),title=document.getElementById('wizard-title'),desc=document.getElementById('wizard-desc');
+  for(const id of step.sections){const section=document.getElementById(id);section?.classList.add('tab-active');section?.classList.remove('section-collapsed');section?.querySelector(':scope > h3')?.setAttribute('aria-expanded','true');}
+  const summary=document.getElementById('wizard-summary');summary?.classList.toggle('visible',step.key==='review');
+  if(step.key==='review')renderWizardSummary();
+  renderWizardExtra(step);
+  const label=document.getElementById('wizard-step-label'),modeLabel=document.getElementById('wizard-mode-label'),bar=document.getElementById('wizard-progress-bar'),title=document.getElementById('wizard-title'),desc=document.getElementById('wizard-desc');
   if(label)label.textContent=`Step ${wizardStepIndex+1} of ${WIZARD_STEPS.length}`;
+  if(modeLabel)modeLabel.textContent=cfg.onboardingComplete?'Guided setup':'First-run setup';
   if(bar)bar.style.width=`${((wizardStepIndex+1)/WIZARD_STEPS.length)*100}%`;
   if(title)title.textContent=step.title;if(desc)desc.textContent=step.desc;
   const back=document.getElementById('wizard-back'),skip=document.getElementById('wizard-skip'),next=document.getElementById('wizard-next');
-  if(back)back.disabled=wizardStepIndex===0;
+  if(back)back.disabled=wizardStepIndex===0||step.key==='health';
   if(skip)skip.style.display=step.skippable?'':'none';
-  if(next)next.textContent=step.key==='finish'?'Finish & Save':step.key==='welcome'?'Start setup':'Next';
+  if(next){next.disabled=wizardHealthRunning;next.textContent=step.key==='review'?'Save & run checks':step.key==='health'?'Open dashboard':step.key==='welcome'?'Start setup':'Next';}
   updateBackgroundSourceUI();
   const box=document.querySelector('.setup-box');if(box)box.scrollTop=0;
 }
-function wizardBack(){if(wizardStepIndex>0){wizardStepIndex--;renderWizardStep();}}
+async function wizardCommitDisplayName(){
+  if(SESSION_ROLE!=='owner')return {ok:true,skipped:true};
+  const name=String(wizardDisplayNameDraft||'').trim().slice(0,80);
+  if(!name)return {ok:true,skipped:true};
+  const current=currentWizardDisplayName();if(name===current)return {ok:true,skipped:true};
+  try{await endpointAction({action:'rename',id:ACTIVE_ENDPOINT,name});const row=displayEndpoints.find(e=>e.id===ACTIVE_ENDPOINT);if(row)row.name=name;wizardDisplayNameDraft=name;return {ok:true};}catch(e){return {ok:false,error:String(e?.message||e)};}
+}
+async function wizardCreateSetupBaseline(){
+  if(!wizardCreateBaseline||SESSION_ROLE!=='owner')return {ok:true,skipped:true};
+  try{const res=await fetch('/api/restore-points',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create',endpoint:ACTIVE_ENDPOINT,label:'Initial setup baseline'}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||`HTTP ${res.status}`);wizardBaselineCreated=true;wizardRestorePointCount=Array.isArray(data.points)?data.points.length:wizardRestorePointCount;return {ok:true};}catch(e){return {ok:false,error:String(e?.message||e)};}
+}
+async function wizardLoadRestorePointCount(){
+  if(SESSION_ROLE!=='owner'){wizardRestorePointCount=null;return;}
+  try{const res=await fetch('/api/restore-points',{cache:'no-store'}),data=await res.json().catch(()=>({}));if(res.ok&&data.ok)wizardRestorePointCount=Array.isArray(data.points)?data.points.length:0;}catch(e){}
+}
+async function runWizardHealthChecks(){
+  if(wizardHealthRunning)return;wizardHealthRunning=true;wizardHealthRows=[...wizardHealthNotices];renderWizardHealth();
+  const jobs=[loadRemoteInfo(),loadSystemHealth(),checkSoftwareUpdate(false),refreshProviderHealth(true),wizardLoadRestorePointCount()];
+  await Promise.allSettled(jobs);
+  wizardHealthRows=[...wizardHealthNotices,...buildWizardHealthRows()];wizardHealthRunning=false;renderWizardStep();
+}
+async function wizardSaveAndRunChecks(){
+  const next=document.getElementById('wizard-next');if(next)next.disabled=true;
+  const saveResult=await saveSetup({closeAfter:false});
+  if(!saveResult?.ok){if(next)next.disabled=false;return;}
+  wizardLastSaveResult=saveResult;
+  const rename=await wizardCommitDisplayName();
+  const baseline=await wizardCreateSetupBaseline();
+  wizardStepIndex=WIZARD_STEPS.findIndex(x=>x.key==='health');
+  wizardHealthRows=[];wizardHealthNotices=[];
+  if(!rename.ok)wizardHealthNotices.push({name:'Display name',detail:`Saved dashboard, but the display name could not be updated: ${rename.error}`,state:'warn'});
+  if(!baseline.ok)wizardHealthNotices.push({name:'Recovery',detail:`Saved dashboard, but the initial restore point could not be created: ${baseline.error}`,state:'warn'});
+  renderWizardStep();
+  await runWizardHealthChecks();
+}
+function wizardBack(){if(wizardStepIndex>0&&WIZARD_STEPS[wizardStepIndex]?.key!=='health'){wizardStepIndex--;renderWizardStep();}}
 function wizardSkip(){if(wizardStepIndex<WIZARD_STEPS.length-1){wizardStepIndex++;renderWizardStep();}}
-function wizardNext(){
+async function wizardNext(){
   const step=WIZARD_STEPS[wizardStepIndex];
   if(step.key==='location'){
     const q=String(document.getElementById('s-city')?.value||'').trim();
     if(!q){alert('Enter a city or place before continuing.');document.getElementById('s-city')?.focus();return;}
     if(!pendingWeatherLocation){alert('Use Find places and choose the exact city/region/country match before continuing.');document.getElementById('s-city')?.focus();return;}
   }
-  if(step.key==='finish'){saveSetup();return;}
+  if(step.key==='review'){await wizardSaveAndRunChecks();return;}
+  if(step.key==='health'){closeSetup(false);applySettings();return;}
   wizardStepIndex++;renderWizardStep();
 }
 function openFullSettingsFromWizard(){setWizardMode(false);switchSettingsTab('overview',false);}
-function startWizardFromSettings(){wizardStepIndex=0;setWizardMode(true);}
+function startWizardFromSettings(){setWizardMode(true);}
 
 function newCalendarId(){return 'cal-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);}
 function calendarRowsFromDom(){
@@ -6941,7 +7642,7 @@ function previewWeatherLocationLabel(){
   const el=document.getElementById('wx-location');if(!el)return;const value=String(document.getElementById('s-locname')?.value||'').trim();el.textContent=value;el.classList.toggle('show',!!value);scheduleBuiltInLayoutAutoFit?.();
 }
 
-async function saveSetup(){
+async function saveSetup(options={}){
   const city=document.getElementById('s-city').value.trim();
   if(!city){alert('Enter a city name');return;}
   const requestedLabel=document.getElementById('s-locname').value.trim();
@@ -6983,10 +7684,11 @@ async function saveSetup(){
   alertRuntimeState=null;
   Object.assign(cfg,appearanceFromForm());
   cfg.onboardingComplete=true;
-  saveCfg();
+  const persistence=await saveCfg();
   markSettingsClean();
-  closeSetup(false);
+  if(options?.closeAfter!==false)closeSetup(false);
   applySettings();
+  return {ok:true,persistence};
 }
 
 let settingsPreviewMode=false;
@@ -7020,12 +7722,19 @@ function requestCloseSetup(){
 
 function restoreSavedSettingsPreview(){
   window.__uiPreviewCfg=null;alertRuntimeState=null;
-  if(!document.getElementById('setup')?.classList.contains('hidden'))setAppearanceForm(cfg);
-  // Preset previews can rebuild generated weather/forecast DOM and alter runtime
-  // presentation state. Cancel must restore the entire saved dashboard, not only
-  // CSS variables, otherwise a discarded preset can leave the live layout changed.
-  applySettings();
+  // Always restore the Settings form itself, even when the modal is being closed.
+  // This prevents a discarded preset/template from becoming the starting point
+  // the next time Settings opens.
+  setAppearanceForm(cfg);
+  // Restore the saved presentation immediately from in-memory data; do not wait
+  // for a provider/network refresh before rebuilding generated weather/calendar DOM.
+  applyUiCustomization(cfg);
+  if(wxData)renderWeather(wxData);
+  renderCalendar(window.__lastCalendarEvents||[]);
+  renderWeatherDetailsSettings();
   tick();
+  // Restart normal refresh timers after the synchronous rollback is visible.
+  applySettings();
 }
 function closeSetup(revertPreview=true){
   settingsPreviewMode=false;
@@ -7039,12 +7748,13 @@ function closeSetup(revertPreview=true){
 }
 function skipSetup(){closeSetup();}
 
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(ensureAlertMotionRunning,120);});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){setTimeout(ensureAlertMotionRunning,120);if(!document.getElementById('setup')?.classList.contains('hidden'))setTimeout(()=>checkSoftwareUpdate(false),400);}});
 window.addEventListener('resize',()=>setTimeout(ensureAlertMotionRunning,120));
+setInterval(()=>{if(!document.hidden&&!document.getElementById('setup')?.classList.contains('hidden'))checkSoftwareUpdate(false);},30*60*1000);
 
 function openSetup(startWizard=false){
   if(settingsPreviewMode){returnToSettingsPreview();return;}
-  setTimeout(()=>{loadRemoteInfo();loadCacheStatus();loadDisplayEndpoints();loadHouseholdSettings();loadIntegrationHealth();checkSoftwareUpdate(false);},0);
+  setTimeout(()=>{loadRemoteInfo();loadCacheStatus();loadDisplayEndpoints();loadHouseholdSettings();loadIntegrationHealth();checkSoftwareUpdate(false);loadSystemHealth();loadReleaseRollbacks();},0);
   settingsInitializing=true;
   clearSettingsInitializationError();
   ensureCfgDefaults();
@@ -7161,7 +7871,7 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-endpoints':'Create and manage independent screen endpoints from one server.',
   'settings-remote':'Manage LibreDisplay from another device on your trusted network.',
   'settings-users':'Create local accounts and control which displays each role can manage.',
-  'settings-profiles':'Save and switch complete dashboard configurations.',
+  'settings-profiles':'Save, duplicate, capture, and apply complete dashboard configurations across named displays.',
   'settings-scenes':'Schedule saved Profiles by display, day and time.',
   'settings-family':'Household members, chores, rewards and touch-mode protection.',
   'settings-location':'Weather location and the label shown on the dashboard.',
@@ -7176,11 +7886,16 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-theme':'Choose a LibreDisplay color theme and dashboard font.',
   'settings-accessibility':'Language, reduced motion, contrast and keyboard focus.',
   'settings-settings-button':'Move and soften the Settings cog so it stays available without distracting from the dashboard.',
-  'settings-integrations':'Browse installed providers and review connection health.',
+  'settings-integrations':'Browse installed providers, test live connections, and review refresh health without exposing credentials.',
+  'settings-provider-health':'Review weather, calendars, backgrounds, alerts, and integrations in one privacy-safe troubleshooting view.',
   'settings-layout-presentation':'Text treatment and default content sizing for built-in dashboard elements.',
   'settings-layout':'Arrange the dashboard, apply layout presets, and choose clock/content visibility.',
   'settings-layout-geometry':'Power-user geometry, forecast density, calendar range, spacing and scrolling controls.',
-  'settings-software-update':'Check the installed release and see the one-command update instruction.',
+  'settings-display-readiness':'Checks target-screen viewport, orientation, browser scale, and local kiosk heartbeat so display problems are visible without changing the layout.',
+  'settings-system-health':'Host uptime, deployment mode, storage headroom, and local runtime health.',
+  'settings-software-update':'Check GitHub releases and install supported native updates directly from Settings.',
+  'settings-update-history':'Review private pre-update snapshots and safely return a native installation to a previous release.',
+  'settings-backup-recovery':'Portable configuration backups and local restore points for safe migration and recovery.',
   'settings-utilities':'Backup, restore, cache, diagnostics and recovery tools.'
 };
 const SETTINGS_CONTROL_HELP={
@@ -7189,7 +7904,7 @@ const SETTINGS_CONTROL_HELP={
   'account-role':'Owner can manage the server and all displays. Viewer access is intended for limited display management and can be restricted to endpoint IDs.',
   'account-password':'Sets or replaces this local account password. Leaving it blank while editing an existing user keeps the current password.',
   'account-endpoints':'Comma-separated display endpoint IDs this non-owner account may manage. Owners automatically have access to every display.',
-  's-profile-select':'Choose a saved dashboard profile to load, rename, update or use as the base for a scheduled scene.',
+  's-profile-select':'Choose a saved dashboard profile to load, duplicate, update, apply to another display, or use as the base for a scheduled scene.',
   's-profile-name':'The friendly name stored with this dashboard profile. Profiles capture presentation and content configuration for later reuse.',
   'scene-automatic':'When enabled, LibreDisplay evaluates scene schedules and switches profiles automatically for the selected display and time.',
   'scene-base-profile':'The profile used whenever no scheduled scene currently matches. This prevents the dashboard from being left in an old scene.',
@@ -7277,6 +7992,9 @@ const SETTINGS_CONTROL_HELP={
   's-bg-blur':'Blurs the background image only. A small blur can make foreground text easier to read over detailed photos.',
   's-bg-fit':'Cover fills the screen and may crop edges. Contain keeps the whole image visible and may leave unused space.',
   's-settings-ui-size':'Changes only the Settings interface size. Dashboard element sizes remain controlled separately.',
+  's-burnin-protection':'Dims the rendered screen after local inactivity without moving, resizing, or rewriting any saved dashboard element.',
+  's-burnin-idle':'Sets how long the local display stays untouched before optional screen-care dimming begins.',
+  's-burnin-brightness':'Sets the brightness used while screen-care dimming is active. Any local interaction immediately restores full brightness.',
   's-motion-preference':'Automatic follows the device preference. Reduced motion minimizes decorative animation while keeping data updates working.',
   's-high-contrast':'Strengthens borders and secondary text contrast throughout Settings for easier visual separation.',
   's-focus-outline':'Keeps a strong keyboard-focus ring visible when navigating Settings with Tab, Shift+Tab, Enter or Space.',
@@ -7426,6 +8144,7 @@ function switchSettingsTab(tab,scrollTop=true){
     btn.setAttribute('aria-selected',on?'true':'false');
   });
   applySettingsSectionVisibility();
+  if(tab==='system'&&settingsSectionRoleAllowed(document.getElementById('settings-backup-recovery'))){loadRestorePoints();loadReleaseRollbacks();}
   if(scrollTop){
     const box=document.querySelector('.setup-box');
     if(box)box.scrollTo({top:0,behavior:'smooth'});
@@ -7441,7 +8160,10 @@ const SETTINGS_SEARCH_ALIASES={
   'settings-layout':'appearance arrange layout editor inspector resize visibility clock forecast show hide snap grid',
   'settings-layout-geometry':'layout geometry spacing ranges columns calendar forecast sizing scroll alignment',
   'settings-settings-button':'settings cog gear button corner opacity',
-  'settings-software-update':'update upgrade release version github',
+  'settings-system-health':'health system host uptime disk storage deployment diagnostics troubleshooting',
+  'settings-software-update':'update upgrade release version github install restart reboot',
+  'settings-update-history':'update history rollback previous version recovery release downgrade restore safety snapshot',
+  'settings-backup-recovery':'backup restore recovery migrate migration portable export import restore point rollback profiles scenes',
   'settings-utilities':'backup restore diagnostics recovery cache export import'
 };
 function settingsSectionSearchText(section){
@@ -7751,7 +8473,6 @@ function displayHydrationRecoveryNeeds(){
 async function retryDisplayHydration(reason='scheduled'){
   if(displayHydrationRecoveryRunning||!(READ_ONLY_DISPLAY_MODE||LOCAL_CLIENT_MODE)||LAYOUT_PREVIEW_MODE)return;
   const need=displayHydrationRecoveryNeeds();if(!need.any)return;
-  console.info('LibreDisplay display hydration recovery',reason,need);
   const jobs=[];
   if(need.weather)jobs.push(Promise.resolve(fetchWeather()));
   if(need.calendars)jobs.push(Promise.resolve(loadCalendars()));
@@ -7769,7 +8490,8 @@ function startDisplayHydrationRecovery(attempt=0){
   }
   displayHydrationRecoveryStarted=true;
   [5000,15000,35000,75000,150000].forEach(ms=>setTimeout(()=>retryDisplayHydration('startup+'+Math.round(ms/1000)+'s'),ms));
-  window.addEventListener('online',()=>setTimeout(()=>retryDisplayHydration('online'),350));
+  window.addEventListener('online',()=>{setServerConnectionState('reconnecting');setTimeout(()=>retryDisplayHydration('online'),350);});
+  window.addEventListener('offline',()=>setServerConnectionState('offline'));
   window.addEventListener('pageshow',()=>setTimeout(()=>retryDisplayHydration('pageshow'),500));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>retryDisplayHydration('visible'),500);});
 }

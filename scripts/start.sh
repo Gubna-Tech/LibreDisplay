@@ -21,7 +21,10 @@ fi
 : "${DASHBOARD_REMOTE_NETWORKS:=private}"
 : "${DASHBOARD_DATA_DIR:=$DATA_DIR}"
 : "${DASHBOARD_ENDPOINT:=main}"
+: "${DASHBOARD_KIOSK_WATCHDOG:=1}"
+: "${DASHBOARD_KIOSK_HEARTBEAT_TIMEOUT:=150}"
 export DASHBOARD_HOST DASHBOARD_PORT DASHBOARD_REMOTE_ENABLED DASHBOARD_REMOTE_NETWORKS DASHBOARD_DATA_DIR DASHBOARD_ENDPOINT
+KIOSK_HEARTBEAT_FILE="$DASHBOARD_DATA_DIR/kiosk-heartbeat.json"
 
 SERVER_PID=""
 BROWSER_PID=""
@@ -71,6 +74,8 @@ done
 [ -n "$BROWSER" ] || { printf 'Chromium was not found.\n' >&2; exit 1; }
 
 launch_browser() {
+  rm -f "$KIOSK_HEARTBEAT_FILE" 2>/dev/null || true
+  BROWSER_STARTED_AT=$(date +%s)
   "$BROWSER" \
     --kiosk \
     --start-maximized \
@@ -98,14 +103,46 @@ while :; do
   fi
 
   launch_browser
+  SERVER_HEALTH_FAILURES=0
   while kill -0 "$SERVER_PID" 2>/dev/null; do
+    if ! curl -fsS --max-time 2 "http://127.0.0.1:${DASHBOARD_PORT}/healthz" >/dev/null 2>&1; then
+      SERVER_HEALTH_FAILURES=$((SERVER_HEALTH_FAILURES + 1))
+      if [ "$SERVER_HEALTH_FAILURES" -ge 3 ]; then
+        printf 'LibreDisplay server health check failed repeatedly; restarting server and kiosk.\n' >&2
+        kill "$SERVER_PID" 2>/dev/null || true
+        break
+      fi
+    else
+      SERVER_HEALTH_FAILURES=0
+    fi
+
     if ! kill -0 "$BROWSER_PID" 2>/dev/null; then
       wait "$BROWSER_PID" 2>/dev/null || true
       BROWSER_PID=""
       sleep 2
       launch_browser
+    elif [ "$DASHBOARD_KIOSK_WATCHDOG" = "1" ]; then
+      NOW=$(date +%s)
+      TIMEOUT=$DASHBOARD_KIOSK_HEARTBEAT_TIMEOUT
+      case "$TIMEOUT" in *[!0-9]*|'') TIMEOUT=150 ;; esac
+      [ "$TIMEOUT" -lt 90 ] && TIMEOUT=90
+      STALE=0
+      if [ -f "$KIOSK_HEARTBEAT_FILE" ]; then
+        HEARTBEAT_MTIME=$(stat -c %Y "$KIOSK_HEARTBEAT_FILE" 2>/dev/null || printf '0')
+        [ $((NOW - HEARTBEAT_MTIME)) -gt "$TIMEOUT" ] && STALE=1
+      elif [ $((NOW - BROWSER_STARTED_AT)) -gt "$TIMEOUT" ]; then
+        STALE=1
+      fi
+      if [ "$STALE" = "1" ]; then
+        printf 'LibreDisplay kiosk heartbeat became stale; restarting Chromium.\n' >&2
+        kill "$BROWSER_PID" 2>/dev/null || true
+        wait "$BROWSER_PID" 2>/dev/null || true
+        BROWSER_PID=""
+        sleep 2
+        launch_browser
+      fi
     fi
-    sleep 2
+    sleep 5
   done
 
   if [ -n "$BROWSER_PID" ]; then

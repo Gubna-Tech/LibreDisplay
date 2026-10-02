@@ -6,7 +6,7 @@ def _token(s,c):
 def fetch(s,c):
  token=_token(s,c); folder=str(s.get('folderId') or 'root').strip(); base='https://graph.microsoft.com/v1.0/me/drive/root/children' if folder=='root' else f'https://graph.microsoft.com/v1.0/me/drive/items/{quote(folder,safe="")}/children'; url=base+'?$select=id,name,file,image,photo,thumbnails&$top=200'; items=[]
  while url and len(items)<clamp_int(s.get('maxPhotos'),1,500,100):
-  data,_,_=request_json(c,url,headers={'Authorization':'Bearer '+token,'User-Agent':'LibreDisplay integration'}); 
+  data,_,_=request_json(c,url,headers={'Authorization':'Bearer '+token,'User-Agent':'LibreDisplay integration'});
   for x in data.get('value') or []:
    mime=str((x.get('file') or {}).get('mimeType') or '')
    if mime.startswith('image/'): items.append({'id':str(x.get('id')),'name':str(x.get('name') or 'Photo')})

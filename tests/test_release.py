@@ -49,7 +49,8 @@ class ReleaseContractTests(unittest.TestCase):
         update = ROOT / "update.sh"
         self.assertTrue(update.is_file())
         source = update.read_text(encoding="utf-8")
-        self.assertIn('"$INSTALL_DIR/scripts/backup.sh"', source)
+        self.assertIn('release-rollback.py', source)
+        self.assertIn('snapshot --to-version "$NEW_VERSION"', source)
         self.assertIn('Your existing settings, display endpoints, media, and custom plugin folders were kept.', source)
 
 
@@ -112,11 +113,50 @@ class ReleaseContractTests(unittest.TestCase):
 
     def test_settings_exposes_calm_update_status(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        server = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
         self.assertIn('id="health-software"', html)
         self.assertIn('id="settings-software-update"', html)
-        self.assertIn('libredisplay update', html)
+        self.assertIn('id="settings-update-badge"', html)
+        self.assertIn('id="software-update-now"', html)
         self.assertIn('function checkSoftwareUpdate', html)
+        self.assertIn('function startSoftwareUpdate', html)
         self.assertIn('/api/update-status', html)
+        self.assertIn('/api/update-now', html)
+        self.assertIn('/api/update-now', server)
+        self.assertIn('/api/restore-points', html)
+        self.assertIn('/api/restore-points', server)
+        self.assertIn('create_restore_point', server)
+        self.assertIn('portable-backup', html)
+        self.assertIn('start_in_app_update', server)
+
+    def test_native_installer_sets_up_narrow_update_helper(self):
+        install = (ROOT / 'install.sh').read_text(encoding='utf-8')
+        update = (ROOT / 'update.sh').read_text(encoding='utf-8')
+        uninstall = (ROOT / 'uninstall.sh').read_text(encoding='utf-8')
+        helper = (ROOT / 'scripts' / 'libredisplay-privileged').read_text(encoding='utf-8')
+        self.assertIn('/usr/local/libexec/libredisplay-privileged', install)
+        self.assertIn('NOPASSWD:', install)
+        self.assertIn('probe, %s install-cli, %s reboot', install)
+        self.assertIn('sudo -n "$PRIV_HELPER" probe', update)
+        self.assertIn('sudo -n "$PRIV_HELPER" reboot', update)
+        self.assertIn('/etc/sudoers.d/libredisplay-', uninstall)
+        self.assertIn('case "${1:-}" in', helper)
+        self.assertIn('install-cli)', helper)
+        self.assertIn('reboot)', helper)
+
+    def test_native_update_keeps_private_version_rollback_snapshots(self):
+        update = (ROOT / "update.sh").read_text(encoding="utf-8")
+        rollback = (ROOT / "scripts" / "release-rollback.py").read_text(encoding="utf-8")
+        server = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
+        html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+        self.assertIn('Creating a safety backup and rollback snapshot', update)
+        self.assertIn('record-update', update)
+        self.assertIn('pre-update.ldbackup', rollback)
+        self.assertIn('verify_snapshot', rollback)
+        self.assertIn('/api/release-rollbacks', server)
+        self.assertIn('/api/release-rollback', server)
+        self.assertIn('id="settings-update-history"', html)
+        self.assertIn('function startReleaseRollback', html)
 
     def test_server_user_agent_uses_release_version_dynamically(self):
         source = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
@@ -331,14 +371,13 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("document.addEventListener('visibilitychange'", html)
         self.assertIn("window.addEventListener('resize',()=>setTimeout(ensureAlertMotionRunning,120));", html)
 
-    def test_v1210_remote_alert_sync_and_readme_promo(self):
+    def test_remote_alert_sync_and_public_readme_hygiene(self):
         html = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        promo = ROOT / "assets" / "libredisplay-promo.png"
-        self.assertTrue(promo.is_file())
-        self.assertIn('src="assets/libredisplay-promo.png"', readme)
-        self.assertIn('width="720"', readme)
-        self.assertLess(readme.index('assets/libredisplay-promo.png'), readme.index('## Quick start — Raspberry Pi'))
+        assets = ROOT / "assets"
+        self.assertTrue((assets / ".gitkeep").is_file())
+        self.assertEqual(sorted(p.name for p in assets.iterdir()), ['.gitkeep'])
+        self.assertNotIn('<img src="assets/', readme)
         self.assertIn("if(setupOpen&&(!REMOTE_SETTINGS_MODE||settingsDirty||settingsPreviewMode))return;", html)
         self.assertIn("setTimeout(()=>{openSetup(false);setTimeout(ensureAlertMotionRunning,120);},0);", html)
         self.assertIn("remoteConfigPollTimer=setInterval(pollServerConfig,REMOTE_SETTINGS_MODE?5000:30000)", html)

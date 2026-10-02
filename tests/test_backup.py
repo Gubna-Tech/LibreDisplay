@@ -53,6 +53,17 @@ class BackupTests(unittest.TestCase):
         with zipfile.ZipFile(archive) as zf:
             self.assertFalse(any("dashboard_cache" in name for name in zf.namelist()))
 
+    def test_runtime_update_logs_are_not_backed_up(self):
+        data = self.root / "data"
+        (data / "update.log").write_text("updating\n", encoding="utf-8")
+        (data / "rollback.log").write_text("rolling back\n", encoding="utf-8")
+        archive = Path(self.tmp.name) / "server.ldbackup"
+        backup_mod.backup(SimpleNamespace(archive=str(archive), include_host=False, host_secrets_dir="/does-not-exist"))
+        with zipfile.ZipFile(archive) as zf:
+            names = set(zf.namelist())
+            self.assertNotIn("payload/data/update.log", names)
+            self.assertNotIn("payload/data/rollback.log", names)
+
     def test_chromium_runtime_symlinks_do_not_block_backup(self):
         chromium = self.root / "data" / "chromium"
         chromium.mkdir()

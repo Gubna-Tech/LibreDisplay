@@ -5,10 +5,6 @@ A free, open-source home dashboard for Raspberry Pi, Docker, NAS, mini PCs, and 
 
 LibreDisplay brings calendars, weather, photos, family chores, tasks, media, charts, alerts, and custom data together on one clean display. It is designed to stay simple for everyday use while keeping advanced controls out of the way until you need them.
 
-<p align="center">
-  <img src="assets/libredisplay-promo.png" alt="LibreDisplay self-hosted dashboard with calendar, weather, alerts, photo background, remote Settings, and Raspberry Pi hardware" width="720">
-</p>
-
 ## Quick start — Raspberry Pi
 
 **Best choice for a dedicated wall display.** Use a current Raspberry Pi OS **with Desktop**.
@@ -36,7 +32,7 @@ rm -rf ~/LibreDisplay-Setup && mkdir -p ~/LibreDisplay-Setup
 **4. Download the latest LibreDisplay release:**
 
 ```bash
-curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.4.5.zip -o /tmp/LibreDisplay.zip
+curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.5.0.zip -o /tmp/LibreDisplay.zip
 ```
 
 **5. Extract LibreDisplay:**
@@ -48,7 +44,7 @@ unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup
 **6. Open the LibreDisplay setup folder:**
 
 ```bash
-cd ~/LibreDisplay-Setup/LibreDisplay-1.4.5
+cd ~/LibreDisplay-Setup/LibreDisplay-1.5.0
 ```
 
 **7. Allow the installer to run:**
@@ -69,12 +65,20 @@ That is it. Reboot when prompted and LibreDisplay will open automatically.
 
 ## First setup
 
-When LibreDisplay opens:
+A new installation opens LibreDisplay's guided setup automatically. The wizard uses the same real Settings controls as the full configuration screen, so there is no separate hidden setup format to keep in sync.
 
-1. Open **Settings**.
-2. Add your calendar, weather location, photos, and any integrations you want.
-3. Open **Personalization** for theme/text choices and **Layout** to arrange the dashboard.
-4. Add more displays later from **Home > Displays** if you want LibreDisplay in multiple rooms.
+The guided flow walks through:
+
+1. **Display name** — give the screen a clear room/purpose name for multi-display management.
+2. **Weather location** — search and choose the exact city/region/country result, including verified coordinates and timezone.
+3. **Calendars** — add ICS feeds or import local `.ics` files, or skip calendars entirely.
+4. **Background** — choose stock images, Google Photos, local/NAS folders, or no photo background.
+5. **Weather alerts and appearance** — choose the essentials without entering the power-user layout controls.
+6. **Remote management** — optionally enable pairing on a trusted LAN/private VPN.
+7. **Recovery** — optionally create an **Initial setup baseline** restore point immediately after the configuration is saved.
+8. **Review & health check** — save once, then verify server persistence, weather, calendars, background readiness, remote access, recovery, host health, and software status.
+
+Experienced users can choose **Open full settings** at any point and configure LibreDisplay directly. The wizard can also be rerun later from **Settings > Home > Run setup wizard**.
 
 Settings open in the simpler **Essentials** view by default. Switch to **All** only when you want advanced and troubleshooting options.
 
@@ -92,27 +96,68 @@ Useful places to remember:
 - **Layout** — dashboard visibility, geometry, presets, and the Arrange editor
 - **Arrange editor** — move/resize blocks, drag the inspector out of the way, and fine-tune individual text sections such as calendar event titles/times without changing day/date headers. When editing remotely, Arrange waits for a fresh wall-display heartbeat and mirrors the Pi’s actual dashboard viewport. The target canvas is scaled independently while the editor toolbar and inspector stay at normal laptop size, so editing controls remain readable and selectable without changing the dashboard geometry.
 - **Integrations** — connect supported services and check their status
-- **System** — displays, accounts, backups, remote access, and advanced options
+- **System** — host health, software updates, displays, display profiles, accounts, backups, diagnostics, remote access, and advanced options
 
 Small **?** buttons beside less-obvious controls provide quick hover/click help without filling the interface with extra instructions.
 
+
+### Display profiles and templates
+
+Open **Settings > System > Display profiles** to save a known-good dashboard as a named profile, duplicate it before experimenting, capture another configured display as a profile, or explicitly apply a profile to a selected display. Profile application is per-display and never edits the saved profile itself. Scenes & schedules can continue using those profiles for time-based switching.
+
+Appearance presets and Starter templates are safe previews. Previewing one may temporarily change the live presentation, but it does not overwrite saved Arrange geometry, Weather Details selection/order, forecast visibility/ranges, or the saved dashboard configuration. **Cancel/Esc restores the exact saved view immediately**; only **Save & Apply** commits the previewed presentation.
+
 ## Updating LibreDisplay
 
-After the first native Raspberry Pi installation, updating is one command. Open **Terminal** and run:
+Native Raspberry Pi installations check the official GitHub releases from **Settings > System > Software update**. When a newer release is available, owners see an update notice and can choose **Update now**. LibreDisplay creates a safety backup, downloads the official release, keeps your settings, media, and custom plugins, installs the update, and restarts the device.
 
-```bash
-libredisplay update
-```
-
-LibreDisplay checks the official GitHub release, downloads the newest version, creates a safety backup, keeps your settings, media, and custom plugins, installs the update, and reboots.
-
-To check for an update without installing anything, run:
+The terminal updater remains available as a recovery/advanced path:
 
 ```bash
 libredisplay check
 ```
 
-Settings also shows when a newer release is available and reminds you of the same update command.
+```bash
+libredisplay update
+```
+
+The first upgrade from an older release to v1.5.0 may ask for `sudo` in Terminal once so LibreDisplay can install its narrowly scoped update helper. After that, supported native installations can install future releases from Settings without entering a terminal command. Automatic unattended updates are not enabled; installing an update always requires an explicit owner action.
+
+Docker installations still update from the Docker host with `./scripts/docker-setup.sh update`; LibreDisplay shows available releases in Settings but does not attempt to rebuild its own host container.
+
+### Update history and version rollback
+
+Supported native updates now create a private **pre-update rollback snapshot** before replacing application files. Open **Settings > System > Update history & rollback** to see the previous release snapshots retained on the Pi. LibreDisplay keeps the newest five automatically.
+
+A version rollback is intentionally stronger than a normal Settings restore point: it verifies the stored snapshot, first creates a fresh recovery snapshot of the current installation, then restores the previous LibreDisplay application together with the settings, media, plugins, and project `.env` captured immediately before that update. The device restarts afterward. This makes a bad release recoverable without requiring a terminal while still keeping the state you are rolling back from recoverable.
+
+Rollback snapshots are private local maintenance data and are not exposed to display/viewer sessions. Docker rollback remains host-managed because a container should not replace its own host deployment.
+
+## System health and diagnostics
+
+Open **Settings > System > Data sources & providers** for one privacy-safe troubleshooting view of weather, calendar feeds, background sources, weather alerts, integrations, and remote-data cache fallback. LibreDisplay distinguishes healthy, delayed/cached, misconfigured, and failed sources without displaying private URLs, tokens, or coordinates.
+
+Open **Settings > System > System health** to see the deployment type, host uptime, free storage, data-directory write status, platform, and load average. The Home page also keeps a compact health summary for weather, calendars, backgrounds, alerts, integrations, offline cache, and software updates.
+
+For support or troubleshooting, choose **Download diagnostics**. The generated JSON intentionally omits private calendar/background URLs, integration credentials, and weather coordinates, while keeping useful version, provider state, refresh timing, cache state, layout, recovery, and host-health information.
+
+### Display readiness and kiosk resilience
+
+Open **Settings > System > Display readiness & kiosk resilience** to check the target screen without changing its layout. LibreDisplay reports the currently observed viewport, portrait/landscape orientation, browser visual scale/device-pixel ratio, and the most recent local kiosk heartbeat. It warns when a viewport is unusually small or browser scaling is not at 100%, which helps separate display/zoom problems from saved Arrange geometry.
+
+Native kiosk installations now have two local watchdogs in `scripts/start.sh`: the server is restarted after repeated `/healthz` failures, and Chromium is restarted when the local dashboard heartbeat stops advancing while the browser process is still alive. The browser heartbeat contains only local endpoint/version/viewport timing information. The screen-side page also tracks EventSource/network state, continues showing last-known cached provider data while disconnected, and automatically refreshes saved configuration/data when the LibreDisplay server reconnects. Screen-only Viewer installs keep Chromium background timers/rendering enabled so long-running weather/calendar refreshes are not throttled simply because the window is kiosked.
+
+Under **Settings > Personalization > Accessibility & language**, optional **Always-on display care** can dim the entire rendered screen after 15, 30, 60, or 120 minutes without local interaction. Any pointer, touch, wheel, or keyboard interaction wakes it immediately. This uses a non-interactive overlay only: it does not move, resize, or rewrite any saved Arrange element. Screen care is off by default.
+
+### Portable backups and restore points
+
+Open **Settings > System > Backup & recovery** for day-to-day migration and rollback tools:
+
+- **Export portable backup** downloads this display's saved configuration, the server's Profiles, and only this display's Scene rules as JSON. It is intended for moving a setup between LibreDisplay installations without copying media, account passwords, pairing secrets, or host/NAS credentials.
+- **Import portable backup** creates a local safety restore point first, then imports the saved display configuration, merges the bundled Profiles, and replaces only the current display's Scene rules while leaving other displays' Scene rules intact.
+- **Local restore points** keep up to 20 private snapshots on the LibreDisplay host so you can return to a known-good configuration after experimentation. They include the current display configuration plus the server-wide Profiles and Scenes stores; restoring one can therefore affect scheduled profiles used by other displays. Restoring a point automatically creates a new **Before restore** point first.
+
+Portable JSON may still contain private calendar URLs or integration credentials from the display configuration, so store it securely. For a complete machine/server backup including media, plugins, `.env`, pairing/account data, or managed NAS host state, keep using the full `.ldbackup` tools documented below.
 
 ## Docker
 
@@ -169,7 +214,7 @@ On the viewer Raspberry Pi, run the next commands **one at a time, in order**.
 **2. Download the viewer setup helper:**
 
 ```bash
-curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.4.5/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
+curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.5.0/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
 ```
 
 **3. Allow the viewer installer to run:**
@@ -242,7 +287,7 @@ Each display can have its own calendars, weather, photos, theme, layout, and rea
 <details>
 <summary><strong>Integrations</strong></summary>
 
-Open **Settings > Integrations** to browse the integrations installed with LibreDisplay. The page shows what is configured and whether each provider is healthy without exposing saved credentials to display-only browsers.
+Open **Settings > Integrations** to browse the integrations installed with LibreDisplay. Configured blocks show live connection health, refresh interval, last successful refresh, last connection check, cached/stale state, and a privacy-safe error category when something fails. **Test connection** forces a live provider request while preserving the last known good cache if the provider is temporarily offline. **Test all configured** checks multiple providers with limited concurrency so troubleshooting does not flood external services. Saved credentials are never rendered in the health payload.
 
 Included integrations cover:
 
@@ -283,7 +328,9 @@ Some providers require your own API key or OAuth credentials. LibreDisplay store
 <details>
 <summary><strong>Backup and restore</strong></summary>
 
-For a native Raspberry Pi installation, create a full LibreDisplay backup with:
+For normal configuration migration or a quick **settings** rollback, use **Settings > System > Backup & recovery** first. Portable backups move one display's configuration plus Profiles and Scenes, while local restore points provide fast on-device configuration rollback without touching media or host secrets. To return the entire native installation to a previous LibreDisplay release after an update, use **Settings > System > Update history & rollback** instead.
+
+For a full native Raspberry Pi installation backup, create a sensitive `.ldbackup` with:
 
 ```bash
 ~/libredisplay/scripts/backup.sh

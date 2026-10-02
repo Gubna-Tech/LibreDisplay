@@ -52,8 +52,9 @@ for name in SingletonCookie SingletonLock SingletonSocket; do
   [ -L "$path" ] && rm -f -- "$path"
 done
 
-printf 'Creating a safety backup...\n'
-"$INSTALL_DIR/scripts/backup.sh"
+printf 'Creating a safety backup and rollback snapshot...\n'
+SNAPSHOT_ID=$(python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" snapshot --to-version "$NEW_VERSION" --quiet)
+printf 'Rollback snapshot: %s\n' "$SNAPSHOT_ID"
 
 printf 'Updating application files...\n'
 rm -rf "$INSTALL_DIR/app" "$INSTALL_DIR/scripts" "$INSTALL_DIR/assets"
@@ -76,20 +77,51 @@ done
 
 printf '%s\n' "$NEW_VERSION" > "$DATA_DIR/.installed"
 chmod 600 "$DATA_DIR/.installed"
-chmod 755 "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh" "$INSTALL_DIR/uninstall.sh" "$INSTALL_DIR/scripts/"*.sh "$INSTALL_DIR/scripts/libredisplay" "$INSTALL_DIR/app/dashboard_server.py"
-sudo install -m 755 "$INSTALL_DIR/scripts/libredisplay" /usr/local/bin/libredisplay
+chmod 755 "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh" "$INSTALL_DIR/uninstall.sh" "$INSTALL_DIR/scripts/"*.sh "$INSTALL_DIR/scripts/libredisplay" "$INSTALL_DIR/scripts/libredisplay-privileged" "$INSTALL_DIR/scripts/release-rollback.py" "$INSTALL_DIR/app/dashboard_server.py"
+
+PRIV_HELPER=/usr/local/libexec/libredisplay-privileged
+helper_ready=0
+if [ -x "$PRIV_HELPER" ] && command -v sudo >/dev/null 2>&1 && sudo -n "$PRIV_HELPER" probe >/dev/null 2>&1; then
+  helper_ready=1
+else
+  # First upgrade to a release that supports browser updates. This one-time setup
+  # may ask for sudo in Terminal; later Settings-driven updates are non-interactive.
+  SUDOERS_NAME=$(id -un | tr -cd 'A-Za-z0-9_.-')
+  sudo install -d -m 755 /usr/local/libexec
+  sudo install -o root -g root -m 755 "$INSTALL_DIR/scripts/libredisplay-privileged" "$PRIV_HELPER"
+  sudoers_tmp=$(mktemp)
+  printf '%s ALL=(root) NOPASSWD: %s probe, %s install-cli, %s reboot\n' "$(id -un)" "$PRIV_HELPER" "$PRIV_HELPER" "$PRIV_HELPER" > "$sudoers_tmp"
+  chmod 600 "$sudoers_tmp"
+  if command -v visudo >/dev/null 2>&1; then sudo visudo -cf "$sudoers_tmp" >/dev/null; fi
+  sudo install -o root -g root -m 440 "$sudoers_tmp" "/etc/sudoers.d/libredisplay-$SUDOERS_NAME"
+  rm -f "$sudoers_tmp"
+  sudo -n "$PRIV_HELPER" probe >/dev/null
+  helper_ready=1
+fi
+
+if [ "$helper_ready" -eq 1 ]; then
+  sudo -n "$PRIV_HELPER" install-cli
+else
+  sudo install -m 755 "$INSTALL_DIR/scripts/libredisplay" /usr/local/bin/libredisplay
+fi
 chmod 644 "$INSTALL_DIR/README.md" "$INSTALL_DIR/LICENSE" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.yml"
 for file in .env.example .gitignore; do
   [ -f "$INSTALL_DIR/$file" ] && chmod 644 "$INSTALL_DIR/$file"
 done
 
+python3 "$INSTALL_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" record-update --from-version "$OLD_VERSION" --to-version "$NEW_VERSION" --snapshot-id "$SNAPSHOT_ID" || true
+
 printf '\nLibreDisplay has been updated to %s.\n' "$NEW_VERSION"
 printf 'Your existing settings, display endpoints, media, and custom plugin folders were kept.\n'
-printf 'A safety backup was created before any application files were replaced.\n'
+printf 'A safety backup and version rollback snapshot were created before application files were replaced.\n'
 
 if [ "$NO_REBOOT" -eq 1 ]; then
   printf 'Reboot when convenient: sudo reboot\n'
 else
   printf 'Rebooting to start the updated release...\n'
-  sudo reboot
+  if [ "${helper_ready:-0}" -eq 1 ]; then
+    sudo -n "$PRIV_HELPER" reboot
+  else
+    sudo reboot
+  fi
 fi

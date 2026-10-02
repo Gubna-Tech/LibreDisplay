@@ -21,6 +21,7 @@ import threading
 import datetime
 import importlib.util
 import queue
+import platform
 
 HOST = os.environ.get("DASHBOARD_HOST", "127.0.0.1")
 PORT = int(os.environ.get("DASHBOARD_PORT", "8787"))
@@ -47,6 +48,7 @@ ENDPOINT_CONFIG_DIR = DATA_ROOT / "endpoints"
 CALENDAR_FILES_DIR = DATA_ROOT / "calendar_files"
 BROKER_DIR = DATA_ROOT / "broker"
 SCENE_BASE_DIR = DATA_ROOT / "scene_base"
+RESTORE_POINTS_DIR = DATA_ROOT / "restore_points"
 HOUSEHOLD_PATH = DATA_ROOT / "dashboard_household.json"
 PLUGINS_ROOT = PROJECT_ROOT / "plugins"
 if str(PLUGINS_ROOT) not in sys.path:
@@ -70,6 +72,7 @@ ENDPOINT_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 CALENDAR_FILES_DIR.mkdir(parents=True, exist_ok=True)
 BROKER_DIR.mkdir(parents=True, exist_ok=True)
 SCENE_BASE_DIR.mkdir(parents=True, exist_ok=True)
+RESTORE_POINTS_DIR.mkdir(parents=True, exist_ok=True)
 
 GOOGLE_BATCH_URL = "https://photos.google.com/u/0/_/PhotosUi/data/batchexecute"
 GOOGLE_RPC_ID = "snAcKc"
@@ -92,6 +95,16 @@ UPDATE_CHECK_LOCK = threading.Lock()
 UPDATE_CHECK_CACHE = {}
 UPDATE_CHECK_TTL_SECONDS = 6 * 60 * 60
 GITHUB_RELEASE_API = "https://api.github.com/repos/Gubna-Tech/LibreDisplay/releases/latest"
+UPDATE_RUN_LOCK = threading.Lock()
+UPDATE_RUN_STATE = {"state": "idle", "startedAt": 0, "targetVersion": "", "error": ""}
+UPDATE_LOG_PATH = DATA_ROOT / "update.log"
+ROLLBACK_LOG_PATH = DATA_ROOT / "rollback.log"
+ROLLBACK_ROOT = Path.home() / "libredisplay-rollbacks"
+MAINTENANCE_HISTORY_PATH = DATA_ROOT / "maintenance_history.json"
+KIOSK_HEARTBEAT_PATH = DATA_ROOT / "kiosk-heartbeat.json"
+PRIVILEGED_HELPER = Path("/usr/local/libexec/libredisplay-privileged")
+ROLLBACK_RUN_LOCK = threading.Lock()
+ROLLBACK_RUN_STATE = {"state": "idle", "startedAt": 0, "targetVersion": "", "snapshotId": "", "error": ""}
 
 
 
@@ -120,6 +133,107 @@ def load_json_path(path, fallback=None):
             return json.load(fh)
     except Exception:
         return fallback
+
+
+def restore_point_slug(value):
+    value = re.sub(r"[^A-Za-z0-9_-]+", "-", str(value or "").strip()).strip("-")[:80]
+    return value
+
+
+def restore_point_path(point_id):
+    point_id = restore_point_slug(point_id)
+    if not point_id:
+        raise ValueError("Invalid restore point id")
+    return RESTORE_POINTS_DIR / f"{point_id}.json"
+
+
+def create_restore_point(endpoint_id="main", label=""):
+    endpoint_id = endpoint_slug(endpoint_id or "main")
+    if not endpoint_by_id(endpoint_id):
+        raise ValueError("Unknown display endpoint")
+    stamp = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+    point_id = f"rp-{stamp.strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3)}"
+    config = load_json_path(endpoint_config_path(endpoint_id), {})
+    if not isinstance(config, dict):
+        config = {}
+    profiles = load_json_path(PROFILES_PATH, {})
+    if not isinstance(profiles, dict):
+        profiles = {}
+    scenes = normalize_scene_store(load_json_path(SCENES_PATH, {}))
+    payload = {
+        "product": "LibreDisplay",
+        "kind": "restore-point",
+        "format": 1,
+        "id": point_id,
+        "label": str(label or "").strip()[:100],
+        "version": APP_VERSION,
+        "createdUtc": stamp.isoformat(),
+        "endpoint": endpoint_id,
+        "config": config,
+        "profiles": profiles,
+        "scenes": scenes,
+    }
+    atomic_write_json_file(restore_point_path(point_id), payload)
+    return payload
+
+
+def restore_point_summary(path):
+    raw = load_json_path(path, {})
+    if not isinstance(raw, dict) or raw.get("product") != "LibreDisplay" or raw.get("kind") != "restore-point":
+        return None
+    try:
+        size = path.stat().st_size
+    except OSError:
+        size = 0
+    return {
+        "id": restore_point_slug(raw.get("id") or path.stem),
+        "label": str(raw.get("label") or "")[:100],
+        "version": str(raw.get("version") or "unknown")[:40],
+        "createdUtc": str(raw.get("createdUtc") or "")[:64],
+        "endpoint": endpoint_slug(raw.get("endpoint") or "main"),
+        "sizeBytes": int(size),
+    }
+
+
+def list_restore_points(limit=20):
+    rows = []
+    for path in RESTORE_POINTS_DIR.glob("*.json"):
+        row = restore_point_summary(path)
+        if row:
+            rows.append(row)
+    rows.sort(key=lambda x: x.get("createdUtc") or "", reverse=True)
+    return rows[:max(1, min(100, int(limit or 20)))]
+
+
+def apply_restore_point(point_id, expected_endpoint=""):
+    path = restore_point_path(point_id)
+    raw = load_json_path(path, None)
+    if not isinstance(raw, dict) or raw.get("product") != "LibreDisplay" or raw.get("kind") != "restore-point" or int(raw.get("format") or 0) != 1:
+        raise ValueError("Restore point is missing or invalid")
+    endpoint_id = endpoint_slug(raw.get("endpoint") or "main")
+    if expected_endpoint and endpoint_slug(expected_endpoint) != endpoint_id:
+        raise ValueError("Restore point belongs to a different display")
+    if not endpoint_by_id(endpoint_id):
+        raise ValueError("Restore point references an unknown display")
+    config = raw.get("config") if isinstance(raw.get("config"), dict) else {}
+    profiles = raw.get("profiles") if isinstance(raw.get("profiles"), dict) else {}
+    scenes = normalize_scene_store(raw.get("scenes") if isinstance(raw.get("scenes"), dict) else {})
+    # Keep a last-chance point before replacing live settings.
+    create_restore_point(endpoint_id, "Before restore")
+    atomic_write_json_file(endpoint_config_path(endpoint_id), config, endpoint_backup_path(endpoint_id))
+    atomic_write_json_file(PROFILES_PATH, profiles)
+    atomic_write_json_file(SCENES_PATH, scenes)
+    publish_event(endpoint_id, "config", {"reason": "restore-point"})
+    return {"endpoint": endpoint_id, "version": str(raw.get("version") or "unknown"), "createdUtc": raw.get("createdUtc") or ""}
+
+
+def prune_restore_points(keep=20):
+    rows = list_restore_points(limit=100)
+    for row in rows[max(1, int(keep or 20)):]:
+        try:
+            restore_point_path(row["id"]).unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 
@@ -614,31 +728,32 @@ def broker_record(key, **values):
         BROKER_STATUS[key] = row
 
 
-def broker_fetch(key, ttl_seconds, fetcher, source=""):
+def broker_fetch(key, ttl_seconds, fetcher, source="", force=False):
     ttl = max(5, min(86400, int(ttl_seconds or 300)))
     cached = broker_load(key)
     now = int(time.time())
-    if cached and now - cached[2] < ttl:
-        broker_record(key, source=source, status="fresh", savedAt=cached[2], age=now-cached[2], error="")
+    if not force and cached and now - cached[2] < ttl:
+        broker_record(key, source=source, status="fresh", savedAt=cached[2], age=now-cached[2], error="", lastSuccessAt=cached[2])
         return cached[0], cached[1], "fresh", now-cached[2]
     lock = broker_lock_for(key)
     with lock:
         cached = broker_load(key)
         now = int(time.time())
-        if cached and now - cached[2] < ttl:
-            broker_record(key, source=source, status="fresh", savedAt=cached[2], age=now-cached[2], error="")
+        if not force and cached and now - cached[2] < ttl:
+            broker_record(key, source=source, status="fresh", savedAt=cached[2], age=now-cached[2], error="", lastSuccessAt=cached[2])
             return cached[0], cached[1], "fresh", now-cached[2]
+        broker_record(key, source=source, lastAttemptAt=now)
         try:
             data, content_type = fetcher()
             broker_save(key, data, content_type, source)
-            broker_record(key, source=source, status="fresh", savedAt=now, age=0, error="")
+            broker_record(key, source=source, status="fresh", savedAt=now, age=0, error="", lastAttemptAt=now, lastSuccessAt=now)
             return data, content_type, "fresh", 0
         except Exception as exc:
             if cached:
                 age = max(0, now-cached[2])
-                broker_record(key, source=source, status="stale", savedAt=cached[2], age=age, error=str(exc)[:240])
+                broker_record(key, source=source, status="stale", savedAt=cached[2], age=age, error=str(exc)[:240], lastAttemptAt=now, lastSuccessAt=cached[2])
                 return cached[0], cached[1], "stale", age
-            broker_record(key, source=source, status="error", savedAt=0, age=0, error=str(exc)[:240])
+            broker_record(key, source=source, status="error", savedAt=0, age=0, error=str(exc)[:240], lastAttemptAt=now, lastSuccessAt=0)
             raise
 
 
@@ -1293,11 +1408,36 @@ def update_deployment_mode():
     return "source"
 
 
+def in_app_update_capability():
+    mode = update_deployment_mode()
+    if mode != "native":
+        if mode == "docker":
+            return False, "Docker updates are performed from the Docker host."
+        return False, "In-app updates are available on native LibreDisplay installations."
+    updater = PROJECT_ROOT / "scripts" / "libredisplay"
+    if not updater.is_file() or not PRIVILEGED_HELPER.is_file() or shutil.which("sudo") is None:
+        return False, "Run one terminal update to enable browser-based updates on this installation."
+    try:
+        result = subprocess.run(
+            ["sudo", "-n", str(PRIVILEGED_HELPER), "probe"],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=3, check=False,
+        )
+        if result.returncode == 0:
+            return True, ""
+    except Exception:
+        pass
+    return False, "Run one terminal update to enable browser-based updates on this installation."
+
+
 def update_status_deployment_fields():
     mode = update_deployment_mode()
+    capable, reason = in_app_update_capability()
     return {
         "deployment": mode,
         "updateCommand": "libredisplay update" if mode == "native" else "",
+        "canUpdateInApp": capable,
+        "inAppUpdateReason": reason,
     }
 
 
@@ -1327,6 +1467,10 @@ def github_update_status(force=False):
         latest_tuple = semantic_version_tuple(latest)
         if current_tuple is None or latest_tuple is None:
             raise ValueError("Invalid release version returned by GitHub")
+        release_url = str(payload.get("html_url") or "").strip()
+        parsed_release = urlparse(release_url) if release_url else None
+        if not parsed_release or parsed_release.scheme != "https" or parsed_release.hostname not in {"github.com", "www.github.com"}:
+            release_url = ""
         result = {
             "ok": True,
             "currentVersion": APP_VERSION,
@@ -1335,6 +1479,9 @@ def github_update_status(force=False):
             "checkedAt": now,
             "source": "github",
             "stale": False,
+            "releaseUrl": release_url,
+            "releaseName": str(payload.get("name") or "").strip()[:160],
+            "publishedAt": str(payload.get("published_at") or "").strip()[:64],
             **update_status_deployment_fields(),
         }
         with UPDATE_CHECK_LOCK:
@@ -1357,6 +1504,257 @@ def github_update_status(force=False):
             "error": "GitHub update check is temporarily unavailable.",
             **update_status_deployment_fields(),
         }
+
+
+def update_run_status():
+    with UPDATE_RUN_LOCK:
+        return dict(UPDATE_RUN_STATE)
+
+
+def _watch_update_process(proc):
+    try:
+        return_code = proc.wait()
+    except Exception as exc:
+        return_code = 1
+        error = str(exc)[:240]
+    else:
+        error = "" if return_code == 0 else f"Updater exited with status {return_code}."
+    with UPDATE_RUN_LOCK:
+        # A successful native update normally stops/reboots this server before this
+        # state is observed. This branch mainly reports download/setup failures.
+        UPDATE_RUN_STATE.update({
+            "state": "completed" if return_code == 0 else "failed",
+            "finishedAt": int(time.time()),
+            "error": error,
+        })
+
+
+def start_in_app_update():
+    status = github_update_status(force=True)
+    if not status.get("ok"):
+        raise RuntimeError(status.get("error") or "Could not check GitHub for updates.")
+    if not status.get("updateAvailable"):
+        return {"ok": True, "state": "current", "targetVersion": status.get("latestVersion") or APP_VERSION}
+    if status.get("deployment") != "native":
+        raise RuntimeError(status.get("inAppUpdateReason") or "In-app updates are available only on native installations.")
+    if not status.get("canUpdateInApp"):
+        raise RuntimeError(status.get("inAppUpdateReason") or "Browser-based updating is not enabled on this installation.")
+    with UPDATE_RUN_LOCK:
+        if UPDATE_RUN_STATE.get("state") in {"starting", "running"}:
+            return {"ok": True, **dict(UPDATE_RUN_STATE)}
+        target = str(status.get("latestVersion") or "").strip()
+        UPDATE_RUN_STATE.clear()
+        UPDATE_RUN_STATE.update({"state": "starting", "startedAt": int(time.time()), "targetVersion": target, "error": ""})
+    updater = PROJECT_ROOT / "scripts" / "libredisplay"
+    UPDATE_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    log = UPDATE_LOG_PATH.open("w", encoding="utf-8")
+    try:
+        proc = subprocess.Popen(
+            [str(updater), "update"],
+            cwd=str(PROJECT_ROOT),
+            stdin=subprocess.DEVNULL,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+            close_fds=True,
+        )
+    except Exception:
+        log.close()
+        with UPDATE_RUN_LOCK:
+            UPDATE_RUN_STATE.update({"state": "failed", "error": "Could not start the updater."})
+        raise
+    log.close()
+    with UPDATE_RUN_LOCK:
+        UPDATE_RUN_STATE.update({"state": "running", "pid": int(proc.pid)})
+    threading.Thread(target=_watch_update_process, args=(proc,), daemon=True).start()
+    return {"ok": True, **update_run_status()}
+
+
+def release_rollback_id(value):
+    value = re.sub(r"[^A-Za-z0-9_.-]+", "-", str(value or "").strip()).strip(".-")[:120]
+    return value if value and value not in {".", ".."} else ""
+
+
+def release_rollback_rows(limit=10):
+    rows = []
+    try:
+        children = list(ROLLBACK_ROOT.iterdir()) if ROLLBACK_ROOT.is_dir() else []
+    except OSError:
+        children = []
+    for child in children:
+        if not child.is_dir() or child.name.startswith("."):
+            continue
+        raw = load_json_path(child / "snapshot.json", {})
+        if not isinstance(raw, dict) or raw.get("product") != "LibreDisplay" or raw.get("kind") != "release-rollback" or int(raw.get("format") or 0) != 1:
+            continue
+        snapshot_id = release_rollback_id(raw.get("id") or child.name)
+        if not snapshot_id or snapshot_id != child.name:
+            continue
+        try:
+            total = int(raw.get("backupBytes") or 0) + int(raw.get("codeBytes") or 0)
+        except Exception:
+            total = 0
+        rows.append({
+            "id": snapshot_id,
+            "fromVersion": str(raw.get("fromVersion") or "unknown")[:40],
+            "toVersion": str(raw.get("toVersion") or "")[:40],
+            "createdUtc": str(raw.get("createdUtc") or "")[:64],
+            "sizeBytes": max(0, total),
+        })
+    rows.sort(key=lambda row: row.get("createdUtc") or "", reverse=True)
+    return rows[:max(1, min(50, int(limit or 10)))]
+
+
+def maintenance_history_rows(limit=20):
+    raw = load_json_path(MAINTENANCE_HISTORY_PATH, {})
+    items = raw.get("items") if isinstance(raw, dict) else []
+    if not isinstance(items, list):
+        return []
+    out = []
+    for row in items[:max(1, min(100, int(limit or 20)))]:
+        if not isinstance(row, dict):
+            continue
+        out.append({
+            "event": str(row.get("event") or "")[:40],
+            "createdUtc": str(row.get("createdUtc") or "")[:64],
+            "fromVersion": str(row.get("fromVersion") or "")[:40],
+            "toVersion": str(row.get("toVersion") or "")[:40],
+            "snapshotId": release_rollback_id(row.get("snapshotId") or ""),
+            "recoverySnapshotId": release_rollback_id(row.get("recoverySnapshotId") or ""),
+        })
+    return out
+
+
+def release_rollback_capability():
+    if update_deployment_mode() != "native":
+        return False, "Version rollback is available on native LibreDisplay installations."
+    script = PROJECT_ROOT / "scripts" / "release-rollback.py"
+    if not script.is_file() or not shutil.which("sudo") or not PRIVILEGED_HELPER.is_file():
+        return False, "Rollback support is not fully installed on this device."
+    try:
+        probe = subprocess.run(["sudo", "-n", str(PRIVILEGED_HELPER), "probe"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3, check=False)
+        if probe.returncode == 0:
+            return True, ""
+    except Exception:
+        pass
+    return False, "Rollback needs the native privileged helper installed by LibreDisplay v1.5.0."
+
+
+def rollback_run_status():
+    with ROLLBACK_RUN_LOCK:
+        return dict(ROLLBACK_RUN_STATE)
+
+
+def _watch_rollback_process(proc):
+    try:
+        code = proc.wait()
+    except Exception as exc:
+        code = 1
+        error = str(exc)[:240]
+    else:
+        error = "" if code == 0 else f"Rollback process exited with status {code}."
+    with ROLLBACK_RUN_LOCK:
+        ROLLBACK_RUN_STATE.update({"state": "completed" if code == 0 else "failed", "finishedAt": int(time.time()), "error": error})
+
+
+def start_release_rollback(snapshot_id):
+    snapshot_id = release_rollback_id(snapshot_id)
+    if not snapshot_id:
+        raise ValueError("Rollback snapshot id is required")
+    row = next((item for item in release_rollback_rows(50) if item.get("id") == snapshot_id), None)
+    if not row:
+        raise ValueError("Rollback snapshot was not found")
+    capable, reason = release_rollback_capability()
+    if not capable:
+        raise RuntimeError(reason)
+    script = PROJECT_ROOT / "scripts" / "release-rollback.py"
+    verify = subprocess.run([sys.executable, str(script), "verify", snapshot_id], cwd=str(PROJECT_ROOT), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60, check=False)
+    if verify.returncode != 0:
+        raise RuntimeError("The selected rollback snapshot failed integrity verification.")
+    with ROLLBACK_RUN_LOCK:
+        if ROLLBACK_RUN_STATE.get("state") in {"starting", "running"}:
+            return {"ok": True, **dict(ROLLBACK_RUN_STATE)}
+        ROLLBACK_RUN_STATE.clear()
+        ROLLBACK_RUN_STATE.update({"state": "starting", "startedAt": int(time.time()), "targetVersion": row.get("fromVersion") or "", "snapshotId": snapshot_id, "error": ""})
+    ROLLBACK_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    log = ROLLBACK_LOG_PATH.open("w", encoding="utf-8")
+    try:
+        proc = subprocess.Popen([sys.executable, str(script), "restore", snapshot_id], cwd=str(PROJECT_ROOT), stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, start_new_session=True, close_fds=True)
+    except Exception:
+        log.close()
+        with ROLLBACK_RUN_LOCK:
+            ROLLBACK_RUN_STATE.update({"state": "failed", "error": "Could not start the rollback process."})
+        raise
+    log.close()
+    with ROLLBACK_RUN_LOCK:
+        ROLLBACK_RUN_STATE.update({"state": "running", "pid": int(proc.pid)})
+    threading.Thread(target=_watch_rollback_process, args=(proc,), daemon=True).start()
+    return {"ok": True, **rollback_run_status()}
+
+
+def release_rollback_payload():
+    capable, reason = release_rollback_capability()
+    return {
+        "ok": True,
+        "deployment": update_deployment_mode(),
+        "canRollback": capable,
+        "reason": reason,
+        "snapshots": release_rollback_rows(),
+        "history": maintenance_history_rows(),
+        "run": rollback_run_status(),
+    }
+
+
+def system_health_payload():
+    try:
+        disk = shutil.disk_usage(DATA_ROOT)
+        disk_payload = {
+            "totalBytes": int(disk.total),
+            "usedBytes": int(disk.used),
+            "freeBytes": int(disk.free),
+            "freePercent": round((disk.free / disk.total) * 100, 1) if disk.total else 0,
+        }
+    except Exception:
+        disk_payload = {}
+    uptime_seconds = None
+    try:
+        uptime_seconds = int(float(Path("/proc/uptime").read_text(encoding="utf-8").split()[0]))
+    except Exception:
+        pass
+    try:
+        load = [round(float(x), 2) for x in os.getloadavg()]
+    except Exception:
+        load = []
+    kiosk = load_json_path(KIOSK_HEARTBEAT_PATH, {})
+    kiosk_payload = {"present": False}
+    if isinstance(kiosk, dict) and kiosk.get("lastSeen"):
+        try:
+            last_seen = float(kiosk.get("lastSeen") or 0)
+            width = max(0, int(kiosk.get("viewportWidth") or 0))
+            height = max(0, int(kiosk.get("viewportHeight") or 0))
+            kiosk_payload = {
+                "present": True,
+                "ageSeconds": max(0, round(time.time() - last_seen, 1)),
+                "endpoint": endpoint_slug(kiosk.get("endpoint") or "main"),
+                "viewport": f"{width}×{height}" if width and height else "",
+                "version": str(kiosk.get("version") or "")[:40],
+            }
+        except Exception:
+            kiosk_payload = {"present": False}
+    return {
+        "ok": True,
+        "version": APP_VERSION,
+        "deployment": update_deployment_mode(),
+        "python": platform.python_version(),
+        "platform": platform.system(),
+        "machine": platform.machine(),
+        "uptimeSeconds": uptime_seconds,
+        "loadAverage": load,
+        "disk": disk_payload,
+        "dataWritable": os.access(DATA_ROOT, os.W_OK),
+        "kioskHeartbeat": kiosk_payload,
+        "update": update_run_status(),
+    }
 
 
 ALLOWED_BROKER_TYPES = {
@@ -1408,7 +1806,7 @@ def integration_block_for(endpoint_id, block_id):
     return None
 
 
-def integration_payload(endpoint_id, block_id):
+def integration_payload(endpoint_id, block_id, force_live=False):
     block = integration_block_for(endpoint_id, block_id)
     if not block:
         raise ValueError("Integration block is not configured for this display")
@@ -1428,7 +1826,7 @@ def integration_payload(endpoint_id, block_id):
         if len(body) > MAX_STATE_BYTES:
             raise OverflowError("Integration result is too large")
         return body, "application/json; charset=utf-8"
-    data, content_type, state, age = broker_fetch(cache_key, refresh * 60, fetcher, f"plugin:{plugin_id}")
+    data, content_type, state, age = broker_fetch(cache_key, refresh * 60, fetcher, f"plugin:{plugin_id}", force=bool(force_live))
     return data, content_type, state, age, manifest
 
 
@@ -1471,6 +1869,33 @@ def invalidate_broker_key(key):
         BROKER_STATUS.pop(key, None)
 
 
+def integration_error_kind(message):
+    text = str(message or "").lower()
+    if not text:
+        return ""
+    if "missing required setting" in text or "not configured" in text:
+        return "configuration"
+    if any(token in text for token in ("401", "403", "unauthorized", "forbidden", "access token", "refresh token", "oauth", "authentication")):
+        return "authentication"
+    if "429" in text or "rate limit" in text or "too many requests" in text:
+        return "rate-limit"
+    if any(token in text for token in ("certificate", "tls", "ssl")):
+        return "tls"
+    if any(token in text for token in ("timed out", "timeout", "name or service not known", "temporary failure", "connection refused", "unreachable", "dns")):
+        return "network"
+    if re.search(r"\b5\d\d\b", text):
+        return "provider"
+    return "request"
+
+
+def public_integration_error(message):
+    text = str(message or "").strip().replace("\r", " ").replace("\n", " ")
+    text = re.sub(r"(https?)://([^/\s?#]+)[^\s]*", r"\1://\2/…", text, flags=re.I)
+    text = re.sub(r"(?i)(bearer\s+)[A-Za-z0-9._~+/=-]+", r"\1[redacted]", text)
+    text = re.sub(r"(?i)(token|secret|password|apikey|api_key|key)=([^&\s]+)", r"\1=[redacted]", text)
+    return text[:240]
+
+
 def integration_status_rows(endpoint_id):
     """Return display-safe integration health without exposing saved credentials."""
     try:
@@ -1478,6 +1903,7 @@ def integration_status_rows(endpoint_id):
     except Exception:
         data = {}
     rows = []
+    now = int(time.time())
     for block in data.get("customBlocks") or []:
         if not isinstance(block, dict) or block.get("type") != "integration":
             continue
@@ -1486,6 +1912,8 @@ def integration_status_rows(endpoint_id):
         with PLUGIN_LOCK:
             plugin = PLUGINS.get(plugin_id)
         manifest = plugin.get("manifest") if plugin else None
+        refresh_min = max(1, min(1440, int(config.get("refreshMin") or (manifest or {}).get("refreshMin") or 5)))
+        refresh_seconds = refresh_min * 60
         row = {
             "blockId": str(block.get("id") or "")[:100],
             "name": str(block.get("name") or (manifest or {}).get("name") or plugin_id or "Integration")[:100],
@@ -1496,10 +1924,15 @@ def integration_status_rows(endpoint_id):
             "status": "unconfigured",
             "age": 0,
             "savedAt": 0,
+            "lastSuccessAt": 0,
+            "lastAttemptAt": 0,
+            "nextRefreshAt": 0,
+            "refreshMin": refresh_min,
             "error": "",
+            "errorKind": "",
         }
         if not plugin:
-            row.update(status="missing", error="Integration plugin is not installed")
+            row.update(status="missing", error="Integration plugin is not installed", errorKind="configuration")
             rows.append(row)
             continue
         try:
@@ -1509,21 +1942,31 @@ def integration_status_rows(endpoint_id):
             with BROKER_LOCK:
                 state = dict(BROKER_STATUS.get(key) or {})
             if state:
+                saved_at = max(0, int(state.get("savedAt") or 0))
+                age = max(0, int(state.get("age") if state.get("age") is not None else (now - saved_at if saved_at else 0)))
+                error = public_integration_error(state.get("error") or "")
                 row.update(
                     status=str(state.get("status") or "ready")[:24],
-                    age=max(0, int(state.get("age") or 0)),
-                    savedAt=max(0, int(state.get("savedAt") or 0)),
-                    error=str(state.get("error") or "")[:240],
+                    age=age,
+                    savedAt=saved_at,
+                    lastSuccessAt=max(0, int(state.get("lastSuccessAt") or saved_at)),
+                    lastAttemptAt=max(0, int(state.get("lastAttemptAt") or 0)),
+                    error=error,
+                    errorKind=integration_error_kind(error),
                 )
             else:
                 cached = broker_load(key)
                 if cached:
                     saved_at = max(0, int(cached[2] or 0))
-                    row.update(status="cached", savedAt=saved_at, age=max(0, int(time.time()) - saved_at))
+                    age = max(0, now - saved_at)
+                    row.update(status="fresh" if age <= refresh_seconds else "stale", savedAt=saved_at, age=age, lastSuccessAt=saved_at)
                 else:
                     row["status"] = "ready"
+            if row["lastSuccessAt"]:
+                row["nextRefreshAt"] = row["lastSuccessAt"] + refresh_seconds
         except Exception as exc:
-            row.update(status="unconfigured", error=str(exc)[:240])
+            error = public_integration_error(exc)
+            row.update(status="unconfigured", error=error, errorKind=integration_error_kind(error))
         rows.append(row)
     return rows[:200]
 
@@ -2260,17 +2703,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return self.json_response(400, {"ok": False, "error": "endpoint and block are required"})
         try:
             params = parse_qs(parsed.query)
-            if str(params.get("check", [""])[0]).lower() in {"1", "true", "yes"}:
-                if not self.authorized(parsed):
-                    return self.json_response(403, {"ok": False, "error": "Editor or Owner access is required to force an integration check."})
-                block = integration_block_for(endpoint_id, block_id)
-                config = block.get("config") if isinstance(block, dict) and isinstance(block.get("config"), dict) else {}
-                plugin_id = plugin_slug(config.get("plugin"))
-                with PLUGIN_LOCK:
-                    plugin = PLUGINS.get(plugin_id)
-                if block and plugin:
-                    invalidate_broker_key(integration_cache_key(plugin_id, integration_clean_settings(block, plugin)))
-            data, content_type, state, age, manifest = integration_payload(endpoint_id, block_id)
+            check_value = str(params.get("check", [""])[0]).strip().lower()
+            force_live = check_value not in {"", "0", "false", "no", "off"}
+            if force_live and not self.authorized(parsed):
+                return self.json_response(403, {"ok": False, "error": "Editor or Owner access is required to force an integration check."})
+            data, content_type, state, age, manifest = integration_payload(endpoint_id, block_id, force_live=force_live)
             return self.bytes_response(200, data, content_type, {
                 "X-LibreDisplay-Broker": state,
                 "X-LibreDisplay-Broker-Age": str(age),
@@ -2279,7 +2716,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         except ValueError as exc:
             return self.json_response(404, {"ok": False, "error": str(exc)})
         except Exception as exc:
-            return self.json_response(502, {"ok": False, "error": f"Integration failed: {exc}"})
+            return self.json_response(502, {"ok": False, "error": "Integration failed: " + public_integration_error(exc), "kind": integration_error_kind(exc)})
 
     def handle_integration_media(self, parsed):
         if not self.require_display_authorized(parsed):
@@ -2404,6 +2841,53 @@ class DashboardHandler(BaseHTTPRequestHandler):
             with REMOTE_SESSION_LOCK:
                 REMOTE_SESSIONS.pop(str(token), None)
             self.send_response(200); self.send_header("Content-Type", "application/json; charset=utf-8"); self.send_header("Set-Cookie", f"{REMOTE_COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict"); payload=b'{"ok":true}'; self.send_header("Content-Length",str(len(payload))); self.end_headers(); self.wfile.write(payload); return
+        if parsed.path == "/api/update-now":
+            if not self.require_owner():
+                return
+            try:
+                return self.json_response(202, start_in_app_update())
+            except RuntimeError as exc:
+                return self.json_response(409, {"ok": False, "error": str(exc)})
+            except Exception:
+                return self.json_response(500, {"ok": False, "error": "Could not start the LibreDisplay update."})
+        if parsed.path == "/api/release-rollback":
+            if not self.require_owner():
+                return
+            try:
+                body = self.read_json_body() or {}
+                return self.json_response(202, start_release_rollback(body.get("id")))
+            except ValueError as exc:
+                return self.json_response(400, {"ok": False, "error": str(exc)})
+            except RuntimeError as exc:
+                return self.json_response(409, {"ok": False, "error": str(exc)})
+            except Exception:
+                return self.json_response(500, {"ok": False, "error": "Could not start the LibreDisplay rollback."})
+        if parsed.path == "/api/restore-points":
+            if not self.require_owner():
+                return
+            try:
+                body = self.read_json_body() or {}
+                action = str(body.get("action") or "").strip().lower()
+                endpoint_id = endpoint_slug(body.get("endpoint") or "main")
+                if action == "create":
+                    point = create_restore_point(endpoint_id, body.get("label") or "Manual restore point")
+                    prune_restore_points(20)
+                    return self.json_response(200, {"ok": True, "point": restore_point_summary(restore_point_path(point["id"])), "points": list_restore_points()})
+                if action == "apply":
+                    result = apply_restore_point(body.get("id"), endpoint_id)
+                    prune_restore_points(20)
+                    return self.json_response(200, {"ok": True, "restored": result, "points": list_restore_points()})
+                if action == "delete":
+                    point_id = restore_point_slug(body.get("id"))
+                    if not point_id:
+                        raise ValueError("Restore point id is required")
+                    restore_point_path(point_id).unlink(missing_ok=True)
+                    return self.json_response(200, {"ok": True, "points": list_restore_points()})
+                raise ValueError("Unknown restore-point action")
+            except ValueError as exc:
+                return self.json_response(400, {"ok": False, "error": str(exc)})
+            except Exception:
+                return self.json_response(500, {"ok": False, "error": "Could not manage restore points."})
         if parsed.path == "/api/users":
             if not self.require_owner():
                 return
@@ -2552,6 +3036,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 }
                 with DEVICE_LOCK:
                     DEVICE_STATE[endpoint_id + ":" + device_id] = row
+                if row["mode"] == "local" and self.client_is_loopback():
+                    atomic_write_json_file(KIOSK_HEARTBEAT_PATH, {
+                        "lastSeen": row["lastSeen"],
+                        "endpoint": endpoint_id,
+                        "viewportWidth": row["layoutWidth"],
+                        "viewportHeight": row["layoutHeight"],
+                        "version": row["version"],
+                    })
                 return self.json_response(200, {"ok": True})
             except ValueError as exc:
                 return self.json_response(400, {"ok": False, "error": str(exc)})
@@ -2846,6 +3338,26 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if force and not self.owner_authorized():
                 force = False
             return self.json_response(200, github_update_status(force=force))
+        if parsed.path == "/api/update-run-status":
+            if not self.require_owner():
+                return
+            return self.json_response(200, {"ok": True, **update_run_status()})
+        if parsed.path == "/api/release-rollbacks":
+            if not self.require_owner():
+                return
+            return self.json_response(200, release_rollback_payload())
+        if parsed.path == "/api/release-rollback-run-status":
+            if not self.require_owner():
+                return
+            return self.json_response(200, {"ok": True, **rollback_run_status()})
+        if parsed.path == "/api/restore-points":
+            if not self.require_owner():
+                return
+            return self.json_response(200, {"ok": True, "points": list_restore_points()})
+        if parsed.path == "/api/system-health":
+            if not self.require_owner():
+                return
+            return self.json_response(200, system_health_payload())
         if parsed.path == "/api/integration-status":
             if not self.require_display_authorized(parsed):
                 return

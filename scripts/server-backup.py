@@ -24,6 +24,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_HOST_SECRET_DIR = Path("/etc/libredisplay")
 FSTAB_PATH = Path("/etc/fstab")
 SKIP_DATA_DIRS = {"dashboard_cache", "broker"}
+SKIP_DATA_FILES = {"update.log", "rollback.log"}
 CHROMIUM_RUNTIME_LINKS = {"SingletonCookie", "SingletonLock", "SingletonSocket"}
 MAX_FILES = 200_000
 CHUNK = 1024 * 1024
@@ -55,12 +56,13 @@ def safe_rel(value: str) -> PurePosixPath:
     return p
 
 
-def iter_regular_files(root: Path, prefix: str, *, skip_top=None, skip_symlink_rel=None):
+def iter_regular_files(root: Path, prefix: str, *, skip_top=None, skip_files=None, skip_symlink_rel=None):
     if not root.exists():
         return
     if root.is_symlink() or not root.is_dir():
         raise RuntimeError(f"Backup source must be a real directory: {root}")
     skip_symlink_rel = {str(value) for value in (skip_symlink_rel or ())}
+    skip_files = {str(value) for value in (skip_files or ())}
     count = 0
     for current, dirs, files in os.walk(root, followlinks=False):
         cur = Path(current)
@@ -69,7 +71,8 @@ def iter_regular_files(root: Path, prefix: str, *, skip_top=None, skip_symlink_r
             dirs[:] = [d for d in dirs if d not in skip_top]
         dirs[:] = sorted(d for d in dirs if d not in {"__pycache__", ".git", ".pytest_cache"} and not (cur / d).is_symlink())
         for name in sorted(files):
-            if name.endswith((".pyc", ".pyo")) or name in {".DS_Store"}:
+            rel_name = (rel_dir / name).as_posix() if rel_dir != Path(".") else name
+            if name.endswith((".pyc", ".pyo")) or name in {".DS_Store"} or rel_name in skip_files:
                 continue
             path = cur / name
             if path.is_symlink():
@@ -131,7 +134,7 @@ def backup(args) -> int:
     plugins_dir = PROJECT_ROOT / "plugins"
     if data_dir.exists():
         chromium_runtime_links = {f"chromium/{name}" for name in CHROMIUM_RUNTIME_LINKS}
-        sources.extend(iter_regular_files(data_dir, "payload/data", skip_top=SKIP_DATA_DIRS, skip_symlink_rel=chromium_runtime_links))
+        sources.extend(iter_regular_files(data_dir, "payload/data", skip_top=SKIP_DATA_DIRS, skip_files=SKIP_DATA_FILES, skip_symlink_rel=chromium_runtime_links))
     if media_dir.exists():
         sources.extend(iter_regular_files(media_dir, "payload/media"))
     if plugins_dir.exists():
@@ -173,6 +176,7 @@ def backup(args) -> int:
         "encrypted": False,
         "notes": "Contains credentials, display tokens, configuration, project-local media and plugins. Protect this file like a password.",
         "cacheExcluded": sorted(SKIP_DATA_DIRS),
+        "runtimeFilesExcluded": sorted(SKIP_DATA_FILES),
         "hostStateIncluded": host_included,
         "hostStateSkipped": host_skipped,
         "files": [],
