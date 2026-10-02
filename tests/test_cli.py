@@ -33,6 +33,20 @@ class CliTests(unittest.TestCase):
         self.assertEqual(release["size"], 0)
         self.assertEqual(release["digest"], "")
 
+    def test_latest_release_prefers_exact_release_asset_with_github_sha256(self):
+        digest = "sha256:" + "a" * 64
+        payload = {"tag_name": "v1.0.1", "assets": [{
+            "name": "LibreDisplay-v1.0.1.zip",
+            "browser_download_url": "https://github.com/Gubna-Tech/LibreDisplay/releases/download/v1.0.1/LibreDisplay-v1.0.1.zip",
+            "digest": digest,
+            "size": 123456,
+        }]}
+        with mock.patch.object(cli, "github_request", return_value=json.dumps(payload).encode("utf-8")):
+            release = cli.latest_release()
+        self.assertEqual(release["digest"], digest)
+        self.assertEqual(release["size"], 123456)
+        self.assertTrue(release["url"].endswith("LibreDisplay-v1.0.1.zip"))
+
     def test_latest_release_rejects_invalid_tag(self):
         payload = {"tag_name": "latest", "assets": []}
         with mock.patch.object(cli, "github_request", return_value=json.dumps(payload).encode("utf-8")):

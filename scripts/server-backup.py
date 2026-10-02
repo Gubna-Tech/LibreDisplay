@@ -12,6 +12,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import shutil
 import stat
 import sys
@@ -324,6 +325,26 @@ def validate_managed_fstab_payload(text: str) -> str:
             raise ValueError("Backup contains an invalid CIFS source")
         if fields[2] == "nfs" and ":" not in fields[0]:
             raise ValueError("Backup contains an invalid NFS source")
+        options = fields[3].split(",")
+        if len(options) != len(set(options)):
+            raise ValueError("Backup contains duplicate LibreDisplay mount options")
+        if fields[2] == "nfs":
+            required = {"ro", "nosuid", "nodev", "noexec", "_netdev", "nofail", "x-systemd.automount", "x-systemd.idle-timeout=60"}
+            if set(options) != required:
+                raise ValueError("Backup contains unsafe or unexpected NFS mount options")
+        else:
+            required = {"ro", "nosuid", "nodev", "noexec", "iocharset=utf8", "vers=3.0", "_netdev", "nofail", "x-systemd.automount", "x-systemd.idle-timeout=60"}
+            variable = [x for x in options if x.startswith("uid=") or x.startswith("gid=")]
+            if len(variable) != 2 or not all(re.fullmatch(r"(?:uid|gid)=\d{1,10}", x) for x in variable):
+                raise ValueError("Backup contains invalid CIFS uid/gid options")
+            auth = [x for x in options if x == "guest" or x.startswith("credentials=")]
+            if len(auth) != 1:
+                raise ValueError("Backup contains invalid CIFS authentication options")
+            if auth[0] != "guest" and auth[0] != f"credentials=/etc/libredisplay/nas-{name}.credentials":
+                raise ValueError("Backup contains an unexpected CIFS credentials path")
+            fixed = set(options) - set(variable) - set(auth)
+            if fixed != required:
+                raise ValueError("Backup contains unsafe or unexpected CIFS mount options")
         out.extend((marker, entry))
     return "\n".join(out).rstrip() + "\n"
 

@@ -14,6 +14,19 @@ SPEC.loader.exec_module(docker_release)
 
 
 class DockerReleaseTests(unittest.TestCase):
+    def test_release_asset_is_used_only_with_sha256_metadata(self):
+        digest = "sha256:" + "b" * 64
+        payload = {"assets": [{
+            "name": "LibreDisplay-v1.2.0.zip",
+            "browser_download_url": "https://github.com/Gubna-Tech/LibreDisplay/releases/download/v1.2.0/LibreDisplay-v1.2.0.zip",
+            "digest": digest,
+            "size": 123,
+        }]}
+        url, found_digest, size = docker_release.release_download(payload, "1.2.0")
+        self.assertTrue(url.endswith("LibreDisplay-v1.2.0.zip"))
+        self.assertEqual(found_digest, digest)
+        self.assertEqual(size, 123)
+
     def make_release(self, root: Path, version: str, marker: str):
         (root / "app").mkdir(parents=True)
         (root / "scripts").mkdir(parents=True)

@@ -22,6 +22,7 @@ import datetime
 import importlib.util
 import queue
 import platform
+import tempfile
 
 HOST = os.environ.get("DASHBOARD_HOST", "127.0.0.1")
 PORT = int(os.environ.get("DASHBOARD_PORT", "8787"))
@@ -64,6 +65,8 @@ REMOTE_ACCESS_PATH = DATA_ROOT / "remote_access.json"
 USERS_PATH = DATA_ROOT / "dashboard_users.json"
 REMOTE_SESSION_LOCK = threading.Lock()
 REMOTE_SESSIONS = {}
+MAX_REMOTE_SESSIONS = max(64, min(4096, int(os.environ.get("DASHBOARD_MAX_REMOTE_SESSIONS", "512"))))
+MAX_REMOTE_SESSIONS_PER_USER = max(8, min(256, int(os.environ.get("DASHBOARD_MAX_REMOTE_SESSIONS_PER_USER", "64"))))
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".bmp"}
 
 os.umask(0o077)
@@ -116,11 +119,22 @@ def atomic_write_json_file(path, payload, backup_path=None):
             shutil.copy2(path, backup_path)
         except Exception:
             pass
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with tmp.open("w", encoding="utf-8") as fh:
-        json.dump(payload, fh, ensure_ascii=False, indent=2)
-        fh.write("\n")
-    os.replace(tmp, path)
+    fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent))
+    tmp = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, ensure_ascii=False, indent=2)
+            fh.write("\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.chmod(tmp, 0o600)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            tmp.unlink(missing_ok=True)
+        except Exception:
+            pass
+        raise
     try:
         os.chmod(path, 0o600)
     except Exception:
@@ -255,10 +269,19 @@ def account_password_hash(password, salt=None):
 
 def account_password_valid(password, encoded):
     try:
+        value = str(password or "")
+        if len(value) < 8 or len(value) > 256:
+            return False
         algo, rounds, salt, expected = str(encoded or "").split("$", 3)
         if algo != "pbkdf2-sha256":
             return False
-        digest = hashlib.pbkdf2_hmac("sha256", str(password or "").encode("utf-8"), bytes.fromhex(salt), int(rounds)).hex()
+        work = int(rounds)
+        if not 100000 <= work <= 1000000 or not re.fullmatch(r"[0-9a-fA-F]{64}", expected):
+            return False
+        salt_bytes = bytes.fromhex(salt)
+        if not 8 <= len(salt_bytes) <= 64:
+            return False
+        digest = hashlib.pbkdf2_hmac("sha256", value.encode("utf-8"), salt_bytes, work).hex()
         return hmac.compare_digest(digest, expected)
     except Exception:
         return False
@@ -307,6 +330,16 @@ def account_lookup(username):
     return next((x for x in load_user_store().get("users") or [] if x.get("enabled") and str(x.get("username") or "").lower() == key), None)
 
 
+_DUMMY_ACCOUNT_PASSWORD_HASH = account_password_hash(secrets.token_urlsafe(24))
+
+
+def authenticate_account(username, password):
+    account = account_lookup(username)
+    encoded = account.get("passwordHash") if account else _DUMMY_ACCOUNT_PASSWORD_HASH
+    valid = account_password_valid(password, encoded)
+    return account if account and valid else None
+
+
 def principal_allows_endpoint(principal, endpoint_id, write=False):
     if not principal:
         return False
@@ -331,10 +364,19 @@ def pin_hash(pin, salt=None):
 
 def pin_valid(pin, encoded):
     try:
+        value = str(pin or "")
+        if not re.fullmatch(r"\d{4,12}", value):
+            return False
         algo, rounds, salt, expected = str(encoded or "").split("$", 3)
         if algo != "pbkdf2-sha256":
             return False
-        digest = hashlib.pbkdf2_hmac("sha256", str(pin or "").encode("utf-8"), bytes.fromhex(salt), int(rounds)).hex()
+        work = int(rounds)
+        if not 100000 <= work <= 1000000 or not re.fullmatch(r"[0-9a-fA-F]{64}", expected):
+            return False
+        salt_bytes = bytes.fromhex(salt)
+        if not 8 <= len(salt_bytes) <= 64:
+            return False
+        digest = hashlib.pbkdf2_hmac("sha256", value.encode("utf-8"), salt_bytes, work).hex()
         return hmac.compare_digest(digest, expected)
     except Exception:
         return False
@@ -749,11 +791,12 @@ def broker_fetch(key, ttl_seconds, fetcher, source="", force=False):
             broker_record(key, source=source, status="fresh", savedAt=now, age=0, error="", lastAttemptAt=now, lastSuccessAt=now)
             return data, content_type, "fresh", 0
         except Exception as exc:
+            safe_error = public_integration_error(exc)
             if cached:
                 age = max(0, now-cached[2])
-                broker_record(key, source=source, status="stale", savedAt=cached[2], age=age, error=str(exc)[:240], lastAttemptAt=now, lastSuccessAt=cached[2])
+                broker_record(key, source=source, status="stale", savedAt=cached[2], age=age, error=safe_error, lastAttemptAt=now, lastSuccessAt=cached[2])
                 return cached[0], cached[1], "stale", age
-            broker_record(key, source=source, status="error", savedAt=0, age=0, error=str(exc)[:240], lastAttemptAt=now, lastSuccessAt=0)
+            broker_record(key, source=source, status="error", savedAt=0, age=0, error=safe_error, lastAttemptAt=now, lastSuccessAt=0)
             raise
 
 
@@ -841,10 +884,10 @@ def load_plugins():
     if not PLUGINS_ROOT.exists():
         return found
     for folder in sorted(PLUGINS_ROOT.iterdir()):
-        if not folder.is_dir() or folder.name.startswith('.'):
+        if folder.is_symlink() or not folder.is_dir() or folder.name.startswith('.'):
             continue
         source = folder / "plugin.py"
-        if not source.is_file():
+        if source.is_symlink() or not source.is_file():
             continue
         try:
             module_name = "libredisplay_plugin_" + hashlib.sha256(str(source).encode()).hexdigest()[:16]
@@ -881,7 +924,7 @@ def load_plugins():
                 "icon": str(raw.get("icon") or "◇")[:8],
                 "refreshMin": max(1, min(1440, int(raw.get("refreshMin") or 5))),
                 "settings": fields,
-                "clientScript": (folder / "client.js").is_file(),
+                "clientScript": (folder / "client.js").is_file() and not (folder / "client.js").is_symlink(),
                 "kind": kind,
                 "category": str(raw.get("category") or category_map.get(kind, "Other"))[:48],
                 "auth": str(raw.get("auth") or auth)[:24],
@@ -926,12 +969,15 @@ class IntegrationContext:
             raise ValueError("Integration endpoint redirected; configure the canonical API URL")
         return status, response_headers, data, final_url
 
-    def request_private(self, url, *, method="GET", headers=None, body=None, timeout=25, max_bytes=MAX_BYTES, verify_tls=True):
+    def request_private(self, url, *, method="GET", headers=None, body=None, timeout=25, max_bytes=MAX_BYTES, verify_tls=True, require_private=False):
         if self.plugin_id not in TRUSTED_PRIVATE_PLUGINS:
             raise PermissionError("This integration is not allowed to access private/LAN addresses")
         target = str(url or "").strip()
-        validate_trusted_outbound_url(target)
-        status, response_headers, data, final_url = safe_fetch(target, method=method, headers=headers or {"User-Agent": "LibreDisplay trusted integration"}, body=body, timeout=timeout, max_bytes=max_bytes, redirects=0, allow_private=True, verify_tls=verify_tls)
+        if require_private:
+            validate_private_outbound_url(target)
+        else:
+            validate_trusted_outbound_url(target)
+        status, response_headers, data, final_url = safe_fetch(target, method=method, headers=headers or {"User-Agent": "LibreDisplay trusted integration"}, body=body, timeout=timeout, max_bytes=max_bytes, redirects=0, allow_private=True, private_only=require_private, verify_tls=verify_tls)
         if status in {301, 302, 303, 307, 308}:
             raise ValueError("Integration endpoint redirected; configure the canonical collection URL")
         return status, response_headers, data, final_url
@@ -956,7 +1002,7 @@ def load_or_create_access_tokens():
         display_token = secrets.token_urlsafe(32)
         changed = True
     if changed or data.get("token") != token or data.get("displayToken") != display_token:
-        ACCESS_PATH.write_text(json.dumps({"token": token, "displayToken": display_token}, indent=2) + "\n", encoding="utf-8")
+        atomic_write_json_file(ACCESS_PATH, {"token": token, "displayToken": display_token})
     try:
         os.chmod(ACCESS_PATH, 0o600)
     except Exception:
@@ -994,7 +1040,22 @@ def configured_media_roots():
 MEDIA_ROOTS = configured_media_roots()
 AUTH_FAILURES = {}
 AUTH_FAILURE_LOCK = threading.Lock()
+MAX_AUTH_FAILURE_CLIENTS = max(64, min(4096, int(os.environ.get("DASHBOARD_MAX_AUTH_FAILURE_CLIENTS", "1024"))))
 HOUSEHOLD_LOCK = threading.RLock()
+
+
+def prune_auth_failures(now=None):
+    now = time.time() if now is None else float(now)
+    for key, values in list(AUTH_FAILURES.items()):
+        recent = [t for t in values if now - t < 60]
+        if recent:
+            AUTH_FAILURES[key] = recent[-20:]
+        else:
+            AUTH_FAILURES.pop(key, None)
+    if len(AUTH_FAILURES) > MAX_AUTH_FAILURE_CLIENTS:
+        ordered = sorted(AUTH_FAILURES.items(), key=lambda item: max(item[1]) if item[1] else 0)
+        for key, _ in ordered[:len(AUTH_FAILURES) - MAX_AUTH_FAILURE_CLIENTS]:
+            AUTH_FAILURES.pop(key, None)
 
 
 def media_path_allowed(value, require_dir=False, require_file=False):
@@ -1067,7 +1128,20 @@ def create_remote_session(principal=None):
             expiry = row.get("expires", 0) if isinstance(row, dict) else row
             if expiry <= now:
                 REMOTE_SESSIONS.pop(old, None)
-        REMOTE_SESSIONS[token] = {"expires": expires, "principal": principal}
+        username = str(principal.get("username") or "").strip().lower()
+        same_user = sorted(
+            ((old, row) for old, row in REMOTE_SESSIONS.items()
+             if isinstance(row, dict) and str((row.get("principal") or {}).get("username") or "").strip().lower() == username),
+            key=lambda item: float(item[1].get("createdAt") or 0),
+        )
+        while len(same_user) >= MAX_REMOTE_SESSIONS_PER_USER:
+            old, _ = same_user.pop(0)
+            REMOTE_SESSIONS.pop(old, None)
+        if len(REMOTE_SESSIONS) >= MAX_REMOTE_SESSIONS:
+            ordered = sorted(REMOTE_SESSIONS.items(), key=lambda item: float(item[1].get("createdAt") or 0) if isinstance(item[1], dict) else 0)
+            for old, _ in ordered[:len(REMOTE_SESSIONS) - MAX_REMOTE_SESSIONS + 1]:
+                REMOTE_SESSIONS.pop(old, None)
+        REMOTE_SESSIONS[token] = {"expires": expires, "createdAt": now, "principal": principal}
     return token
 
 
@@ -1110,10 +1184,7 @@ def load_endpoint_registry():
 
 def save_endpoint_registry(items):
     payload = {"version": 1, "items": items}
-    tmp = ENDPOINTS_PATH.with_suffix(".tmp")
-    tmp.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    os.chmod(tmp, 0o600)
-    os.replace(tmp, ENDPOINTS_PATH)
+    atomic_write_json_file(ENDPOINTS_PATH, payload)
 
 
 def endpoint_items():
@@ -1194,7 +1265,15 @@ def remote_session_principal(token):
         if not expiry or expiry <= now:
             REMOTE_SESSIONS.pop(str(token), None)
             return None
-        return dict(principal or {"username": "paired-owner", "role": "owner", "endpoints": []})
+        principal = dict(principal or {"username": "paired-owner", "role": "owner", "endpoints": []})
+        username = str(principal.get("username") or "").strip()
+        if username and username != "paired-owner":
+            account = account_lookup(username)
+            if not account:
+                REMOTE_SESSIONS.pop(str(token), None)
+                return None
+            principal = {"username": account["username"], "role": account["role"], "endpoints": account.get("endpoints") or []}
+        return principal
 
 
 def remote_session_valid(token):
@@ -1228,8 +1307,7 @@ def remote_access_enabled():
 
 def set_remote_access_enabled(enabled):
     enabled = bool(enabled)
-    REMOTE_ACCESS_PATH.write_text(json.dumps({"enabled": enabled}, indent=2) + "\n", encoding="utf-8")
-    os.chmod(REMOTE_ACCESS_PATH, 0o600)
+    atomic_write_json_file(REMOTE_ACCESS_PATH, {"enabled": enabled})
     if not enabled:
         rotate_access_tokens()
     return enabled
@@ -1283,6 +1361,22 @@ def resolve_trusted_addresses(host, port):
     return found
 
 
+def resolve_private_addresses(host, port):
+    infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    if not infos:
+        raise ValueError("Remote host could not be resolved")
+    found = []
+    for info in infos:
+        raw = info[4][0].split("%", 1)[0]
+        ip = ipaddress.ip_address(raw)
+        if not private_lan_address(ip):
+            raise ValueError("Remote URL must resolve only to a private LAN/VPN address")
+        value = str(ip)
+        if value not in found:
+            found.append(value)
+    return found
+
+
 def validate_trusted_outbound_url(target):
     u = urlparse(str(target or ""))
     if u.scheme not in ("http", "https") or not u.hostname:
@@ -1296,6 +1390,21 @@ def validate_trusted_outbound_url(target):
     if not 1 <= port <= 65535:
         raise ValueError("Invalid remote port")
     return u, port, resolve_trusted_addresses(u.hostname, port)
+
+
+def validate_private_outbound_url(target):
+    u = urlparse(str(target or ""))
+    if u.scheme not in ("http", "https") or not u.hostname:
+        raise ValueError("Only http/https URLs are allowed")
+    if u.username is not None or u.password is not None:
+        raise ValueError("Credentials in remote URLs are not allowed")
+    try:
+        port = u.port or (443 if u.scheme == "https" else 80)
+    except ValueError as exc:
+        raise ValueError("Invalid remote port") from exc
+    if not 1 <= port <= 65535:
+        raise ValueError("Invalid remote port")
+    return u, port, resolve_private_addresses(u.hostname, port)
 
 
 class PinnedHTTPConnection(http.client.HTTPConnection):
@@ -1318,12 +1427,24 @@ class PinnedHTTPSConnection(http.client.HTTPSConnection):
         self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
 
 
-def safe_fetch(target, method="GET", headers=None, body=None, timeout=25, max_bytes=MAX_BYTES, redirects=5, allow_private=False, verify_tls=True):
+def _url_origin(value):
+    u = urlparse(str(value or ""))
+    port = u.port or (443 if u.scheme == "https" else 80)
+    return (u.scheme.lower(), (u.hostname or "").lower(), port)
+
+
+def safe_fetch(target, method="GET", headers=None, body=None, timeout=25, max_bytes=MAX_BYTES, redirects=5, allow_private=False, private_only=False, verify_tls=True):
     current = str(target or "").strip()
     current_method = str(method or "GET").upper()
     current_body = body
+    current_headers = dict(headers or {})
     for _ in range(redirects + 1):
-        u, port, addresses = validate_trusted_outbound_url(current) if allow_private else validate_outbound_url(current)
+        if private_only:
+            u, port, addresses = validate_private_outbound_url(current)
+        elif allow_private:
+            u, port, addresses = validate_trusted_outbound_url(current)
+        else:
+            u, port, addresses = validate_outbound_url(current)
         path = u.path or "/"
         if u.query:
             path += "?" + u.query
@@ -1337,7 +1458,7 @@ def safe_fetch(target, method="GET", headers=None, body=None, timeout=25, max_by
                     conn = cls(u.hostname, port, ip, timeout=timeout, verify_tls=verify_tls)
                 else:
                     conn = cls(u.hostname, port, ip, timeout=timeout)
-                req_headers = dict(headers or {})
+                req_headers = dict(current_headers)
                 host_for_header = u.hostname
                 if ":" in host_for_header and not host_for_header.startswith("["):
                     host_for_header = f"[{host_for_header}]"
@@ -1371,10 +1492,14 @@ def safe_fetch(target, method="GET", headers=None, body=None, timeout=25, max_by
             next_url = urljoin(current, location)
             if urlparse(current).scheme == "https" and urlparse(next_url).scheme == "http":
                 raise ValueError("HTTPS redirects to HTTP are not allowed")
+            if _url_origin(current) != _url_origin(next_url):
+                sensitive = {"authorization", "proxy-authorization", "cookie", "cookie2", "x-api-key", "api-key", "x-auth-token"}
+                current_headers = {k: v for k, v in current_headers.items() if str(k).lower() not in sensitive and str(k).lower() != "host"}
             current = next_url
             if status in {301, 302, 303} and current_method != "HEAD":
                 current_method = "GET"
                 current_body = None
+                current_headers = {k: v for k, v in current_headers.items() if str(k).lower() not in {"content-length", "content-type", "transfer-encoding"}}
             continue
         raw_length = response.getheader("Content-Length")
         if raw_length:
@@ -1892,8 +2017,16 @@ def public_integration_error(message):
     text = str(message or "").strip().replace("\r", " ").replace("\n", " ")
     text = re.sub(r"(https?)://([^/\s?#]+)[^\s]*", r"\1://\2/…", text, flags=re.I)
     text = re.sub(r"(?i)(bearer\s+)[A-Za-z0-9._~+/=-]+", r"\1[redacted]", text)
-    text = re.sub(r"(?i)(token|secret|password|apikey|api_key|key)=([^&\s]+)", r"\1=[redacted]", text)
+    text = re.sub(r"(?i)(basic\s+)[A-Za-z0-9+/=]+", r"\1[redacted]", text)
+    secret_key = r"(?:access[_-]?token|refresh[_-]?token|id[_-]?token|token|client[_-]?secret|secret|password|passphrase|api[_-]?key|apikey|auth(?:orization)?|authheader|key)"
+    text = re.sub(rf"(?i)([?&]{secret_key}=)[^&\s]+", r"\1[redacted]", text)
+    text = re.sub(rf"(?i)([\"']?{secret_key}[\"']?\s*[:=]\s*)([\"']?)[^\"',\s}}&]+\2", r"\1[redacted]", text)
     return text[:240]
+
+
+def safe_response_header_value(value, limit=512):
+    text = re.sub(r"[\x00-\x1f\x7f]+", " ", str(value or "")).strip()
+    return text[:limit]
 
 
 def integration_status_rows(endpoint_id):
@@ -2001,7 +2134,7 @@ def rotate_access_tokens():
     global ACCESS_TOKEN, DISPLAY_TOKEN, ENDPOINTS
     token = secrets.token_urlsafe(32)
     display_token = secrets.token_urlsafe(32)
-    ACCESS_PATH.write_text(json.dumps({"token": token, "displayToken": display_token}, indent=2) + "\n", encoding="utf-8")
+    atomic_write_json_file(ACCESS_PATH, {"token": token, "displayToken": display_token})
     os.chmod(ACCESS_PATH, 0o600)
     with ENDPOINT_LOCK:
         updated = []
@@ -2101,8 +2234,7 @@ ENDPOINTS = load_endpoint_registry()
 _main_endpoint = next((x for x in ENDPOINTS if x.get("id") == "main"), None)
 if _main_endpoint and _main_endpoint.get("displayToken") != DISPLAY_TOKEN:
     DISPLAY_TOKEN = _main_endpoint["displayToken"]
-    ACCESS_PATH.write_text(json.dumps({"token": ACCESS_TOKEN, "displayToken": DISPLAY_TOKEN}, indent=2) + "\n", encoding="utf-8")
-    os.chmod(ACCESS_PATH, 0o600)
+    atomic_write_json_file(ACCESS_PATH, {"token": ACCESS_TOKEN, "displayToken": DISPLAY_TOKEN})
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 try:
     os.chmod(CACHE_DIR, 0o700)
@@ -2157,7 +2289,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
         for k, v in (extra_headers or {}).items():
-            self.send_header(k, str(v))
+            self.send_header(k, safe_response_header_value(v))
         self.end_headers()
         self.wfile.write(data)
 
@@ -2167,16 +2299,16 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
         for k, v in (extra_headers or {}).items():
-            self.send_header(k, str(v))
+            self.send_header(k, safe_response_header_value(v))
         self.end_headers()
         self.wfile.write(data)
 
     def bytes_response(self, status, data, content_type, extra_headers=None):
         self.send_response(status)
-        self.send_header("Content-Type", content_type or "application/octet-stream")
+        self.send_header("Content-Type", safe_response_header_value(content_type or "application/octet-stream", 200))
         self.send_header("Content-Length", str(len(data)))
         for k, v in (extra_headers or {}).items():
-            self.send_header(k, str(v))
+            self.send_header(k, safe_response_header_value(v))
         self.end_headers()
         self.wfile.write(data)
 
@@ -2261,8 +2393,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
         ip = str(self.client_address[0] or "")
         now = time.time()
         with AUTH_FAILURE_LOCK:
+            prune_auth_failures(now)
             recent = [t for t in AUTH_FAILURES.get(ip, []) if now - t < 60]
-            AUTH_FAILURES[ip] = recent
+            if recent:
+                AUTH_FAILURES[ip] = recent
+            else:
+                AUTH_FAILURES.pop(ip, None)
             return len(recent) >= 12
 
     def note_auth_failure(self):
@@ -2271,9 +2407,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
         ip = str(self.client_address[0] or "")
         now = time.time()
         with AUTH_FAILURE_LOCK:
+            prune_auth_failures(now)
             recent = [t for t in AUTH_FAILURES.get(ip, []) if now - t < 60]
             recent.append(now)
             AUTH_FAILURES[ip] = recent[-20:]
+            prune_auth_failures(now)
 
     def require_owner(self):
         if not self.client_network_allowed():
@@ -2756,11 +2894,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
             data, content_type, state, age = broker_fetch(cache_key, 3600, fetcher, f"plugin-media:{plugin_id}")
             return self.bytes_response(200, data, content_type, {"Cache-Control":"private, max-age=300", "X-LibreDisplay-Broker":state, "X-LibreDisplay-Broker-Age":str(age)})
         except ValueError as exc:
-            return self.text_response(404, str(exc))
+            return self.text_response(404, public_integration_error(exc))
         except OverflowError as exc:
-            return self.text_response(413, str(exc))
+            return self.text_response(413, public_integration_error(exc))
         except Exception as exc:
-            return self.text_response(502, f"Photo integration failed: {exc}")
+            return self.text_response(502, "Photo integration failed: " + public_integration_error(exc))
 
     def handle_plugin_asset(self, parsed):
         parts = [x for x in parsed.path.split("/") if x]
@@ -2819,8 +2957,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             try:
                 body = self.read_json_body() or {}
                 username = str(body.get("username") or "").strip()[:64]
-                account = account_lookup(username)
-                if not account or not account_password_valid(body.get("password"), account.get("passwordHash")):
+                account = authenticate_account(username, body.get("password"))
+                if not account:
                     self.note_auth_failure()
                     return self.json_response(403, {"ok": False, "error": "Invalid username or password."})
                 principal = {"username": account["username"], "role": account["role"], "endpoints": account.get("endpoints") or []}
@@ -2907,8 +3045,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     else:
                         existing["role"] = role; existing["endpoints"] = endpoints; existing["enabled"] = body.get("enabled") is not False
                         if str(body.get("password") or ""):
-                            existing["passwordHash"] = account_password_hash(body.get("password")); clear_remote_sessions_for_user(existing["username"])
-                    save_user_store({"version":1,"users":users}); return self.json_response(200,{"ok":True,"users":public_users()})
+                            existing["passwordHash"] = account_password_hash(body.get("password"))
+                    save_user_store({"version":1,"users":users})
+                    if action == "update":
+                        clear_remote_sessions_for_user(existing["username"])
+                    return self.json_response(200,{"ok":True,"users":public_users()})
                 if action == "delete":
                     if not existing: raise ValueError("Unknown user")
                     users = [x for x in users if x is not existing]; save_user_store({"version":1,"users":users}); clear_remote_sessions_for_user(username); return self.json_response(200,{"ok":True,"users":public_users()})
@@ -2977,7 +3118,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             except Exception as exc:
                 return self.json_response(500, {"ok": False, "error": f"Could not update household: {exc}"})
         if parsed.path == "/api/integration-action":
-            if not self.require_display_authorized(parsed):
+            if not self.require_authorized(parsed):
                 return
             try:
                 body = self.read_json_body() or {}
@@ -2986,9 +3127,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 result = integration_action(endpoint_id, block_id, str(body.get("action") or ""), body.get("payload") or {})
                 return self.json_response(200, {"ok": True, "result": result})
             except ValueError as exc:
-                return self.json_response(400, {"ok": False, "error": str(exc)})
+                return self.json_response(400, {"ok": False, "error": public_integration_error(exc)})
             except Exception as exc:
-                return self.json_response(502, {"ok": False, "error": f"Integration action failed: {exc}"})
+                return self.json_response(502, {"ok": False, "error": "Integration action failed: " + public_integration_error(exc)})
         if parsed.path == "/api/device-heartbeat":
             if not self.require_display_authorized(parsed):
                 return
@@ -3173,8 +3314,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         save_endpoint_registry(items)
                         if endpoint_id == "main":
                             DISPLAY_TOKEN = new_token
-                            ACCESS_PATH.write_text(json.dumps({"token": ACCESS_TOKEN, "displayToken": DISPLAY_TOKEN}, indent=2) + "\n", encoding="utf-8")
-                            os.chmod(ACCESS_PATH, 0o600)
+                            atomic_write_json_file(ACCESS_PATH, {"token": ACCESS_TOKEN, "displayToken": DISPLAY_TOKEN})
                         publish_event(endpoint_id, "reauth", {"reason": "display-link-rotated"})
                         return self.json_response(200, {"ok": True})
                     if action == "delete":

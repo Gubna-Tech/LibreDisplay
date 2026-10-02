@@ -9,6 +9,8 @@ folders is preserved.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -107,9 +109,23 @@ def github_json(url: str, user_agent: str):
         return json.loads(response.read().decode("utf-8"))
 
 
-def download(url: str, destination: Path, user_agent: str):
+def release_download(payload: dict, latest: str):
+    expected_name = f"LibreDisplay-v{latest}.zip"
+    for asset in payload.get("assets") or []:
+        if not isinstance(asset, dict) or str(asset.get("name") or "") != expected_name:
+            continue
+        url = str(asset.get("browser_download_url") or "").strip()
+        digest = str(asset.get("digest") or "").strip().lower()
+        size = int(asset.get("size") or 0)
+        if url.startswith(f"https://github.com/{REPOSITORY}/releases/download/") and re.fullmatch(r"sha256:[0-9a-f]{64}", digest) and 0 < size <= MAX_ARCHIVE_BYTES:
+            return url, digest, size
+    return f"https://github.com/{REPOSITORY}/archive/refs/tags/v{latest}.zip", "", 0
+
+
+def download(url: str, destination: Path, user_agent: str, expected_digest="", expected_size=0):
     request = urllib.request.Request(url, headers={"User-Agent": user_agent})
     total = 0
+    hasher = hashlib.sha256()
     with urllib.request.urlopen(request, timeout=45) as response, destination.open("wb") as output:
         while True:
             chunk = response.read(1024 * 1024)
@@ -118,7 +134,14 @@ def download(url: str, destination: Path, user_agent: str):
             total += len(chunk)
             if total > MAX_ARCHIVE_BYTES:
                 raise ValueError("Downloaded release archive exceeded the safety size limit")
+            hasher.update(chunk)
             output.write(chunk)
+    if expected_size and total != expected_size:
+        raise ValueError("Downloaded release size does not match GitHub asset metadata")
+    if expected_digest:
+        actual = "sha256:" + hasher.hexdigest()
+        if not re.fullmatch(r"sha256:[0-9a-f]{64}", expected_digest) or not hmac.compare_digest(actual, expected_digest):
+            raise ValueError("Downloaded release failed its SHA-256 verification")
 
 
 def safe_extract(archive: Path, destination: Path):
@@ -187,10 +210,10 @@ def prepare(args) -> int:
     archive = stage / "release.zip"
     extracted = stage / "extracted"
     extracted.mkdir()
-    url = f"https://github.com/{REPOSITORY}/archive/refs/tags/v{latest}.zip"
+    url, digest, expected_size = release_download(payload, latest)
     print(f"Downloading LibreDisplay Docker v{latest}...")
     try:
-        download(url, archive, f"LibreDisplay-Docker/{current} updater")
+        download(url, archive, f"LibreDisplay-Docker/{current} updater", digest, expected_size)
         safe_extract(archive, extracted)
         release_root = locate_release_root(extracted)
         verify_release(release_root, latest)

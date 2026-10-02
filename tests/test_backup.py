@@ -118,11 +118,16 @@ class BackupTests(unittest.TestCase):
                 backup_mod.read_manifest(zf)
 
     def test_managed_fstab_validation_rejects_unmanaged_target(self):
-        valid = "# LibreDisplay NAS: photos\n//nas/photos /mnt/libredisplay/photos cifs ro,credentials=/etc/libredisplay/photos.cred 0 0\n"
+        valid = "# LibreDisplay NAS: photos\n//nas/photos /mnt/libredisplay/photos cifs credentials=/etc/libredisplay/nas-photos.credentials,ro,nosuid,nodev,noexec,iocharset=utf8,vers=3.0,uid=1000,gid=1000,_netdev,nofail,x-systemd.automount,x-systemd.idle-timeout=60 0 0\n"
         self.assertEqual(backup_mod.validate_managed_fstab_payload(valid), valid)
         bad = "# LibreDisplay NAS: photos\n//nas/photos /etc cifs defaults 0 0\n"
         with self.assertRaises(ValueError):
             backup_mod.validate_managed_fstab_payload(bad)
+
+    def test_managed_fstab_validation_rejects_exec_or_arbitrary_credentials(self):
+        unsafe = "# LibreDisplay NAS: photos\n//nas/photos /mnt/libredisplay/photos cifs credentials=/tmp/evil,ro,nosuid,nodev,exec,iocharset=utf8,vers=3.0,uid=1000,gid=1000,_netdev,nofail,x-systemd.automount,x-systemd.idle-timeout=60 0 0\n"
+        with self.assertRaises(ValueError):
+            backup_mod.validate_managed_fstab_payload(unsafe)
 
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ rm -rf ~/LibreDisplay-Setup && mkdir -p ~/LibreDisplay-Setup
 **4. Download the latest LibreDisplay release:**
 
 ```bash
-curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.5.6.zip -o /tmp/LibreDisplay.zip
+curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.5.7.zip -o /tmp/LibreDisplay.zip
 ```
 
 **5. Extract LibreDisplay:**
@@ -48,7 +48,7 @@ unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup
 **6. Open the LibreDisplay setup folder:**
 
 ```bash
-cd ~/LibreDisplay-Setup/LibreDisplay-1.5.6
+cd ~/LibreDisplay-Setup/LibreDisplay-1.5.7
 ```
 
 **7. Allow the installer to run:**
@@ -220,7 +220,7 @@ On the viewer Raspberry Pi, run the next commands **one at a time, in order**.
 **2. Download the viewer setup helper:**
 
 ```bash
-curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.5.6/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
+curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.5.7/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
 ```
 
 **3. Allow the viewer installer to run:**
@@ -379,9 +379,17 @@ Available local roles:
 
 The physical local display remains Owner access. Each display also has a dedicated read-only Display Link.
 
+Read-only Display Links cannot perform write actions against external task integrations. Changing a local account's role, assigned displays, enabled state, or password invalidates that account's existing remote sessions so the new permissions take effect immediately.
+
 Do **not** port-forward LibreDisplay directly to the public Internet. Use a private VPN such as WireGuard or Tailscale if you need remote access.
 
+The built-in LibreDisplay server does not terminate TLS. When signing in or editing from another device, keep the traffic on a trusted home network or, preferably for access away from home, inside a private VPN tunnel.
+
 LibreDisplay does not require a LibreDisplay cloud account and does not include telemetry. External integrations only contact the services you choose to configure.
+
+Custom plugins are trusted local code and execute with the LibreDisplay service account. Install only plugins whose source you trust. Full `.ldbackup` archives are intentionally portable rather than encrypted, and their embedded checksum manifest detects accidental corruption rather than proving who created the archive. Keep them private and restore only backups you created or otherwise trust.
+
+The native and Docker update helpers prefer the exact `LibreDisplay-vX.Y.Z.zip` GitHub release asset when GitHub supplies SHA-256 metadata, and verify both its recorded size and digest before extraction. If that metadata is unavailable, LibreDisplay falls back to GitHub's HTTPS tag archive and still applies its path, symlink, size, version, and required-file validation before installation.
 
 If you discover a security issue, please report it privately to the project owner rather than posting exploit details publicly.
 
