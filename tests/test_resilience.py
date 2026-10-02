@@ -68,6 +68,21 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn("liveEventSource?.readyState!==EventSource.OPEN", HTML)
         self.assertIn('retry: 1000\\n: LibreDisplay live connection', server_source)
 
+
+    def test_remote_clients_use_server_config_as_authoritative_state(self):
+        self.assertIn("const serverWins=!!serverObj&&(!localObj||!LOCAL_CLIENT_MODE||ss>=ls);", HTML)
+        self.assertIn("const chosen=serverWins?serverObj:localObj;", HTML)
+        self.assertIn("const CFG_DEFAULTS=JSON.parse(JSON.stringify(cfg));", HTML)
+        self.assertIn("if(chosen){cfg={...CFG_DEFAULTS,...chosen};if(serverWins)cfg._savedAt=ss;}", HTML)
+        self.assertIn("if(serverConfigAvailable&&localObj&&!serverObj&&LOCAL_CLIENT_MODE)persistCfgToServer(cfg);", HTML)
+        self.assertIn("const mergedRemote=(remote&&typeof remote==='object')?{...CFG_DEFAULTS,...remote,_savedAt:remoteSaved}:null;", HTML)
+        self.assertIn("const remoteChanged=!!mergedRemote&&(remoteSaved!==localSaved", HTML)
+        self.assertIn("const shouldApplyRemote=remoteChanged&&(!LOCAL_CLIENT_MODE||remoteSaved>localSaved||(remoteSaved===0&&localSaved===0));", HTML)
+        self.assertIn("if(LOCAL_CLIENT_MODE){try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));}catch(e){}}", HTML)
+
+    def test_server_path_does_not_duplicate_endpoint_parameter(self):
+        self.assertIn("if(/(?:^|[?&])endpoint=/.test(path))return path;", HTML)
+
     def test_native_kiosk_watchdog_checks_server_and_browser_heartbeat(self):
         self.assertIn('DASHBOARD_KIOSK_WATCHDOG', START)
         self.assertIn('/healthz', START)
@@ -80,6 +95,35 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn('--disable-background-timer-throttling', VIEWER)
         self.assertIn('--disable-backgrounding-occluded-windows', VIEWER)
         self.assertIn('--disable-renderer-backgrounding', VIEWER)
+
+
+    def test_remote_display_media_is_limited_to_configured_background_roots(self):
+        with tempfile.TemporaryDirectory(prefix="libredisplay-remote-media-") as tmp:
+            root = Path(tmp).resolve()
+            image = root / "photo.jpg"
+            image.write_bytes(b"jpeg-test")
+            outside_dir = root.parent / (root.name + "-outside")
+            outside_dir.mkdir(exist_ok=True)
+            outside = outside_dir / "outside.jpg"
+            outside.write_bytes(b"jpeg-test")
+
+            class FakeHandler:
+                def authorized(self, parsed=None):
+                    return False
+                def endpoint_config(self, parsed):
+                    return ({"mediaFolders": [str(root)]}, "main")
+
+            fake = FakeHandler()
+            with mock.patch.object(server, "MEDIA_ROOTS", [root, outside_dir.resolve()]):
+                allowed = server.DashboardHandler.display_media_path(fake, str(image), None, require_file=True)
+                blocked = server.DashboardHandler.display_media_path(fake, str(outside), None, require_file=True)
+            self.assertEqual(allowed, image.resolve())
+            self.assertIsNone(blocked)
+            try:
+                outside.unlink(missing_ok=True)
+                outside_dir.rmdir()
+            except OSError:
+                pass
 
     def test_system_health_exposes_privacy_safe_kiosk_heartbeat(self):
         with tempfile.TemporaryDirectory(prefix="libredisplay-kiosk-heartbeat-") as tmp:

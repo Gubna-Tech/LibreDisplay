@@ -36,7 +36,7 @@ rm -rf ~/LibreDisplay-Setup && mkdir -p ~/LibreDisplay-Setup
 **4. Download the latest LibreDisplay release:**
 
 ```bash
-curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.5.7.zip -o /tmp/LibreDisplay.zip
+curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.5.8.zip -o /tmp/LibreDisplay.zip
 ```
 
 **5. Extract LibreDisplay:**
@@ -48,7 +48,7 @@ unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup
 **6. Open the LibreDisplay setup folder:**
 
 ```bash
-cd ~/LibreDisplay-Setup/LibreDisplay-1.5.7
+cd ~/LibreDisplay-Setup/LibreDisplay-1.5.8
 ```
 
 **7. Allow the installer to run:**
@@ -103,6 +103,8 @@ Useful places to remember:
 - **System** — host health, software updates, displays, display profiles, accounts, backups, diagnostics, remote access, and advanced options
 
 Small **?** buttons beside less-obvious controls provide quick hover/click help without filling the interface with extra instructions.
+
+Remote browsers treat the Pi's saved display configuration as authoritative whenever the server is reachable. Browser-local state is only a recovery fallback, so a phone/laptop view cannot silently outrank the wall display with an older local copy of the background, layout, or other settings.
 
 Photo slideshows use a double-buffered background renderer. With **Preload the next photo** enabled (the default), LibreDisplay loads and decodes the exact upcoming Google Photos or local/NAS image in a hidden layer before the rotation is due. The current photo remains fully visible until the replacement is ready, then the new image fades over it. Slow storage or network-backed photos therefore delay the transition instead of exposing a blank/black frame. Stock-photo changes use the same hold-current-until-ready transition once the next stock image URL is returned.
 
@@ -220,7 +222,7 @@ On the viewer Raspberry Pi, run the next commands **one at a time, in order**.
 **2. Download the viewer setup helper:**
 
 ```bash
-curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.5.7/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
+curl -fL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.5.8/scripts/viewer-setup.sh -o /tmp/libredisplay-viewer-setup.sh
 ```
 
 **3. Allow the viewer installer to run:**
