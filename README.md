@@ -5,6 +5,10 @@ A free, open-source home dashboard for Raspberry Pi, Docker, NAS, mini PCs, and 
 
 LibreDisplay brings calendars, weather, photos, family chores, tasks, media, charts, alerts, and custom data together on one clean display. It is designed to stay simple for everyday use while keeping advanced controls out of the way until you need them.
 
+<p align="center">
+  <img src="assets/libredisplay-promo.png" alt="LibreDisplay self-hosted dashboard with calendar, weather, alerts, photo background, remote Settings, and Raspberry Pi hardware" width="720">
+</p>
+
 ## Quick start — Raspberry Pi
 
 **Best choice for a dedicated wall display.** Use a current Raspberry Pi OS **with Desktop**.
