@@ -1482,7 +1482,7 @@ body.layout-editing .custom-block { pointer-events:none !important; user-select:
 html.cursor-active #cog { opacity:.82; }
 #cog:hover,#cog:focus-visible { opacity:1; transform:translateY(-1px); background:var(--ld-surface-2); border-color:var(--ld-accent); outline:none; }
 #cog::before {
-  content:'Settings'; position:absolute; right:54px; top:50%; transform:translate(7px,-50%); pointer-events:none;
+  content:'Quick access'; position:absolute; right:54px; top:50%; transform:translate(7px,-50%); pointer-events:none;
   padding:7px 10px; border-radius:9px; white-space:nowrap; color:var(--ld-text); background:color-mix(in srgb,var(--ld-surface) 94%,transparent);
   border:1px solid var(--ld-border); font:650 11px/1 var(--ld-app-font); opacity:0; box-shadow:0 7px 22px color-mix(in srgb,#000 32%,transparent);
   transition:opacity .18s,transform .18s;
@@ -1490,6 +1490,13 @@ html.cursor-active #cog { opacity:.82; }
 #cog:hover::before,#cog:focus-visible::before,#cog.cog-discover::before { opacity:1; transform:translate(0,-50%); }
 html.read-only-display #cog { display:none; }
 @media(pointer:coarse){#cog{opacity:.8;width:48px;height:48px}}
+#quick-access-menu{position:fixed;z-index:259;display:none;width:min(292px,calc(100vw - 28px));padding:10px;border:1px solid var(--ld-border-strong);border-radius:15px;background:color-mix(in srgb,var(--ld-surface) 97%,transparent);box-shadow:0 18px 55px color-mix(in srgb,#000 48%,transparent);backdrop-filter:blur(16px);color:var(--ld-text);font-family:var(--ld-app-font)}
+#quick-access-menu.show{display:block}#quick-access-menu .quick-access-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 4px 9px;border-bottom:1px solid var(--ld-border)}#quick-access-menu .quick-access-head b{font-size:12px}#quick-access-menu .quick-access-head span{font-size:9px;color:var(--ld-subtle)}
+.quick-access-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}.quick-access-action{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:10px;border:1px solid var(--ld-border);border-radius:10px;background:var(--ld-surface-2);color:var(--ld-text);text-align:left;cursor:pointer;font:inherit}.quick-access-action:hover,.quick-access-action:focus-visible{border-color:var(--ld-accent);background:var(--ld-surface-3);outline:none}.quick-access-action strong{font-size:11px}.quick-access-action span{font-size:9px;line-height:1.3;color:var(--ld-muted)}.quick-access-action kbd{align-self:flex-end;margin-top:-20px;padding:2px 5px;border:1px solid var(--ld-border);border-radius:5px;background:var(--ld-surface);color:var(--ld-subtle);font:9px ui-monospace,SFMono-Regular,Consolas,monospace}.quick-access-action.primary{grid-column:1/-1;border-color:color-mix(in srgb,var(--ld-accent) 42%,var(--ld-border));background:color-mix(in srgb,var(--ld-accent) 10%,var(--ld-surface-2))}.quick-access-foot{display:flex;gap:7px;margin-top:7px}.quick-access-foot button{flex:1;padding:7px 8px;border:1px solid var(--ld-border);border-radius:8px;background:transparent;color:var(--ld-muted);font:10px var(--ld-app-font);cursor:pointer}.quick-access-foot button:hover{color:var(--ld-text);border-color:var(--ld-border-strong)}html.read-only-display #quick-access-menu{display:none!important}
+.font-choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.font-choice-card{min-width:0;padding:11px 12px;border:1px solid var(--ld-border);border-radius:11px;background:var(--ld-surface-2);color:var(--ld-text);text-align:left;cursor:pointer}.font-choice-card:hover,.font-choice-card:focus-visible{border-color:var(--ld-border-strong);background:var(--ld-surface-3);outline:none}.font-choice-card.selected{border-color:var(--ld-accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--ld-accent) 35%,transparent)}.font-choice-card strong{display:block;font-size:16px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.font-choice-card span{display:block;margin-top:5px;font-size:10px;color:var(--ld-muted);font-family:var(--ld-app-font)}.font-choice-card small{display:block;margin-top:5px;font-size:11px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#layout-shortcuts-panel{position:fixed;z-index:274;display:none;left:14px;bottom:76px;width:min(390px,calc(100vw - 28px));padding:13px;border:1px solid var(--ld-border-strong);border-radius:13px;background:color-mix(in srgb,var(--ld-surface) 97%,transparent);box-shadow:0 14px 44px var(--ld-shadow);color:var(--ld-text);font-family:var(--ld-app-font)}#layout-shortcuts-panel.show{display:block}.layout-shortcuts-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}.layout-shortcuts-head b{font-size:12px}.layout-shortcuts-head button{border:1px solid var(--ld-border);border-radius:7px;background:var(--ld-surface-2);color:var(--ld-text);padding:5px 8px;cursor:pointer}.layout-shortcuts-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;font-size:10px}.layout-shortcuts-grid kbd{min-width:58px;text-align:center;padding:4px 6px;border:1px solid var(--ld-border);border-radius:6px;background:var(--ld-surface-2);color:var(--ld-text);font:10px ui-monospace,SFMono-Regular,Consolas,monospace}.layout-shortcuts-grid span{color:var(--ld-muted);line-height:1.3}
+.integration-configured-list{display:grid;gap:7px;margin:9px 0 13px}.integration-configured-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 11px;border:1px solid var(--ld-border);border-radius:11px;background:var(--ld-surface-2)}.integration-configured-copy{min-width:0}.integration-configured-copy b{display:block;font-size:12px}.integration-configured-copy span{display:block;margin-top:3px;color:var(--ld-muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.integration-configured-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:850px){.font-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.quick-access-grid,.font-choice-grid{grid-template-columns:1fr}.quick-access-action.primary{grid-column:auto}.integration-configured-row{grid-template-columns:1fr}.integration-configured-actions{justify-content:flex-start}}
 @media(max-width:850px){.theme-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wizard-feature-grid{grid-template-columns:1fr}.setup-box .sub{margin-left:0}.theme-type-grid{grid-template-columns:1fr}}
 @media(max-width:520px){.setup-brand-mark{display:none}.theme-choice-grid{grid-template-columns:1fr 1fr}.setup-box{padding:24px 18px 20px}.setup-head{gap:8px}}
 
@@ -1861,7 +1868,7 @@ html:not(.cursor-active) * {
    <h3>Quick edit</h3>
    <div class="howto">The common editing jobs are one click away. These work from the wall display or from a paired phone/computer.</div>
    <div class="quick-edit-grid">
-    <button class="quick-edit-card" type="button" onclick="launchLayoutEditorFromSettings()"><b>Arrange dashboard</b><span>Drag, resize, add, duplicate, and configure dashboard blocks.</span></button>
+    <button class="quick-edit-card" type="button" onclick="launchLayoutEditorFromSettings()"><b>Arrange dashboard</b><span>Drag, resize, add, duplicate, configure, and use keyboard shortcuts for fast edits.</span></button>
     <button class="quick-edit-card" type="button" onclick="switchSettingsTab('weather')"><b>Weather</b><span>Location, forecast preferences, details, and severe-weather alerts.</span></button>
     <button class="quick-edit-card" type="button" onclick="switchSettingsTab('calendars')"><b>Calendars</b><span>Calendar feeds, event display rules, refresh timing, and legend behavior.</span></button>
     <button class="quick-edit-card" type="button" onclick="switchSettingsTab('backgrounds')"><b>Backgrounds</b><span>Photos, stock images, local folders, rotation, and slideshow presentation.</span></button>
@@ -1893,7 +1900,7 @@ html:not(.cursor-active) * {
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.5.4</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.5.5</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -2167,10 +2174,11 @@ html:not(.cursor-active) * {
    <div class="howto">Libre Night is the default LibreDisplay look: black and charcoal surfaces with a restrained green accent, designed for an always-on home display. Other included themes keep the same UI structure while changing the mood. Theme and font changes preview live.</div>
    <div id="theme-choice-grid" class="theme-choice-grid" role="radiogroup" aria-label="LibreDisplay theme"></div>
    <div class="settings-grid theme-type-grid">
-    <div class="s-row"><label>Dashboard font</label><select id="s-font-family" onchange="previewAppearance()"><option value="Inter">Inter / modern sans</option><option value="system">System UI</option><option value="Noto Sans">Noto Sans</option><option value="DejaVu Sans">DejaVu Sans</option><option value="Liberation Sans">Liberation Sans</option><option value="Trebuchet MS">Humanist sans</option><option value="DejaVu Serif">DejaVu Serif</option><option value="Georgia">Georgia / serif</option><option value="monospace">Monospace</option></select></div>
-    <div class="theme-font-preview"><span>Preview</span><strong id="theme-font-preview">Your day at a glance</strong><small>Calendar · weather · photos · local data</small></div>
+    <div class="s-row"><label>Dashboard font</label><select id="s-font-family" onchange="selectFontChoice(this.value,true)"><option value="Inter">Inter / modern sans</option><option value="system">System UI</option><option value="Noto Sans">Noto Sans</option><option value="DejaVu Sans">DejaVu Sans</option><option value="Liberation Sans">Liberation Sans</option><option value="Trebuchet MS">Humanist sans</option><option value="DejaVu Serif">DejaVu Serif</option><option value="Georgia">Georgia / serif</option><option value="monospace">Monospace</option></select></div>
+    <div class="theme-font-preview"><span>Live preview</span><strong id="theme-font-preview">Your day at a glance</strong><small>Calendar · weather · photos · local data</small></div>
    </div>
-   <div class="settings-note">Fonts use local system fallbacks when a named face is not installed, so the dashboard remains fully offline-capable.</div>
+   <div id="font-choice-grid" class="font-choice-grid" role="radiogroup" aria-label="Dashboard font previews"></div>
+   <div class="settings-note">Each font name above is rendered in that font so you can choose visually. LibreDisplay uses local system fallbacks when a named face is not installed, keeping the dashboard fully offline-capable.</div>
   </div>
 
   <div class="s-section" id="settings-accessibility" data-settings-tab="look">
@@ -2238,7 +2246,7 @@ html:not(.cursor-active) * {
    <div class="settings-note layout-preset-current-note">Preset layouts stage the built-in positions, alignment, and content density as one balanced composition. Standard presets leave added blocks exactly where you placed them. Integration Showcase presets also snap compatible configured blocks into their labeled slots so the live preview matches the intended composition; unmatched blocks stay put. Empty showcase slots are preview-only suggestions and are never saved as fake data. Your accounts, data sources, credentials, theme, and background stay intact.</div>
 
    <div class="s-subhead">Advanced layout editor <button class="help-tip" type="button" aria-label="Arrange mode help" data-help="Arrange changes presentation only. Select an element to move or resize it, then use the movable inspector to style the whole block or individual titles, values, labels, and event text.">?</button></div>
-   <div class="howto">Unlock the dashboard to drag and resize each major element independently. Select any element to open its inspector for content size, font, text color, opacity, horizontal/vertical content alignment, and precise screen placement. Arrow keys nudge a selected block; Shift + arrow resizes it. The Add Block catalog supports multiple reusable custom blocks. Positions are stored proportionally so layouts scale across similar screen resolutions.</div>
+   <div class="howto">Unlock the dashboard to drag and resize each major element independently. Select any element to open its inspector for content size, font, text color, opacity, horizontal/vertical content alignment, and precise screen placement. Arrow keys nudge a selected block; Shift + arrow resizes it. For added blocks, Delete removes, Ctrl/Cmd+D duplicates, Enter configures, and double-click opens configuration. Press A for Add Block or ? for the shortcut guide. The Add Block catalog supports multiple reusable custom blocks. Positions are stored proportionally so layouts scale across similar screen resolutions.</div>
    <div class="settings-grid">
     <div class="s-row"><label>Snap grid <button class="help-tip" type="button" aria-label="Snap grid help" data-help="Smaller grid values allow finer movement. Turn Snap off for completely free placement and resizing.">?</button></label><select id="s-layout-grid"><option value="8">8 px — fine</option><option value="12">12 px</option><option value="16">16 px</option><option value="20">20 px — default</option><option value="24">24 px</option><option value="32">32 px — coarse</option></select></div>
     <label class="checkline"><input id="s-layout-snap" type="checkbox" checked> Snap blocks to grid while moving/resizing</label>
@@ -2292,8 +2300,12 @@ html:not(.cursor-active) * {
 
   </div>
   <div class="s-section" id="settings-integrations" data-settings-tab="integrations">
-   <h3>Integration directory</h3>
-   <div class="howto">Browse the providers installed on this server without wading through credentials. Add a provider to the dashboard, then configure only the fields that provider needs.</div>
+   <h3>Integrations</h3>
+   <div class="howto">Configured integration blocks stay editable after you add them. Reconfigure a provider, jump straight to its position in Arrange, test it, or add another block without rebuilding anything.</div>
+   <div class="s-subhead">Configured on this display</div>
+   <div id="integration-configured-blocks" class="integration-configured-list"><div class="settings-note">Loading configured integration blocks…</div></div>
+   <div class="s-subhead">Add another integration</div>
+   <div class="howto">Browse the providers installed on this server. Adding a provider creates a reusable dashboard block and opens only the fields that provider needs.</div>
    <div class="integration-directory-toolbar">
     <input id="integration-directory-search" type="search" placeholder="Search providers…" oninput="renderIntegrationDirectory()">
     <select id="integration-directory-category" onchange="renderIntegrationDirectory()"><option value="all">All categories</option></select>
@@ -2348,7 +2360,7 @@ html:not(.cursor-active) * {
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.5.4</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.5.5</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -2474,7 +2486,17 @@ html:not(.cursor-active) * {
 </div>
 
 
-<button id="cog" onclick="openSetup()" title="Settings">⚙</button>
+<button id="cog" type="button" onclick="toggleQuickAccessMenu(event)" title="Quick access" aria-haspopup="menu" aria-controls="quick-access-menu" aria-expanded="false">⚙</button>
+<div id="quick-access-menu" role="menu" aria-hidden="true">
+ <div class="quick-access-head"><b>Quick access</b><span>Customize without digging through Settings</span></div>
+ <div class="quick-access-grid">
+  <button class="quick-access-action primary" type="button" role="menuitem" onclick="quickAccessArrange()"><strong>Arrange layout</strong><span>Move, resize, style, or reconfigure blocks.</span><kbd>A</kbd></button>
+  <button class="quick-access-action" type="button" role="menuitem" onclick="quickAccessAddBlock()"><strong>Add block</strong><span>Open the block and integration catalog.</span><kbd>+</kbd></button>
+  <button class="quick-access-action" type="button" role="menuitem" onclick="quickAccessIntegrations()"><strong>Integrations</strong><span>Edit providers and configured blocks.</span></button>
+  <button class="quick-access-action" type="button" role="menuitem" onclick="quickAccessSettings()"><strong>Settings</strong><span>Open all dashboard settings.</span></button>
+ </div>
+ <div class="quick-access-foot"><button type="button" onclick="quickAccessRefresh()">Refresh data</button><button type="button" onclick="quickAccessFullscreen()">Fullscreen</button></div>
+</div>
 <button id="settings-preview-return" type="button" onclick="returnToSettingsPreview()" aria-hidden="true"><span>← Return to Settings</span><small>Previewing unsaved changes</small></button>
 
 
@@ -2495,6 +2517,7 @@ html:not(.cursor-active) * {
  <button id="layout-default-positions" type="button" onclick="resetLayoutEditorDraft()">Default positions</button>
  <button id="layout-reset-selected" type="button" onclick="resetSelectedLayoutBlock()">Reset selected</button>
  <button id="layout-add-block" type="button" onclick="openBlockCatalog()">+ Add Block</button>
+ <button id="layout-shortcuts-button" type="button" onclick="toggleLayoutShortcuts()" title="Keyboard shortcuts (?)">Shortcuts</button>
  <button id="layout-configure-block" class="block-action-hidden" type="button" onclick="configureSelectedCustomBlock()">Configure</button>
  <button id="layout-duplicate-block" class="block-action-hidden" type="button" onclick="duplicateSelectedCustomBlock()">Duplicate</button>
  <button id="layout-layer-back" class="block-action-hidden" type="button" onclick="changeSelectedBlockLayer(-1)">Send Back</button>
@@ -2508,6 +2531,21 @@ html:not(.cursor-active) * {
  <select id="layout-toolbar-grid" onchange="setLayoutEditorGrid(this.value)"><option value="8">8</option><option value="12">12</option><option value="16">16</option><option value="20">20</option><option value="24">24</option><option value="32">32</option></select>
  <label class="layout-toolbar-label"><input id="layout-toolbar-snap" type="checkbox" checked onchange="setLayoutEditorSnap(this.checked)"> Snap</label>
  <span id="layout-selected-info">Select an element · drag to move · corner to resize</span>
+</div>
+<div id="layout-shortcuts-panel" aria-hidden="true">
+ <div class="layout-shortcuts-head"><b>Arrange keyboard shortcuts</b><button type="button" onclick="toggleLayoutShortcuts(false)">Close</button></div>
+ <div class="layout-shortcuts-grid">
+  <kbd>Arrow keys</kbd><span>Nudge the selected element.</span>
+  <kbd>Shift + ↑↓←→</kbd><span>Resize the selected element.</span>
+  <kbd>Delete</kbd><span>Delete the selected added block. Undo is available.</span>
+  <kbd>Ctrl/Cmd + D</kbd><span>Duplicate the selected added block.</span>
+  <kbd>Enter</kbd><span>Configure the selected added block.</span>
+  <kbd>A</kbd><span>Open Add Block.</span>
+  <kbd>[ / ]</kbd><span>Send an added block backward / bring it forward.</span>
+  <kbd>Ctrl/Cmd + Z</kbd><span>Undo. Shift + Ctrl/Cmd + Z or Ctrl/Cmd + Y redoes.</span>
+  <kbd>Ctrl/Cmd + S</kbd><span>Save and lock the layout.</span>
+  <kbd>?</kbd><span>Show or hide this shortcut guide.</span>
+ </div>
 </div>
 <div id="layout-properties" aria-hidden="true">
  <div id="layout-properties-drag-handle" class="layout-prop-head" title="Drag this inspector anywhere on the screen"><div><b id="layout-properties-title">Element inspector</b><small id="layout-properties-subtitle">Select an element to customize its contents.</small></div><div class="layout-prop-head-actions"><button id="layout-properties-collapse" type="button" onclick="toggleLayoutInspectorCollapse()" title="Collapse inspector">−</button><button id="layout-properties-reset-position" type="button" onclick="resetLayoutInspectorPosition()" title="Return inspector to its default position">↺</button><button id="layout-properties-reset-selected" type="button" onclick="resetSelectedLayoutBlock()" title="Reset the selected element, including its position">Reset</button></div></div>
@@ -2575,7 +2613,7 @@ html:not(.cursor-active) * {
 <div id="screen-care-overlay" aria-hidden="true"></div>
 
 <script>
-const DASHBOARD_BUILD = '1.5.4';
+const DASHBOARD_BUILD = '1.5.5';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -2632,13 +2670,20 @@ async function loadIntegrationHealth(){
   renderIntegrationDirectory();renderIntegrationHealth();renderProviderHealth();
   const h=document.getElementById('health-integrations');if(h){const bad=integrationHealthRows.filter(x=>['error','missing','unconfigured'].includes(x.status)).length,stale=integrationHealthRows.filter(x=>['stale','cached'].includes(x.status)).length,configured=configuredIntegrationBlocks().length;h.textContent=configured?`${configured} configured${bad?' · '+bad+' need attention':stale?' · '+stale+' delayed/cached':''}`:'None configured';h.className='health-value '+(bad?'bad':stale?'warn':'good');}
 }
+function renderConfiguredIntegrationBlocks(){
+  const host=document.getElementById('integration-configured-blocks');if(!host)return;
+  const blocks=configuredIntegrationBlocks();
+  if(!blocks.length){host.innerHTML='<div class="settings-note">No integration blocks are configured yet. Choose a provider below to add one.</div>';return;}
+  host.innerHTML=blocks.map(b=>{const manifest=integrationManifest(b.config?.plugin),health=integrationHealthRows.find(x=>x.blockId===b.id),provider=manifest?.name||b.config?.plugin||'Integration',state=health?integrationStateLabel(health):'Ready to edit';return `<div class="integration-configured-row" data-block-id="${escHtml(b.id)}"><div class="integration-configured-copy"><b>${escHtml(b.name||provider)}</b><span>${escHtml(provider)} · ${escHtml(state)}</span></div><div class="integration-configured-actions"><button class="btn-util" type="button" onclick="editCustomBlockFromSettings('${escHtml(b.id)}')">Edit configuration</button><button class="btn-util" type="button" onclick="arrangeCustomBlockFromSettings('${escHtml(b.id)}')">Arrange</button><button class="btn-util" type="button" onclick="checkIntegrationNow('${escHtml(b.id)}')">Test</button></div></div>`;}).join('');
+}
 function renderIntegrationDirectory(){
+  renderConfiguredIntegrationBlocks();
   const host=document.getElementById('integration-directory');if(!host)return;
   const q=String(document.getElementById('integration-directory-search')?.value||'').trim().toLowerCase(),cat=document.getElementById('integration-directory-category'),state=document.getElementById('integration-directory-state')?.value||'all';
   if(cat&&cat.options.length<=1){for(const name of integrationDirectoryCategories()){const o=document.createElement('option');o.value=name;o.textContent=name;cat.appendChild(o);}}
   const selected=cat?.value||'all',blocks=configuredIntegrationBlocks(),configured=new Set(blocks.map(b=>b.config.plugin));
   const rows=integrationManifests.filter(m=>(selected==='all'||m.category===selected)&&(state==='all'||(state==='configured')===configured.has(m.id))&&(!q||`${m.name} ${m.description} ${m.category}`.toLowerCase().includes(q)));
-  host.innerHTML=rows.map(m=>{const count=blocks.filter(b=>b.config.plugin===m.id).length,health=integrationAggregateForPlugin(m.id),pill=health?`<span class="integration-health-state state-${escHtml(health.status||'ready')}">${escHtml(integrationStateLabel(health))}</span>`:'';return `<div class="integration-directory-card"><div class="integration-directory-icon">${escHtml(m.icon||'◇')}</div><div class="integration-directory-copy"><b>${escHtml(m.name)}</b><span>${escHtml(m.description||'')}</span><small>${escHtml(m.category||'Other')} · ${m.auth==='oauth'?'OAuth-capable':m.auth==='credential'?'Account/API key':'No account required'}</small></div><div class="integration-directory-actions">${configured.has(m.id)?`<span class="integration-configured-badge">${count} configured</span>${pill}`:''}<button class="btn-util" type="button" onclick="addIntegrationFromSettings('${escHtml(m.id)}')">Add block</button></div></div>`;}).join('')||'<div class="settings-note">No providers match this filter.</div>';
+  host.innerHTML=rows.map(m=>{const providerBlocks=blocks.filter(b=>b.config.plugin===m.id),count=providerBlocks.length,health=integrationAggregateForPlugin(m.id),pill=health?`<span class="integration-health-state state-${escHtml(health.status||'ready')}">${escHtml(integrationStateLabel(health))}</span>`:'',edit=count===1?`<button class="btn-util" type="button" onclick="editCustomBlockFromSettings('${escHtml(providerBlocks[0].id)}')">Edit block</button>`:'';return `<div class="integration-directory-card"><div class="integration-directory-icon">${escHtml(m.icon||'◇')}</div><div class="integration-directory-copy"><b>${escHtml(m.name)}</b><span>${escHtml(m.description||'')}</span><small>${escHtml(m.category||'Other')} · ${m.auth==='oauth'?'OAuth-capable':m.auth==='credential'?'Account/API key':'No account required'}</small></div><div class="integration-directory-actions">${configured.has(m.id)?`<span class="integration-configured-badge">${count} configured</span>${pill}${edit}`:''}<button class="btn-util" type="button" onclick="addIntegrationFromSettings('${escHtml(m.id)}')">Add block</button></div></div>`;}).join('')||'<div class="settings-note">No providers match this filter.</div>';
   const sum=document.getElementById('integration-directory-summary');if(sum)sum.textContent=`${rows.length} shown · ${integrationManifests.length} installed · ${blocks.length} configured on this display`;
 }
 function renderIntegrationHealth(){
@@ -2646,7 +2691,7 @@ function renderIntegrationHealth(){
   const configured=configuredIntegrationBlocks().length,healthy=integrationHealthRows.filter(x=>x.status==='fresh').length,delayed=integrationHealthRows.filter(x=>['stale','cached'].includes(x.status)).length,issues=integrationHealthRows.filter(x=>['error','missing','unconfigured'].includes(x.status)).length;
   if(summary)summary.innerHTML=`<div class="integration-health-summary-card"><b>${configured}</b><span>Configured blocks</span></div><div class="integration-health-summary-card"><b>${healthy}</b><span>Healthy</span></div><div class="integration-health-summary-card"><b>${delayed}</b><span>Delayed / cached</span></div><div class="integration-health-summary-card"><b>${issues}</b><span>Need attention</span></div>`;
   if(!integrationHealthRows.length){host.innerHTML=configured?'<div class="settings-note">No health status is available yet. Use Test all configured to make a live request to each provider.</div>':'<div class="settings-note">No integration blocks are configured on this display.</div>';return;}
-  host.innerHTML=integrationHealthRows.map(r=>{const meta=[];meta.push(`Refresh ${Number(r.refreshMin)||5}m`);if(r.lastSuccessAt)meta.push(`Last success ${healthAgeText(Date.now()/1000-r.lastSuccessAt)}`);else meta.push('No successful refresh yet');if(r.lastAttemptAt)meta.push(`Last check ${healthAgeText(Date.now()/1000-r.lastAttemptAt)}`);if(r.status==='stale'&&r.age)meta.push(`Cached data ${healthAgeText(r.age)}`);if(r.nextRefreshAt&&r.status==='fresh')meta.push(`Next due ${healthTimeText(r.nextRefreshAt)}`);const kind=r.errorKind?integrationErrorKindLabel(r.errorKind):'';return `<div class="integration-health-row"><div><b>${escHtml(r.name||r.pluginName)}</b><span>${escHtml(r.pluginName||r.pluginId)} · ${escHtml(r.category||'Other')}</span><div class="integration-health-meta">${meta.map(x=>`<span>${escHtml(x)}</span>`).join('')}</div>${r.error?`<small class="integration-health-error">${kind?escHtml(kind)+': ':''}${escHtml(r.error)}</small>`:''}</div><div class="integration-health-actions"><span class="integration-health-state state-${escHtml(r.status||'ready')}">${escHtml(integrationStateLabel(r))}</span>${r.configured?`<button class="btn-util" type="button" onclick="checkIntegrationNow('${escHtml(r.blockId)}')">Test connection</button>`:''}</div></div>`;}).join('');
+  host.innerHTML=integrationHealthRows.map(r=>{const meta=[];meta.push(`Refresh ${Number(r.refreshMin)||5}m`);if(r.lastSuccessAt)meta.push(`Last success ${healthAgeText(Date.now()/1000-r.lastSuccessAt)}`);else meta.push('No successful refresh yet');if(r.lastAttemptAt)meta.push(`Last check ${healthAgeText(Date.now()/1000-r.lastAttemptAt)}`);if(r.status==='stale'&&r.age)meta.push(`Cached data ${healthAgeText(r.age)}`);if(r.nextRefreshAt&&r.status==='fresh')meta.push(`Next due ${healthTimeText(r.nextRefreshAt)}`);const kind=r.errorKind?integrationErrorKindLabel(r.errorKind):'';return `<div class="integration-health-row"><div><b>${escHtml(r.name||r.pluginName)}</b><span>${escHtml(r.pluginName||r.pluginId)} · ${escHtml(r.category||'Other')}</span><div class="integration-health-meta">${meta.map(x=>`<span>${escHtml(x)}</span>`).join('')}</div>${r.error?`<small class="integration-health-error">${kind?escHtml(kind)+': ':''}${escHtml(r.error)}</small>`:''}</div><div class="integration-health-actions"><span class="integration-health-state state-${escHtml(r.status||'ready')}">${escHtml(integrationStateLabel(r))}</span>${r.configured?`<button class="btn-util" type="button" onclick="editCustomBlockFromSettings('${escHtml(r.blockId)}')">Edit block</button><button class="btn-util" type="button" onclick="checkIntegrationNow('${escHtml(r.blockId)}')">Test connection</button>`:''}</div></div>`;}).join('');
 }
 async function forceIntegrationCheck(blockId){
   const r=await fetch(serverPath('/api/integration-data?block='+encodeURIComponent(blockId)+'&check=1&nonce='+Date.now()),{cache:'no-store'});
@@ -2668,6 +2713,9 @@ async function checkAllIntegrationsNow(){
   await Promise.all(Array.from({length:Math.min(3,rows.length)},()=>worker()));
   await loadIntegrationHealth();if(status)status.textContent=failed?`Provider checks complete · ${rows.length-failed} healthy · ${failed} need attention`:`All ${rows.length} configured integration${rows.length===1?'':'s'} responded successfully.`;
 }
+function launchCustomBlockFromSettings(blockId,configure=false){const block=(cfg.customBlocks||[]).find(b=>b?.id===blockId);if(!block)return;if(settingsDirty&&!confirm('You have unsaved Settings changes. Opening Arrange will discard those unsaved Settings edits. Continue?'))return;closeSetup(true);setTimeout(()=>{startLayoutEditor();selectLayoutBlock(customBlockKey(blockId));if(configure)setTimeout(()=>configureSelectedCustomBlock(),40);},80);}
+function editCustomBlockFromSettings(blockId){launchCustomBlockFromSettings(blockId,true);}
+function arrangeCustomBlockFromSettings(blockId){launchCustomBlockFromSettings(blockId,false);}
 function addIntegrationFromSettings(pluginId){if(settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;closeSetup(true);setTimeout(()=>{startLayoutEditor();beginAddIntegration(pluginId);},80);}
 let calendarEditorRows=[];
 let cfg = {
@@ -5305,7 +5353,7 @@ function beginAddBlock(type){closeBlockCatalog();blockConfigEditingId='';blockCo
 function beginAddIntegration(pluginId){const manifest=integrationManifest(pluginId);if(!manifest)return;const c=defaultBlockConfig('integration');c.plugin=manifest.id;c.title=manifest.name;c.refreshMin=manifest.refreshMin||5;c.settings={};for(const field of manifest.settings||[])c.settings[field.key]=field.default??(field.type==='checkbox'?false:'');closeBlockCatalog();blockConfigEditingId='';blockConfigEditingType='integration';openBlockConfigEditor('integration',c,manifest.name);}
 function configureSelectedCustomBlock(){const id=customKeyId(layoutSelectedKey),b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return;blockConfigEditingId=id;blockConfigEditingType=b.type;openBlockConfigEditor(b.type,{...b.config},b.name);}
 function duplicateSelectedCustomBlock(){pushLayoutHistory();const id=customKeyId(layoutSelectedKey),b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return;const copy=JSON.parse(JSON.stringify(b));copy.id=makeBlockId();copy.name=(b.name||BLOCK_TYPE_INFO[b.type]?.name||'Block')+' Copy';copy.rect={...b.rect,x:Math.min(.96-b.rect.w,b.rect.x+.025),y:Math.min(.96-b.rect.h,b.rect.y+.025)};layoutCustomBlocksDraft.push(copy);renderCustomBlocks(layoutCustomBlocksDraft);renderLayoutEditorBoxes();selectLayoutBlock(customBlockKey(copy.id));}
-function deleteSelectedCustomBlock(){const id=customKeyId(layoutSelectedKey),b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return;if(!confirm(`Delete “${b.name||BLOCK_TYPE_INFO[b.type]?.name||'block'}”?`))return;pushLayoutHistory();layoutCustomBlocksDraft=layoutCustomBlocksDraft.filter(x=>x.id!==id);layoutSelectedKey='';renderCustomBlocks(layoutCustomBlocksDraft);renderLayoutEditorBoxes();refreshToolbarCustomActions();}
+function deleteSelectedCustomBlock(confirmDelete=true){const id=customKeyId(layoutSelectedKey),b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return false;if(confirmDelete&&!confirm(`Delete “${b.name||BLOCK_TYPE_INFO[b.type]?.name||'block'}”?`))return false;pushLayoutHistory();layoutCustomBlocksDraft=layoutCustomBlocksDraft.filter(x=>x.id!==id);layoutSelectedKey='';renderCustomBlocks(layoutCustomBlocksDraft);renderLayoutEditorBoxes();refreshToolbarCustomActions();return true;}
 function openBlockConfigEditor(type,c,name){const info=BLOCK_TYPE_INFO[type]||{name:'Block'};document.getElementById('block-config-title').textContent=(blockConfigEditingId?'Configure ':'Add ')+info.name;document.getElementById('block-config-sub').textContent='This block is saved with the dashboard configuration and Profiles.';document.getElementById('block-config-fields').innerHTML=blockConfigFieldsHtml(type,c||{},name||info.name);document.getElementById('block-config-modal').classList.add('show');}
 function closeBlockConfig(){document.getElementById('block-config-modal')?.classList.remove('show');blockConfigEditingId='';blockConfigEditingType='';}
 function bf(label,id,value='',type='text',extra='',full=false){return `<div class="block-field${full?' full':''}"><label for="${id}">${escHtml(label)}</label><input id="${id}" type="${type}" value="${escHtml(value)}" ${extra}></div>`;}
@@ -5727,7 +5775,7 @@ function renderLayoutEditorBoxes(){
   refreshLayoutToolbarBlockOptions();
   updateLayoutSelectedInfo();
 }
-function appendLayoutEditBox(layer,key,label,r){const px=pxRectFromNormalized(r),def=layoutEditorDefForKey(key),locked=def?.locked===true,box=document.createElement('div');box.className='layout-edit-box'+(layoutSelectedKey===key?' selected':'')+(locked?' locked':'');box.dataset.layoutKey=key;box.style.left=px.left+'px';box.style.top=px.top+'px';box.style.width=px.width+'px';box.style.height=px.height+'px';box.innerHTML=`<div class="layout-edit-label">${escHtml(label)}${locked?' · 🔒':''}</div><div class="layout-resize-handle nw" data-resize="nw" title="Resize from top left"></div><div class="layout-resize-handle ne" data-resize="ne" title="Resize from top right"></div><div class="layout-resize-handle sw" data-resize="sw" title="Resize from bottom left"></div><div class="layout-resize-handle se" data-resize="se" title="Resize from bottom right"></div>`;box.addEventListener('pointerdown',beginLayoutPointer);box.addEventListener('click',()=>selectLayoutBlock(key));layer.appendChild(box);}
+function appendLayoutEditBox(layer,key,label,r){const px=pxRectFromNormalized(r),def=layoutEditorDefForKey(key),locked=def?.locked===true,box=document.createElement('div');box.className='layout-edit-box'+(layoutSelectedKey===key?' selected':'')+(locked?' locked':'');box.dataset.layoutKey=key;box.style.left=px.left+'px';box.style.top=px.top+'px';box.style.width=px.width+'px';box.style.height=px.height+'px';box.innerHTML=`<div class="layout-edit-label">${escHtml(label)}${locked?' · 🔒':''}</div><div class="layout-resize-handle nw" data-resize="nw" title="Resize from top left"></div><div class="layout-resize-handle ne" data-resize="ne" title="Resize from top right"></div><div class="layout-resize-handle sw" data-resize="sw" title="Resize from bottom left"></div><div class="layout-resize-handle se" data-resize="se" title="Resize from bottom right"></div>`;box.addEventListener('pointerdown',beginLayoutPointer);box.addEventListener('click',()=>selectLayoutBlock(key));if(customKeyId(key)){box.title='Double-click to configure this added block';box.addEventListener('dblclick',e=>{e.preventDefault();selectLayoutBlock(key);configureSelectedCustomBlock();});}layer.appendChild(box);}
 function refreshLayoutToolbarBlockOptions(){const picker=document.getElementById('layout-toolbar-block');if(!picker)return;const current=layoutSelectedKey;picker.innerHTML='<option value="">Choose…</option>'+Object.entries(LAYOUT_BLOCK_DEFS).map(([k,d])=>`<option value="${k}">${escHtml(d.label)}</option>`).join('')+(layoutCustomBlocksDraft.length?'<optgroup label="Added blocks">'+layoutCustomBlocksDraft.map(b=>`<option value="${customBlockKey(b.id)}">${escHtml(b.name||BLOCK_TYPE_INFO[b.type]?.name||'Block')}</option>`).join('')+'</optgroup>':'');picker.value=current||'';}
 function layoutEditorRectForKey(key){const id=customKeyId(key);if(id)return customBlockById(id,layoutCustomBlocksDraft)?.rect||null;return layoutEditorDraft[key]||null;}
 function layoutEditorDefForKey(key){const id=customKeyId(key);if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return null;const [minW,minH]=customBlockMin(b.type);return {label:b.name||BLOCK_TYPE_INFO[b.type]?.name||'Block',minW,minH,custom:true,block:b,locked:b.config?._locked===true};}return LAYOUT_BLOCK_DEFS[key]||null;}
@@ -6050,6 +6098,7 @@ function launchLayoutEditorFromSettings(){
   closeSetup(true);if(REMOTE_SETTINGS_MODE){setTimeout(openRemoteLayoutPreview,80);return;}setTimeout(startLayoutEditor,80);
 }
 function stopLayoutEditorUi(){
+  toggleLayoutShortcuts(false);
   layoutEditorActive=false;layoutPointerState=null;layoutSelectedKey='';layoutUndoStack=[];layoutRedoStack=[];updateLayoutHistoryButtons();
   document.body.classList.remove('layout-editing');
   const layer=document.getElementById('layout-editor-layer'),toolbar=document.getElementById('layout-toolbar'),props=document.getElementById('layout-properties');
@@ -6157,10 +6206,25 @@ function selectThemeChoice(key){
   previewAppearance();
   markSettingsDirty();
 }
+const LIBREDISPLAY_FONTS=[
+  {value:'Inter',label:'Inter',desc:'Modern & clean',sample:'Home · 12:45'},
+  {value:'system',label:'System UI',desc:'Native & familiar',sample:'Weather · Today'},
+  {value:'Noto Sans',label:'Noto Sans',desc:'Neutral & readable',sample:'Calendar · 68°'},
+  {value:'DejaVu Sans',label:'DejaVu Sans',desc:'Open & practical',sample:'Family · Friday'},
+  {value:'Liberation Sans',label:'Liberation Sans',desc:'Classic sans',sample:'Tasks · 7:30'},
+  {value:'Trebuchet MS',label:'Trebuchet MS',desc:'Friendly humanist',sample:'Photos · Home'},
+  {value:'DejaVu Serif',label:'DejaVu Serif',desc:'Traditional serif',sample:'October · Sunday'},
+  {value:'Georgia',label:'Georgia',desc:'Warm editorial serif',sample:'Morning · 8:15'},
+  {value:'monospace',label:'Monospace',desc:'Technical & precise',sample:'STATUS 21:08'}
+];
+function renderFontChoices(selected){const grid=document.getElementById('font-choice-grid');if(!grid)return;const current=LIBREDISPLAY_FONTS.some(f=>f.value===selected)?selected:'Inter';grid.innerHTML=LIBREDISPLAY_FONTS.map(f=>`<button class="font-choice-card ${f.value===current?'selected':''}" type="button" role="radio" aria-checked="${f.value===current?'true':'false'}" onclick="selectFontChoice('${escHtml(f.value)}')" style="font-family:${fontCssValue(f.value)}"><strong>${escHtml(f.label)}</strong><small>${escHtml(f.sample)}</small><span>${escHtml(f.desc)}</span></button>`).join('');}
+function selectFontChoice(name,fromSelect=false){if(!LIBREDISPLAY_FONTS.some(f=>f.value===name))name='Inter';const select=document.getElementById('s-font-family');if(select&&select.value!==name)select.value=name;renderFontChoices(name);styleFontSelectOptions();previewAppearance();if(!settingsInitializing)markSettingsDirty();}
+function styleFontSelectOptions(){for(const id of ['s-font-family','layout-style-font']){const select=document.getElementById(id);if(!select)continue;for(const option of select.options){const value=option.value||'Inter';option.style.fontFamily=fontCssValue(value);}}}
 function updateFontPreview(){
   const name=document.getElementById('s-font-family')?.value||'Inter';
   const preview=document.getElementById('theme-font-preview');
   if(preview)preview.style.fontFamily=fontCssValue(name);
+  renderFontChoices(name);styleFontSelectOptions();
 }
 
 function fontCssValue(name){
@@ -7963,6 +8027,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden){setTimeou
 window.addEventListener('resize',()=>setTimeout(ensureAlertMotionRunning,120));
 
 function openSetup(startWizard=false){
+  closeQuickAccessMenu();
   if(settingsPreviewMode){returnToSettingsPreview();return;}
   settingsLayoutPresetKey='current';
   setTimeout(()=>{loadRemoteInfo();loadCacheStatus();loadDisplayEndpoints();loadHouseholdSettings();loadIntegrationHealth();loadReleaseRollbacks();},0);
@@ -8439,6 +8504,20 @@ async function testSingleCalendarSource(id){
   await fetchCal(row,0,{preferFormUrl:true});
 }
 
+let quickAccessMenuOpen=false;
+function positionQuickAccessMenu(){const cog=document.getElementById('cog'),menu=document.getElementById('quick-access-menu');if(!cog||!menu)return;const r=cog.getBoundingClientRect(),gap=9;menu.style.left=menu.style.right=menu.style.top=menu.style.bottom='auto';if(r.left>window.innerWidth/2)menu.style.right=Math.max(10,window.innerWidth-r.right)+'px';else menu.style.left=Math.max(10,r.left)+'px';if(r.top>window.innerHeight/2)menu.style.bottom=Math.max(10,window.innerHeight-r.top+gap)+'px';else menu.style.top=Math.max(10,r.bottom+gap)+'px';}
+function closeQuickAccessMenu(){quickAccessMenuOpen=false;const menu=document.getElementById('quick-access-menu'),cog=document.getElementById('cog');menu?.classList.remove('show');menu?.setAttribute('aria-hidden','true');cog?.setAttribute('aria-expanded','false');}
+function toggleQuickAccessMenu(e){e?.stopPropagation?.();const menu=document.getElementById('quick-access-menu'),cog=document.getElementById('cog');if(!menu||!cog)return;if(quickAccessMenuOpen){closeQuickAccessMenu();return;}quickAccessMenuOpen=true;positionQuickAccessMenu();menu.classList.add('show');menu.setAttribute('aria-hidden','false');cog.setAttribute('aria-expanded','true');setTimeout(()=>menu.querySelector('button')?.focus({preventScroll:true}),0);}
+function quickAccessArrange(){closeQuickAccessMenu();startLayoutEditor();}
+function quickAccessAddBlock(){closeQuickAccessMenu();startLayoutEditor();setTimeout(()=>openBlockCatalog(),60);}
+function quickAccessSettings(tab='overview'){closeQuickAccessMenu();openSetup();setTimeout(()=>switchSettingsTab(tab),20);}
+function quickAccessIntegrations(){quickAccessSettings('integrations');}
+function quickAccessRefresh(){closeQuickAccessMenu();refreshDataNow();}
+function quickAccessFullscreen(){closeQuickAccessMenu();enterFullscreen();}
+function toggleLayoutShortcuts(force){const panel=document.getElementById('layout-shortcuts-panel');if(!panel)return;const show=typeof force==='boolean'?force:!panel.classList.contains('show');panel.classList.toggle('show',show);panel.setAttribute('aria-hidden',show?'false':'true');}
+document.addEventListener('pointerdown',e=>{const menu=document.getElementById('quick-access-menu');if(quickAccessMenuOpen&&!menu?.contains(e.target)&&e.target!==document.getElementById('cog'))closeQuickAccessMenu();});
+window.addEventListener('resize',()=>{if(quickAccessMenuOpen)positionQuickAccessMenu();});
+
 function refreshDataNow(){
   fetchWeather();
   fetchWeatherAlerts();
@@ -8456,20 +8535,35 @@ async function enterFullscreen(){
 
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&activeContextHelpTip){e.preventDefault();hideContextHelp(true);return;}
+  if(e.key==='Escape'&&quickAccessMenuOpen){e.preventDefault();closeQuickAccessMenu();document.getElementById('cog')?.focus({preventScroll:true});return;}
   if(e.key==='Escape'&&settingsPreviewMode){e.preventDefault();returnToSettingsPreview();return;}
   if(remoteLayoutProxyActive){
-    const win=remoteLayoutFrame()?.contentWindow,doc=remoteLayoutInnerDocument(),editingText=e.target?.matches?.('input,textarea,select,[contenteditable="true"]');
-    if(e.key==='Escape'){e.preventDefault();if(doc?.getElementById('block-config-modal')?.classList.contains('show'))win?.closeBlockConfig?.();else if(doc?.getElementById('block-catalog')?.classList.contains('show'))win?.closeBlockCatalog?.();else win?.cancelLayoutEditor?.();scheduleRemoteLayoutProxySync();return;}
+    const win=remoteLayoutFrame()?.contentWindow,doc=remoteLayoutInnerDocument(),editingText=!!e.target?.closest?.('input,textarea,select,button,[contenteditable="true"]');
+    if(e.key==='Escape'){e.preventDefault();if(doc?.getElementById('block-config-modal')?.classList.contains('show'))win?.closeBlockConfig?.();else if(doc?.getElementById('block-catalog')?.classList.contains('show'))win?.closeBlockCatalog?.();else if(doc?.getElementById('layout-shortcuts-panel')?.classList.contains('show'))win?.toggleLayoutShortcuts?.(false);else win?.cancelLayoutEditor?.();scheduleRemoteLayoutProxySync();return;}
     if(!editingText&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();win?.saveLayoutEditor?.();return;}
     if(!editingText&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();if(e.shiftKey)win?.redoLayoutEditor?.();else win?.undoLayoutEditor?.();scheduleRemoteLayoutProxySync();return;}
     if(!editingText&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();win?.redoLayoutEditor?.();scheduleRemoteLayoutProxySync();return;}
+    if(!editingText&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){e.preventDefault();win?.duplicateSelectedCustomBlock?.();scheduleRemoteLayoutProxySync();return;}
+    if(!editingText&&(e.key==='Delete'||e.key==='Backspace')){if(win?.deleteSelectedCustomBlock?.(false)){e.preventDefault();scheduleRemoteLayoutProxySync();}return;}
+    if(!editingText&&e.key==='Enter'){if(doc?.querySelector('.layout-edit-box.selected[data-layout-key^="custom:"]')){e.preventDefault();win?.configureSelectedCustomBlock?.();scheduleRemoteLayoutProxySync();}return;}
+    if(!editingText&&e.key.toLowerCase()==='a'&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();win?.openBlockCatalog?.();scheduleRemoteLayoutProxySync();return;}
+    if(!editingText&&e.key==='?'){e.preventDefault();win?.toggleLayoutShortcuts?.();scheduleRemoteLayoutProxySync();return;}
+    if(!editingText&&(e.key==='['||e.key===']')){e.preventDefault();win?.changeSelectedBlockLayer?.(e.key==='['?-1:1);scheduleRemoteLayoutProxySync();return;}
     if(!editingText&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)&&win?.nudgeSelectedLayoutBlock?.(e.key,e.shiftKey)){e.preventDefault();scheduleRemoteLayoutProxySync();return;}
   }
   if(layoutEditorActive){
-    if(e.key==='Escape'){e.preventDefault();cancelLayoutEditor();return;}
+    const interactive=!!e.target?.closest?.('input,textarea,select,button,[contenteditable="true"]'),configOpen=document.getElementById('block-config-modal')?.classList.contains('show'),catalogOpen=document.getElementById('block-catalog')?.classList.contains('show'),shortcutsOpen=document.getElementById('layout-shortcuts-panel')?.classList.contains('show');
+    if(e.key==='Escape'){e.preventDefault();if(configOpen)closeBlockConfig();else if(catalogOpen)closeBlockCatalog();else if(shortcutsOpen)toggleLayoutShortcuts(false);else cancelLayoutEditor();return;}
+    if(interactive)return;
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveLayoutEditor();return;}
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();if(e.shiftKey)redoLayoutEditor();else undoLayoutEditor();return;}
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();redoLayoutEditor();return;}
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){e.preventDefault();duplicateSelectedCustomBlock();return;}
+    if(e.key==='Delete'||e.key==='Backspace'){if(deleteSelectedCustomBlock(false))e.preventDefault();return;}
+    if(e.key==='Enter'&&customKeyId(layoutSelectedKey)){e.preventDefault();configureSelectedCustomBlock();return;}
+    if(e.key.toLowerCase()==='a'&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();openBlockCatalog();return;}
+    if(e.key==='?'){e.preventDefault();toggleLayoutShortcuts();return;}
+    if(e.key==='['||e.key===']'){if(customKeyId(layoutSelectedKey)){e.preventDefault();changeSelectedBlockLayer(e.key==='['?-1:1);}return;}
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)&&nudgeSelectedLayoutBlock(e.key,e.shiftKey)){e.preventDefault();return;}
     return;
   }

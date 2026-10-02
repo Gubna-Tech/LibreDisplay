@@ -264,6 +264,41 @@ class SettingsUiTests(unittest.TestCase):
         self.assertIn('function renderProviderHealth()', HTML)
         self.assertIn('Remote data cache', HTML)
 
+    def test_quick_access_menu_reaches_customization_without_opening_settings_first(self):
+        self.assertIn('id="quick-access-menu"', HTML)
+        self.assertIn('onclick="quickAccessArrange()"', HTML)
+        self.assertIn('onclick="quickAccessAddBlock()"', HTML)
+        self.assertIn('onclick="quickAccessIntegrations()"', HTML)
+        self.assertIn('function toggleQuickAccessMenu(e)', HTML)
+        self.assertIn("content:'Quick access'", HTML)
+
+    def test_configured_integrations_are_directly_reconfigurable(self):
+        self.assertIn('id="integration-configured-blocks"', HTML)
+        self.assertIn('function renderConfiguredIntegrationBlocks()', HTML)
+        self.assertIn('function editCustomBlockFromSettings(blockId)', HTML)
+        self.assertIn('function arrangeCustomBlockFromSettings(blockId)', HTML)
+        self.assertIn('Edit configuration', HTML)
+        self.assertIn('Edit block', HTML)
+        self.assertIn('Double-click to configure this added block', HTML)
+
+    def test_arrange_keyboard_shortcuts_cover_basic_editing(self):
+        self.assertIn('id="layout-shortcuts-panel"', HTML)
+        self.assertIn("e.key==='Delete'||e.key==='Backspace'", HTML)
+        self.assertIn("e.key.toLowerCase()==='d'", HTML)
+        self.assertIn("e.key==='Enter'&&customKeyId(layoutSelectedKey)", HTML)
+        self.assertIn("e.key.toLowerCase()==='a'", HTML)
+        self.assertIn("e.key==='['||e.key===']'", HTML)
+        self.assertIn('deleteSelectedCustomBlock(false)', HTML)
+        self.assertIn('Delete the selected added block. Undo is available.', HTML)
+
+    def test_visual_font_picker_renders_each_font_as_its_own_sample(self):
+        self.assertIn('id="font-choice-grid"', HTML)
+        self.assertIn('const LIBREDISPLAY_FONTS=[', HTML)
+        self.assertIn('function renderFontChoices(selected)', HTML)
+        self.assertIn('style="font-family:${fontCssValue(f.value)}"', HTML)
+        self.assertIn('Each font name above is rendered in that font', HTML)
+        self.assertIn('function styleFontSelectOptions()', HTML)
+
     def test_system_health_and_update_actions_are_discoverable(self):
         self.assertIn('id="settings-system-health"', HTML)
         self.assertIn('id="settings-backup-recovery"', HTML)
