@@ -241,6 +241,103 @@ class FrontendArchitectureTests(unittest.TestCase):
         self.assertIn("globalThis.LibreDisplayModules = LibreDisplayRuntime.finalizeModules();", app)
 
 
+
+    def test_modules_do_not_rely_on_unbridged_cross_file_identifiers(self):
+        js_files = sorted((APP / "js").rglob("*.js"))
+
+        def mask_strings_and_comments(source: str) -> str:
+            out = list(source)
+            i = 0
+            quote = None
+            escape = False
+            line_comment = False
+            block_comment = False
+            while i < len(source):
+                ch = source[i]
+                nxt = source[i + 1] if i + 1 < len(source) else ""
+                if line_comment:
+                    if ch == "\n":
+                        line_comment = False
+                    else:
+                        out[i] = " "
+                elif block_comment:
+                    if ch == "*" and nxt == "/":
+                        out[i] = out[i + 1] = " "
+                        i += 1
+                        block_comment = False
+                    elif ch != "\n":
+                        out[i] = " "
+                elif quote:
+                    if ch == "\n" and quote != "`":
+                        quote = None
+                    elif escape:
+                        escape = False
+                        if ch != "\n":
+                            out[i] = " "
+                    elif ch == "\\":
+                        escape = True
+                        out[i] = " "
+                    elif ch == quote:
+                        out[i] = " "
+                        quote = None
+                    elif ch != "\n":
+                        out[i] = " "
+                elif ch == "/" and nxt == "/":
+                    out[i] = out[i + 1] = " "
+                    i += 1
+                    line_comment = True
+                elif ch == "/" and nxt == "*":
+                    out[i] = out[i + 1] = " "
+                    i += 1
+                    block_comment = True
+                elif ch in "'\"`":
+                    quote = ch
+                    out[i] = " "
+                i += 1
+            return "".join(out)
+
+        bridged = set()
+        sources = {}
+        masked = {}
+        for path in js_files:
+            source = path.read_text(encoding="utf-8")
+            sources[path] = source
+            masked[path] = mask_strings_and_comments(source)
+            for key in ("globalFunctions", "globalStates"):
+                for match in re.finditer(rf"{key}\s*:\s*\[([^\]]*)\]", source, re.S):
+                    bridged.update(re.findall(r"['\"]([A-Za-z_$][\w$]*)['\"]", match.group(1)))
+
+        definitions = []
+        for path, source in masked.items():
+            for line_no, line in enumerate(source.splitlines(), 1):
+                match = re.match(r"^(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)\b", line)
+                if match:
+                    definitions.append((match.group(1), path, line_no))
+
+        failures = []
+        for name, defining_path, line_no in definitions:
+            if name in bridged or len(name) < 3:
+                continue
+            token = re.compile(rf"(?<![A-Za-z0-9_$]){re.escape(name)}\b")
+            for path, source in masked.items():
+                if path == defining_path:
+                    continue
+                if re.search(rf"\b(?:const|let|var|function|class)\s+{re.escape(name)}\b", source):
+                    continue
+                if re.search(rf"\b(?:const|let|var)\s*\{{[^}}]*\b{re.escape(name)}\b[^}}]*\}}\s*=", source, re.S):
+                    continue
+                for match in token.finditer(source):
+                    index = match.start()
+                    if index > 0 and source[index - 1] == "." and not (index >= 3 and source[index - 3:index] == "..."):
+                        continue
+                    target_line = source.count("\n", 0, index) + 1
+                    failures.append(
+                        f"{name} defined in {defining_path.relative_to(ROOT)}:{line_no} "
+                        f"is referenced bare from {path.relative_to(ROOT)}:{target_line}"
+                    )
+                    break
+        self.assertEqual(failures, [], "\n".join(failures))
+
     def test_custom_block_periodic_work_uses_managed_scheduler_and_has_no_detached_photo_timer(self):
         source = (ROOT / "app" / "js" / "blocks" / "index.js").read_text(encoding="utf-8")
         self.assertIn("const performanceApi=LibreDisplayRuntime.getModule('performance');", source)

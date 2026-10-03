@@ -24,6 +24,8 @@ function dummyElement(){
 
 const documentElement=dummyElement(), body=dummyElement();
 globalThis.window=globalThis;
+globalThis.Element=Object;
+globalThis.Option=function(text,value){const el=dummyElement();el.text=String(text??'');el.value=String(value??'');return el;};
 globalThis.addEventListener=noop;
 globalThis.removeEventListener=noop;
 globalThis.document={
@@ -70,7 +72,7 @@ const sourceOrder=[
   'layout/index.js','layout/remote.js','layout/persistence.js',
   'appearance/index.js','appearance/presets.js','appearance/backup.js','remote/index.js',
   'system/index.js','system/profiles.js','onboarding/index.js',
-  'settings/index.js','settings/navigation.js','settings/actions.js','settings/interactions.js','settings/accounts.js',
+  'settings/index.js','settings/navigation.js','settings/actions.js','settings/interactions.js','settings/accounts.js','lifecycle/index.js',
 ];
 for(const relative of sourceOrder){
   try{ await import(pathToFileURL(path.join(jsRoot,relative)).href+'?module-smoke=1'); }
@@ -78,7 +80,7 @@ for(const relative of sourceOrder){
 }
 
 const modules=LibreDisplayRuntime.finalizeModules();
-const expected=['bootstrap','integrations','config','shared','performance','weather','calendar','backgrounds','blocks','layout','appearance','remote','system','onboarding','settings'];
+const expected=['bootstrap','integrations','config','shared','performance','weather','calendar','backgrounds','blocks','layout','appearance','remote','system','onboarding','settings','lifecycle'];
 for(const name of expected){
   if(!modules[name])throw new Error(`missing logical frontend module: ${name}`);
 }
@@ -111,4 +113,24 @@ if(bridgeFunctions>260)throw new Error(`compatibility function bridge regressed 
 for(const stateName of ['ACTIVE_ENDPOINT','SESSION_ROLE','wxData','calStatuses','displayEndpoints','systemHealthState','settingsPreviewMode']){
   if(typeof globalThis[stateName]!=='undefined')throw new Error(`migrated state leaked back onto compatibility bridge: ${stateName}`);
 }
+const recoveredErrors=[];
+const originalConsoleError=console.error;
+console.error=(...args)=>{recoveredErrors.push(args.map(String).join(' '));};
+try{modules.settings.openSetup(false);}finally{console.error=originalConsoleError;}
+if(recoveredErrors.some(line=>line.includes('settings initialization recovered')))throw new Error('Settings initialization entered recovery path: '+recoveredErrors.join(' | '));
+modules.appearance.resetAppearanceForm();
+const baseFetch=globalThis.fetch;
+globalThis.fetch=async input=>{
+  const url=String(input||'');
+  const response=data=>({ok:true,status:200,text:async()=>JSON.stringify(data),json:async()=>data,blob:async()=>new Blob(),headers:new Headers()});
+  if(url.includes('/api/endpoints'))return response({ok:true,endpoints:[{id:'main',name:'Main',configured:true,displayUrl:'http://localhost/display'}],remoteEnabled:true});
+  if(url.includes('/api/devices'))return response({ok:true,devices:[]});
+  if(url.includes('/api/config'))return response({ok:true,config:{...modules.config.cfg},savedAt:Number(modules.config.cfg?._savedAt||0)});
+  return baseFetch(input);
+};
+try{
+  await modules.remote.loadDisplayEndpoints();
+  await modules.remote.pollServerConfig();
+}finally{globalThis.fetch=baseFetch;}
+await LibreDisplayRuntime.getModule('lifecycle').dashboardInitPromise;
 process.stdout.write(`frontend module smoke: PASS (${sourceOrder.length} source files -> ${expected.length} logical modules; ${bridge.length} compatibility globals = ${bridgeFunctions} functions + ${bridgeStates} states)\n`);

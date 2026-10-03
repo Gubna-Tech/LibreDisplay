@@ -12,7 +12,7 @@ spec.loader.exec_module(field)
 class FieldReadinessTests(unittest.TestCase):
     def test_summary_tracks_pi_and_browser_soak_metrics_without_private_data(self):
         base = {
-            "version": "1.6.1",
+            "version": "1.6.2",
             "deployment": "native",
             "platform": "Linux",
             "machine": "armv7l",
@@ -38,7 +38,7 @@ class FieldReadinessTests(unittest.TestCase):
                 "ageSeconds": 2 + index,
                 "endpoint": "main",
                 "viewport": "1920×1080",
-                "version": "1.6.1",
+                "version": "1.6.2",
                 "frontendPerformance": {
                     "tier": "constrained",
                     "pageUptimeMs": uptime,
@@ -50,7 +50,7 @@ class FieldReadinessTests(unittest.TestCase):
                 },
             }
             samples.append(row)
-        summary = field.summarize_samples(samples, "1.6.1")
+        summary = field.summarize_samples(samples, "1.6.2")
         self.assertEqual(summary["sampleCount"], 3)
         self.assertEqual(summary["kiosk"]["browserMetricSamples"], 3)
         self.assertEqual(summary["kiosk"]["pageReloadsObserved"], 0)
@@ -73,7 +73,7 @@ class FieldReadinessTests(unittest.TestCase):
         for index, uptime in enumerate((60000, 1000)):
             samples.append({
                 "sampledAt": f"t{index}",
-                "version": "1.6.1",
+                "version": "1.6.2",
                 "deployment": "native",
                 "platform": "Linux",
                 "machine": "armv7l",
@@ -88,7 +88,7 @@ class FieldReadinessTests(unittest.TestCase):
                     "frontendPerformance": {"pageUptimeMs": uptime, "longTasks": {"count": index, "totalMs": index * 100, "maxMs": 100}},
                 },
             })
-        summary = field.summarize_samples(samples, "1.6.1")
+        summary = field.summarize_samples(samples, "1.6.2")
         joined = " ".join(summary["observations"])
         self.assertIn("70°C", joined)
         self.assertIn("90 seconds", joined)

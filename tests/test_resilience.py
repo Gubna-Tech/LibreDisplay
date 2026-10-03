@@ -76,7 +76,7 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn("const CFG_DEFAULTS=JSON.parse(JSON.stringify(cfg));", HTML)
         self.assertIn("if(chosen){cfg={...CFG_DEFAULTS,...chosen};if(serverWins)cfg._savedAt=ss;}", HTML)
         self.assertIn("if(serverConfigAvailable&&bootstrapApi.LOCAL_CLIENT_MODE&&localObj&&(!serverObj||ls>ss))void persistCfgToServer(JSON.parse(JSON.stringify(cfg)));", HTML)
-        self.assertIn("const mergedRemote=(remote&&typeof remote==='object')?{...CFG_DEFAULTS,...remote,_savedAt:remoteSaved}:null;", HTML)
+        self.assertIn("const mergedRemote=(remote&&typeof remote==='object')?{...configApi.CFG_DEFAULTS,...remote,_savedAt:remoteSaved}:null;", HTML)
         self.assertIn("const remoteChanged=!!mergedRemote&&(remoteSaved!==localSaved", HTML)
         self.assertIn("const shouldApplyRemote=remoteChanged&&(!bootstrapApi.LOCAL_CLIENT_MODE||remoteSaved>localSaved||(remoteSaved===0&&localSaved===0));", HTML)
         self.assertIn("if(bootstrapApi.LOCAL_CLIENT_MODE){try{localStorage.setItem(bootstrapApi.CFG_KEY,JSON.stringify(cfg));}catch(e){}}", HTML)
