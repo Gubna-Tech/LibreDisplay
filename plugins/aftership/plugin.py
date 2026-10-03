@@ -1,6 +1,0 @@
-from urllib.parse import quote
-from _shared import request_json
-MANIFEST={"apiVersion":1,"id":"aftership","name":"Package Tracking · AfterShip","description":"Show package status from AfterShip Tracking API.","version":"1.0","icon":"▰","refreshMin":10,"kind":"status","settings":[{"key":"apiKey","label":"AfterShip API key","type":"password","required":True},{"key":"trackingId","label":"AfterShip tracking ID","type":"text","required":True},{"key":"label","label":"Display label","type":"text","default":"Package"}]}
-def fetch(s,c):
- url='https://api.aftership.com/tracking/2026-07/trackings/'+quote(str(s.get('trackingId')),safe=''); data,_,_=request_json(c,url,headers={'as-api-key':str(s.get('apiKey')),'User-Agent':'LibreDisplay integration'}); t=(data.get('data') or {}).get('tracking') or data.get('tracking') or data.get('data') or {}; status=t.get('tag') or t.get('status') or 'Unknown'; expected=t.get('expected_delivery') or t.get('expected_delivery_date'); courier=t.get('slug') or t.get('courier_destination_country_iso3') or ''
- return {'kind':'status','provider':'AfterShip','title':str(s.get('label') or 'Package'),'value':str(status),'details':[{'label':'Courier','value':courier},{'label':'Expected','value':expected},{'label':'Tracking','value':t.get('tracking_number')}]}
