@@ -1638,6 +1638,21 @@ def update_run_status():
         return dict(UPDATE_RUN_STATE)
 
 
+def update_log_failure_detail(max_chars=900):
+    try:
+        raw = UPDATE_LOG_PATH.read_bytes()[-8192:].decode("utf-8", errors="replace")
+    except OSError:
+        return ""
+    lines = []
+    for line in raw.splitlines():
+        cleaned = public_integration_error(line)
+        if cleaned:
+            lines.append(cleaned)
+    if not lines:
+        return ""
+    return " · ".join(lines[-4:])[:max_chars]
+
+
 def _watch_update_process(proc):
     try:
         return_code = proc.wait()
@@ -1645,7 +1660,11 @@ def _watch_update_process(proc):
         return_code = 1
         error = str(exc)[:240]
     else:
-        error = "" if return_code == 0 else f"Updater exited with status {return_code}."
+        if return_code == 0:
+            error = ""
+        else:
+            detail = update_log_failure_detail()
+            error = detail or f"Updater exited with status {return_code}."
     with UPDATE_RUN_LOCK:
         # A successful native update normally stops/reboots this server before this
         # state is observed. This branch mainly reports download/setup failures.
