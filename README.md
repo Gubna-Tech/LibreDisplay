@@ -3,8 +3,6 @@
 **Your home. Your dashboard. Your data.**  
 A free, open-source home dashboard for Raspberry Pi, Docker, NAS, mini PCs, and browsers.
 
-Created by **Gubna**, LibreDisplay is a self-hosted alternative to cloud-first dashboard products such as DAKboard: your dashboard runs on hardware you control, with no LibreDisplay cloud account or telemetry requirement. LibreDisplay is an independent project and is not affiliated with DAKboard.
-
 LibreDisplay brings calendars, weather, photos, family chores, tasks, media, charts, alerts, and custom data together on one clean display. It is designed to stay simple for everyday use while keeping advanced controls out of the way until you need them.
 
 <p align="center">
@@ -13,7 +11,7 @@ LibreDisplay brings calendars, weather, photos, family chores, tasks, media, cha
 
 ## Quick start — Raspberry Pi
 
-**Best choice for a dedicated wall display.** LibreDisplay v1.6.0 targets Raspberry Pi 3 and Raspberry Pi 4 with a current Raspberry Pi OS **with Desktop**. Pi 4 remains the primary performance baseline. LibreDisplay also includes a conservative capability-based low-power path for constrained devices, including Pi 3 and lower-memory Pi 4 configurations.
+**Best choice for a dedicated wall display.** Use a current Raspberry Pi OS **with Desktop**.
 
 Open **Terminal**, then run these commands **one at a time, in order**. You can copy and paste each box separately.
 
@@ -147,7 +145,7 @@ Rollback snapshots are private local maintenance data and are not exposed to dis
 
 Open **Settings > System > Data sources & providers** for one privacy-safe troubleshooting view of weather, calendar feeds, background sources, weather alerts, integrations, and remote-data cache fallback. LibreDisplay distinguishes healthy, delayed/cached, misconfigured, and failed sources without displaying private URLs, tokens, or coordinates.
 
-Open **Settings > System > System health** to see the deployment type, host uptime, free storage, data-directory write status, platform, load average, host hardware, and the latest privacy-safe kiosk-browser performance snapshot. The Home page also keeps a compact health summary for weather, calendars, backgrounds, alerts, integrations, offline cache, and software updates.
+Open **Settings > System > System health** to see the deployment type, host uptime, free storage, data-directory write status, platform, and load average. The Home page also keeps a compact health summary for weather, calendars, backgrounds, alerts, integrations, offline cache, and software updates.
 
 For support or troubleshooting, choose **Download diagnostics**. The generated JSON intentionally omits private calendar/background URLs, integration credentials, and weather coordinates, while keeping useful version, provider state, refresh timing, cache state, layout, recovery, and host-health information.
 
@@ -155,21 +153,9 @@ For support or troubleshooting, choose **Download diagnostics**. The generated J
 
 Open **Settings > System > Display readiness & kiosk resilience** to check the target screen without changing its layout. LibreDisplay reports the currently observed viewport, portrait/landscape orientation, browser visual scale/device-pixel ratio, and the most recent local kiosk heartbeat. It warns when a viewport is unusually small or browser scaling is not at 100%, which helps separate display/zoom problems from saved Arrange geometry.
 
-Native kiosk installations now have two local watchdogs in `scripts/start.sh`: the server is restarted after repeated `/healthz` failures, and Chromium is restarted when the local dashboard heartbeat stops advancing while the browser process is still alive. The browser heartbeat contains only privacy-safe local endpoint/version/viewport timing plus bounded frontend performance counters (capability tier, page uptime, managed-job counts, long-task timing, and Chromium JS-heap totals when available). It does not include feed URLs, coordinates, credentials, account data, or browsing history. The screen-side page also tracks EventSource/network state, continues showing last-known cached provider data while disconnected, and automatically refreshes saved configuration/data when the LibreDisplay server reconnects. Brief EventSource handoffs and momentary Wi-Fi/LAN jitter are handled silently with a reconnect grace period, so the display does not flash a connection warning for self-healing sub-eight-second interruptions; persistent losses still surface a calm status while automatic retry continues. Screen-only Viewer installs keep Chromium background timers/rendering enabled so long-running weather/calendar refreshes are not throttled simply because the window is kiosked.
+Native kiosk installations now have two local watchdogs in `scripts/start.sh`: the server is restarted after repeated `/healthz` failures, and Chromium is restarted when the local dashboard heartbeat stops advancing while the browser process is still alive. The browser heartbeat contains only local endpoint/version/viewport timing information. The screen-side page also tracks EventSource/network state, continues showing last-known cached provider data while disconnected, and automatically refreshes saved configuration/data when the LibreDisplay server reconnects. Brief EventSource handoffs and momentary Wi-Fi/LAN jitter are handled silently with a reconnect grace period, so the display does not flash a connection warning for self-healing sub-eight-second interruptions; persistent losses still surface a calm status while automatic retry continues. Screen-only Viewer installs keep Chromium background timers/rendering enabled so long-running weather/calendar refreshes are not throttled simply because the window is kiosked.
 
 Under **Settings > Personalization > Accessibility & language**, optional **Always-on display care** can dim the entire rendered screen after 15, 30, 60, or 120 minutes without local interaction. Any pointer, touch, wheel, or keyboard interaction wakes it immediately. This uses a non-interactive overlay only: it does not move, resize, or rewrite any saved Arrange element. Screen care is off by default.
-
-### Pi 3 / Pi 4 field-readiness soak
-
-For v1.6.0 release qualification, native installs include a privacy-safe soak collector. Keep the wall-display kiosk open and run:
-
-```bash
-libredisplay field-check --duration-minutes 120 --label pi3-living-room
-```
-
-Repeat on a Pi 4 with a different label for the regression baseline. The command samples every 15 seconds by default and writes both JSON and Markdown reports under `~/libredisplay/data/`. It records host load, temperature, available memory, storage, kiosk-heartbeat freshness, browser capability tier, page uptime/reload indications, long-task timing, managed refresh-job counts, and Chromium JS heap when the browser exposes it. It deliberately does **not** copy private calendar/background URLs, weather coordinates, integration credentials, account secrets, or browser history.
-
-Use `libredisplay field-check --once` for a quick instrumentation check, or change `--interval-seconds` and `--output` for a longer controlled run. A soak report supports release review rather than acting as an automatic performance verdict; compare Pi 3 observations with the Pi 4 baseline and investigate any temperature, heartbeat, restart, memory, or long-task outliers before publishing.
 
 ### Portable backups and restore points
 
@@ -220,15 +206,6 @@ To make a Docker backup without updating, run:
 ```
 
 Rerunning `./scripts/docker-setup.sh start` keeps existing Docker UID/GID and advanced `.env` values instead of resetting them.
-
-### Docker environment configuration
-
-`scripts/docker-setup.sh` creates and preserves `.env` automatically. Advanced Docker settings can be edited directly in that local `.env` file after the first setup. Keep it private because it can contain deployment-specific values.
-
-To start from the documented example manually:
-
-
-Edit `.env`, then run the normal Docker setup command.
 
 ### Add a screen-only Raspberry Pi to a Docker server
 
@@ -466,29 +443,8 @@ Photos stored outside LibreDisplay or on a NAS are not intentionally deleted.
 
 </details>
 
-## Frontend architecture
-
-LibreDisplay **v1.6.0** continues the native ES-module refactor by splitting the first-round feature modules into smaller responsibility-focused source files while keeping the dashboard self-contained and build-tool-light. No Node.js, bundler, or frontend package manager is required on the Pi.
-
-- `app/dashboard.html` is the HTML shell.
-- `app/css/dashboard.css` owns the dashboard and Settings presentation.
-- `app/js/core/` owns bootstrap, configuration, the shared `uiCfg()` / remote-text helpers, the module runtime, and the low-power scheduling/performance layer.
-- `app/js/integrations/` owns integration discovery and health/configuration UI.
-- `app/js/weather/` separates forecast/details from alert runtime; `calendar/` separates ICS parsing, recurrence expansion, and rendering; `backgrounds/` separates Google Photos parsing from rotation/source control.
-- `app/js/blocks/` owns custom and integration block rendering.
-- `app/js/layout/` keeps the protected Arrange core in `index.js` and separates remote-preview and persistence commands.
-- `app/js/appearance/` separates core presentation controls, layout presets, and backup/recovery workflows.
-- `app/js/remote/` owns server sync, connection state, display heartbeat, and remote display state.
-- `app/js/system/` separates health/update/diagnostics from Profiles and scheduled Scenes.
-- `app/js/onboarding/` owns setup; `settings/` separates the shell/apply flow, navigation/search, quick actions, interaction helpers, and local-account administration.
-- `app/js/lifecycle/` is the startup/recovery orchestrator and calls subsystems through the module registry.
-
-The v1.6.0 second-stage refactor keeps logical module APIs stable while allowing several smaller source files to contribute to one module. `app/js/module-manifest.json` records the physical load order and ownership of those source pieces, and the full graph is module-preloaded so split files can fetch in parallel while still evaluating deterministically. Installer, updater, and CI all run the same manifest verifier before accepting the frontend tree. Generic helpers such as `uiCfg()`, remote-text fetching, HTML escaping, URL validation, color normalization, and responsive clamp formatting now have a real shared-core owner instead of being borrowed from unrelated feature modules. Parser/helper modules for ICS, recurrence, and Google Photos are API-only, and bootstrap/config callable operations plus Bootstrap/session/device state are consumed through explicit live module APIs rather than broad compatibility globals. Weather, Calendar, Backgrounds, Alerts, Integrations, Remote, Onboarding, Profiles/Scenes, Appearance, Settings, and System Health state has been migrated substantially to its owning module API. Only nine compatibility state globals remain, intentionally covering central configuration/block state and the protected Layout/Arrange compatibility seam. The module smoke currently measures 263 compatibility globals (254 functions and 9 state bindings), down from 440 / 186 states at the start of Phase 2, and enforces ceilings of 270 total globals, 260 function globals, and 10 state globals so that surface cannot silently grow again. The remaining function bridge primarily supports generated/inline UI handlers and established cross-module call sites and will be reduced deliberately rather than through a risky pre-release bulk rewrite.
-
-Raspberry Pi 3 is an explicit v1.6.0 support target. The frontend uses managed non-overlapping refresh jobs, an adaptive clock, and a capability-based constrained-device path that reduces JavaScript motion and compositor blur on lower-resource hardware while preserving the standard path on devices with more headroom. Settings > System reports host model, CPU count, memory, and temperature so Pi 3 soak results can be measured. Deeper Pi 3 profiling and optimization remain the next performance phase after the architecture is field-proven.
-
 ## Open source
 
-LibreDisplay is created by **Gubna** and released under the **[MIT License](LICENSE)**.
+LibreDisplay is released under the **[MIT License](LICENSE)**.
 
 Copyright (c) 2026 Gubna.

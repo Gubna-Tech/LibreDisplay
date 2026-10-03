@@ -103,8 +103,6 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertEqual(match.group(1), version)
 
     def test_v160_field_readiness_tool_is_part_of_project(self):
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("libredisplay field-check", readme)
         self.assertTrue((ROOT / "scripts" / "field-readiness.py").is_file())
         self.assertIn("field-readiness.py", (ROOT / "install.sh").read_text(encoding="utf-8"))
         self.assertIn("field-readiness.py", (ROOT / "update.sh").read_text(encoding="utf-8"))
@@ -198,8 +196,26 @@ class ReleaseContractTests(unittest.TestCase):
         actual = {p.name for p in ROOT.iterdir() if p.name != "__pycache__"}
         self.assertEqual(actual, expected)
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Created by **Gubna**", readme)
-        self.assertIn("DAKboard", readme)
+        headings = [line for line in readme.splitlines() if line.startswith("#")]
+        self.assertEqual(headings, [
+            "# LibreDisplay",
+            "## Quick start — Raspberry Pi",
+            "## First setup",
+            "## Everyday use",
+            "### Display profiles and templates",
+            "## Updating LibreDisplay",
+            "### Update history and version rollback",
+            "## System health and diagnostics",
+            "### Display readiness and kiosk resilience",
+            "### Portable backups and restore points",
+            "## Docker",
+            "### Updating a Docker installation",
+            "### Add a screen-only Raspberry Pi to a Docker server",
+            "### Calendars",
+            "### Photos and NAS folders",
+            "### Multiple displays",
+            "## Open source",
+        ])
         for forbidden in ("CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md", ".env.example", ".dockerignore", ".gitignore", ".github"):
             self.assertNotIn(forbidden, actual)
 
