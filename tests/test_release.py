@@ -83,7 +83,7 @@ class ReleaseContractTests(unittest.TestCase):
         version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
         self.assertIn("unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup", readme)
         self.assertIn(f"cd ~/LibreDisplay-Setup/LibreDisplay-{version}", readme)
-        self.assertIn("Remote access, accounts, and privacy", readme)
+        self.assertIn("## Remote access and privacy", readme)
 
     def test_readme_commands_are_copy_friendly_and_license_is_linked(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -201,19 +201,11 @@ class ReleaseContractTests(unittest.TestCase):
             "# LibreDisplay",
             "## Quick start — Raspberry Pi",
             "## First setup",
-            "## Everyday use",
-            "### Display profiles and templates",
+            "## Using LibreDisplay",
             "## Updating LibreDisplay",
-            "### Update history and version rollback",
-            "## System health and diagnostics",
-            "### Display readiness and kiosk resilience",
-            "### Portable backups and restore points",
             "## Docker",
-            "### Updating a Docker installation",
-            "### Add a screen-only Raspberry Pi to a Docker server",
-            "### Calendars",
-            "### Photos and NAS folders",
-            "### Multiple displays",
+            "## Useful commands",
+            "## Remote access and privacy",
             "## Open source",
         ])
         for forbidden in ("CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md", ".env.example", ".dockerignore", ".gitignore", ".github"):

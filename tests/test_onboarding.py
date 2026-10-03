@@ -66,13 +66,11 @@ class OnboardingTests(unittest.TestCase):
         self.assertIn('const persistence=await saveCfg();', HTML)
         self.assertIn('return {ok:true,persistence};', HTML)
 
-    def test_readme_documents_real_first_run_flow(self):
-        self.assertIn('guided setup automatically', README)
-        self.assertIn('Display name', README)
-        self.assertIn('exact city/region/country', README)
-        self.assertIn('Initial setup baseline', README)
-        self.assertIn('Review & health check', README)
-        self.assertIn('Open full settings', README)
+    def test_readme_documents_first_run_setup_without_internal_detail(self):
+        self.assertIn('setup wizard automatically', README)
+        self.assertIn('display name', README)
+        self.assertIn('weather location', README)
+        self.assertIn('Settings > Home > Run setup wizard', README)
 
 
 if __name__ == '__main__':
