@@ -24,7 +24,7 @@ RUN apt-get update \
     && chown -R libredisplay:libredisplay /data /media /plugins
 
 WORKDIR /app
-COPY --chown=libredisplay:libredisplay app/dashboard.html app/dashboard_server.py /app/
+COPY --chown=libredisplay:libredisplay app /app/
 COPY --chown=libredisplay:libredisplay VERSION /VERSION
 COPY --chown=libredisplay:libredisplay plugins /plugins
 

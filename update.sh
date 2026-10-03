@@ -20,6 +20,12 @@ INSTALL_DIR="$HOME/libredisplay"
 DATA_DIR="$INSTALL_DIR/data"
 
 [ -f "$SRC_DIR/VERSION" ] || { printf 'This does not look like a LibreDisplay release folder.\n' >&2; exit 1; }
+for required in app/dashboard.html app/dashboard_server.py app/js/app.js app/css/dashboard.css; do
+  [ -f "$SRC_DIR/$required" ] || { printf 'LibreDisplay release is incomplete: missing %s\n' "$required" >&2; exit 1; }
+done
+[ -x "$SRC_DIR/scripts/verify-frontend.py" ] || { printf 'LibreDisplay release is incomplete: missing frontend verifier.\n' >&2; exit 1; }
+printf 'Verifying modular frontend assets...\n'
+python3 "$SRC_DIR/scripts/verify-frontend.py" "$SRC_DIR"
 [ -d "$INSTALL_DIR" ] && [ -f "$DATA_DIR/.installed" ] || {
   printf 'No existing native LibreDisplay installation was found at %s.\n' "$INSTALL_DIR" >&2
   printf 'Use ./install.sh for a first installation.\n' >&2
@@ -56,28 +62,87 @@ printf 'Creating a safety backup and rollback snapshot...\n'
 SNAPSHOT_ID=$(python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" snapshot --to-version "$NEW_VERSION" --quiet)
 printf 'Rollback snapshot: %s\n' "$SNAPSHOT_ID"
 
-printf 'Updating application files...\n'
-rm -rf "$INSTALL_DIR/app" "$INSTALL_DIR/scripts" "$INSTALL_DIR/assets"
-cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/assets" "$INSTALL_DIR/"
+printf 'Staging application files before replacing the live release...\n'
+STAGE_DIR=$(mktemp -d "$INSTALL_DIR/.libredisplay-update-stage.XXXXXX")
+OLD_DIR=$(mktemp -d "$INSTALL_DIR/.libredisplay-update-old.XXXXXX")
+UPDATE_COMMITTED=0
 
-mkdir -p "$INSTALL_DIR/plugins"
+restore_previous_release() {
+  set +e
+  for name in app scripts assets; do
+    rm -rf "$INSTALL_DIR/$name"
+    [ -e "$OLD_DIR/$name" ] && mv "$OLD_DIR/$name" "$INSTALL_DIR/$name"
+  done
+  mkdir -p "$INSTALL_DIR/plugins"
+  for src in "$STAGE_DIR/plugins"/*; do
+    [ -e "$src" ] || continue
+    name=$(basename "$src")
+    rm -rf "$INSTALL_DIR/plugins/$name"
+    [ -e "$OLD_DIR/plugins/$name" ] && mv "$OLD_DIR/plugins/$name" "$INSTALL_DIR/plugins/$name"
+  done
+  for file in Dockerfile LICENSE README.md CHANGELOG.md VERSION docker-compose.yml install.sh update.sh uninstall.sh .env.example .gitignore; do
+    rm -f "$INSTALL_DIR/$file"
+    [ -f "$OLD_DIR/files/$file" ] && mv "$OLD_DIR/files/$file" "$INSTALL_DIR/$file"
+  done
+  if [ -f "$OLD_DIR/installed-version" ]; then
+    cp "$OLD_DIR/installed-version" "$DATA_DIR/.installed"
+    chmod 600 "$DATA_DIR/.installed" 2>/dev/null || true
+  fi
+}
+
+cleanup_update_swap() {
+  code=$?
+  trap - EXIT HUP INT TERM
+  if [ "$UPDATE_COMMITTED" -ne 1 ]; then
+    printf 'Update did not complete; restoring the previous application files...\n' >&2
+    restore_previous_release
+  fi
+  rm -rf "$STAGE_DIR" "$OLD_DIR"
+  exit "$code"
+}
+trap cleanup_update_swap EXIT HUP INT TERM
+
+mkdir -p "$STAGE_DIR/plugins" "$OLD_DIR/plugins" "$OLD_DIR/files"
+cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/assets" "$STAGE_DIR/"
 for src in "$SRC_DIR/plugins"/*; do
   [ -e "$src" ] || continue
-  name=$(basename "$src")
-  rm -rf "$INSTALL_DIR/plugins/$name"
-  cp -a "$src" "$INSTALL_DIR/plugins/$name"
+  cp -a "$src" "$STAGE_DIR/plugins/"
 done
-
-for file in Dockerfile LICENSE README.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
-  cp "$SRC_DIR/$file" "$INSTALL_DIR/$file"
+for file in Dockerfile LICENSE README.md CHANGELOG.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
+  cp "$SRC_DIR/$file" "$STAGE_DIR/$file"
 done
 for file in .env.example .gitignore; do
-  [ -f "$SRC_DIR/$file" ] && cp "$SRC_DIR/$file" "$INSTALL_DIR/$file"
+  [ -f "$SRC_DIR/$file" ] && cp "$SRC_DIR/$file" "$STAGE_DIR/$file"
+done
+printf '%s\n' "$OLD_VERSION" > "$OLD_DIR/installed-version"
+
+# Verify the staged tree itself before the first live path is replaced.
+python3 "$STAGE_DIR/scripts/verify-frontend.py" "$STAGE_DIR"
+
+printf 'Replacing application files...\n'
+for name in app scripts assets; do
+  [ -e "$INSTALL_DIR/$name" ] && mv "$INSTALL_DIR/$name" "$OLD_DIR/$name"
+  mv "$STAGE_DIR/$name" "$INSTALL_DIR/$name"
+done
+
+mkdir -p "$INSTALL_DIR/plugins"
+for src in "$STAGE_DIR/plugins"/*; do
+  [ -e "$src" ] || continue
+  name=$(basename "$src")
+  [ -e "$INSTALL_DIR/plugins/$name" ] && mv "$INSTALL_DIR/plugins/$name" "$OLD_DIR/plugins/$name"
+  mv "$src" "$INSTALL_DIR/plugins/$name"
+done
+
+for file in Dockerfile LICENSE README.md CHANGELOG.md VERSION docker-compose.yml install.sh update.sh uninstall.sh .env.example .gitignore; do
+  [ -f "$STAGE_DIR/$file" ] || continue
+  [ -f "$INSTALL_DIR/$file" ] && mv "$INSTALL_DIR/$file" "$OLD_DIR/files/$file"
+  mv "$STAGE_DIR/$file" "$INSTALL_DIR/$file"
 done
 
 printf '%s\n' "$NEW_VERSION" > "$DATA_DIR/.installed"
 chmod 600 "$DATA_DIR/.installed"
-chmod 755 "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh" "$INSTALL_DIR/uninstall.sh" "$INSTALL_DIR/scripts/"*.sh "$INSTALL_DIR/scripts/libredisplay" "$INSTALL_DIR/scripts/libredisplay-privileged" "$INSTALL_DIR/scripts/release-rollback.py" "$INSTALL_DIR/app/dashboard_server.py"
+chmod 755 "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh" "$INSTALL_DIR/uninstall.sh" "$INSTALL_DIR/scripts/"*.sh "$INSTALL_DIR/scripts/libredisplay" "$INSTALL_DIR/scripts/libredisplay-privileged" "$INSTALL_DIR/scripts/release-rollback.py" "$INSTALL_DIR/scripts/field-readiness.py" "$INSTALL_DIR/app/dashboard_server.py"
+find "$INSTALL_DIR/app/js" "$INSTALL_DIR/app/css" -type f -exec chmod 644 {} +
 
 PRIV_HELPER=/usr/local/libexec/libredisplay-privileged
 helper_ready=0
@@ -110,6 +175,10 @@ for file in .env.example .gitignore; do
 done
 
 python3 "$INSTALL_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" record-update --from-version "$OLD_VERSION" --to-version "$NEW_VERSION" --snapshot-id "$SNAPSHOT_ID" || true
+
+UPDATE_COMMITTED=1
+rm -rf "$STAGE_DIR" "$OLD_DIR"
+trap - EXIT HUP INT TERM
 
 printf '\nLibreDisplay has been updated to %s.\n' "$NEW_VERSION"
 printf 'Your existing settings, display endpoints, media, and custom plugin folders were kept.\n'

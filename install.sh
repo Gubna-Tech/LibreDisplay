@@ -17,6 +17,10 @@ done
 
 SRC_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
+for required in VERSION app/dashboard.html app/dashboard_server.py app/js/app.js app/css/dashboard.css; do
+  [ -f "$SRC_DIR/$required" ] || { printf 'LibreDisplay release is incomplete: missing %s\n' "$required" >&2; exit 1; }
+done
+
 command -v sudo >/dev/null 2>&1 || { printf 'sudo is required.\n' >&2; exit 1; }
 command -v apt >/dev/null 2>&1 || { printf 'This installer requires Raspberry Pi OS/Debian with apt.\n' >&2; exit 1; }
 command -v raspi-config >/dev/null 2>&1 || { printf 'This native installer requires Raspberry Pi OS.\n' >&2; exit 1; }
@@ -78,6 +82,9 @@ sudo DEBIAN_FRONTEND=noninteractive apt install -y \
   swayidle wtype qrencode cifs-utils nfs-common \
   fonts-liberation2 fonts-noto-core fonts-noto-color-emoji fonts-dejavu-core
 
+printf 'Verifying modular frontend assets...\n'
+python3 "$SRC_DIR/scripts/verify-frontend.py" "$SRC_DIR"
+
 if [ "$SRC_DIR" != "$INSTALL_DIR" ]; then
   if [ -e "$INSTALL_DIR" ]; then
     if [ -d "$INSTALL_DIR" ] && [ -z "$(find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]; then
@@ -89,7 +96,7 @@ if [ "$SRC_DIR" != "$INSTALL_DIR" ]; then
   fi
   mkdir -p "$INSTALL_DIR"
   cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/plugins" "$SRC_DIR/assets" "$INSTALL_DIR/"
-  for file in Dockerfile LICENSE README.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
+  for file in Dockerfile LICENSE README.md CHANGELOG.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
     cp "$SRC_DIR/$file" "$INSTALL_DIR/$file"
   done
   for file in .env.example .gitignore; do
@@ -137,7 +144,7 @@ chmod 600 "$DATA_DIR/libredisplay.env"
 printf '%s\n' "$VERSION" > "$DATA_DIR/.installed"
 chmod 600 "$DATA_DIR/.installed"
 
-chmod 755 "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh" "$INSTALL_DIR/uninstall.sh" "$INSTALL_DIR/scripts/"*.sh "$INSTALL_DIR/scripts/libredisplay" "$INSTALL_DIR/scripts/libredisplay-privileged" "$INSTALL_DIR/scripts/release-rollback.py" "$INSTALL_DIR/app/dashboard_server.py"
+chmod 755 "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh" "$INSTALL_DIR/uninstall.sh" "$INSTALL_DIR/scripts/"*.sh "$INSTALL_DIR/scripts/libredisplay" "$INSTALL_DIR/scripts/libredisplay-privileged" "$INSTALL_DIR/scripts/release-rollback.py" "$INSTALL_DIR/scripts/field-readiness.py" "$INSTALL_DIR/app/dashboard_server.py"
 
 sudo install -m 755 "$INSTALL_DIR/scripts/libredisplay" /usr/local/bin/libredisplay
 
@@ -154,6 +161,7 @@ sudo install -o root -g root -m 440 "$sudoers_tmp" "/etc/sudoers.d/libredisplay-
 rm -f "$sudoers_tmp"
 find "$INSTALL_DIR" -type f -name '*.md' -exec chmod 644 {} \;
 chmod 644 "$INSTALL_DIR/app/dashboard.html" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.yml" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/LICENSE"
+find "$INSTALL_DIR/app/js" "$INSTALL_DIR/app/css" -type f -exec chmod 644 {} +
 for file in .env.example .gitignore; do
   [ -f "$INSTALL_DIR/$file" ] && chmod 644 "$INSTALL_DIR/$file"
 done
