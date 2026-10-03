@@ -130,6 +130,12 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('/usr/local/bin/libredisplay', uninstall)
         self.assertIn('API_URL = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"', cli)
         self.assertIn('archive/refs/tags/v{latest}.zip', cli)
+        self.assertNotIn('releases/download/', cli)
+        self.assertNotIn('browser_download_url', cli)
+        docker_release = (ROOT / "scripts" / "docker-release.py").read_text(encoding="utf-8")
+        self.assertIn('archive/refs/tags/v{latest}.zip', docker_release)
+        self.assertNotIn('releases/download/', docker_release)
+        self.assertNotIn('browser_download_url', docker_release)
         self.assertIn('release_root = release_dir', cli)
         self.assertIn('safe_extract', cli)
 

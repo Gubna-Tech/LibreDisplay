@@ -113,15 +113,6 @@ def github_json(url: str, user_agent: str):
 
 
 def release_download(payload: dict, latest: str):
-    expected_name = f"LibreDisplay-v{latest}.zip"
-    for asset in payload.get("assets") or []:
-        if not isinstance(asset, dict) or str(asset.get("name") or "") != expected_name:
-            continue
-        url = str(asset.get("browser_download_url") or "").strip()
-        digest = str(asset.get("digest") or "").strip().lower()
-        size = int(asset.get("size") or 0)
-        if url.startswith(f"https://github.com/{REPOSITORY}/releases/download/") and re.fullmatch(r"sha256:[0-9a-f]{64}", digest) and 0 < size <= MAX_ARCHIVE_BYTES:
-            return url, digest, size
     return f"https://github.com/{REPOSITORY}/archive/refs/tags/v{latest}.zip", "", 0
 
 
