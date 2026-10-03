@@ -49,7 +49,7 @@ class ReleaseContractTests(unittest.TestCase):
             workspace = Path(td) / "repo"
             workspace.mkdir()
             for name in module.TOP_FILES:
-                (workspace / name).write_text("1.6.0\n" if name == "VERSION" else f"{name}\n", encoding="utf-8")
+                (workspace / name).write_text("1.6.1\n" if name == "VERSION" else f"{name}\n", encoding="utf-8")
             for dirname in module.TOP_DIRS:
                 (workspace / dirname).mkdir()
                 (workspace / dirname / "project.txt").write_text("project\n", encoding="utf-8")
@@ -62,7 +62,7 @@ class ReleaseContractTests(unittest.TestCase):
                 d.mkdir()
                 (d / "private.txt").write_text("secret\n", encoding="utf-8")
             (workspace / "private.ldbackup").write_text("secret\n", encoding="utf-8")
-            output = Path(td) / "LibreDisplay-v1.6.0.zip"
+            output = Path(td) / "LibreDisplay-v1.6.1.zip"
             old_root = module.ROOT
             try:
                 module.ROOT = workspace
@@ -71,7 +71,7 @@ class ReleaseContractTests(unittest.TestCase):
                 module.ROOT = old_root
             with zipfile.ZipFile(output) as archive:
                 names = set(archive.namelist())
-            prefix = "LibreDisplay-1.6.0/"
+            prefix = "LibreDisplay-1.6.1/"
             self.assertIn(prefix + "README.md", names)
             for dirname in module.TOP_DIRS:
                 self.assertIn(prefix + dirname + "/project.txt", names)
