@@ -23,7 +23,7 @@ DATA_DIR="$INSTALL_DIR/data"
 for required in app/dashboard.html app/dashboard_server.py app/js/app.js app/css/dashboard.css; do
   [ -f "$SRC_DIR/$required" ] || { printf 'LibreDisplay release is incomplete: missing %s\n' "$required" >&2; exit 1; }
 done
-[ -x "$SRC_DIR/scripts/verify-frontend.py" ] || { printf 'LibreDisplay release is incomplete: missing frontend verifier.\n' >&2; exit 1; }
+[ -f "$SRC_DIR/scripts/verify-frontend.py" ] || { printf 'LibreDisplay release is incomplete: missing frontend verifier.\n' >&2; exit 1; }
 printf 'Verifying modular frontend assets...\n'
 python3 "$SRC_DIR/scripts/verify-frontend.py" "$SRC_DIR"
 [ -d "$INSTALL_DIR" ] && [ -f "$DATA_DIR/.installed" ] || {

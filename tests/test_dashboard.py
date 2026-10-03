@@ -185,6 +185,23 @@ class UpdateStatusTests(unittest.TestCase):
         self.assertTrue(str(args[0]).endswith("scripts/libredisplay"))
         thread.assert_called_once()
 
+    def test_failed_update_reports_sanitized_log_tail_to_remote_owner(self):
+        server.UPDATE_RUN_STATE.clear()
+        server.UPDATE_RUN_STATE.update({"state": "running", "startedAt": 0, "targetVersion": "9.9.9", "error": ""})
+        proc = mock.Mock()
+        proc.wait.return_value = 1
+        with tempfile.TemporaryDirectory(prefix="libredisplay-update-log-") as tmp, \
+             mock.patch.object(server, "UPDATE_LOG_PATH", Path(tmp) / "update.log"):
+            server.UPDATE_LOG_PATH.write_text(
+                "Downloading release\nLibreDisplay release is incomplete: missing frontend verifier.\n",
+                encoding="utf-8",
+            )
+            server._watch_update_process(proc)
+        state = server.update_run_status()
+        self.assertEqual(state["state"], "failed")
+        self.assertIn("missing frontend verifier", state["error"])
+        self.assertNotIn("Updater exited with status 1", state["error"])
+
     def test_system_health_payload_is_privacy_safe(self):
         payload = server.system_health_payload()
         self.assertTrue(payload["ok"])

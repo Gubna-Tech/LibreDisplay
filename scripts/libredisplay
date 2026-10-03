@@ -158,6 +158,20 @@ def safe_extract(archive, destination):
                 if total > MAX_TOTAL_UNPACKED_BYTES:
                     fail("The release archive exceeds LibreDisplay's unpacked-size safety limit.")
             bundle.extractall(destination)
+            # Python's zipfile extraction does not restore Unix execute bits.
+            # Normalize trusted release entries so scripts remain runnable after
+            # an in-app update, while never carrying special/world-writable bits.
+            for info in bundle.infolist():
+                raw = info.filename.replace("\\", "/")
+                path = PurePosixPath(raw)
+                target = destination.joinpath(*path.parts)
+                if not target.exists():
+                    continue
+                source_mode = (info.external_attr >> 16) & 0o777
+                if target.is_dir():
+                    os.chmod(target, 0o755)
+                elif target.is_file():
+                    os.chmod(target, 0o755 if source_mode & 0o111 else 0o644)
     except zipfile.BadZipFile:
         fail("The downloaded release is not a valid ZIP archive.")
 

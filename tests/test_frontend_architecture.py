@@ -172,6 +172,8 @@ class FrontendArchitectureTests(unittest.TestCase):
         self.assertTrue(verifier.is_file())
         self.assertIn('scripts/verify-frontend.py" "$SRC_DIR"', install)
         self.assertIn('scripts/verify-frontend.py" "$SRC_DIR"', update)
+        self.assertIn('[ -f "$SRC_DIR/scripts/verify-frontend.py" ]', update)
+        self.assertNotIn('[ -x "$SRC_DIR/scripts/verify-frontend.py" ]', update)
 
     def test_install_update_and_docker_ship_frontend_assets(self):
         docker = (ROOT / "Dockerfile").read_text(encoding="utf-8")

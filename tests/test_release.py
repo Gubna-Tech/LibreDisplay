@@ -133,6 +133,12 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('release_root = release_dir', cli)
         self.assertIn('safe_extract', cli)
 
+    def test_v158_remote_updater_mode_stripping_cannot_block_frontend_verifier(self):
+        update = (ROOT / "update.sh").read_text(encoding="utf-8")
+        self.assertIn('[ -f "$SRC_DIR/scripts/verify-frontend.py" ]', update)
+        self.assertNotIn('[ -x "$SRC_DIR/scripts/verify-frontend.py" ]', update)
+        self.assertIn('python3 "$SRC_DIR/scripts/verify-frontend.py" "$SRC_DIR"', update)
+
     def test_v111_update_handles_chromium_runtime_links_before_legacy_backup(self):
         update = (ROOT / "update.sh").read_text(encoding="utf-8")
         backup = (ROOT / "scripts" / "server-backup.py").read_text(encoding="utf-8")

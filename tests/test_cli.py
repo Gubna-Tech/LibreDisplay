@@ -1,6 +1,8 @@
 import importlib.machinery
 import importlib.util
 import json
+import os
+import stat
 import tempfile
 import unittest
 import zipfile
@@ -110,6 +112,19 @@ class CliTests(unittest.TestCase):
             out.mkdir()
             cli.safe_extract(archive, out)
             self.assertEqual((out / "VERSION").read_text().strip(), "1.0.1")
+
+    def test_safe_extract_restores_release_executable_bits(self):
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            archive = td / "mode.zip"
+            with zipfile.ZipFile(archive, "w") as zf:
+                info = zipfile.ZipInfo("scripts/tool")
+                info.external_attr = (stat.S_IFREG | 0o755) << 16
+                zf.writestr(info, "#!/bin/sh\nexit 0\n")
+            out = td / "out"
+            out.mkdir()
+            cli.safe_extract(archive, out)
+            self.assertTrue((out / "scripts" / "tool").stat().st_mode & stat.S_IXUSR)
 
     def test_field_check_runs_installed_soak_tool(self):
         with tempfile.TemporaryDirectory() as td:
