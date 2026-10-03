@@ -339,7 +339,7 @@ const PRESET_CONTENT_PRESERVE_KEYS=['weatherDetailsOrder','weatherDetailsEnabled
 function preservePresetState(target,current){for(const prop of PRESET_CONTENT_PRESERVE_KEYS)target[prop]=JSON.parse(JSON.stringify(current[prop]));return target;}
 
 function resetAppearanceForm(){
-  settingsLayoutPresetKey='default';
+  LibreDisplayRuntime.getModule('appearance').settingsLayoutPresetKey='default';
   setAppearanceForm(APPEARANCE_DEFAULTS);
   previewAppearance();renderLayoutPresetGallery();markSettingsDirty();
 }

@@ -2,7 +2,7 @@
 
 const {saveCfg}=LibreDisplayRuntime.getModule('config');
 const {weatherDetailColumnCount}=LibreDisplayRuntime.getModule('weather');
-const {uiCfg}=LibreDisplayRuntime.getModule('shared');
+const {uiCfg,escHtml,normalizeHexColor}=LibreDisplayRuntime.getModule('shared');
 
 const LAYOUT_BLOCK_DEFS={
   calendar:{selector:'#top-strip',label:'Calendar',minW:320,minH:90},

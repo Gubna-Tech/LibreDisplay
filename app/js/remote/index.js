@@ -53,10 +53,10 @@ async function loadDisplayEndpoints(){
     const [endpointRes,deviceRes]=await Promise.all([fetch(serverPath('/api/endpoints'),{cache:'no-store'}),fetch(serverPath('/api/devices'),{cache:'no-store'})]);
     const data=await endpointRes.json().catch(()=>({})),devices=await deviceRes.json().catch(()=>({}));if(!endpointRes.ok||!data.ok)throw new Error(data.error||('HTTP '+endpointRes.status));
     displayEndpoints=Array.isArray(data.endpoints)?data.endpoints:[];displayDevices=deviceRes.ok&&Array.isArray(devices.devices)?devices.devices:[];endpointsRemoteEnabled=!!data.remoteEnabled;
-    renderProfileEndpointSelect?.();
+    LibreDisplayRuntime.getModule('system').renderProfileEndpointSelect?.();
     list.innerHTML=displayEndpoints.map(e=>{const live=endpointDeviceSummary(e.id);return `<div class="endpoint-row ${e.id===bootstrapApi.ACTIVE_ENDPOINT?'endpoint-current':''}"><div><div class="endpoint-name">${esc(e.name||e.id)}${e.id===bootstrapApi.ACTIVE_ENDPOINT?' · current':''}</div><div class="endpoint-meta">/${esc(e.id)} · ${e.configured?'configured':'new display'}</div><div class="endpoint-live ${live.online?'online':''}"><span class="endpoint-live-dot"></span>${esc(live.text)}</div></div><div class="endpoint-actions"><button class="btn-util" type="button" onclick="editDisplayEndpoint('${escHtml(e.id)}')">Edit</button><button class="btn-util" type="button" onclick="sendDisplayCommand('${escHtml(e.id)}','refresh')">Refresh data</button><button class="btn-util" type="button" onclick="sendDisplayCommand('${escHtml(e.id)}','reload')">Reload screen</button><button class="btn-util" type="button" onclick="copyDisplayEndpointLink('${escHtml(e.id)}')">Copy link</button><button class="btn-util" type="button" onclick="renameDisplayEndpoint('${escHtml(e.id)}')">Rename</button><button class="btn-util" type="button" onclick="rotateDisplayEndpoint('${escHtml(e.id)}')">Rotate link</button>${e.id!=='main'?`<button class="btn-util" type="button" onclick="deleteDisplayEndpoint('${escHtml(e.id)}')">Delete</button>`:''}</div></div>`}).join('')||'<div class="settings-note">No displays found.</div>';
     if(status)status.textContent=`Editing “${displayEndpoints.find(e=>e.id===bootstrapApi.ACTIVE_ENDPOINT)?.name||bootstrapApi.ACTIVE_ENDPOINT}”. ${displayDevices.filter(x=>x.online).length} viewer${displayDevices.filter(x=>x.online).length===1?'':'s'} online.`+(endpointsRemoteEnabled?'':' Enable Remote management before using Display Links on other devices.');
-    syncWizardDisplayNameFromEndpoints?.();renderDisplayReadiness();
+    LibreDisplayRuntime.getModule('onboarding').syncWizardDisplayNameFromEndpoints?.();renderDisplayReadiness();
   }catch(e){if(status)status.textContent='Display manager unavailable: '+(e.message||e);list.innerHTML='';renderDisplayReadiness();}
 }
 async function endpointAction(body){const res=await fetch(serverPath('/api/endpoints'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});const data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));return data;}
@@ -233,7 +233,7 @@ async function pollServerConfig(){
     const remote=data?.config;
     const remoteSaved=Number(remote?._savedAt||data?.savedAt||0);
     const localSaved=Number(cfg?._savedAt||0);
-    const mergedRemote=(remote&&typeof remote==='object')?{...CFG_DEFAULTS,...remote,_savedAt:remoteSaved}:null;
+    const mergedRemote=(remote&&typeof remote==='object')?{...configApi.CFG_DEFAULTS,...remote,_savedAt:remoteSaved}:null;
     const remoteChanged=!!mergedRemote&&(remoteSaved!==localSaved||(remoteSaved===0&&localSaved===0&&JSON.stringify(mergedRemote)!==JSON.stringify({...cfg,_savedAt:0})));
     const shouldApplyRemote=remoteChanged&&(!bootstrapApi.LOCAL_CLIENT_MODE||remoteSaved>localSaved||(remoteSaved===0&&localSaved===0));
     if(shouldApplyRemote){

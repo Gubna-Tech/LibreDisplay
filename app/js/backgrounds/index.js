@@ -322,7 +322,7 @@ async function loadStockBackground(category=cfg.stockCategory,custom=cfg.stockQu
     if(!chosen)throw new Error('Stock image service did not return an image URL');
     configApi.stockRecentUrls.push(chosen);
     if(configApi.stockRecentUrls.length>40)configApi.stockRecentUrls.splice(0,configApi.stockRecentUrls.length-40);
-    configApi.bgSourceImages=[...stockRecentUrls];
+    configApi.bgSourceImages=[...configApi.stockRecentUrls];
     configApi.bgImages=[chosen];
     configApi.bgIdx=0;
     await showBg(0,0,sourceSerial);

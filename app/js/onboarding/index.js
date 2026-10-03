@@ -156,10 +156,10 @@ async function wizardLoadRestorePointCount(){
   try{const res=await fetch('/api/restore-points',{cache:'no-store'}),data=await res.json().catch(()=>({}));if(res.ok&&data.ok)configApi.wizardRestorePointCount=Array.isArray(data.points)?data.points.length:0;}catch(e){}
 }
 async function runWizardHealthChecks(){
-  if(configApi.wizardHealthRunning)return;configApi.wizardHealthRunning=true;configApi.wizardHealthRows=[...wizardHealthNotices];renderWizardHealth();
+  if(configApi.wizardHealthRunning)return;configApi.wizardHealthRunning=true;configApi.wizardHealthRows=[...configApi.wizardHealthNotices];renderWizardHealth();
   const jobs=[loadRemoteInfo(),loadSystemHealth(),checkSoftwareUpdate(false),refreshProviderHealth(true),wizardLoadRestorePointCount()];
   await Promise.allSettled(jobs);
-  configApi.wizardHealthRows=[...wizardHealthNotices,...buildWizardHealthRows()];configApi.wizardHealthRunning=false;renderWizardStep();
+  configApi.wizardHealthRows=[...configApi.wizardHealthNotices,...buildWizardHealthRows()];configApi.wizardHealthRunning=false;renderWizardStep();
 }
 async function wizardSaveAndRunChecks(){
   const next=document.getElementById('wizard-next');if(next)next.disabled=true;

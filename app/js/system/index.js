@@ -309,7 +309,7 @@ function renderProviderHealth(){
   else rows.push({name:'Weather alerts',detail:'Disabled in Weather settings',meta:'',status:'ready',label:'Disabled'});
   const intConfigured=configuredIntegrationBlocks().length,intIssues=integrationsApi.integrationHealthRows.filter(x=>['error','missing','unconfigured'].includes(x.status)).length,intDelayed=integrationsApi.integrationHealthRows.filter(x=>['stale','cached'].includes(x.status)).length,intHealthy=integrationsApi.integrationHealthRows.filter(x=>x.status==='fresh').length;
   rows.push({name:'Integrations',detail:intConfigured?`${intHealthy}/${intConfigured} healthy${intIssues?' · '+intIssues+' need attention':intDelayed?' · '+intDelayed+' delayed/cached':''}`:'No integration blocks configured',meta:integrationsApi.integrationHealthLoadedAt?`Status refreshed ${healthAgeText((now-integrationsApi.integrationHealthLoadedAt)/1000)}`:'',status:!intConfigured?'ready':intIssues?'error':intDelayed?'stale':intHealthy===intConfigured?'fresh':'ready',label:!intConfigured?'None configured':intIssues?'Needs attention':intDelayed?'Delayed':intHealthy===intConfigured?'Healthy':'Not checked'});
-  const staleSources=[...new Set([...staleCacheSources.values()].map(v=>v?.name||'remote data'))];
+  const staleSources=[...new Set([...configApi.staleCacheSources.values()].map(v=>v?.name||'remote data'))];
   rows.push({name:'Remote data cache',detail:staleSources.length?`Serving last known good data for ${staleSources.slice(0,3).join(', ')}${staleSources.length>3?' +'+(staleSources.length-3):''}`:'No stale remote sources are currently being served from cache.',meta:'Live data is always preferred when providers recover.',status:staleSources.length?'stale':'fresh',label:staleSources.length?'Fallback active':'Live preferred'});
   host.innerHTML=rows.map(r=>`<div class="provider-health-row"><div class="provider-health-copy"><b>${escHtml(r.name)}</b><span>${escHtml(r.detail)}</span>${r.meta?`<small>${escHtml(r.meta)}</small>`:''}</div><div class="provider-health-actions">${providerHealthPill(r.status,r.label)}</div></div>`).join('');
 }
@@ -351,7 +351,7 @@ function updateSettingsOverview(){
   }
   setHealth('health-alerts',cfg.alertsEnabled?(cfg.alertTestMode?`${configApi.activeWeatherAlerts.length||10} test alerts`:`${configApi.activeWeatherAlerts.length} active alert${configApi.activeWeatherAlerts.length===1?'':'s'}`):'Disabled',cfg.alertsEnabled?'good':'warn');
   setHealth('health-display',(document.fullscreenElement?'Fullscreen':'Windowed')+' · '+(cfg.layoutMode==='custom'?'Custom layout':'Default layout'),document.fullscreenElement?'good':'warn');
-  const stale=[...new Set([...staleCacheSources.values()].map(v=>v?.name||'remote data'))];
+  const stale=[...new Set([...configApi.staleCacheSources.values()].map(v=>v?.name||'remote data'))];
   setHealth('health-cache',stale.length?`Using cached data · ${stale.slice(0,2).join(', ')}${stale.length>2?' +'+(stale.length-2):''}`:'Ready · live data preferred',stale.length?'warn':'good');
   const update=softwareUpdateState;
   setHealth('health-software',!update?'Checking GitHub…':(!update.ok?'Check unavailable':(update.updateAvailable?`Update available · v${update.latestVersion}`:`Up to date · v${update.currentVersion||bootstrapApi.DASHBOARD_BUILD}`)),!update||!update.ok?'warn':(update.updateAvailable?'warn':'good'));
@@ -389,7 +389,7 @@ function buildDiagnosticsPayload(){
     refreshMinutes:{weather:cfg.weatherRefreshMin,calendar:cfg.calendarRefreshMin,alerts:cfg.alertRefreshMin},
     remoteSettings:{mode:bootstrapApi.REMOTE_SETTINGS_MODE?'remote':'local',serverSync:configApi.serverConfigAvailable},
     layout:{mode:cfg.layoutMode||'default',gridPx:cfg.layoutGridPx||20,snap:cfg.layoutSnap!==false,blocks:Object.keys(cfg.layoutBlocks||{})},
-    offlineCache:{staleSources:[...new Set([...staleCacheSources.values()].map(v=>v?.name||'remote data'))]}
+    offlineCache:{staleSources:[...new Set([...configApi.staleCacheSources.values()].map(v=>v?.name||'remote data'))]}
   };
 }
 function diagnosticsJson(){return JSON.stringify(buildDiagnosticsPayload(),null,2);}
