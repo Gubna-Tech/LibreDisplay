@@ -36,7 +36,7 @@ rm -rf ~/LibreDisplay-Setup && mkdir -p ~/LibreDisplay-Setup
 **4. Download LibreDisplay:**
 
 ```bash
-curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.7.0.zip -o /tmp/LibreDisplay.zip
+curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.7.1.zip -o /tmp/LibreDisplay.zip
 ```
 
 **5. Extract it:**
@@ -48,7 +48,7 @@ unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup
 **6. Open the extracted folder:**
 
 ```bash
-cd ~/LibreDisplay-Setup/LibreDisplay-1.7.0
+cd ~/LibreDisplay-Setup/LibreDisplay-1.7.1
 ```
 
 **7. Allow the installer to run:**

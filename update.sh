@@ -203,7 +203,14 @@ printf 'Your existing settings, display endpoints, media, and custom plugin fold
 printf 'A safety backup and version rollback snapshot were created before application files were replaced.\n'
 
 if [ "$NO_REBOOT" -eq 1 ]; then
-  printf 'Reboot when convenient: sudo reboot\n'
+  printf 'Restarting LibreDisplay without rebooting the Pi...\n'
+  START_LOG="$DATA_DIR/start.log"
+  if [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
+    nohup /bin/sh "$INSTALL_DIR/scripts/start.sh" >>"$START_LOG" 2>&1 </dev/null &
+    printf 'LibreDisplay restart requested. A host reboot is not required for this update.\n'
+  else
+    printf 'The update is installed. No graphical session was available to restart kiosk mode; reboot when convenient: sudo reboot\n'
+  fi
 else
   printf 'Rebooting to start the updated release...\n'
   if [ "${helper_ready:-0}" -eq 1 ]; then

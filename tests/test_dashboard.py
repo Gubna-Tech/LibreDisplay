@@ -181,7 +181,7 @@ class UpdateStatusTests(unittest.TestCase):
         self.assertEqual(result["state"], "running")
         self.assertEqual(result["targetVersion"], "9.9.9")
         args = popen.call_args.args[0]
-        self.assertEqual(args[-1], "update")
+        self.assertEqual(args[-2:], ["update", "--no-reboot"])
         self.assertTrue(str(args[0]).endswith("scripts/libredisplay"))
         thread.assert_called_once()
 

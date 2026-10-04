@@ -143,15 +143,36 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn('id="system-health-integrity"', HTML)
         self.assertIn('startupIntegrity', (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8"))
 
+
+    def test_v171_local_server_recovery_does_not_trust_navigator_online(self):
+        remote = (ROOT / "app" / "js" / "remote" / "index.js").read_text(encoding="utf-8")
+        lifecycle = (ROOT / "app" / "js" / "lifecycle" / "index.js").read_text(encoding="utf-8")
+        shared = (ROOT / "app" / "js" / "core" / "shared.js").read_text(encoding="utf-8")
+        self.assertNotIn("Offline · waiting for network", remote)
+        self.assertNotIn("serverConnectionState=navigator.onLine", remote)
+        self.assertNotIn("if(navigator.onLine===false)", remote)
+        self.assertIn("recoverServerConnection('browser-offline-hint')", lifecycle)
+        self.assertNotIn("setServerConnectionState('offline')", lifecycle)
+        self.assertIn("online:localServerOnline", shared)
+        self.assertIn("browserOnlineHint:navigator.onLine!==false", shared)
+
+    def test_v171_browser_update_restarts_without_forced_host_reboot(self):
+        server_source = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
+        update = (ROOT / "update.sh").read_text(encoding="utf-8")
+        self.assertIn('[str(updater), "update", "--no-reboot"]', server_source)
+        self.assertIn('Restarting LibreDisplay without rebooting the Pi', update)
+        self.assertIn('nohup /bin/sh "$INSTALL_DIR/scripts/start.sh"', update)
+        self.assertIn('Your existing settings, display endpoints, media, and custom plugin folders were kept.', update)
+
     def test_system_health_reports_startup_integrity_state(self):
         server.atomic_write_json_file(server.STARTUP_INTEGRITY_PATH, {
-            "ok": True, "checkedAt": 2_000_000_000, "version": "1.7.0",
+            "ok": True, "checkedAt": 2_000_000_000, "version": "1.7.1",
             "coreFiles": 11, "pythonFiles": 3, "frontendVerified": True,
         })
         payload = server.system_health_payload()
         self.assertTrue(payload["startupIntegrity"]["ok"])
         self.assertTrue(payload["startupIntegrity"]["frontendVerified"])
-        self.assertEqual(payload["startupIntegrity"]["version"], "1.7.0")
+        self.assertEqual(payload["startupIntegrity"]["version"], "1.7.1")
 
     def test_stale_broker_returns_cached_data_while_refresh_runs(self):
         key = "resilience-stale-while-revalidate"
@@ -381,7 +402,7 @@ class ResilienceContractTests(unittest.TestCase):
             "serverPath('/api/session-info')",
             "scheduleServerRecovery('event-stream',0)",
             "remote.recoverServerConnection('browser-online')",
-            "remote.clearServerRecoveryTimer()",
+            "recoverServerConnection('browser-offline-hint')",
             "sendDisplayHeartbeat(true)",
             "connectivityRecovered:!!connectivityRecovered",
             "scheduleDisplayHeartbeat(0)",

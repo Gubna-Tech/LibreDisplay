@@ -67,7 +67,7 @@ class ReleaseContractTests(unittest.TestCase):
             workspace = Path(td) / "repo"
             workspace.mkdir()
             for name in module.TOP_FILES:
-                (workspace / name).write_text("1.7.0\n" if name == "VERSION" else f"{name}\n", encoding="utf-8")
+                (workspace / name).write_text("1.7.1\n" if name == "VERSION" else f"{name}\n", encoding="utf-8")
             for dirname in module.TOP_DIRS:
                 (workspace / dirname).mkdir()
                 (workspace / dirname / "project.txt").write_text("project\n", encoding="utf-8")
@@ -80,7 +80,7 @@ class ReleaseContractTests(unittest.TestCase):
                 d.mkdir()
                 (d / "private.txt").write_text("secret\n", encoding="utf-8")
             (workspace / "private.ldbackup").write_text("secret\n", encoding="utf-8")
-            output = Path(td) / "LibreDisplay-v1.7.0.zip"
+            output = Path(td) / "LibreDisplay-v1.7.1.zip"
             old_root = module.ROOT
             try:
                 module.ROOT = workspace
@@ -89,7 +89,7 @@ class ReleaseContractTests(unittest.TestCase):
                 module.ROOT = old_root
             with zipfile.ZipFile(output) as archive:
                 names = set(archive.namelist())
-            prefix = "LibreDisplay-1.7.0/"
+            prefix = "LibreDisplay-1.7.1/"
             self.assertIn(prefix + "README.md", names)
             for dirname in module.TOP_DIRS:
                 self.assertIn(prefix + dirname + "/project.txt", names)
@@ -135,6 +135,15 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('release-rollback.py', source)
         self.assertIn('snapshot --to-version "$NEW_VERSION"', source)
         self.assertIn('Your existing settings, display endpoints, media, and custom plugin folders were kept.', source)
+
+
+    def test_v171_native_update_preserves_remote_access_state_and_data_directory(self):
+        update = (ROOT / "update.sh").read_text(encoding="utf-8")
+        self.assertEqual(update.count('DATA_DIR="$INSTALL_DIR/data"'), 1)
+        self.assertNotIn('rm -rf "$DATA_DIR"', update)
+        self.assertNotIn('libredisplay.env" <<', update)
+        self.assertNotIn('remote_access.json', update)
+        self.assertIn('Your existing settings, display endpoints, media, and custom plugin folders were kept.', update)
 
     def test_single_command_native_update_is_installed(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -253,9 +262,9 @@ class ReleaseContractTests(unittest.TestCase):
 
             (install / "README.md").write_text("new readme", encoding="utf-8")
             (old / "files" / "README.md").write_text("old readme", encoding="utf-8")
-            (install / "VERSION").write_text("1.7.0\n", encoding="utf-8")
+            (install / "VERSION").write_text("1.7.1\n", encoding="utf-8")
             (old / "installed-version").write_text("1.6.1\n", encoding="utf-8")
-            (data / ".installed").write_text("1.7.0\n", encoding="utf-8")
+            (data / ".installed").write_text("1.7.1\n", encoding="utf-8")
 
             result = subprocess.run(
                 ["sh", "-c", restore_block + "\nrestore_previous_release\n"],
@@ -272,7 +281,7 @@ class ReleaseContractTests(unittest.TestCase):
             self.assertFalse((install / "plugins" / "new-plugin").exists())
             self.assertEqual((install / "plugins" / "custom-local" / "plugin.py").read_text(), "custom")
             self.assertEqual((install / "README.md").read_text(), "old readme")
-            self.assertEqual((install / "VERSION").read_text(), "1.7.0\n")
+            self.assertEqual((install / "VERSION").read_text(), "1.7.1\n")
             self.assertEqual((data / ".installed").read_text(), "1.6.1\n")
 
     def test_release_tree_matches_v158_minimal_surface(self):
