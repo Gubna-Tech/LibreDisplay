@@ -169,13 +169,13 @@ class ResilienceContractTests(unittest.TestCase):
 
     def test_system_health_reports_startup_integrity_state(self):
         server.atomic_write_json_file(server.STARTUP_INTEGRITY_PATH, {
-            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.8",
+            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.9",
             "coreFiles": 11, "pythonFiles": 3, "frontendVerified": True,
         })
         payload = server.system_health_payload()
         self.assertTrue(payload["startupIntegrity"]["ok"])
         self.assertTrue(payload["startupIntegrity"]["frontendVerified"])
-        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.8")
+        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.9")
 
     def test_stale_broker_returns_cached_data_while_refresh_runs(self):
         key = "resilience-stale-while-revalidate"
@@ -762,7 +762,7 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn('--window-position="$WINDOW_X,$WINDOW_Y"', windowed)
         self.assertNotIn("--start-maximized", windowed)
 
-    def test_v188_wildlife_runtime_and_bird_visibility_regressions(self):
+    def test_v189_wildlife_runtime_species_and_bird_visibility_regressions(self):
         effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
         config = (ROOT / "app" / "js" / "core" / "config.js").read_text(encoding="utf-8")
         css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
@@ -774,7 +774,17 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn(".weather-fx-static .weather-fx-bird{left:var(--season-x,50vw)", css)
         self.assertIn("@keyframes ldBirdWingLeft", css)
         self.assertIn("@keyframes ldBirdWingRight", css)
-        self.assertIn("background:linear-gradient(90deg,transparent 0 12%,var(--bird-color)", css)
+        self.assertIn("weather-fx-bird-species-cardinal", css)
+        self.assertIn("weather-fx-bird-species-blue-jay", css)
+        self.assertIn("weather-fx-bird-species-eagle", css)
+        self.assertIn("weather-fx-bird-species-crane", css)
+        self.assertIn("weather-fx-bird-species-egret", css)
+        self.assertIn("weather-fx-butterfly-monarch", css)
+        self.assertIn("weather-fx-butterfly-swallowtail", css)
+        self.assertIn("function weatherEcologyRegion", effects)
+        self.assertIn("function birdSpeciesPool", effects)
+        self.assertIn("function butterflySpeciesPool", effects)
+        self.assertIn("nightBirds=!isDay", effects)
 
     def test_v180_screen_care_controls_are_independent(self):
         config = (ROOT / "app" / "js" / "core" / "config.js").read_text(encoding="utf-8")
