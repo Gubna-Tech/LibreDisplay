@@ -169,13 +169,13 @@ class ResilienceContractTests(unittest.TestCase):
 
     def test_system_health_reports_startup_integrity_state(self):
         server.atomic_write_json_file(server.STARTUP_INTEGRITY_PATH, {
-            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.3",
+            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.4",
             "coreFiles": 11, "pythonFiles": 3, "frontendVerified": True,
         })
         payload = server.system_health_payload()
         self.assertTrue(payload["startupIntegrity"]["ok"])
         self.assertTrue(payload["startupIntegrity"]["frontendVerified"])
-        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.3")
+        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.4")
 
     def test_stale_broker_returns_cached_data_while_refresh_runs(self):
         key = "resilience-stale-while-revalidate"
@@ -661,6 +661,24 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn("weather-effect-live-status", HTML)
         self.assertIn(".weather-effect-status", css)
         self.assertIn(".weather-fx-wind-reverse", css)
+
+    def test_v184_fullscreen_weather_is_authoritative_and_self_healing(self):
+        effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
+        config = (ROOT / "app" / "js" / "core" / "config.js").read_text(encoding="utf-8")
+        weather = (ROOT / "app" / "js" / "weather" / "index.js").read_text(encoding="utf-8")
+        css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
+        self.assertIn("if(cfg.weatherFullscreenEffects)cfg.weatherAnimationsEnabled=true", config)
+        self.assertIn("ensureCfgDefaults();\n  cfg._savedAt=Date.now();", config)
+        self.assertIn("fullOn:!!source.weatherFullscreenEffects&&!pauseReason&&allowed", effects)
+        self.assertNotIn("fullOn:!!source.weatherAnimationsEnabled&&!!source.weatherFullscreenEffects", effects)
+        self.assertIn("function fullscreenPauseReason(source)", effects)
+        self.assertIn("function weatherOverlayNeedsRepair", effects)
+        self.assertIn("function ensureWeatherOverlayLive", effects)
+        self.assertIn("setInterval(()=>ensureWeatherOverlayLive(),2500)", effects)
+        self.assertIn("requestAnimationFrame(()=>effects.ensureWeatherOverlayLive(d,ui))", weather)
+        self.assertIn("body.ld-weather-respect-reduced-motion #weather-effects-overlay", css)
+        self.assertIn("--fx-static-y", effects)
+        self.assertIn("ld-weather-pause-dimmed", css)
 
     def test_v183_weather_cold_start_does_not_render_an_old_location(self):
         weather = (ROOT / "app" / "js" / "weather" / "index.js").read_text(encoding="utf-8")

@@ -126,9 +126,39 @@ window.__uiPreviewCfg={...modules.config.cfg,weatherAnimationsEnabled:true,weath
 try{
   const previewRainState=modules.weatherEffects.weatherEffectRuntimeState({current:{weather_code:61}});
   if(previewRainState.condition!=='rain'||!previewRainState.widgetOn||!previewRainState.fullOn)throw new Error('weather full-screen preview did not use the active preview configuration');
+  const legacyRestartRainState=modules.weatherEffects.weatherEffectRuntimeState({current:{weather_code:63}},{...window.__uiPreviewCfg,weatherAnimationsEnabled:false,weatherFullscreenEffects:true});
+  if(!legacyRestartRainState.fullOn||legacyRestartRainState.widgetOn)throw new Error('full-screen weather still depended on the legacy animation master after restart');
   const previewRainMarkup=modules.weatherEffects.weatherIconMarkup(61,'🌧️');
   if(!previewRainMarkup.includes('ld-weather-glyph-active'))throw new Error('weather icon preview did not use the active preview configuration');
 }finally{window.__uiPreviewCfg=savedWeatherPreview;}
+// Exercise the actual full-screen renderer against the exact legacy restart state that regressed on Pi.
+const savedCfgForOverlay={...modules.config.cfg};
+modules.config.cfg={...modules.config.cfg,weatherAnimationsEnabled:false,weatherFullscreenEffects:true};
+modules.config.ensureCfgDefaults();
+if(!modules.config.cfg.weatherAnimationsEnabled)throw new Error('legacy full-screen overlay config was not normalized during startup');
+modules.config.cfg=savedCfgForOverlay;
+class StatefulClassList{
+  constructor(){this.values=new Set();}
+  add(...names){for(const name of names)this.values.add(name);}
+  remove(...names){for(const name of names)this.values.delete(name);}
+  toggle(name,force){const next=force===undefined?!this.values.has(name):!!force;if(next)this.values.add(name);else this.values.delete(name);return next;}
+  contains(name){return this.values.has(name);}
+}
+const overlayHost=dummyElement();overlayHost.classList=new StatefulClassList();overlayHost.children=[];
+overlayHost.replaceChildren=function(value){this.children=value?.children?[...value.children]:[];};
+const originalCreateElement=document.createElement,originalCreateDocumentFragment=document.createDocumentFragment,originalOverlayGet=document.getElementById;
+document.createElement=()=>{const el=dummyElement();el.classList=new StatefulClassList();return el;};
+document.createDocumentFragment=()=>({children:[],appendChild(value){this.children.push(value);return value;}});
+document.getElementById=id=>id==='weather-effects-overlay'?overlayHost:originalOverlayGet.call(document,id);
+try{
+  const restartSource={...modules.config.cfg,weatherAnimationsEnabled:false,weatherFullscreenEffects:true,weatherEffectMode:'auto',weatherEffectIntensity:60,weatherEffectOpacity:45,weatherEffectSpeed:100,weatherEffectAutoIntensity:false,weatherEffectAtmosphere:55,weatherEffectParticleScale:100,weatherEffectWindStrength:100,weatherEffectLightningFrequency:'normal',weatherEffectLightningBrightness:65,weatherEffectPrecipitation:true,weatherEffectClouds:true,weatherEffectFog:true,weatherEffectSun:true,weatherEffectWind:true,weatherEffectLightning:true,weatherEffectRespectReducedMotion:false,weatherEffectPauseWhenDimmed:false};
+  const restartRain={current:{weather_code:63,precipitation:4,cloud_cover:100,wind_speed_10m:12,wind_direction_10m:220}};
+  modules.weatherEffects.applyWeatherEffects(restartRain,restartSource);
+  if(!overlayHost.classList.contains('show')||!overlayHost.classList.contains('weather-fx-rain')||overlayHost.children.length===0)throw new Error('full-screen rain overlay did not render from enabled legacy restart state');
+  overlayHost.classList.remove('show');overlayHost.replaceChildren();
+  if(!modules.weatherEffects.weatherOverlayNeedsRepair(restartRain,restartSource))throw new Error('weather overlay watchdog did not detect an enabled empty overlay');
+  if(!modules.weatherEffects.ensureWeatherOverlayLive(restartRain,restartSource)||!overlayHost.classList.contains('show')||overlayHost.children.length===0)throw new Error('weather overlay watchdog did not rebuild rain particles');
+}finally{document.createElement=originalCreateElement;document.createDocumentFragment=originalCreateDocumentFragment;document.getElementById=originalOverlayGet;}
 if(modules.weatherEffects.weatherPauseClassSignature('ld-weather-widget-motion ld-weather-fullscreen-motion')!=='000')throw new Error('weather effect self classes incorrectly trigger pause-state refreshes');
 if(modules.weatherEffects.weatherPauseClassSignature('ld-burnin-dim')!=='100'||modules.weatherEffects.weatherPauseClassSignature('layout-editing')!=='010'||modules.weatherEffects.weatherPauseClassSignature('remote-layout-proxy')!=='001')throw new Error('weather pause-state class signature failed');
 if(typeof modules.settings.loadLocalAccounts!=='function')throw new Error('split settings module lost loadLocalAccounts');
