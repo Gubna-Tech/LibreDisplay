@@ -67,7 +67,7 @@ class ReleaseContractTests(unittest.TestCase):
             workspace = Path(td) / "repo"
             workspace.mkdir()
             for name in module.TOP_FILES:
-                (workspace / name).write_text("1.8.1\n" if name == "VERSION" else f"{name}\n", encoding="utf-8")
+                (workspace / name).write_text("1.8.2\n" if name == "VERSION" else f"{name}\n", encoding="utf-8")
             for dirname in module.TOP_DIRS:
                 (workspace / dirname).mkdir()
                 (workspace / dirname / "project.txt").write_text("project\n", encoding="utf-8")
@@ -80,7 +80,7 @@ class ReleaseContractTests(unittest.TestCase):
                 d.mkdir()
                 (d / "private.txt").write_text("secret\n", encoding="utf-8")
             (workspace / "private.ldbackup").write_text("secret\n", encoding="utf-8")
-            output = Path(td) / "LibreDisplay-v1.8.1.zip"
+            output = Path(td) / "LibreDisplay-v1.8.2.zip"
             old_root = module.ROOT
             try:
                 module.ROOT = workspace
@@ -89,7 +89,7 @@ class ReleaseContractTests(unittest.TestCase):
                 module.ROOT = old_root
             with zipfile.ZipFile(output) as archive:
                 names = set(archive.namelist())
-            prefix = "LibreDisplay-1.8.1/"
+            prefix = "LibreDisplay-1.8.2/"
             self.assertIn(prefix + "README.md", names)
             for dirname in module.TOP_DIRS:
                 self.assertIn(prefix + dirname + "/project.txt", names)
@@ -262,9 +262,9 @@ class ReleaseContractTests(unittest.TestCase):
 
             (install / "README.md").write_text("new readme", encoding="utf-8")
             (old / "files" / "README.md").write_text("old readme", encoding="utf-8")
-            (install / "VERSION").write_text("1.8.1\n", encoding="utf-8")
+            (install / "VERSION").write_text("1.8.2\n", encoding="utf-8")
             (old / "installed-version").write_text("1.6.1\n", encoding="utf-8")
-            (data / ".installed").write_text("1.8.1\n", encoding="utf-8")
+            (data / ".installed").write_text("1.8.2\n", encoding="utf-8")
 
             result = subprocess.run(
                 ["sh", "-c", restore_block + "\nrestore_previous_release\n"],
@@ -281,7 +281,7 @@ class ReleaseContractTests(unittest.TestCase):
             self.assertFalse((install / "plugins" / "new-plugin").exists())
             self.assertEqual((install / "plugins" / "custom-local" / "plugin.py").read_text(), "custom")
             self.assertEqual((install / "README.md").read_text(), "old readme")
-            self.assertEqual((install / "VERSION").read_text(), "1.8.1\n")
+            self.assertEqual((install / "VERSION").read_text(), "1.8.2\n")
             self.assertEqual((data / ".installed").read_text(), "1.6.1\n")
 
     def test_release_tree_matches_v158_minimal_surface(self):

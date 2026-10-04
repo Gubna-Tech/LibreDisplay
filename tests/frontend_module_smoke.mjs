@@ -113,6 +113,16 @@ if(!allowed('partly',{weatherEffectMode:'auto',weatherEffectSun:true,weatherEffe
 const animatedClear=modules.weatherEffects.weatherIconMarkup(0,'☀️',{weatherAnimationsEnabled:true,weatherWidgetAnimations:true,weatherEffectSun:true,weatherEffectRespectReducedMotion:false,weatherEffectPauseWhenDimmed:false});
 const fallbackClear=modules.weatherEffects.weatherIconMarkup(0,'☀️',{weatherAnimationsEnabled:true,weatherWidgetAnimations:true,weatherEffectSun:false,weatherEffectRespectReducedMotion:false,weatherEffectPauseWhenDimmed:false});
 if(!animatedClear.includes('ld-weather-glyph-active')||!animatedClear.includes('ld-weather-emoji-hidden')||fallbackClear.includes('ld-weather-glyph-active')||fallbackClear.includes('ld-weather-emoji-hidden'))throw new Error('new weather icon immediate fallback/animation state failed');
+const savedWeatherPreview=window.__uiPreviewCfg;
+window.__uiPreviewCfg={...modules.config.cfg,weatherAnimationsEnabled:true,weatherWidgetAnimations:true,weatherFullscreenEffects:true,weatherEffectMode:'auto',weatherEffectPrecipitation:true,weatherEffectClouds:true,weatherEffectRespectReducedMotion:false,weatherEffectPauseWhenDimmed:false};
+try{
+  const previewRainState=modules.weatherEffects.weatherEffectRuntimeState({current:{weather_code:61}});
+  if(previewRainState.condition!=='rain'||!previewRainState.widgetOn||!previewRainState.fullOn)throw new Error('weather full-screen preview did not use the active preview configuration');
+  const previewRainMarkup=modules.weatherEffects.weatherIconMarkup(61,'🌧️');
+  if(!previewRainMarkup.includes('ld-weather-glyph-active'))throw new Error('weather icon preview did not use the active preview configuration');
+}finally{window.__uiPreviewCfg=savedWeatherPreview;}
+if(modules.weatherEffects.weatherPauseClassSignature('ld-weather-widget-motion ld-weather-fullscreen-motion')!=='000')throw new Error('weather effect self classes incorrectly trigger pause-state refreshes');
+if(modules.weatherEffects.weatherPauseClassSignature('ld-burnin-dim')!=='100'||modules.weatherEffects.weatherPauseClassSignature('layout-editing')!=='010'||modules.weatherEffects.weatherPauseClassSignature('remote-layout-proxy')!=='001')throw new Error('weather pause-state class signature failed');
 if(typeof modules.settings.loadLocalAccounts!=='function')throw new Error('split settings module lost loadLocalAccounts');
 if(typeof modules.performance.startManagedInterval!=='function')throw new Error('performance module did not load');
 if(typeof globalThis.frontendCapabilities!=='undefined')throw new Error('performance module leaked compatibility globals');

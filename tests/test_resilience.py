@@ -169,13 +169,13 @@ class ResilienceContractTests(unittest.TestCase):
 
     def test_system_health_reports_startup_integrity_state(self):
         server.atomic_write_json_file(server.STARTUP_INTEGRITY_PATH, {
-            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.1",
+            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.2",
             "coreFiles": 11, "pythonFiles": 3, "frontendVerified": True,
         })
         payload = server.system_health_payload()
         self.assertTrue(payload["startupIntegrity"]["ok"])
         self.assertTrue(payload["startupIntegrity"]["frontendVerified"])
-        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.1")
+        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.2")
 
     def test_stale_broker_returns_cached_data_while_refresh_runs(self):
         key = "resilience-stale-while-revalidate"
@@ -630,6 +630,11 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn(".weather-fx-rain.weather-fx-no-clouds::before", css)
         self.assertIn("host.classList.toggle('weather-fx-no-clouds'", effects)
         self.assertIn("host.classList.toggle('weather-fx-no-sun'", effects)
+        self.assertIn("function weatherEffectSource(source){return source&&typeof source==='object'?source:uiCfg();}", effects)
+        self.assertIn("function refreshWeatherEffects(){applyWeatherEffects(configApi.wxData);}", effects)
+        self.assertIn("attributeOldValue:true", effects)
+        self.assertIn("weatherPauseClassSignature", effects)
+        self.assertIn("effects.decorateWeatherIcon(currentIcon,c.weather_code,wi(c.weather_code),ui)", (ROOT / "app" / "js" / "weather" / "index.js").read_text(encoding="utf-8"))
         self.assertIn("#weather-effects-overlay{position:fixed;inset:0;z-index:1", css)
         self.assertIn("#app {", css)
 
