@@ -169,13 +169,13 @@ class ResilienceContractTests(unittest.TestCase):
 
     def test_system_health_reports_startup_integrity_state(self):
         server.atomic_write_json_file(server.STARTUP_INTEGRITY_PATH, {
-            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.2",
+            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.3",
             "coreFiles": 11, "pythonFiles": 3, "frontendVerified": True,
         })
         payload = server.system_health_payload()
         self.assertTrue(payload["startupIntegrity"]["ok"])
         self.assertTrue(payload["startupIntegrity"]["frontendVerified"])
-        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.2")
+        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.3")
 
     def test_stale_broker_returns_cached_data_while_refresh_runs(self):
         key = "resilience-stale-while-revalidate"
@@ -609,13 +609,17 @@ class ResilienceContractTests(unittest.TestCase):
         for marker in (
             "weatherAnimationsEnabled:false", "weatherWidgetAnimations:true", "weatherFullscreenEffects:false",
             "weatherEffectIntensity:50", "weatherEffectOpacity:34", "weatherEffectSpeed:100",
+            "weatherEffectAutoIntensity:true", "weatherEffectAtmosphere:55", "weatherEffectParticleScale:100",
+            "weatherEffectWindStrength:100", "weatherEffectLightningFrequency:'normal'", "weatherEffectLightningBrightness:65",
             "weatherEffectRespectReducedMotion:true", "weatherEffectPauseWhenDimmed:true",
         ):
             self.assertIn(marker, config)
         for control in (
             'id="s-weather-animations"', 'id="s-weather-widget-animations"', 'id="s-weather-fullscreen-effects"',
             'id="s-weather-effect-mode"', 'id="s-weather-effect-intensity"', 'id="s-weather-effect-opacity"',
-            'id="s-weather-effect-speed"', 'id="s-weather-effect-lightning"', 'id="s-weather-effect-reduced-motion"',
+            'id="s-weather-effect-speed"', 'id="s-weather-effect-auto-intensity"', 'id="s-weather-effect-atmosphere"',
+            'id="s-weather-effect-particle-scale"', 'id="s-weather-effect-wind-strength"', 'id="s-weather-effect-lightning-frequency"',
+            'id="s-weather-effect-lightning-brightness"', 'id="s-weather-effect-lightning"', 'id="s-weather-effect-reduced-motion"',
             'id="s-weather-effect-pause-dimmed"',
         ):
             self.assertIn(control, HTML)
@@ -637,6 +641,40 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn("effects.decorateWeatherIcon(currentIcon,c.weather_code,wi(c.weather_code),ui)", (ROOT / "app" / "js" / "weather" / "index.js").read_text(encoding="utf-8"))
         self.assertIn("#weather-effects-overlay{position:fixed;inset:0;z-index:1", css)
         self.assertIn("#app {", css)
+
+
+    def test_v183_weather_overlay_immediate_activation_and_live_depth_controls(self):
+        appearance = (ROOT / "app" / "js" / "appearance" / "index.js").read_text(encoding="utf-8")
+        effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
+        css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
+        self.assertIn("function ensureWeatherAnimationMaster(control)", appearance)
+        self.assertIn("['s-weather-widget-animations','s-weather-fullscreen-effects'].includes(control.id)", appearance)
+        self.assertIn("function weatherAnimationControlChanged(control){ensureWeatherAnimationMaster(control);previewAppearance();}", appearance)
+        self.assertIn("applyWeatherEffectPreset('immersive')", HTML)
+        self.assertIn("previewCurrentWeatherOverlay()", HTML)
+        self.assertIn("weatherEffectIntensityForData", effects)
+        self.assertIn("liveIntensityMultiplier", effects)
+        self.assertIn("weatherWindProfile", effects)
+        self.assertIn("weatherEffectStatusText", effects)
+        self.assertIn("--weather-fx-atmosphere", effects)
+        self.assertIn("--weather-fx-lightning-duration", effects)
+        self.assertIn("weather-effect-live-status", HTML)
+        self.assertIn(".weather-effect-status", css)
+        self.assertIn(".weather-fx-wind-reverse", css)
+
+    def test_v183_weather_cold_start_does_not_render_an_old_location(self):
+        weather = (ROOT / "app" / "js" / "weather" / "index.js").read_text(encoding="utf-8")
+        settings = (ROOT / "app" / "js" / "settings" / "index.js").read_text(encoding="utf-8")
+        remote = (ROOT / "app" / "js" / "remote" / "index.js").read_text(encoding="utf-8")
+        self.assertIn("function weatherLocationKey(source=cfg)", weather)
+        self.assertIn("function weatherPayloadMatchesRequest(data,source)", weather)
+        self.assertIn("function invalidateWeatherIfLocationChanged(force=false)", weather)
+        self.assertIn("Waiting for saved location verification", weather)
+        self.assertIn("requestSerial!==weatherFetchSerial||requestKey!==weatherLocationKey(cfg)", weather)
+        self.assertIn("Weather response does not match the saved location", weather)
+        self.assertIn("weather.invalidateWeatherIfLocationChanged();", settings)
+        self.assertIn("configApi.serverConfigAvailable=true;configApi.serverConfigLastError=''", remote)
+        self.assertIn("resumeOnVisible:true,immediate:true", remote)
 
     def test_v180_screen_care_controls_are_independent(self):
         config = (ROOT / "app" / "js" / "core" / "config.js").read_text(encoding="utf-8")

@@ -14,7 +14,7 @@ spec.loader.exec_module(field)
 class FieldReadinessTests(unittest.TestCase):
     def test_summary_tracks_pi_and_browser_soak_metrics_without_private_data(self):
         base = {
-            "version": "1.8.2",
+            "version": "1.8.3",
             "deployment": "native",
             "platform": "Linux",
             "machine": "armv7l",
@@ -41,7 +41,7 @@ class FieldReadinessTests(unittest.TestCase):
                 "ageSeconds": 2 + index,
                 "endpoint": "main",
                 "viewport": "1920×1080",
-                "version": "1.8.2",
+                "version": "1.8.3",
                 "frontendPerformance": {
                     "tier": "constrained",
                     "pageUptimeMs": uptime,
@@ -54,7 +54,7 @@ class FieldReadinessTests(unittest.TestCase):
                 },
             }
             samples.append(row)
-        summary = field.summarize_samples(samples, "1.8.2")
+        summary = field.summarize_samples(samples, "1.8.3")
         self.assertEqual(summary["sampleCount"], 3)
         self.assertEqual(summary["kiosk"]["browserMetricSamples"], 3)
         self.assertEqual(summary["kiosk"]["pageReloadsObserved"], 0)
@@ -82,7 +82,7 @@ class FieldReadinessTests(unittest.TestCase):
         for index, uptime in enumerate((60000, 1000)):
             samples.append({
                 "sampledAt": f"t{index}",
-                "version": "1.8.2",
+                "version": "1.8.3",
                 "deployment": "native",
                 "platform": "Linux",
                 "machine": "armv7l",
@@ -97,7 +97,7 @@ class FieldReadinessTests(unittest.TestCase):
                     "frontendPerformance": {"pageUptimeMs": uptime, "longTasks": {"count": index, "totalMs": index * 100, "maxMs": 100}},
                 },
             })
-        summary = field.summarize_samples(samples, "1.8.2")
+        summary = field.summarize_samples(samples, "1.8.3")
         joined = " ".join(summary["observations"])
         self.assertIn("70°C", joined)
         self.assertIn("90 seconds", joined)
@@ -113,7 +113,7 @@ class FieldReadinessTests(unittest.TestCase):
         )):
             samples.append({
                 "sampledAt": f"2026-10-03T{index:02d}:00:00Z",
-                "version": "1.8.2",
+                "version": "1.8.3",
                 "deployment": "native",
                 "platform": "Linux",
                 "machine": "armv7l",
@@ -123,7 +123,7 @@ class FieldReadinessTests(unittest.TestCase):
                 "disk": {"freePercent": 60},
                 "dataWritable": True,
                 "liveServer": {"reachable": True, "latencyMs": 5},
-                "startupIntegrity": {"ok": True, "checkedAt": 100 + index, "version": "1.8.2", "coreFiles": 10, "pythonFiles": 20, "frontendVerified": True},
+                "startupIntegrity": {"ok": True, "checkedAt": 100 + index, "version": "1.8.3", "coreFiles": 10, "pythonFiles": 20, "frontendVerified": True},
                 "outboundConnectivity": {
                     "requests": 10 + index * 5, "successes": 9 + index * 4, "failures": index, "retries": index,
                     "recoverySignals": values["signals"], "releasedBackoffs": values["signals"],
@@ -142,20 +142,20 @@ class FieldReadinessTests(unittest.TestCase):
                     },
                 },
             })
-        summary = field.summarize_samples(samples, "1.8.2")
+        summary = field.summarize_samples(samples, "1.8.3")
         self.assertEqual(summary["host"]["hostRebootsObserved"], 1)
         self.assertEqual(summary["kiosk"]["pageReloadsObserved"], 1)
         self.assertEqual(summary["connectivity"]["server"]["recoverySignalDelta"], 1)
         summary["sampleCount"] = 2881
         summary["sampleGapSeconds"] = {"min": 15.0, "avg": 15.0, "max": 180.0}
-        assessment = field.assess_readiness(summary, "1.8.2", 720, 720.1, interrupted=False, release_gate=True, interval_seconds=15)
+        assessment = field.assess_readiness(summary, "1.8.3", 720, 720.1, interrupted=False, release_gate=True, interval_seconds=15)
         self.assertEqual(assessment["status"], "pass")
         self.assertTrue(assessment["readyToPublish"])
 
         broken = dict(summary)
         broken["sampleCount"] = 20
         broken["sampleGapSeconds"] = {"max": 36000.0}
-        failed = field.assess_readiness(broken, "1.8.2", 720, 720.1, interrupted=False, release_gate=True, interval_seconds=15)
+        failed = field.assess_readiness(broken, "1.8.3", 720, 720.1, interrupted=False, release_gate=True, interval_seconds=15)
         failed_ids = {row["id"] for row in failed["checks"] if row["required"] and not row["ok"]}
         self.assertEqual(failed["status"], "fail")
         self.assertIn("sampling-coverage", failed_ids)
@@ -163,18 +163,18 @@ class FieldReadinessTests(unittest.TestCase):
 
     def test_release_gate_is_incomplete_without_required_fault_recovery_exercises(self):
         sample = {
-            "sampledAt": "2026-10-03T00:00:00Z", "version": "1.8.2", "deployment": "native", "platform": "Linux", "machine": "armv7l",
+            "sampledAt": "2026-10-03T00:00:00Z", "version": "1.8.3", "deployment": "native", "platform": "Linux", "machine": "armv7l",
             "uptimeSeconds": 1000, "hardware": {"temperatureC": 55, "memoryAvailableBytes": 1000}, "loadAverage": [0.1],
             "disk": {"freePercent": 50}, "dataWritable": True, "liveServer": {"reachable": True, "latencyMs": 4},
-            "startupIntegrity": {"ok": True, "checkedAt": 1, "version": "1.8.2"},
+            "startupIntegrity": {"ok": True, "checkedAt": 1, "version": "1.8.3"},
             "outboundConnectivity": {"requests": 1, "successes": 1, "failures": 0, "recoverySignals": 0, "releasedBackoffs": 0, "lastSuccessAt": 10, "lastFailureAt": 0},
             "recovery": {"watchdog": {"serverRestarts": 0, "browserRestarts": 0}},
             "kioskHeartbeat": {"present": True, "ageSeconds": 2, "frontendPerformance": {"pageUptimeMs": 1000, "longTasks": {}, "connectivity": {"requests": 1, "successes": 1, "failures": 0, "timeouts": 0, "retries": 0, "lastSuccessAt": 10000, "lastFailureAt": 0, "online": True}}},
         }
-        summary = field.summarize_samples([sample, dict(sample, sampledAt="2026-10-03T12:00:00Z", uptimeSeconds=44000)], "1.8.2")
+        summary = field.summarize_samples([sample, dict(sample, sampledAt="2026-10-03T12:00:00Z", uptimeSeconds=44000)], "1.8.3")
         summary["sampleCount"] = 2881
         summary["sampleGapSeconds"] = {"min": 15.0, "avg": 15.0, "max": 15.0}
-        assessment = field.assess_readiness(summary, "1.8.2", 720, 720, interrupted=False, release_gate=True, interval_seconds=15)
+        assessment = field.assess_readiness(summary, "1.8.3", 720, 720, interrupted=False, release_gate=True, interval_seconds=15)
         self.assertEqual(assessment["status"], "incomplete")
         failed = {row["id"] for row in assessment["checks"] if row["required"] and not row["ok"]}
         self.assertIn("network-recovery-exercised", failed)
@@ -186,19 +186,19 @@ class FieldReadinessTests(unittest.TestCase):
         import tempfile
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "gate.json.journal.jsonl"
-            header = {"schema": 2, "libreDisplayVersion": "1.8.2", "startedAt": "2026-10-03T00:00:00Z", "requestedDurationMinutes": 720, "intervalSeconds": 15, "releaseGate": True}
+            header = {"schema": 2, "libreDisplayVersion": "1.8.3", "startedAt": "2026-10-03T00:00:00Z", "requestedDurationMinutes": 720, "intervalSeconds": 15, "releaseGate": True}
             field.write_journal_header(path, header)
-            field.append_journal_sample(path, {"sampledAt": "2026-10-03T00:00:15Z", "version": "1.8.2"}, force_sync=True)
+            field.append_journal_sample(path, {"sampledAt": "2026-10-03T00:00:15Z", "version": "1.8.3"}, force_sync=True)
             with path.open("a", encoding="utf-8") as handle:
                 handle.write('{"type":"sample","sample":')
             loaded_header, samples, discarded = field.load_journal(path)
-            self.assertEqual(loaded_header["libreDisplayVersion"], "1.8.2")
+            self.assertEqual(loaded_header["libreDisplayVersion"], "1.8.3")
             self.assertEqual(len(samples), 1)
             self.assertEqual(discarded, 1)
 
     def test_live_collection_uses_running_server_health_payload(self):
         payload = {
-            "ok": True, "version": "1.8.2", "deployment": "native", "platform": "Linux", "machine": "armv7l",
+            "ok": True, "version": "1.8.3", "deployment": "native", "platform": "Linux", "machine": "armv7l",
             "hardware": {}, "loadAverage": [], "disk": {"freePercent": 50}, "dataWritable": True,
             "outboundConnectivity": {"requests": 77, "successes": 70, "failures": 7, "retries": 4, "lastSuccessAt": 20, "lastFailureAt": 10},
             "kioskHeartbeat": {"present": False}, "startupIntegrity": {}, "recovery": {},
@@ -225,13 +225,13 @@ class FieldReadinessTests(unittest.TestCase):
 
     def test_recovery_after_failure_survives_counter_reset(self):
         base = {
-            "version": "1.8.2", "deployment": "native", "platform": "Linux", "machine": "armv7l",
+            "version": "1.8.3", "deployment": "native", "platform": "Linux", "machine": "armv7l",
             "hardware": {}, "loadAverage": [], "disk": {"freePercent": 50}, "dataWritable": True,
             "liveServer": {"reachable": True, "latencyMs": 4}, "kioskHeartbeat": {"present": False},
         }
         first = dict(base, sampledAt="2026-10-03T00:00:00Z", outboundConnectivity={"requests": 3, "successes": 1, "failures": 2, "lastSuccessAt": 400, "lastFailureAt": 500, "lastFailureKind": "timeout", "failureKinds": {"timeout": 2}})
         second = dict(base, sampledAt="2026-10-03T00:01:00Z", outboundConnectivity={"requests": 0, "successes": 0, "failures": 0, "lastSuccessAt": 0, "lastFailureAt": 0, "lastFailureKind": "", "failureKinds": {}})
-        summary = field.summarize_samples([first, second], "1.8.2")
+        summary = field.summarize_samples([first, second], "1.8.3")
         self.assertFalse(summary["connectivity"]["server"]["recoveredAfterLastFailure"])
         self.assertEqual(summary["connectivity"]["server"]["lastFailureKind"], "timeout")
 

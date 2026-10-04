@@ -76,7 +76,7 @@ class SettingsUiTests(unittest.TestCase):
         self.assertIn('locationGeocodeId', HTML)
 
     def test_weather_units_are_explicit_and_location_label_is_rendered(self):
-        self.assertIn('&temperature_unit=celsius&precipitation_unit=mm&wind_speed_unit=${weatherWindUnitParam(cfg)}', HTML)
+        self.assertIn('&temperature_unit=celsius&precipitation_unit=mm&wind_speed_unit=${weatherWindUnitParam(source)}', HTML)
         self.assertIn('function weatherWindUnitLabel(source=cfg)', HTML)
         self.assertIn('function weatherWindUnitMatches(raw,source=cfg)', HTML)
         self.assertIn('id="wx-location"', HTML)

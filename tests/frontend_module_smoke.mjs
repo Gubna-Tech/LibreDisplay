@@ -102,7 +102,15 @@ if(bgKey({backgroundSource:'stock',stockCategory:'nature',stockQuery:'sunset',st
 if(typeof globalThis.extractAllGooglePhotoUrls!=='undefined'||typeof globalThis.GOOGLE_PHOTOS_MAX_ITEMS!=='undefined')throw new Error('background parser helpers leaked compatibility globals');
 if(typeof modules.layout.saveLayoutEditor!=='function')throw new Error('split layout module lost saveLayoutEditor');
 if(typeof modules.weather.fetchWeatherAlerts!=='function')throw new Error('split weather module lost fetchWeatherAlerts');
+if(typeof modules.weather.weatherLocationKey!=='function'||typeof modules.weather.invalidateWeatherIfLocationChanged!=='function')throw new Error('weather location freshness API did not load');
+const weatherKeyA=modules.weather.weatherLocationKey({lat:41.881832,lon:-87.623177,locationGeocodeId:1,locationTimezone:'America/Chicago'});
+const weatherKeyB=modules.weather.weatherLocationKey({lat:39.739236,lon:-104.990251,locationGeocodeId:2,locationTimezone:'America/Denver'});
+if(!weatherKeyA||weatherKeyA===weatherKeyB)throw new Error('weather location fingerprint did not distinguish saved locations');
+if(!modules.weather.weatherPayloadMatchesRequest({latitude:41.9,longitude:-87.65},{lat:41.881832,lon:-87.623177})||modules.weather.weatherPayloadMatchesRequest({latitude:39.74,longitude:-104.99},{lat:41.881832,lon:-87.623177}))throw new Error('weather response location guard failed');
 if(typeof modules.weatherEffects?.weatherGlyphEnabled!=='function')throw new Error('weather effects module did not load');
+const liveHeavy=modules.weatherEffects.weatherEffectIntensityForData('rain',{current:{weather_code:65,precipitation:9,wind_speed_10m:35}},{weatherEffectIntensity:50,weatherEffectAutoIntensity:true});
+const fixedHeavy=modules.weatherEffects.weatherEffectIntensityForData('rain',{current:{weather_code:65,precipitation:9,wind_speed_10m:35}},{weatherEffectIntensity:50,weatherEffectAutoIntensity:false});
+if(!(liveHeavy>fixedHeavy)||fixedHeavy!==50)throw new Error('live weather auto-intensity contract failed');
 const glyph=modules.weatherEffects.weatherGlyphEnabled;
 if(!glyph('clear',{weatherEffectSun:true})||glyph('clear',{weatherEffectSun:false}))throw new Error('clear-weather glyph fallback contract failed');
 if(!glyph('partly',{weatherEffectSun:false,weatherEffectClouds:true})||glyph('partly',{weatherEffectSun:false,weatherEffectClouds:false}))throw new Error('partly-cloudy glyph fallback contract failed');
@@ -130,10 +138,12 @@ if(typeof globalThis.retryDisplayHydration!=='undefined')throw new Error('lifecy
 if(typeof modules.appearance.screenCareQuietScheduleState!=='function')throw new Error('OLED quiet-hours schedule helper did not load');
 const originalGetElementById=document.getElementById;
 const resetElements=new Map();
-for(const id of ['s-weather-animations','s-weather-widget-animations','s-weather-fullscreen-effects','s-weather-effect-precipitation','s-weather-effect-clouds','s-weather-effect-fog','s-weather-effect-sun','s-weather-effect-wind','s-weather-effect-lightning','s-weather-effect-reduced-motion','s-weather-effect-pause-dimmed','s-weather-effect-mode','s-weather-effect-intensity','s-weather-effect-opacity','s-weather-effect-speed','s-burnin-care-enabled','s-burnin-idle-dimming','s-burnin-quiet-hours','s-burnin-quiet-wake-enabled','s-burnin-pause-animations','s-burnin-pixel-shift','s-burnin-deep-protection','s-burnin-quiet-start','s-burnin-quiet-end','s-burnin-quiet-wake','s-burnin-idle','s-burnin-brightness','s-burnin-deep-trigger','s-burnin-deep-idle','s-burnin-deep-brightness','s-burnin-shift-mode','s-burnin-shift-interval','s-burnin-shift-distance','s-burnin-shift-transition','s-bg-opacity'])resetElements.set(id,dummyElement());
+for(const id of ['s-weather-animations','s-weather-widget-animations','s-weather-fullscreen-effects','s-weather-effect-auto-intensity','s-weather-effect-atmosphere','s-weather-effect-particle-scale','s-weather-effect-wind-strength','s-weather-effect-lightning-frequency','s-weather-effect-lightning-brightness','s-weather-effect-precipitation','s-weather-effect-clouds','s-weather-effect-fog','s-weather-effect-sun','s-weather-effect-wind','s-weather-effect-lightning','s-weather-effect-reduced-motion','s-weather-effect-pause-dimmed','s-weather-effect-mode','s-weather-effect-intensity','s-weather-effect-opacity','s-weather-effect-speed','s-burnin-care-enabled','s-burnin-idle-dimming','s-burnin-quiet-hours','s-burnin-quiet-wake-enabled','s-burnin-pause-animations','s-burnin-pixel-shift','s-burnin-deep-protection','s-burnin-quiet-start','s-burnin-quiet-end','s-burnin-quiet-wake','s-burnin-idle','s-burnin-brightness','s-burnin-deep-trigger','s-burnin-deep-idle','s-burnin-deep-brightness','s-burnin-shift-mode','s-burnin-shift-interval','s-burnin-shift-distance','s-burnin-shift-transition','s-bg-opacity']){const el=dummyElement();el.id=id;resetElements.set(id,el);}
 resetElements.get('s-bg-opacity').value='73';
 document.getElementById=id=>resetElements.get(id)||originalGetElementById.call(document,id);
 try{
+  resetElements.get('s-weather-animations').checked=false;resetElements.get('s-weather-fullscreen-effects').checked=true;
+  if(!modules.appearance.ensureWeatherAnimationMaster(resetElements.get('s-weather-fullscreen-effects'))||!resetElements.get('s-weather-animations').checked)throw new Error('full-screen weather enable did not activate weather animation master');
   modules.appearance.resetWeatherAnimationSettings();
   if(resetElements.get('s-bg-opacity').value!=='73')throw new Error('weather animation section reset changed an unrelated background setting');
   const d=modules.appearance.APPEARANCE_DEFAULTS;
