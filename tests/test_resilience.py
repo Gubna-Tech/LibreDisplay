@@ -166,13 +166,13 @@ class ResilienceContractTests(unittest.TestCase):
 
     def test_system_health_reports_startup_integrity_state(self):
         server.atomic_write_json_file(server.STARTUP_INTEGRITY_PATH, {
-            "ok": True, "checkedAt": 2_000_000_000, "version": "1.7.1",
+            "ok": True, "checkedAt": 2_000_000_000, "version": "1.7.2",
             "coreFiles": 11, "pythonFiles": 3, "frontendVerified": True,
         })
         payload = server.system_health_payload()
         self.assertTrue(payload["startupIntegrity"]["ok"])
         self.assertTrue(payload["startupIntegrity"]["frontendVerified"])
-        self.assertEqual(payload["startupIntegrity"]["version"], "1.7.1")
+        self.assertEqual(payload["startupIntegrity"]["version"], "1.7.2")
 
     def test_stale_broker_returns_cached_data_while_refresh_runs(self):
         key = "resilience-stale-while-revalidate"
@@ -196,8 +196,13 @@ class ResilienceContractTests(unittest.TestCase):
             self.assertLess(elapsed, 0.5)
             self.assertEqual(data, b'{"old":true}')
             self.assertEqual(content_type, "application/json")
-            self.assertEqual(state, "stale")
+            self.assertEqual(state, "refreshing")
             self.assertGreaterEqual(age, 1000)
+            with server.BROKER_LOCK:
+                row = dict(server.BROKER_STATUS.get(key) or {})
+            self.assertEqual(row.get("status"), "fresh")
+            self.assertTrue(row.get("refreshing"))
+            self.assertFalse(row.get("error"))
         finally:
             release.set()
             deadline = time.monotonic() + 2
@@ -207,6 +212,60 @@ class ResilienceContractTests(unittest.TestCase):
                         break
                 time.sleep(0.01)
             server.invalidate_broker_key(key)
+
+
+    def test_confirmed_provider_failure_remains_stale_during_recovery_refresh(self):
+        key = "resilience-stale-recovery-refresh"
+        server.invalidate_broker_key(key)
+        release = threading.Event()
+        started = threading.Event()
+        with mock.patch.object(server.time, "time", return_value=2_200_000_000):
+            server.broker_save(key, b'{"old":true}', "application/json", "test")
+            with server.BROKER_LOCK:
+                server.BROKER_STATUS[key] = {
+                    "status": "stale", "savedAt": 2_200_000_000, "age": 600,
+                    "lastSuccessAt": 2_200_000_000, "lastAttemptAt": 2_200_000_500,
+                    "error": "Connection timed out", "errorKind": "timeout",
+                    "consecutiveFailures": 1, "retryAt": 2_200_000_900, "refreshing": False,
+                }
+        def fetcher():
+            started.set()
+            release.wait(2)
+            return b'{"new":true}', "application/json"
+        try:
+            with mock.patch.object(server.time, "time", return_value=2_200_001_000):
+                data, content_type, state, age = server.broker_fetch(key, 60, fetcher, "test")
+                self.assertTrue(started.wait(1))
+            self.assertEqual(data, b'{"old":true}')
+            self.assertEqual(content_type, "application/json")
+            self.assertEqual(state, "stale")
+            self.assertGreater(age, 0)
+            with server.BROKER_LOCK:
+                row = dict(server.BROKER_STATUS.get(key) or {})
+            self.assertEqual(row.get("status"), "stale")
+            self.assertTrue(row.get("refreshing"))
+            self.assertEqual(row.get("errorKind"), "timeout")
+        finally:
+            release.set()
+            deadline = time.monotonic() + 2
+            while time.monotonic() < deadline:
+                with server.BROKER_LOCK:
+                    if key not in server.BROKER_REFRESHING:
+                        break
+                time.sleep(0.01)
+            server.invalidate_broker_key(key)
+
+    def test_v172_cache_banner_only_tracks_confirmed_stale_fallback(self):
+        remote = (ROOT / "app" / "js" / "remote" / "index.js").read_text(encoding="utf-8")
+        blocks = (ROOT / "app" / "js" / "blocks" / "index.js").read_text(encoding="utf-8")
+        integrations = (ROOT / "app" / "js" / "integrations" / "index.js").read_text(encoding="utf-8")
+        server_source = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
+        self.assertIn("if(res?.ok&&state==='stale')configApi.staleCacheSources.set", remote)
+        self.assertIn("else if(res?.ok)configApi.staleCacheSources.delete(key)", remote)
+        self.assertIn('response_state = "refreshing"', server_source)
+        self.assertIn('"refreshing" if state == "refreshing" else "fresh"', server_source)
+        self.assertIn("noteCacheResponse('integration:'+block.id,res,manifest.name||'integration')", blocks)
+        self.assertIn("r.nextRefreshAt&&r.status==='fresh'&&!r.refreshing", integrations)
 
     def test_broker_backoff_prevents_repeated_provider_hammering(self):
         key = "resilience-backoff"
