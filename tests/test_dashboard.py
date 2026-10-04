@@ -1,5 +1,6 @@
 import datetime
 import importlib.util
+import io
 import json
 import os
 import tempfile
@@ -121,6 +122,41 @@ class SecurityTests(unittest.TestCase):
         self.assertFalse(server.pin_valid("9875", encoded))
         with self.assertRaises(ValueError):
             server.pin_hash("12ab")
+
+    def test_video_background_media_supports_byte_ranges(self):
+        with tempfile.TemporaryDirectory(prefix="libredisplay-video-bg-") as tmp:
+            media=Path(tmp)/"loop.mp4";media.write_bytes(b"0123456789")
+            class Fake:
+                headers={"Range":"bytes=2-5"}
+                wfile=io.BytesIO()
+                status=None
+                response_headers={}
+                def display_media_path(self,value,parsed,require_file=False): return media
+                def text_response(self,status,message): self.status=status;return None
+                def send_response(self,status): self.status=status
+                def send_header(self,key,value): self.response_headers[key]=value
+                def end_headers(self): pass
+            fake=Fake();server.DashboardHandler.handle_media_file(fake,server.urlparse("/media?path="+str(media)))
+            self.assertEqual(fake.status,206);self.assertEqual(fake.response_headers.get("Accept-Ranges"),"bytes");self.assertEqual(fake.response_headers.get("Content-Range"),"bytes 2-5/10");self.assertEqual(fake.wfile.getvalue(),b"2345")
+
+    def test_raw_motion_jpeg_background_stream_endpoint(self):
+        with tempfile.TemporaryDirectory(prefix="libredisplay-mjpeg-bg-") as tmp:
+            media=Path(tmp)/"weather.mjpg";media.write_bytes(b"prefix\xff\xd8frame-one\xff\xd9suffix")
+            class StopAfterFrame(io.BytesIO):
+                def write(self,value):
+                    result=super().write(value)
+                    if b"frame-one" in value: raise BrokenPipeError()
+                    return result
+            class Fake:
+                wfile=StopAfterFrame();status=None;response_headers={}
+                def display_media_path(self,value,parsed,require_file=False): return media
+                def text_response(self,status,message): self.status=status;return None
+                def send_response(self,status): self.status=status
+                def send_header(self,key,value): self.response_headers[key]=value
+                def end_headers(self): pass
+            fake=Fake()
+            with mock.patch.object(server.time,"sleep",return_value=None): server.DashboardHandler.handle_media_mjpeg(fake,server.urlparse("/media-mjpeg?path="+str(media)+"&fps=30"))
+            self.assertEqual(fake.status,200);self.assertIn("multipart/x-mixed-replace",fake.response_headers.get("Content-Type",""));self.assertIn(b"Content-Type: image/jpeg",fake.wfile.getvalue());self.assertIn(b"frame-one",fake.wfile.getvalue())
 
     def test_layout_preview_is_only_same_origin_frame_exception(self):
         handler = object.__new__(server.DashboardHandler)

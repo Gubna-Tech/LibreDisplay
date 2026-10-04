@@ -68,9 +68,9 @@ const sourceOrder=[
   'core/runtime.js','core/bootstrap.js','core/shared.js','integrations/index.js','core/config.js','core/performance.js',
   'weather/effects.js','weather/index.js','weather/alerts.js',
   'calendar/ics-parser.js','calendar/recurrence.js','calendar/index.js',
-  'backgrounds/google-photos.js','backgrounds/index.js','blocks/index.js',
+  'backgrounds/google-photos.js','backgrounds/media.js','backgrounds/index.js','blocks/index.js',
   'layout/index.js','layout/remote.js','layout/persistence.js',
-  'appearance/index.js','appearance/presets.js','appearance/backup.js','remote/index.js',
+  'appearance/weather.js','appearance/index.js','appearance/presets.js','appearance/backup.js','remote/index.js',
   'system/index.js','system/profiles.js','onboarding/index.js',
   'settings/index.js','settings/navigation.js','settings/actions.js','settings/interactions.js','settings/accounts.js','lifecycle/index.js',
 ];
@@ -95,6 +95,7 @@ if(typeof modules.calendar.parseICS!=='function'||typeof modules.calendar.expand
 if(typeof globalThis.parseICS!=='undefined'||typeof globalThis.expandCalendarFeed!=='undefined')throw new Error('calendar parser helpers leaked compatibility globals');
 if(typeof modules.backgrounds.extractAllGooglePhotoUrls!=='function'||modules.backgrounds.GOOGLE_PHOTOS_MAX_ITEMS!==1000)throw new Error('background parser API/state did not load');
 if(typeof modules.backgrounds.backgroundSourceFingerprint!=='function')throw new Error('background source fingerprint helper did not load');
+if(typeof modules.backgrounds.backgroundMediaKind!=='function'||modules.backgrounds.backgroundMediaKind('/media?path=%2Fwallpapers%2Floop.mp4')!=='video'||modules.backgrounds.backgroundMediaKind('/media-mjpeg?path=%2Fwallpapers%2Fweather.mjpg')!=='mjpeg'||modules.backgrounds.backgroundMediaKind('/media?path=%2Fwallpapers%2Fstill.webp')!=='image')throw new Error('moving background media type detection failed');
 const bgKey=modules.backgrounds.backgroundSourceFingerprint;
 if(bgKey({backgroundSource:'google',photosUrl:'album-a'})===bgKey({backgroundSource:'google',photosUrl:'album-b'}))throw new Error('Google background fingerprint did not distinguish source changes');
 if(bgKey({backgroundSource:'folders',mediaRecursive:true,mediaFolders:['/b','/a']})!==bgKey({backgroundSource:'folders',mediaRecursive:true,mediaFolders:['/a','/b']}))throw new Error('folder background fingerprint should be order-insensitive');
@@ -116,6 +117,11 @@ if(northFall!=='fall'||southSpring!=='spring'||usSummer!=='summer'||ausWinter!==
 const tropicalSeason=modules.weatherEffects.weatherSeasonContextForData({latitude:-12.46,current:{time:'2026-07-04T12:00:00',temperature_2m:27}},{weatherSeasonalEffects:true,weatherSeasonMode:'auto'});
 const mildAusWinter=modules.weatherEffects.weatherSeasonContextForData({latitude:-27.47,current:{time:'2026-07-04T12:00:00',temperature_2m:18}},{weatherSeasonalEffects:true,weatherSeasonMode:'auto'});
 if(tropicalSeason.season!=='none'||tropicalSeason.climateBand!=='tropical'||mildAusWinter.season!=='winter'||mildAusWinter.climateBand!=='subtropical'||!(mildAusWinter.scale<.4))throw new Error('regional seasonal adaptation failed');
+const wildlifeSource={...modules.config.cfg,weatherSeasonalEffects:true,weatherSeasonMode:'summer',weatherSeasonalIntensity:100,weatherSeasonBees:true,weatherSeasonButterflies:true,weatherSeasonFireflies:true,weatherSeasonBirds:true,weatherSeasonBeeIntensity:100,weatherSeasonButterflyIntensity:100,weatherSeasonFireflyIntensity:100,weatherSeasonBirdIntensity:100,weatherSeasonBirdFlock:100};
+const dayWildlife=modules.weatherEffects.weatherWildlifeProfile({latitude:41.88,current:{weather_code:0,temperature_2m:26,relative_humidity_2m:65,is_day:1,time:'2026-07-04T14:00:00'}},wildlifeSource,modules.weatherEffects.weatherSeasonContextForData({latitude:41.88,current:{time:'2026-07-04T14:00:00'}},wildlifeSource),'clear');
+const nightWildlife=modules.weatherEffects.weatherWildlifeProfile({latitude:41.88,current:{weather_code:0,temperature_2m:24,relative_humidity_2m:72,is_day:0,time:'2026-07-04T22:00:00'}},wildlifeSource,modules.weatherEffects.weatherSeasonContextForData({latitude:41.88,current:{time:'2026-07-04T22:00:00'}},wildlifeSource),'clear');
+if(!(dayWildlife.bees>0&&dayWildlife.butterflies>0&&dayWildlife.birds>0)||dayWildlife.fireflies!==0||!(nightWildlife.fireflies>0)||nightWildlife.bees!==0||nightWildlife.butterflies!==0||nightWildlife.birds!==0)throw new Error('season/region/daylight wildlife scheduling failed');
+if(!modules.weatherEffects.weatherIsDay({current:{is_day:1}})||modules.weatherEffects.weatherIsDay({current:{is_day:0}}))throw new Error('live is_day weather signal was not authoritative');
 modules.weatherEffects.setWeatherEffectTestProfile('heavy-rain');
 const forcedWeather=modules.weatherEffects.weatherTestData({latitude:41.88,current:{weather_code:0,temperature_2m:20}});
 if(!modules.weatherEffects.weatherEffectTestState().active||forcedWeather.current.weather_code!==65)throw new Error('transient weather effect lab did not force the selected profile');
@@ -180,6 +186,13 @@ try{
   const stormSource={...restartSource,weatherEffectLightning:true,weatherSeasonalEffects:false};
   modules.weatherEffects.applyWeatherEffects({current:{weather_code:95,precipitation:8,cloud_cover:100,wind_speed_10m:25,wind_direction_10m:240}},stormSource);
   if(!overlayHost.classList.contains('weather-fx-lightning')||!overlayHost.children.some(child=>String(child.className||'').includes('weather-fx-lightning-bolt')))throw new Error('storm overlay did not render realistic lightning bolts');
+  const summerSource={...restartSource,...wildlifeSource,weatherFullscreenEffects:true,weatherEffectMode:'auto',weatherEffectSun:true,weatherEffectClouds:true,weatherEffectRespectReducedMotion:false};
+  modules.weatherEffects.applyWeatherEffects({latitude:41.88,current:{weather_code:0,temperature_2m:27,relative_humidity_2m:60,is_day:1,time:'2026-07-04T14:00:00',cloud_cover:5,wind_speed_10m:5,wind_direction_10m:180}},summerSource);
+  if(!overlayHost.children.some(child=>child.classList.contains('weather-fx-bee'))||!overlayHost.children.some(child=>child.classList.contains('weather-fx-butterfly'))||!overlayHost.children.some(child=>child.classList.contains('weather-fx-bird-temperate')))throw new Error('daytime regional summer wildlife did not render');
+  modules.weatherEffects.applyWeatherEffects({latitude:41.88,current:{weather_code:0,temperature_2m:24,relative_humidity_2m:72,is_day:0,time:'2026-07-04T22:00:00',cloud_cover:5,wind_speed_10m:4,wind_direction_10m:180}},summerSource);
+  if(!overlayHost.children.some(child=>child.classList.contains('weather-fx-firefly'))||overlayHost.children.some(child=>child.classList.contains('weather-fx-bee')))throw new Error('nighttime wildlife did not switch to fireflies');
+  const realDateNow=Date.now,healthParticle={getAnimations(){return [{currentTime:100}]}};let fakeNow=100000;Date.now=()=>fakeNow;
+  try{const healthSource={...restartSource,weatherRainDensity:101};modules.weatherEffects.applyWeatherEffects(restartRain,healthSource);overlayHost.querySelector=()=>healthParticle;fakeNow+=1000;if(!modules.weatherEffects.precipitationAnimationHealthy(overlayHost,modules.weatherEffects.weatherEffectRuntimeState(restartRain,healthSource)))throw new Error('healthy precipitation animation was rejected');fakeNow+=13000;if(modules.weatherEffects.precipitationAnimationHealthy(overlayHost,modules.weatherEffects.weatherEffectRuntimeState(restartRain,healthSource)))throw new Error('stalled precipitation animation was not detected');healthParticle.getAnimations=()=>[{currentTime:240}];fakeNow+=1000;if(!modules.weatherEffects.precipitationAnimationHealthy(overlayHost,modules.weatherEffects.weatherEffectRuntimeState(restartRain,healthSource)))throw new Error('precipitation heartbeat did not recover after animation progress');}finally{Date.now=realDateNow;overlayHost.querySelector=dummyElement().querySelector;}
   const coldSource={...restartSource,weatherSeasonalEffects:true,weatherSeasonMode:'winter',weatherColdFrost:true,weatherColdFrostIntensity:70};
   modules.weatherEffects.applyWeatherEffects({current:{weather_code:3,temperature_2m:-18,cloud_cover:90,wind_speed_10m:6}},coldSource);
   if(!overlayHost.children.some(child=>String(child.className||'').includes('weather-fx-edge-frost')))throw new Error('extreme-cold winter overlay did not render edge frost');

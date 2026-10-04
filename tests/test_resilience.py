@@ -169,13 +169,13 @@ class ResilienceContractTests(unittest.TestCase):
 
     def test_system_health_reports_startup_integrity_state(self):
         server.atomic_write_json_file(server.STARTUP_INTEGRITY_PATH, {
-            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.6",
+            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.7",
             "coreFiles": 11, "pythonFiles": 3, "frontendVerified": True,
         })
         payload = server.system_health_payload()
         self.assertTrue(payload["startupIntegrity"]["ok"])
         self.assertTrue(payload["startupIntegrity"]["frontendVerified"])
-        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.6")
+        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.7")
 
     def test_stale_broker_returns_cached_data_while_refresh_runs(self):
         key = "resilience-stale-while-revalidate"
@@ -737,7 +737,7 @@ class ResilienceContractTests(unittest.TestCase):
         start = (ROOT / "scripts" / "start.sh").read_text(encoding="utf-8")
         for marker in ("weatherRainDensity:100", "weatherSnowDensity:100", "weatherFogDensity:115", "weatherSeasonLeavesIntensity:100", "weatherSeasonBugs:true", "weatherColdFrost:true"):
             self.assertIn(marker, config)
-        for control in ('id="s-weather-rain-density"', 'id="s-weather-snow-drift"', 'id="s-weather-fog-density"', 'id="s-weather-leaves-intensity"', 'id="s-weather-grass-intensity"', 'id="s-weather-season-bugs"', 'id="s-weather-cold-frost"'):
+        for control in ('id="s-weather-rain-density"', 'id="s-weather-snow-drift"', 'id="s-weather-fog-density"', 'id="s-weather-leaves-intensity"', 'id="s-weather-grass-intensity"', 'id="s-weather-season-bees"', 'id="s-weather-season-butterflies"', 'id="s-weather-season-fireflies"', 'id="s-weather-season-birds"', 'id="s-weather-cold-frost"'):
             self.assertIn(control, HTML)
         self.assertIn("Number(document.getElementById('s-weather-rain-density')?.value??100)", appearance)
         self.assertIn("{key:'locationLabel',label:'Location / display label'}", layout)
@@ -745,7 +745,8 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn("ps('current','locationLabel')", appearance)
         self.assertIn("weather-fx-lightning-bolt", effects)
         self.assertIn("weather-fx-edge-frost", effects)
-        self.assertIn("weather-fx-summer-bug", effects)
+        for marker in ("weather-fx-bee","weather-fx-butterfly","weather-fx-firefly","weather-fx-bird"):
+            self.assertIn(marker, effects)
         self.assertIn("--weather-fog-strength", effects)
         self.assertIn(".weather-fx-lightning-bolt", css)
         self.assertIn("#weather-effects-overlay.weather-fx-fog.show", css)
