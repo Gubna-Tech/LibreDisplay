@@ -14,8 +14,8 @@ class OnboardingTests(unittest.TestCase):
         self.assertIsNotNone(m)
         keys = re.findall(r"key:'([^']+)'", m.group(1))
         self.assertEqual(keys, [
-            'welcome', 'display', 'location', 'calendar', 'background', 'alerts',
-            'appearance', 'remote', 'backup', 'review', 'health'
+            'welcome', 'display', 'location', 'calendar', 'background', 'performance',
+            'alerts', 'appearance', 'remote', 'backup', 'review', 'health'
         ])
 
     def test_wizard_uses_real_settings_sections(self):
@@ -28,6 +28,25 @@ class OnboardingTests(unittest.TestCase):
         self.assertIn("sections:['settings-alerts']", HTML)
         self.assertIn("sections:['settings-theme']", HTML)
         self.assertIn("sections:['settings-remote']", HTML)
+
+
+    def test_performance_wizard_is_opt_in_and_explains_heavy_features(self):
+        self.assertIn("key:'performance'", HTML)
+        self.assertIn('Recommended for Pi 3 / low-end devices', HTML)
+        self.assertIn('Fullscreen weather atmosphere', HTML)
+        self.assertIn('Seasonal wildlife &amp; atmosphere', HTML)
+        self.assertIn('Animated / video backgrounds', HTML)
+        self.assertIn('Preload next background', HTML)
+        self.assertIn("lightweight:{widget:false,overlay:false,seasonal:false,motionBg:false,preload:false}", HTML)
+        self.assertIn("immersive:{widget:true,overlay:true,seasonal:true,motionBg:true,preload:true}", HTML)
+
+    def test_fresh_install_defaults_are_lightweight(self):
+        self.assertIn('photoPreload:false', HTML)
+        self.assertIn('weatherWidgetAnimations:false', HTML)
+        self.assertIn("weatherSeasonalEffects:false,weatherSeasonMode:'auto'", HTML)
+        self.assertIn('backgroundMotionEnabled:null', HTML)
+        self.assertIn("cfg.backgroundMotionEnabled=cfg.onboardingComplete===true", HTML)
+        self.assertIn("cfg.photoPreload=cfg.onboardingComplete===true", HTML)
 
     def test_display_name_is_deferred_until_save(self):
         self.assertIn('wizardDisplayNameDraft', HTML)

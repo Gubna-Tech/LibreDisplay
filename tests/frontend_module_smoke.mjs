@@ -91,11 +91,18 @@ if(typeof globalThis.serverPath!=='undefined'||typeof globalThis.saveCfg!=='unde
 if(typeof globalThis.escHtml!=='undefined'||typeof globalThis.normalizeHexColor!=='undefined')throw new Error('shared utilities leaked compatibility globals');
 if(!modules.config.cfg||typeof modules.config.cfg!=='object')throw new Error('module API did not expose config state descriptors');
 if(typeof globalThis.uiCfg!=='undefined'||typeof globalThis.fetchRemoteText!=='undefined')throw new Error('shared core helpers leaked compatibility globals');
+const savedConfigState=modules.config.cfg;
+modules.config.cfg={...modules.config.CFG_DEFAULTS,onboardingComplete:false,backgroundMotionEnabled:null,photoPreload:false,weatherWidgetAnimations:false,weatherSeasonalEffects:false};modules.config.ensureCfgDefaults();
+if(modules.config.cfg.backgroundMotionEnabled!==false||modules.config.cfg.photoPreload!==false||modules.config.cfg.weatherWidgetAnimations!==false||modules.config.cfg.weatherSeasonalEffects!==false)throw new Error('fresh-install lightweight defaults were not preserved');
+modules.config.cfg={...modules.config.CFG_DEFAULTS,onboardingComplete:true,backgroundMotionEnabled:null,photoPreload:true,weatherWidgetAnimations:true,weatherSeasonalEffects:true};modules.config.ensureCfgDefaults();
+if(modules.config.cfg.backgroundMotionEnabled!==true||modules.config.cfg.photoPreload!==true||modules.config.cfg.weatherWidgetAnimations!==true||modules.config.cfg.weatherSeasonalEffects!==true)throw new Error('existing-install visual choices were downgraded during migration');
+modules.config.cfg=savedConfigState;
 if(typeof modules.calendar.parseICS!=='function'||typeof modules.calendar.expandCalendarFeed!=='function')throw new Error('calendar parser API did not load');
 if(typeof globalThis.parseICS!=='undefined'||typeof globalThis.expandCalendarFeed!=='undefined')throw new Error('calendar parser helpers leaked compatibility globals');
 if(typeof modules.backgrounds.extractAllGooglePhotoUrls!=='function'||modules.backgrounds.GOOGLE_PHOTOS_MAX_ITEMS!==1000)throw new Error('background parser API/state did not load');
 if(typeof modules.backgrounds.backgroundSourceFingerprint!=='function')throw new Error('background source fingerprint helper did not load');
 if(typeof modules.backgrounds.backgroundMediaKind!=='function'||modules.backgrounds.backgroundMediaKind('/media?path=%2Fwallpapers%2Floop.mp4')!=='video'||modules.backgrounds.backgroundMediaKind('/media-mjpeg?path=%2Fwallpapers%2Fweather.mjpg')!=='mjpeg'||modules.backgrounds.backgroundMediaKind('/media?path=%2Fwallpapers%2Fstill.webp')!=='image')throw new Error('moving background media type detection failed');
+if(typeof modules.backgrounds.backgroundMediaIsMotion!=='function'||!modules.backgrounds.backgroundMediaIsMotion('/media?path=%2Fwallpapers%2Floop.mp4')||!modules.backgrounds.backgroundMediaIsMotion('/media?path=%2Fwallpapers%2Floop.gif')||!modules.backgrounds.backgroundMediaIsMotion('/media-mjpeg?path=%2Fwallpapers%2Fweather.mjpg')||modules.backgrounds.backgroundMediaIsMotion('/media?path=%2Fwallpapers%2Fstill.webp'))throw new Error('background motion opt-in classification failed');
 const bgKey=modules.backgrounds.backgroundSourceFingerprint;
 if(bgKey({backgroundSource:'google',photosUrl:'album-a'})===bgKey({backgroundSource:'google',photosUrl:'album-b'}))throw new Error('Google background fingerprint did not distinguish source changes');
 if(bgKey({backgroundSource:'folders',mediaRecursive:true,mediaFolders:['/b','/a']})!==bgKey({backgroundSource:'folders',mediaRecursive:true,mediaFolders:['/a','/b']}))throw new Error('folder background fingerprint should be order-insensitive');
@@ -121,6 +128,10 @@ const wildlifeSource={...modules.config.cfg,weatherSeasonalEffects:true,weatherS
 const dayWildlife=modules.weatherEffects.weatherWildlifeProfile({latitude:41.88,current:{weather_code:0,temperature_2m:26,relative_humidity_2m:65,is_day:1,time:'2026-07-04T14:00:00'}},wildlifeSource,modules.weatherEffects.weatherSeasonContextForData({latitude:41.88,current:{time:'2026-07-04T14:00:00'}},wildlifeSource),'clear');
 const nightWildlife=modules.weatherEffects.weatherWildlifeProfile({latitude:41.88,current:{weather_code:0,temperature_2m:24,relative_humidity_2m:72,is_day:0,time:'2026-07-04T22:00:00'}},wildlifeSource,modules.weatherEffects.weatherSeasonContextForData({latitude:41.88,current:{time:'2026-07-04T22:00:00'}},wildlifeSource),'clear');
 if(!(dayWildlife.bees>0&&dayWildlife.butterflies>0&&dayWildlife.birds>0)||dayWildlife.fireflies!==0||!(nightWildlife.fireflies>0)||nightWildlife.bees!==0||nightWildlife.butterflies!==0||nightWildlife.birds!==0)throw new Error('season/region/daylight wildlife scheduling failed');
+const defaultBirdCounts=modules.weatherEffects.seasonalEffectCounts('summer',{...wildlifeSource,weatherSeasonalIntensity:45,weatherSeasonBirdIntensity:55,weatherSeasonBirdFlock:60},true,{latitude:41.88,current:{weather_code:0,temperature_2m:26,relative_humidity_2m:65,is_day:1,time:'2026-07-04T14:00:00',wind_speed_10m:6}});
+if(defaultBirdCounts.birds<2)throw new Error('eligible default daytime birds could scale down to an effectively invisible population');
+const lightRainWildlife=modules.weatherEffects.weatherWildlifeWeatherFactors({current:{weather_code:53,precipitation:.6,wind_speed_10m:8}},'rain'),stormWildlife=modules.weatherEffects.weatherWildlifeWeatherFactors({current:{weather_code:95,precipitation:8,wind_speed_10m:25}},'storm');
+if(!(lightRainWildlife.birds>0)||stormWildlife.birds!==0||stormWildlife.insects!==0)throw new Error('wildlife weather suppression was not severity aware');
 if(!modules.weatherEffects.weatherIsDay({current:{is_day:1}})||modules.weatherEffects.weatherIsDay({current:{is_day:0}}))throw new Error('live is_day weather signal was not authoritative');
 modules.weatherEffects.setWeatherEffectTestProfile('heavy-rain');
 const forcedWeather=modules.weatherEffects.weatherTestData({latitude:41.88,current:{weather_code:0,temperature_2m:20}});
@@ -151,6 +162,7 @@ try{
   if(!previewRainMarkup.includes('ld-weather-glyph-active'))throw new Error('weather icon preview did not use the active preview configuration');
 }finally{window.__uiPreviewCfg=savedWeatherPreview;}
 // Exercise the actual full-screen renderer against the exact legacy restart state that regressed on Pi.
+const savedBirdMigration={...modules.config.cfg};modules.config.cfg={...modules.config.cfg,weatherSeasonBugs:false};delete modules.config.cfg.weatherSeasonBirds;modules.config.ensureCfgDefaults();if(modules.config.cfg.weatherSeasonBirds!==true)throw new Error('bird defaults incorrectly inherited the legacy summer-bugs toggle');modules.config.cfg=savedBirdMigration;
 const savedCfgForOverlay={...modules.config.cfg};
 modules.config.cfg={...modules.config.cfg,weatherAnimationsEnabled:false,weatherFullscreenEffects:true};
 modules.config.ensureCfgDefaults();
@@ -188,7 +200,7 @@ try{
   if(!overlayHost.classList.contains('weather-fx-lightning')||!overlayHost.children.some(child=>String(child.className||'').includes('weather-fx-lightning-bolt')))throw new Error('storm overlay did not render realistic lightning bolts');
   const summerSource={...restartSource,...wildlifeSource,weatherFullscreenEffects:true,weatherEffectMode:'auto',weatherEffectSun:true,weatherEffectClouds:true,weatherEffectRespectReducedMotion:false};
   modules.weatherEffects.applyWeatherEffects({latitude:41.88,current:{weather_code:0,temperature_2m:27,relative_humidity_2m:60,is_day:1,time:'2026-07-04T14:00:00',cloud_cover:5,wind_speed_10m:5,wind_direction_10m:180}},summerSource);
-  if(!overlayHost.children.some(child=>child.classList.contains('weather-fx-bee'))||!overlayHost.children.some(child=>child.classList.contains('weather-fx-butterfly'))||!overlayHost.children.some(child=>child.classList.contains('weather-fx-bird-temperate')))throw new Error('daytime regional summer wildlife did not render');
+  if(!overlayHost.children.some(child=>child.classList.contains('weather-fx-bee'))||!overlayHost.children.some(child=>child.classList.contains('weather-fx-butterfly'))||overlayHost.children.filter(child=>child.classList.contains('weather-fx-bird-temperate')).length<2)throw new Error('daytime regional summer wildlife did not render a visible bird population');
   modules.weatherEffects.applyWeatherEffects({latitude:41.88,current:{weather_code:0,temperature_2m:24,relative_humidity_2m:72,is_day:0,time:'2026-07-04T22:00:00',cloud_cover:5,wind_speed_10m:4,wind_direction_10m:180}},summerSource);
   if(!overlayHost.children.some(child=>child.classList.contains('weather-fx-firefly'))||overlayHost.children.some(child=>child.classList.contains('weather-fx-bee')))throw new Error('nighttime wildlife did not switch to fireflies');
   const realDateNow=Date.now,healthParticle={getAnimations(){return [{currentTime:100}]}};let fakeNow=100000;Date.now=()=>fakeNow;
