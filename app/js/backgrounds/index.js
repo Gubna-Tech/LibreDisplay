@@ -3,7 +3,7 @@ const configApi=LibreDisplayRuntime.getModule('config');
 
 const {serverPath}=LibreDisplayRuntime.getModule('bootstrap');
 const {fetchRemoteText,escHtml,scaledClamp,resilientFetch}=LibreDisplayRuntime.getModule('shared');
-const {extractAllGooglePhotoUrls,GOOGLE_PHOTOS_MAX_ITEMS}=LibreDisplayRuntime.getModule('backgrounds');
+const {extractAllGooglePhotoUrls,GOOGLE_PHOTOS_MAX_ITEMS,backgroundMediaKind,backgroundMediaHasVisual,resetBackgroundLayerMedia,activateBackgroundLayerMedia,deactivateBackgroundLayerMedia,loadBackgroundMedia}=LibreDisplayRuntime.getModule('backgrounds');
 
 let bgTimer=null;
 const LAST_BACKGROUND_KEY='libredisplay_last_background_v2';
@@ -23,7 +23,7 @@ function rememberLastBackground(remoteUrl,persistAsset=true){
 async function persistLastBackgroundAsset(remoteUrl){
   if(!remoteUrl||!('caches' in globalThis))return false;
   try{
-    const assetUrl=backgroundAssetUrl(remoteUrl),res=await resilientFetch(assetUrl,{cache:'force-cache'},{timeoutMs:12000,attempts:1,retry:false});
+    if(backgroundMediaKind(remoteUrl)!=='image')return false;const assetUrl=backgroundAssetUrl(remoteUrl),res=await resilientFetch(assetUrl,{cache:'force-cache'},{timeoutMs:12000,attempts:1,retry:false});
     if(!res.ok)return false;
     const type=String(res.headers.get('Content-Type')||'').toLowerCase();if(type&&!type.startsWith('image/'))return false;
     const cache=await caches.open(LAST_BACKGROUND_CACHE);
@@ -38,7 +38,7 @@ async function clearLastBackgroundAsset(){
 async function loadCachedLastBackground(layer,remoteUrl){
   if(!layer||!remoteUrl||!('caches' in globalThis))return false;
   try{
-    const assetUrl=backgroundAssetUrl(remoteUrl),cache=await caches.open(LAST_BACKGROUND_CACHE),res=await cache.match(assetUrl);
+    if(backgroundMediaKind(remoteUrl)!=='image')return false;const assetUrl=backgroundAssetUrl(remoteUrl),cache=await caches.open(LAST_BACKGROUND_CACHE),res=await cache.match(assetUrl);
     if(!res||!res.ok)return false;
     const blob=await res.blob();if(!blob.size||!String(blob.type||'image/').startsWith('image/'))return false;
     const img=backgroundLayerImage(layer);if(!img)return false;
@@ -56,7 +56,7 @@ async function restoreLastBackground(cacheOnly=false){
   const layer=activeBackgroundLayer();if(!layer)return false;
   let ok=await loadCachedLastBackground(layer,saved.url);
   if(!ok&&!cacheOnly)ok=await loadBackgroundIntoLayer(layer,saved.url,'high');
-  if(ok){layer.style.zIndex='0';layer.classList.add('show');configApi.bgActiveLayerId=layer.id;configApi.bgLastUrl=saved.url;rememberLastBackground(saved.url,false);return true;}
+  if(ok){layer.style.zIndex='0';await activateBackgroundLayerMedia(layer);layer.classList.add('show');configApi.bgActiveLayerId=layer.id;configApi.bgLastUrl=saved.url;rememberLastBackground(saved.url,false);return true;}
   return false;
 }
 
@@ -122,7 +122,7 @@ async function loadFolderBackgrounds(paths=cfg.mediaFolders,recursive=cfg.mediaR
     if(bgTimer){clearInterval(bgTimer);bgTimer=null;}
     clearBackgroundPrepared(true);
     configApi.bgImages=[];configApi.bgSourceImages=[];configApi.bgIdx=0;configApi.bgLastUrl='';
-    setBackgroundStatus('Scanning local / NAS picture folders…');
+    setBackgroundStatus('Scanning local / NAS media folders…');
     const res=await resilientFetch(serverPath('/api/media/scan'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paths,recursive:recursive!==false}),cache:'no-store'},{timeoutMs:60000,retry:false});
     const data=await res.json().catch(()=>({}));
     if(sourceSerial!==configApi.bgSourceSerial)return;
@@ -130,12 +130,12 @@ async function loadFolderBackgrounds(paths=cfg.mediaFolders,recursive=cfg.mediaR
     configApi.bgSourceImages=(data.images||[]).map(x=>x.url).filter(Boolean);
     if(!configApi.bgSourceImages.length){
       const problems=(data.sources||[]).filter(x=>x.error).map(x=>x.path+': '+x.error);
-      throw new Error(problems[0]||'No supported image files were found in the selected folders');
+      throw new Error(problems[0]||'No supported image, video, or Motion JPEG files were found in the selected folders');
     }
     prepareBackgroundOrder(configApi.bgSourceImages,false);
     const sourceCount=(data.sources||[]).filter(x=>Number(x.count)>0).length;
     const limit=data.limitReached?' · scan limit reached':'';
-    setBackgroundStatus(`${configApi.bgSourceImages.length} local/network photos · ${sourceCount} source${sourceCount===1?'':'s'}${limit} · ${cfg.photoIntervalSec?formatBackgroundInterval(cfg.photoIntervalSec):'rotation off'}`);
+    setBackgroundStatus(`${configApi.bgSourceImages.length} local/network media items · ${sourceCount} source${sourceCount===1?'':'s'}${limit} · ${cfg.photoIntervalSec?formatBackgroundInterval(cfg.photoIntervalSec):'rotation off'}`);
     await showBg(configApi.bgIdx,0,sourceSerial);
     if(sourceSerial===configApi.bgSourceSerial)scheduleBackgroundRotation();
   }catch(e){
@@ -240,46 +240,16 @@ function waitForBackgroundLayerVisible(layer){
 }
 function clearBackgroundPrepared(clearLayer=false){
   configApi.bgPreparedIndex=null;configApi.bgPreparedUrl='';configApi.bgPreparePromise=null;
-  if(clearLayer){
-    const layer=inactiveBackgroundLayer(),img=backgroundLayerImage(layer);
-    if(layer&&!layer.classList.contains('show')){
-      layer.dataset.remoteUrl='';
-      if(img)img.removeAttribute('src');
-    }
-  }
+  if(clearLayer){const layer=inactiveBackgroundLayer();if(layer&&!layer.classList.contains('show'))resetBackgroundLayerMedia(layer);}
 }
 function clearBackgroundLayers(){
   clearBackgroundPrepared(false);
   for(const id of ['bg','bg-next']){
-    const layer=backgroundLayerById(id),img=backgroundLayerImage(layer);
-    if(!layer)continue;
-    layer.classList.remove('show');layer.style.zIndex='0';layer.dataset.remoteUrl='';
-    if(img)img.removeAttribute('src');
+    const layer=backgroundLayerById(id);if(!layer)continue;layer.classList.remove('show');layer.style.zIndex='0';resetBackgroundLayerMedia(layer);
   }
   configApi.bgActiveLayerId='bg';
 }
-function loadBackgroundIntoLayer(layer,remoteUrl,priority='low'){
-  if(!layer||!remoteUrl)return Promise.resolve(false);
-  const img=backgroundLayerImage(layer);if(!img)return Promise.resolve(false);
-  const assetUrl=backgroundAssetUrl(remoteUrl);
-  if(layer.dataset.remoteUrl===remoteUrl&&img.getAttribute('src')===assetUrl&&img.complete&&img.naturalWidth>0){
-    return typeof img.decode==='function'?img.decode().then(()=>true).catch(()=>true):Promise.resolve(true);
-  }
-  return new Promise(resolve=>{
-    let settled=false;
-    const finish=async ok=>{
-      if(settled)return;settled=true;img.onload=null;img.onerror=null;
-      if(ok&&typeof img.decode==='function'){try{await img.decode();}catch(_e){}}
-      resolve(!!ok&&img.naturalWidth>0);
-    };
-    img.onload=()=>finish(true);
-    img.onerror=()=>finish(false);
-    try{img.fetchPriority=priority;}catch(_e){}
-    layer.dataset.remoteUrl=remoteUrl;
-    img.src=assetUrl;
-    if(img.complete)setTimeout(()=>finish(img.naturalWidth>0),0);
-  });
-}
+function loadBackgroundIntoLayer(layer,remoteUrl,priority='low'){return loadBackgroundMedia(layer,remoteUrl,priority);}
 function preloadBackgroundIndex(idx){
   if(!cfg.photoPreload||!configApi.bgImages.length)return Promise.resolve(false);
   const i=((idx%configApi.bgImages.length)+configApi.bgImages.length)%configApi.bgImages.length;
@@ -311,21 +281,19 @@ function prepareUpcomingBackground(){
 
 async function revealBackgroundLayer(layer,remoteUrl){
   const active=activeBackgroundLayer();
-  const hasCurrent=!!(active&&active.classList.contains('show')&&backgroundLayerImage(active)?.naturalWidth);
+  const hasCurrent=!!(active&&active.classList.contains('show')&&backgroundMediaHasVisual(active));
   layer.style.zIndex='1';
   if(active&&active!==layer)active.style.zIndex='0';
   layer.classList.remove('show');
   await nextAnimationFrame();
-  layer.classList.add('show');
+  await activateBackgroundLayerMedia(layer);layer.classList.add('show');
   await waitForBackgroundLayerVisible(layer);
   if(active&&active!==layer){
     active.style.transition='none';
     active.classList.remove('show');
     void active.offsetWidth;
     active.style.transition='';
-    const oldImage=backgroundLayerImage(active);
-    active.dataset.remoteUrl='';
-    if(oldImage)oldImage.removeAttribute('src');
+    deactivateBackgroundLayerMedia(active,true);
   }
   layer.style.zIndex='0';
   configApi.bgActiveLayerId=layer.id;
@@ -453,13 +421,13 @@ async function showBg(idx,attempt=0,sourceSerial=configApi.bgSourceSerial){
         prepareUpcomingBackground();
         return true;
       }
-      console.warn('Could not load a configured background image');
+      console.warn('Could not load a configured background media item');
       if(configApi.bgPreparedUrl===remoteUrl)clearBackgroundPrepared(true);
       cursor=(cursor+1)%configApi.bgImages.length;
       tries++;
     }
-    console.warn('Background: none of the candidate images could be loaded');
-    setBackgroundStatus(cfg.backgroundSource==='stock'?'Stock image was returned but could not be displayed.':cfg.backgroundSource==='folders'?'Folder scan succeeded, but none of the images could be displayed.':'Album loaded, but none of its extracted images could be displayed.',true);
+    console.warn('Background: none of the candidate media items could be loaded');
+    setBackgroundStatus(cfg.backgroundSource==='stock'?'Stock image was returned but could not be displayed.':cfg.backgroundSource==='folders'?'Folder scan succeeded, but none of the media files could be displayed.':'Album loaded, but none of its extracted images could be displayed.',true);
     return false;
   }finally{
     configApi.bgTransitionBusy=false;

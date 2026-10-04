@@ -73,6 +73,9 @@ REMOTE_SESSIONS = {}
 MAX_REMOTE_SESSIONS = max(64, min(4096, int(os.environ.get("DASHBOARD_MAX_REMOTE_SESSIONS", "512"))))
 MAX_REMOTE_SESSIONS_PER_USER = max(8, min(256, int(os.environ.get("DASHBOARD_MAX_REMOTE_SESSIONS_PER_USER", "64"))))
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".bmp"}
+VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogv", ".m4v", ".mov"}
+MJPEG_EXTENSIONS = {".mjpg", ".mjpeg", ".mpjpg"}
+BACKGROUND_MEDIA_EXTENSIONS = IMAGE_EXTENSIONS | VIDEO_EXTENSIONS | MJPEG_EXTENSIONS
 
 os.umask(0o077)
 DATA_ROOT.mkdir(parents=True, exist_ok=True)
@@ -3239,7 +3242,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         if len(images) >= MAX_MEDIA_ITEMS:
                             break
                         try:
-                            if not item.is_file() or item.suffix.lower() not in IMAGE_EXTENSIONS:
+                            if not item.is_file() or item.suffix.lower() not in BACKGROUND_MEDIA_EXTENSIONS:
                                 continue
                             resolved = item.resolve()
                             if not _path_within(resolved, folder) or resolved in seen:
@@ -3249,7 +3252,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
                                 "path": str(resolved),
                                 "name": item.name,
                                 "source": str(folder),
-                                "url": "/media?path=" + quote(str(resolved), safe="") + "&endpoint=" + quote(requested_endpoint(parsed) or "main"),
+                                "url": (("/media-mjpeg" if item.suffix.lower() in MJPEG_EXTENSIONS else "/media") + "?path=" + quote(str(resolved), safe="") + "&endpoint=" + quote(requested_endpoint(parsed) or "main")),
+                                "kind": ("mjpeg" if item.suffix.lower() in MJPEG_EXTENSIONS else "video" if item.suffix.lower() in VIDEO_EXTENSIONS else "image"),
                             })
                             count += 1
                         except Exception:
@@ -3276,24 +3280,83 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def handle_media_file(self, parsed):
         value = parse_qs(parsed.query).get("path", [""])[0]
         path = self.display_media_path(value, parsed, require_file=True)
-        if not path or path.suffix.lower() not in IMAGE_EXTENSIONS:
-            return self.text_response(404, "Image not found or not allowed")
+        if not path or path.suffix.lower() not in (IMAGE_EXTENSIONS | VIDEO_EXTENSIONS):
+            return self.text_response(404, "Media file not found or not allowed")
         try:
             size = path.stat().st_size
             if size < 0 or size > MAX_MEDIA_FILE_BYTES:
-                return self.text_response(413, "Image file is too large")
-            content_type = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
-            self.send_response(200)
+                return self.text_response(413, "Media file is too large")
+            content_type = mimetypes.guess_type(str(path))[0] or ("video/mp4" if path.suffix.lower() in VIDEO_EXTENSIONS else "application/octet-stream")
+            start, end, status = 0, max(0, size - 1), 200
+            range_header = str(self.headers.get("Range") or "").strip()
+            if range_header:
+                match = re.fullmatch(r"bytes=(\d*)-(\d*)", range_header)
+                if not match:
+                    return self.text_response(416, "Invalid byte range")
+                left, right = match.groups()
+                if left:
+                    start = int(left); end = min(end, int(right)) if right else end
+                elif right:
+                    length = min(size, int(right)); start = max(0, size - length)
+                if start < 0 or start >= size or end < start:
+                    self.send_response(416); self.send_header("Content-Range", f"bytes */{size}"); self.end_headers(); return
+                status = 206
+            length = max(0, end - start + 1)
+            self.send_response(status)
             self.send_header("Content-Type", content_type)
-            self.send_header("Content-Length", str(size))
+            self.send_header("Content-Length", str(length))
+            self.send_header("Accept-Ranges", "bytes")
+            if status == 206:
+                self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
             self.send_header("Content-Disposition", "inline")
             self.end_headers()
             with path.open("rb") as fh:
-                shutil.copyfileobj(fh, self.wfile, length=256 * 1024)
+                fh.seek(start); remaining = length
+                while remaining > 0:
+                    chunk = fh.read(min(256 * 1024, remaining))
+                    if not chunk: break
+                    self.wfile.write(chunk); remaining -= len(chunk)
         except BrokenPipeError:
             pass
         except Exception as exc:
-            self.text_response(500, f"Could not read image: {exc}")
+            self.text_response(500, f"Could not read media: {exc}")
+
+    def handle_media_mjpeg(self, parsed):
+        params = parse_qs(parsed.query); value = params.get("path", [""])[0]
+        path = self.display_media_path(value, parsed, require_file=True)
+        if not path or path.suffix.lower() not in MJPEG_EXTENSIONS:
+            return self.text_response(404, "Motion JPEG file not found or not allowed")
+        try:
+            size = path.stat().st_size
+            if size <= 0 or size > MAX_MEDIA_FILE_BYTES:
+                return self.text_response(413, "Motion JPEG file is too large")
+            fps = max(1.0, min(30.0, float(params.get("fps", ["12"])[0] or 12)))
+            self.send_response(200); self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=libredisplayframe"); self.send_header("Cache-Control", "no-store"); self.send_header("Connection", "close"); self.end_headers()
+            delay = 1.0 / fps
+            while True:
+                emitted = 0; buf = b""
+                with path.open("rb") as fh:
+                    while True:
+                        chunk = fh.read(256 * 1024)
+                        if not chunk: break
+                        buf += chunk
+                        while True:
+                            soi = buf.find(b"\xff\xd8")
+                            if soi < 0:
+                                buf = buf[-2:]; break
+                            eoi = buf.find(b"\xff\xd9", soi + 2)
+                            if eoi < 0:
+                                if soi: buf = buf[soi:]
+                                if len(buf) > 12 * 1024 * 1024: buf = b""
+                                break
+                            frame = buf[soi:eoi + 2]; buf = buf[eoi + 2:]
+                            if not frame: continue
+                            self.wfile.write(b"--libredisplayframe\r\nContent-Type: image/jpeg\r\nContent-Length: " + str(len(frame)).encode("ascii") + b"\r\n\r\n" + frame + b"\r\n"); self.wfile.flush(); emitted += 1; time.sleep(delay)
+                if not emitted: break
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        except Exception:
+            pass
 
     def serve_dashboard(self):
         try:
@@ -4188,7 +4251,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return self.json_response(200, {"ok": True, "scenes": scenes, "active": chosen})
         if parsed.path in ("/api/profiles", "/api/storage-status", "/api/cache-status", "/api/media/roots", "/api/media/browse") and not self.require_owner():
             return
-        if parsed.path in ("/api/config", "/api/qr", "/media", "/proxy", "/gphotos-page") and not self.require_display_authorized(parsed):
+        if parsed.path in ("/api/config", "/api/qr", "/media", "/media-mjpeg", "/proxy", "/gphotos-page") and not self.require_display_authorized(parsed):
             return
         if parsed.path == "/api/endpoints":
             if not self.require_authorized(parsed):
@@ -4227,6 +4290,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return self.handle_qr(parsed)
         if parsed.path == "/media":
             return self.handle_media_file(parsed)
+        if parsed.path == "/media-mjpeg":
+            return self.handle_media_mjpeg(parsed)
         if parsed.path == "/api/config":
             endpoint_id = requested_endpoint(parsed)
             if not endpoint_id:

@@ -127,7 +127,7 @@ async function fetchWeather(){
   invalidateWeatherIfLocationChanged();
   const source={...cfg},requestKey=weatherLocationKey(source),requestSerial=++weatherFetchSerial;
   const url=`https://api.open-meteo.com/v1/forecast?latitude=${source.lat}&longitude=${source.lon}`
-    +`&current=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,precipitation,cloud_cover,pressure_msl,weather_code,wind_speed_10m,wind_direction_10m`
+    +`&current=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,precipitation,cloud_cover,pressure_msl,weather_code,wind_speed_10m,wind_direction_10m,is_day`
     +`&hourly=temperature_2m,weather_code,precipitation_probability`
     +`&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max`
     +`&temperature_unit=celsius&precipitation_unit=mm&wind_speed_unit=${weatherWindUnitParam(source)}`

@@ -18,11 +18,13 @@
 <link rel="modulepreload" href="/js/calendar/recurrence.js">
 <link rel="modulepreload" href="/js/calendar/index.js">
 <link rel="modulepreload" href="/js/backgrounds/google-photos.js">
+<link rel="modulepreload" href="/js/backgrounds/media.js">
 <link rel="modulepreload" href="/js/backgrounds/index.js">
 <link rel="modulepreload" href="/js/blocks/index.js">
 <link rel="modulepreload" href="/js/layout/index.js">
 <link rel="modulepreload" href="/js/layout/remote.js">
 <link rel="modulepreload" href="/js/layout/persistence.js">
+<link rel="modulepreload" href="/js/appearance/weather.js">
 <link rel="modulepreload" href="/js/appearance/index.js">
 <link rel="modulepreload" href="/js/appearance/presets.js">
 <link rel="modulepreload" href="/js/appearance/backup.js">
@@ -39,8 +41,8 @@
 </head>
 <body>
 
-<div id="bg" class="bg-layer" aria-hidden="true"><img id="bg-image-a" alt="" decoding="async"></div>
-<div id="bg-next" class="bg-layer" aria-hidden="true"><img id="bg-image-b" alt="" decoding="async"></div>
+<div id="bg" class="bg-layer" aria-hidden="true"><img id="bg-image-a" alt="" decoding="async"><video id="bg-video-a" muted loop playsinline preload="auto"></video></div>
+<div id="bg-next" class="bg-layer" aria-hidden="true"><img id="bg-image-b" alt="" decoding="async"><video id="bg-video-b" muted loop playsinline preload="auto"></video></div>
 <div id="weather-effects-overlay" aria-hidden="true"></div>
 
 
@@ -161,7 +163,7 @@
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.6</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.7</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -324,10 +326,10 @@
   </div>
 
   <div class="s-section" id="settings-backgrounds" data-settings-tab="backgrounds">
-   <h3>Pictures &amp; backgrounds <button class="help-tip" type="button" aria-label="Background help" data-help="Choose one active source. Google Photos shared albums paginate up to 1,000 images; local or NAS folders and stock sources can also rotate automatically.">?</button></h3>
-   <div class="howto">Choose the picture source and tune its rotation in one place. Use Google Photos, built-in stock categories, local folders, mounted NAS/network folders, or no photo background.</div>
+   <h3>Pictures, video &amp; moving backgrounds <button class="help-tip" type="button" aria-label="Background help" data-help="Choose one active source. Google Photos shared albums paginate up to 1,000 images; local or NAS folders and stock sources can also rotate automatically.">?</button></h3>
+   <div class="howto">Choose the background source and tune its rotation in one place. Local and NAS folders support still images, animated GIFs, browser-playable video, and raw Motion JPEG (.mjpg/.mjpeg/.mpjpg) loops.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Source</label><select id="s-bg-source" onchange="updateBackgroundSourceUI()"><option value="google">Google Photos shared album</option><option value="folders">Local / NAS folders</option><option value="stock">Stock photo categories</option><option value="none">No photo background</option></select></div>
+    <div class="s-row"><label>Source</label><select id="s-bg-source" onchange="updateBackgroundSourceUI()"><option value="google">Google Photos shared album</option><option value="folders">Local / NAS media folders</option><option value="stock">Stock photo categories</option><option value="none">No photo background</option></select></div>
     <div class="s-row stock-bg-only"><label>Stock category</label><select id="s-stock-category" onchange="updateBackgroundSourceUI()"><option value="nature">Nature</option><option value="space">Space</option><option value="animals">Animals</option><option value="architecture">Architecture</option><option value="abstract">Abstract</option><option value="ocean">Ocean</option><option value="mountains">Mountains</option><option value="forest">Forest</option><option value="city">City</option><option value="beach">Beach</option><option value="minimal">Minimal</option><option value="technology">Technology</option><option value="wallpaper">Wallpaper</option><option value="custom">Custom search…</option></select></div>
     <div class="s-row stock-bg-only" id="stock-custom-row"><label>Custom stock search</label><input id="s-stock-query" type="text" maxlength="80" placeholder="e.g. northern lights, tropical forest"></div>
     <div class="s-row stock-bg-only"><label>Requested image size</label><select id="s-stock-resolution"><option value="1920x1080">1080p — 1920×1080</option><option value="2560x1440">1440p — 2560×1440</option><option value="3840x2160">4K — 3840×2160</option></select></div>
@@ -350,8 +352,8 @@
    </div>
 
    <div class="folders-bg-only settings-inline-group">
-    <div class="s-subhead">Local / NAS picture folders</div>
-    <div class="s-row"><label>Picture folders — one path per line</label><textarea id="s-media-folders" class="media-paths" placeholder="/home/pi/Pictures/Family
+    <div class="s-subhead">Local / NAS media folders</div>
+    <div class="s-row"><label>Media folders — one path per line</label><textarea id="s-media-folders" class="media-paths" placeholder="/home/pi/Pictures/Family
 /mnt/libredisplay/NAS-Photos"></textarea></div>
     <label class="checkline"><input id="s-media-recursive" type="checkbox" checked> Include subfolders</label>
     <div class="utility-actions" style="margin-top:7px;">
@@ -362,7 +364,7 @@
      <div class="media-browser-toolbar"><button class="btn-util" type="button" onclick="browseMediaParent()">Up</button><div id="media-browser-path" class="media-browser-path">Loading…</div><button class="btn-util" type="button" onclick="addCurrentMediaFolder()">Add this folder</button></div>
      <div id="media-browser-list" class="media-browser-list"></div>
     </div>
-    <div class="settings-note" style="margin-top:7px;">NAS folders use normal Linux mount points. The included <b>scripts/setup-nas.sh</b> helper mounts SMB/CIFS or NFS shares read-only under <code>/mnt/libredisplay</code>. For another local folder outside the approved picture roots, run <b>scripts/setup-media.sh</b> locally on the Pi, then reboot.</div>
+    <div class="settings-note" style="margin-top:7px;">Supported folder media includes JPG, PNG, WebP, GIF, AVIF, BMP, MP4, WebM, OGV, M4V, MOV, MJPG, MJPEG and MPJPG. NAS folders use normal Linux mount points. The included <b>scripts/setup-nas.sh</b> helper mounts SMB/CIFS or NFS shares read-only under <code>/mnt/libredisplay</code>. For another local folder outside the approved picture roots, run <b>scripts/setup-media.sh</b> locally on the Pi, then reboot.</div>
    </div>
 
    <div class="settings-inline-group rotating-bg-only">
@@ -425,16 +427,30 @@
     <label class="checkline"><input id="s-weather-effect-precipitation" type="checkbox" checked onchange="previewAppearance()"> Rain and snow precipitation</label>
     <div class="s-subhead">Rain</div>
     <div class="s-row"><label>Rain density <span id="s-weather-rain-density-value" class="range-value">100%</span></label><input id="s-weather-rain-density" type="range" min="0" max="150" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Drop size / length <span id="s-weather-rain-size-value" class="range-value">100%</span></label><input id="s-weather-rain-size" type="range" min="40" max="150" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Surface splashes <span id="s-weather-rain-splash-value" class="range-value">70%</span></label><input id="s-weather-rain-splash" type="range" min="0" max="150" step="5" value="70" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Drop length <span id="s-weather-rain-size-value" class="range-value">100%</span></label><input id="s-weather-rain-size" type="range" min="30" max="180" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Drop width <span id="s-weather-rain-width-value" class="range-value">100%</span></label><input id="s-weather-rain-width" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Rain fall speed <span id="s-weather-rain-speed-value" class="range-value">100%</span></label><input id="s-weather-rain-speed" type="range" min="35" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Drop opacity <span id="s-weather-rain-opacity-value" class="range-value">100%</span></label><input id="s-weather-rain-opacity" type="range" min="10" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Wind angle <span id="s-weather-rain-angle-value" class="range-value">100%</span></label><input id="s-weather-rain-angle" type="range" min="0" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Near / far depth variation <span id="s-weather-rain-depth-value" class="range-value">100%</span></label><input id="s-weather-rain-depth" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Surface splash amount <span id="s-weather-rain-splash-value" class="range-value">70%</span></label><input id="s-weather-rain-splash" type="range" min="0" max="180" step="5" value="70" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Splash size <span id="s-weather-rain-splash-size-value" class="range-value">100%</span></label><input id="s-weather-rain-splash-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Wet-streak glow <span id="s-weather-rain-glow-value" class="range-value">100%</span></label><input id="s-weather-rain-glow" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-subhead">Snow</div>
     <div class="s-row"><label>Snow density <span id="s-weather-snow-density-value" class="range-value">100%</span></label><input id="s-weather-snow-density" type="range" min="0" max="150" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Flake size <span id="s-weather-snow-size-value" class="range-value">100%</span></label><input id="s-weather-snow-size" type="range" min="40" max="150" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Snow drift <span id="s-weather-snow-drift-value" class="range-value">100%</span></label><input id="s-weather-snow-drift" type="range" min="0" max="150" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Snow fall speed <span id="s-weather-snow-speed-value" class="range-value">100%</span></label><input id="s-weather-snow-speed" type="range" min="30" max="180" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Flake opacity <span id="s-weather-snow-opacity-value" class="range-value">100%</span></label><input id="s-weather-snow-opacity" type="range" min="10" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Flake spin <span id="s-weather-snow-spin-value" class="range-value">100%</span></label><input id="s-weather-snow-spin" type="range" min="0" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Snow depth variation <span id="s-weather-snow-depth-value" class="range-value">100%</span></label><input id="s-weather-snow-depth" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-subhead">Fog &amp; mist</div>
     <label class="checkline"><input id="s-weather-effect-fog" type="checkbox" checked onchange="previewAppearance()"> Fog and mist layers</label>
     <div class="s-row"><label>Fog density <span id="s-weather-fog-density-value" class="range-value">115%</span></label><input id="s-weather-fog-density" type="range" min="0" max="180" step="5" value="115" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Fog movement <span id="s-weather-fog-speed-value" class="range-value">80%</span></label><input id="s-weather-fog-speed" type="range" min="20" max="150" step="5" value="80" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Fog opacity <span id="s-weather-fog-opacity-value" class="range-value">100%</span></label><input id="s-weather-fog-opacity" type="range" min="10" max="180" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Mist softness / blur <span id="s-weather-fog-blur-value" class="range-value">100%</span></label><input id="s-weather-fog-blur" type="range" min="20" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Fog band height <span id="s-weather-fog-layer-height-value" class="range-value">100%</span></label><input id="s-weather-fog-layer-height" type="range" min="40" max="200" step="5" value="100" oninput="previewAppearance()"></div>
    </div>
   </div>
 
@@ -445,14 +461,55 @@
     <label class="checkline"><input id="s-weather-seasonal-effects" type="checkbox" checked onchange="previewAppearance()"> Add seasonal atmosphere</label>
     <div class="s-row"><label>Season</label><select id="s-weather-season-mode" onchange="previewAppearance()"><option value="auto" selected>Automatic — region + season</option><option value="off">Off</option><option value="spring">Spring</option><option value="summer">Summer</option><option value="fall">Fall / Autumn</option><option value="winter">Winter</option></select></div>
     <div class="s-row"><label>Overall seasonal intensity <span id="s-weather-seasonal-intensity-value" class="range-value">45%</span></label><input id="s-weather-seasonal-intensity" type="range" min="0" max="100" step="5" value="45" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Autumn leaves <span id="s-weather-leaves-intensity-value" class="range-value">100%</span></label><input id="s-weather-leaves-intensity" type="range" min="0" max="150" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Seasonal grass <span id="s-weather-grass-intensity-value" class="range-value">100%</span></label><input id="s-weather-grass-intensity" type="range" min="0" max="150" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-subhead">Autumn leaves</div>
+    <div class="s-row"><label>Leaf amount <span id="s-weather-leaves-intensity-value" class="range-value">100%</span></label><input id="s-weather-leaves-intensity" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Leaf size <span id="s-weather-leaves-size-value" class="range-value">100%</span></label><input id="s-weather-leaves-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Leaf fall speed <span id="s-weather-leaves-speed-value" class="range-value">100%</span></label><input id="s-weather-leaves-speed" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Leaf wind response <span id="s-weather-leaves-wind-value" class="range-value">100%</span></label><input id="s-weather-leaves-wind" type="range" min="0" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Leaf opacity <span id="s-weather-leaves-opacity-value" class="range-value">100%</span></label><input id="s-weather-leaves-opacity" type="range" min="10" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-subhead">Grass &amp; ground life</div>
+    <div class="s-row"><label>Grass amount <span id="s-weather-grass-intensity-value" class="range-value">100%</span></label><input id="s-weather-grass-intensity" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Grass height <span id="s-weather-grass-height-value" class="range-value">100%</span></label><input id="s-weather-grass-height" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Grass sway <span id="s-weather-grass-sway-value" class="range-value">100%</span></label><input id="s-weather-grass-sway" type="range" min="0" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Grass opacity <span id="s-weather-grass-opacity-value" class="range-value">100%</span></label><input id="s-weather-grass-opacity" type="range" min="10" max="160" step="5" value="100" oninput="previewAppearance()"></div>
     <label class="checkline"><input id="s-weather-season-petals" type="checkbox" checked onchange="previewAppearance()"> Spring petals</label>
-    <div class="s-row"><label>Petal intensity <span id="s-weather-petal-intensity-value" class="range-value">80%</span></label><input id="s-weather-petal-intensity" type="range" min="0" max="150" step="5" value="80" oninput="previewAppearance()"></div>
-    <label class="checkline"><input id="s-weather-season-bugs" type="checkbox" checked onchange="previewAppearance()"> Summer bugs / fireflies</label>
-    <div class="s-row"><label>Bug / firefly intensity <span id="s-weather-bug-intensity-value" class="range-value">70%</span></label><input id="s-weather-bug-intensity" type="range" min="0" max="150" step="5" value="70" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Petal amount <span id="s-weather-petal-intensity-value" class="range-value">80%</span></label><input id="s-weather-petal-intensity" type="range" min="0" max="180" step="5" value="80" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Petal size <span id="s-weather-petal-size-value" class="range-value">100%</span></label><input id="s-weather-petal-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Petal drift speed <span id="s-weather-petal-speed-value" class="range-value">100%</span></label><input id="s-weather-petal-speed" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Petal opacity <span id="s-weather-petal-opacity-value" class="range-value">100%</span></label><input id="s-weather-petal-opacity" type="range" min="10" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-subhead">Regional wildlife</div>
+    <div class="settings-note">Wildlife follows the saved weather location, season, daylight, temperature and current conditions. Rain, snow, storms and dense fog automatically quiet the scene.</div>
+    <label class="checkline"><input id="s-weather-season-bees" type="checkbox" checked onchange="previewAppearance()"> Daytime bees when region / season fits</label>
+    <div class="s-row"><label>Bee activity <span id="s-weather-bee-intensity-value" class="range-value">55%</span></label><input id="s-weather-bee-intensity" type="range" min="0" max="180" step="5" value="55" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Bee size <span id="s-weather-bee-size-value" class="range-value">100%</span></label><input id="s-weather-bee-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Bee flight speed <span id="s-weather-bee-speed-value" class="range-value">100%</span></label><input id="s-weather-bee-speed" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Bee opacity <span id="s-weather-bee-opacity-value" class="range-value">100%</span></label><input id="s-weather-bee-opacity" type="range" min="0" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <label class="checkline"><input id="s-weather-season-butterflies" type="checkbox" checked onchange="previewAppearance()"> Daytime butterflies when region / season fits</label>
+    <div class="s-row"><label>Butterfly activity <span id="s-weather-butterfly-intensity-value" class="range-value">50%</span></label><input id="s-weather-butterfly-intensity" type="range" min="0" max="180" step="5" value="50" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Butterfly size <span id="s-weather-butterfly-size-value" class="range-value">100%</span></label><input id="s-weather-butterfly-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Butterfly flight speed <span id="s-weather-butterfly-speed-value" class="range-value">100%</span></label><input id="s-weather-butterfly-speed" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Butterfly opacity <span id="s-weather-butterfly-opacity-value" class="range-value">100%</span></label><input id="s-weather-butterfly-opacity" type="range" min="0" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <label class="checkline"><input id="s-weather-season-fireflies" type="checkbox" checked onchange="previewAppearance()"> Evening / night fireflies in warm seasons</label>
+    <div class="s-row"><label>Firefly activity <span id="s-weather-firefly-intensity-value" class="range-value">70%</span></label><input id="s-weather-firefly-intensity" type="range" min="0" max="180" step="5" value="70" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Firefly size <span id="s-weather-firefly-size-value" class="range-value">100%</span></label><input id="s-weather-firefly-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Firefly drift speed <span id="s-weather-firefly-speed-value" class="range-value">100%</span></label><input id="s-weather-firefly-speed" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Firefly glow <span id="s-weather-firefly-glow-value" class="range-value">100%</span></label><input id="s-weather-firefly-glow" type="range" min="0" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Firefly opacity <span id="s-weather-firefly-opacity-value" class="range-value">100%</span></label><input id="s-weather-firefly-opacity" type="range" min="0" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <label class="checkline"><input id="s-weather-season-birds" type="checkbox" checked onchange="previewAppearance()"> Region / season-aware daytime birds</label>
+    <div class="s-row"><label>Bird activity <span id="s-weather-bird-intensity-value" class="range-value">55%</span></label><input id="s-weather-bird-intensity" type="range" min="0" max="180" step="5" value="55" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Bird size <span id="s-weather-bird-size-value" class="range-value">100%</span></label><input id="s-weather-bird-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Bird flight speed <span id="s-weather-bird-speed-value" class="range-value">100%</span></label><input id="s-weather-bird-speed" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Bird flock size <span id="s-weather-bird-flock-value" class="range-value">60%</span></label><input id="s-weather-bird-flock" type="range" min="0" max="180" step="5" value="60" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Bird opacity <span id="s-weather-bird-opacity-value" class="range-value">100%</span></label><input id="s-weather-bird-opacity" type="range" min="0" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Bird flight height <span id="s-weather-bird-height-value" class="range-value">100%</span></label><input id="s-weather-bird-height" type="range" min="35" max="180" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Winter crystal / cold-air accents <span id="s-weather-crystal-intensity-value" class="range-value">70%</span></label><input id="s-weather-crystal-intensity" type="range" min="0" max="180" step="5" value="70" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Crystal size <span id="s-weather-crystal-size-value" class="range-value">100%</span></label><input id="s-weather-crystal-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Crystal fall speed <span id="s-weather-crystal-speed-value" class="range-value">100%</span></label><input id="s-weather-crystal-speed" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Crystal opacity <span id="s-weather-crystal-opacity-value" class="range-value">100%</span></label><input id="s-weather-crystal-opacity" type="range" min="0" max="160" step="5" value="100" oninput="previewAppearance()"></div>
     <label class="checkline"><input id="s-weather-cold-frost" type="checkbox" checked onchange="previewAppearance()"> Extreme-cold edge frost</label>
     <div class="s-row"><label>Cold frost intensity <span id="s-weather-cold-frost-intensity-value" class="range-value">55%</span></label><input id="s-weather-cold-frost-intensity" type="range" min="0" max="150" step="5" value="55" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Frost edge width <span id="s-weather-cold-frost-width-value" class="range-value">100%</span></label><input id="s-weather-cold-frost-width" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Frost opacity <span id="s-weather-cold-frost-opacity-value" class="range-value">100%</span></label><input id="s-weather-cold-frost-opacity" type="range" min="0" max="160" step="5" value="100" oninput="previewAppearance()"></div>
    </div>
   </div>
 
@@ -461,11 +518,20 @@
    <div class="howto">Control ambient sky layers and storm details separately from precipitation.</div>
    <div class="settings-grid">
     <label class="checkline"><input id="s-weather-effect-clouds" type="checkbox" checked onchange="previewAppearance()"> Moving cloud layers</label>
+    <div class="s-row"><label>Cloud amount <span id="s-weather-cloud-density-value" class="range-value">100%</span></label><input id="s-weather-cloud-density" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Cloud opacity <span id="s-weather-cloud-opacity-value" class="range-value">100%</span></label><input id="s-weather-cloud-opacity" type="range" min="10" max="180" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Cloud movement speed <span id="s-weather-cloud-speed-value" class="range-value">100%</span></label><input id="s-weather-cloud-speed" type="range" min="20" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Cloud scale <span id="s-weather-cloud-scale-value" class="range-value">100%</span></label><input id="s-weather-cloud-scale" type="range" min="40" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <label class="checkline"><input id="s-weather-effect-sun" type="checkbox" checked onchange="previewAppearance()"> Sun glow and animated rays</label>
+    <div class="s-row"><label>Sun glow <span id="s-weather-sun-glow-value" class="range-value">100%</span></label><input id="s-weather-sun-glow" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Sun-ray movement <span id="s-weather-sun-ray-speed-value" class="range-value">100%</span></label><input id="s-weather-sun-ray-speed" type="range" min="20" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <label class="checkline"><input id="s-weather-effect-wind" type="checkbox" checked onchange="previewAppearance()"> Wind drift and directional movement</label>
     <label class="checkline"><input id="s-weather-effect-lightning" type="checkbox" checked onchange="previewAppearance()"> Realistic lightning bolts and sky flashes</label>
     <div class="s-row"><label>Lightning frequency</label><select id="s-weather-effect-lightning-frequency" onchange="previewAppearance()"><option value="rare">Rare</option><option value="normal" selected>Normal</option><option value="frequent">Frequent</option></select></div>
     <div class="s-row"><label>Lightning brightness <span id="s-weather-effect-lightning-brightness-value" class="range-value">65%</span></label><input id="s-weather-effect-lightning-brightness" type="range" min="20" max="100" step="5" value="65" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Bolt size <span id="s-weather-lightning-size-value" class="range-value">100%</span></label><input id="s-weather-lightning-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Sky flash strength <span id="s-weather-lightning-flash-value" class="range-value">100%</span></label><input id="s-weather-lightning-flash" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Bolt activity <span id="s-weather-lightning-bolts-value" class="range-value">100%</span></label><input id="s-weather-lightning-bolts" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <label class="checkline"><input id="s-weather-effect-reduced-motion" type="checkbox" checked onchange="previewAppearance()"> Respect reduced-motion preferences</label>
     <label class="checkline"><input id="s-weather-effect-pause-dimmed" type="checkbox" checked onchange="previewAppearance()"> Pause full-screen effects while OLED protection is dimming</label>
    </div>
@@ -732,7 +798,7 @@
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.6</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.7</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
