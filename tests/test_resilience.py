@@ -169,13 +169,13 @@ class ResilienceContractTests(unittest.TestCase):
 
     def test_system_health_reports_startup_integrity_state(self):
         server.atomic_write_json_file(server.STARTUP_INTEGRITY_PATH, {
-            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.9",
+            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.10",
             "coreFiles": 11, "pythonFiles": 3, "frontendVerified": True,
         })
         payload = server.system_health_payload()
         self.assertTrue(payload["startupIntegrity"]["ok"])
         self.assertTrue(payload["startupIntegrity"]["frontendVerified"])
-        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.9")
+        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.10")
 
     def test_stale_broker_returns_cached_data_while_refresh_runs(self):
         key = "resilience-stale-while-revalidate"
@@ -753,7 +753,8 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn('id="settings-search-results"', HTML)
         self.assertIn("function openSettingsSearchResult", navigation)
         self.assertIn("settingsSearchControlText", navigation)
-        self.assertIn("settings-weather-precipitation", navigation)
+        self.assertIn("settings-weather-rain", navigation)
+        self.assertIn("settings-naturescape-birds", navigation)
         self.assertIn('blocked_prefixes = ("docker", "br-", "veth", "virbr", "podman", "cni", "flannel")', server)
         self.assertIn('mdns = hostname + ".local"', server)
         self.assertIn("def remote_management_urls(token):", server)

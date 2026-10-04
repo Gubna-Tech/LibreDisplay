@@ -5,7 +5,7 @@ const noop = () => {};
 class DummyClassList { add(){} remove(){} toggle(){return false;} contains(){return false;} }
 function dummyElement(){
   const target = {
-    style:{setProperty:noop,removeProperty:noop}, classList:new DummyClassList(), dataset:{},
+    style:{setProperty(key,value){this[key]=String(value);},removeProperty(key){delete this[key];}}, classList:new DummyClassList(), dataset:{},
     children:[], childNodes:[], options:[], value:'', checked:false, textContent:'', innerHTML:'',
     hidden:false, disabled:false, files:[], offsetWidth:100, offsetHeight:100, clientWidth:100,
     clientHeight:100, scrollWidth:100, scrollHeight:100, offsetTop:0, offsetLeft:0,
@@ -207,6 +207,7 @@ try{
   const summerSource={...restartSource,...wildlifeSource,weatherFullscreenEffects:true,weatherEffectMode:'auto',weatherEffectSun:true,weatherEffectClouds:true,weatherEffectRespectReducedMotion:false};
   modules.weatherEffects.applyWeatherEffects({latitude:41.88,current:{weather_code:0,temperature_2m:27,relative_humidity_2m:60,is_day:1,time:'2026-07-04T14:00:00',cloud_cover:5,wind_speed_10m:5,wind_direction_10m:180}},summerSource);
   if(!overlayHost.children.some(child=>child.classList.contains('weather-fx-bee'))||!overlayHost.children.some(child=>child.classList.contains('weather-fx-butterfly'))||overlayHost.children.filter(child=>child.classList.contains('weather-fx-bird-temperate')).length<2||!overlayHost.children.some(child=>String(child.dataset?.species||'').length>0&&child.classList.contains('weather-fx-bird')))throw new Error('daytime regional summer wildlife did not render species-aware birds and butterflies');
+  const opacitySource={...summerSource,weatherSeasonBeeOpacity:25,weatherSeasonButterflyOpacity:35,weatherSeasonBirdOpacity:40};modules.weatherEffects.applyWeatherEffects({latitude:41.88,current:{weather_code:0,temperature_2m:27,relative_humidity_2m:60,is_day:1,time:'2026-07-04T14:00:00',cloud_cover:5,wind_speed_10m:5,wind_direction_10m:180}},opacitySource);const bee=overlayHost.children.find(child=>child.classList.contains('weather-fx-bee')),butterfly=overlayHost.children.find(child=>child.classList.contains('weather-fx-butterfly')),bird=overlayHost.children.find(child=>child.classList.contains('weather-fx-bird'));if(bee?.style?.['--season-opacity']!=='0.25'||butterfly?.style?.['--season-opacity']!=='0.35'||bird?.style?.['--season-opacity']!=='0.4')throw new Error('naturescape opacity controls did not reach rendered wildlife');
   modules.weatherEffects.applyWeatherEffects({latitude:41.88,current:{weather_code:0,temperature_2m:24,relative_humidity_2m:72,is_day:0,time:'2026-07-04T22:00:00',cloud_cover:5,wind_speed_10m:4,wind_direction_10m:180}},summerSource);
   if(!overlayHost.children.some(child=>child.classList.contains('weather-fx-firefly'))||overlayHost.children.some(child=>child.classList.contains('weather-fx-bee'))||!overlayHost.children.some(child=>child.classList.contains('weather-fx-bird-species-owl')))throw new Error('nighttime wildlife did not switch to fireflies plus nocturnal birds');
   const realDateNow=Date.now,healthParticle={getAnimations(){return [{currentTime:100}]}};let fakeNow=100000;Date.now=()=>fakeNow;

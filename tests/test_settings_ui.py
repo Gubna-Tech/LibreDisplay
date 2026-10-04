@@ -40,7 +40,7 @@ class SettingsUiTests(unittest.TestCase):
     def test_settings_navigation_is_task_oriented(self):
         tabs = re.findall(r'<button class="settings-tab-btn[^>]*data-tab="([^"]+)"', HTML)
         self.assertEqual(tabs, [
-            'overview', 'weather', 'calendars', 'backgrounds', 'look',
+            'overview', 'weather', 'naturescape', 'calendars', 'backgrounds', 'look',
             'layout', 'family', 'integrations', 'system'
         ])
         self.assertNotIn('data-settings-tab="content"', HTML)
@@ -49,6 +49,11 @@ class SettingsUiTests(unittest.TestCase):
             'settings-alerts': 'weather',
             'settings-weather-options': 'weather',
             'settings-weather-details': 'weather',
+            'settings-naturescape-overview': 'naturescape',
+            'settings-naturescape-flora': 'naturescape',
+            'settings-naturescape-insects': 'naturescape',
+            'settings-naturescape-birds': 'naturescape',
+            'settings-naturescape-winter': 'naturescape',
             'settings-calendars': 'calendars',
             'settings-backgrounds': 'backgrounds',
             'settings-background-style': 'backgrounds',
@@ -340,3 +345,62 @@ class SettingsUiTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def test_naturescape_has_its_own_settings_bucket_and_focused_sections():
+    dashboard = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+    navigation = (ROOT / "app" / "js" / "settings" / "navigation.js").read_text(encoding="utf-8")
+    assert 'data-tab="naturescape"' in dashboard
+    for section in (
+        "settings-naturescape-overview",
+        "settings-naturescape-flora",
+        "settings-naturescape-insects",
+        "settings-naturescape-birds",
+        "settings-naturescape-winter",
+    ):
+        assert f'id="{section}" data-settings-tab="naturescape"' in dashboard
+        assert section in navigation
+    assert "naturescape:'Naturescape'" in navigation
+    assert 'id="settings-weather-seasonal"' not in dashboard
+
+
+def test_weather_and_naturescape_tuning_controls_are_uniquely_wired():
+    import re
+    dashboard = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+    appearance = (ROOT / "app" / "js" / "appearance" / "weather.js").read_text(encoding="utf-8")
+    effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
+    pairs = re.findall(r"\['([^']+)','([^']+)'\]", appearance.split('const WEATHER_TUNING_FIELDS=',1)[1].split('];',1)[0])
+    assert len(pairs) >= 50
+    for control_id, key in pairs:
+        assert dashboard.count(f'id="{control_id}"') == 1, control_id
+        assert key in effects, key
+    checks = re.findall(r"\['([^']+)','([^']+)'\]", appearance.split('const WEATHER_TUNING_CHECKS=',1)[1].split('];',1)[0])
+    for control_id, key in checks:
+        assert dashboard.count(f'id="{control_id}"') == 1, control_id
+        assert key in effects, key
+
+
+def test_naturescape_opacity_controls_use_real_percentages_and_birds_apply_them():
+    import re
+    dashboard = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+    effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
+    css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
+    opacity_ids = (
+        "s-weather-leaves-opacity", "s-weather-grass-opacity", "s-weather-petal-opacity",
+        "s-weather-bee-opacity", "s-weather-butterfly-opacity", "s-weather-firefly-opacity",
+        "s-weather-bird-opacity", "s-weather-crystal-opacity", "s-weather-cold-frost-opacity",
+    )
+    for control_id in opacity_ids:
+        match = re.search(rf'id="{re.escape(control_id)}"[^>]*min="([^"]+)"[^>]*max="([^"]+)"', dashboard)
+        assert match, control_id
+        assert match.group(1) == "0", control_id
+        assert match.group(2) == "100", control_id
+    for key in (
+        "weatherSeasonLeavesOpacity", "weatherSeasonGrassOpacity", "weatherSeasonPetalOpacity",
+        "weatherSeasonBeeOpacity", "weatherSeasonButterflyOpacity", "weatherSeasonFireflyOpacity",
+        "weatherSeasonBirdOpacity", "weatherSeasonCrystalOpacity",
+    ):
+        assert f"source.{key},0,100,100" in effects
+    bird_rule = re.search(r"\.weather-fx-bird\{[^}]+\}", css)
+    assert bird_rule
+    assert "filter:opacity(var(--season-opacity,1))" in bird_rule.group(0)
