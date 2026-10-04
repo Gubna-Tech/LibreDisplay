@@ -101,6 +101,14 @@ if(typeof modules.settings.loadLocalAccounts!=='function')throw new Error('split
 if(typeof modules.performance.startManagedInterval!=='function')throw new Error('performance module did not load');
 if(typeof globalThis.frontendCapabilities!=='undefined')throw new Error('performance module leaked compatibility globals');
 if(typeof globalThis.retryDisplayHydration!=='undefined')throw new Error('lifecycle module leaked compatibility globals');
+if(typeof modules.appearance.screenCareQuietScheduleState!=='function')throw new Error('OLED quiet-hours schedule helper did not load');
+const quietLate=modules.appearance.screenCareQuietScheduleState({burnInQuietStart:'22:00',burnInQuietEnd:'07:00'},new Date(2026,0,1,23,0));
+const quietEarly=modules.appearance.screenCareQuietScheduleState({burnInQuietStart:'22:00',burnInQuietEnd:'07:00'},new Date(2026,0,2,6,0));
+const quietDay=modules.appearance.screenCareQuietScheduleState({burnInQuietStart:'22:00',burnInQuietEnd:'07:00'},new Date(2026,0,2,12,0));
+const quietDisabled=modules.appearance.screenCareQuietScheduleState({burnInQuietStart:'07:00',burnInQuietEnd:'07:00'},new Date(2026,0,2,7,0));
+if(!quietLate.active||quietLate.elapsedMs!==60*60*1000)throw new Error('OLED quiet-hours schedule failed late-evening boundary');
+if(!quietEarly.active||quietEarly.elapsedMs!==8*60*60*1000)throw new Error('OLED quiet-hours schedule failed overnight boundary');
+if(quietDay.active||quietDisabled.active)throw new Error('OLED quiet-hours schedule failed daytime/equal-time boundary');
 const bridge=LibreDisplayRuntime.describeBridge();
 if(bridge.length>270)throw new Error(`compatibility bridge regressed to ${bridge.length} globals`);
 const bridgeStateCount=bridge.filter(row=>row.kind==='state').length;

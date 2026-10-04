@@ -69,20 +69,29 @@ UPDATE_COMMITTED=0
 
 restore_previous_release() {
   set +e
-  for name in app scripts assets; do
+  for old in "$OLD_DIR/app" "$OLD_DIR/scripts" "$OLD_DIR/assets"; do
+    [ -e "$old" ] || continue
+    name=$(basename "$old")
     rm -rf "$INSTALL_DIR/$name"
-    [ -e "$OLD_DIR/$name" ] && mv "$OLD_DIR/$name" "$INSTALL_DIR/$name"
+    mv "$old" "$INSTALL_DIR/$name"
   done
   mkdir -p "$INSTALL_DIR/plugins"
-  for src in "$STAGE_DIR/plugins"/*; do
-    [ -e "$src" ] || continue
-    name=$(basename "$src")
+  for old in "$OLD_DIR/plugins"/*; do
+    [ -e "$old" ] || continue
+    name=$(basename "$old")
     rm -rf "$INSTALL_DIR/plugins/$name"
-    [ -e "$OLD_DIR/plugins/$name" ] && mv "$OLD_DIR/plugins/$name" "$INSTALL_DIR/plugins/$name"
+    mv "$old" "$INSTALL_DIR/plugins/$name"
   done
-  for file in Dockerfile LICENSE README.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
+  for marker in "$OLD_DIR/new-plugins"/*; do
+    [ -e "$marker" ] || continue
+    name=$(basename "$marker")
+    rm -rf "$INSTALL_DIR/plugins/$name"
+  done
+  for old in "$OLD_DIR/files"/*; do
+    [ -f "$old" ] || continue
+    file=$(basename "$old")
     rm -f "$INSTALL_DIR/$file"
-    [ -f "$OLD_DIR/files/$file" ] && mv "$OLD_DIR/files/$file" "$INSTALL_DIR/$file"
+    mv "$old" "$INSTALL_DIR/$file"
   done
   if [ -f "$OLD_DIR/installed-version" ]; then
     cp "$OLD_DIR/installed-version" "$DATA_DIR/.installed"
@@ -102,7 +111,7 @@ cleanup_update_swap() {
 }
 trap cleanup_update_swap EXIT HUP INT TERM
 
-mkdir -p "$STAGE_DIR/plugins" "$OLD_DIR/plugins" "$OLD_DIR/files"
+mkdir -p "$STAGE_DIR/plugins" "$OLD_DIR/plugins" "$OLD_DIR/new-plugins" "$OLD_DIR/files"
 cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/assets" "$STAGE_DIR/"
 for src in "$SRC_DIR/plugins"/*; do
   [ -e "$src" ] || continue
@@ -126,7 +135,11 @@ mkdir -p "$INSTALL_DIR/plugins"
 for src in "$STAGE_DIR/plugins"/*; do
   [ -e "$src" ] || continue
   name=$(basename "$src")
-  [ -e "$INSTALL_DIR/plugins/$name" ] && mv "$INSTALL_DIR/plugins/$name" "$OLD_DIR/plugins/$name"
+  if [ -e "$INSTALL_DIR/plugins/$name" ]; then
+    mv "$INSTALL_DIR/plugins/$name" "$OLD_DIR/plugins/$name"
+  else
+    : > "$OLD_DIR/new-plugins/$name"
+  fi
   mv "$src" "$INSTALL_DIR/plugins/$name"
 done
 

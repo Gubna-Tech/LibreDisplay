@@ -36,7 +36,7 @@ rm -rf ~/LibreDisplay-Setup && mkdir -p ~/LibreDisplay-Setup
 **4. Download LibreDisplay:**
 
 ```bash
-curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.6.2.zip -o /tmp/LibreDisplay.zip
+curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.6.3.zip -o /tmp/LibreDisplay.zip
 ```
 
 **5. Extract it:**
@@ -48,7 +48,7 @@ unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup
 **6. Open the extracted folder:**
 
 ```bash
-cd ~/LibreDisplay-Setup/LibreDisplay-1.6.2
+cd ~/LibreDisplay-Setup/LibreDisplay-1.6.3
 ```
 
 **7. Allow the installer to run:**
@@ -83,6 +83,7 @@ Most day-to-day setup happens from **Settings**:
 - **Family** — household members, chores, points, and rewards
 - **Integrations** — connect supported services and custom data sources
 - **Personalization** — themes, typography, accessibility, and layout
+- **OLED / always-on display care** — optional dimming, quiet-hours scheduling, deep protection, and pixel shifting for static-display wear reduction
 - **Layout** — choose a layout or use Arrange to move and resize dashboard blocks
 
 For local photo folders or NAS shares, use the included setup helpers:
@@ -167,7 +168,7 @@ Uninstall LibreDisplay while preserving a copy of local dashboard data:
 
 LibreDisplay is intended for a trusted home network or private VPN. Do **not** port-forward LibreDisplay directly to the public Internet.
 
-LibreDisplay does not require a LibreDisplay cloud account and does not include telemetry. External integrations only contact services you choose to configure.
+LibreDisplay does not require a LibreDisplay cloud account and does not send analytics or telemetry to LibreDisplay or third parties. External integrations only contact services you choose to configure.
 
 Each display can have its own read-only Display Link, and local accounts can be limited to specific displays.
 

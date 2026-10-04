@@ -1,5 +1,6 @@
 import importlib.util
 import re
+import subprocess
 import tempfile
 import unittest
 import zipfile
@@ -49,7 +50,7 @@ class ReleaseContractTests(unittest.TestCase):
             workspace = Path(td) / "repo"
             workspace.mkdir()
             for name in module.TOP_FILES:
-                (workspace / name).write_text("1.6.2\n" if name == "VERSION" else f"{name}\n", encoding="utf-8")
+                (workspace / name).write_text("1.6.3\n" if name == "VERSION" else f"{name}\n", encoding="utf-8")
             for dirname in module.TOP_DIRS:
                 (workspace / dirname).mkdir()
                 (workspace / dirname / "project.txt").write_text("project\n", encoding="utf-8")
@@ -62,7 +63,7 @@ class ReleaseContractTests(unittest.TestCase):
                 d.mkdir()
                 (d / "private.txt").write_text("secret\n", encoding="utf-8")
             (workspace / "private.ldbackup").write_text("secret\n", encoding="utf-8")
-            output = Path(td) / "LibreDisplay-v1.6.2.zip"
+            output = Path(td) / "LibreDisplay-v1.6.3.zip"
             old_root = module.ROOT
             try:
                 module.ROOT = workspace
@@ -71,7 +72,7 @@ class ReleaseContractTests(unittest.TestCase):
                 module.ROOT = old_root
             with zipfile.ZipFile(output) as archive:
                 names = set(archive.namelist())
-            prefix = "LibreDisplay-1.6.2/"
+            prefix = "LibreDisplay-1.6.3/"
             self.assertIn(prefix + "README.md", names)
             for dirname in module.TOP_DIRS:
                 self.assertIn(prefix + dirname + "/project.txt", names)
@@ -199,9 +200,63 @@ class ReleaseContractTests(unittest.TestCase):
         replace_start = update.index("Replacing application files")
         replace_end = update.index("$DATA_DIR/.installed", replace_start)
         replace_block = update[replace_start:replace_end]
+        self.assertIn('for old in "$OLD_DIR/files"/*', restore_block)
         for name in project_names:
-            self.assertIn(name, restore_block)
             self.assertIn(name, replace_block)
+
+    def test_native_partial_swap_rollback_restores_only_replaced_paths(self):
+        update = (ROOT / "update.sh").read_text(encoding="utf-8")
+        restore_block = update[update.index("restore_previous_release()") : update.index("cleanup_update_swap()")]
+        self.assertIn('for old in "$OLD_DIR/plugins"/*', restore_block)
+        self.assertIn('for marker in "$OLD_DIR/new-plugins"/*', restore_block)
+        self.assertNotIn('for src in "$STAGE_DIR/plugins"/*', restore_block)
+        with tempfile.TemporaryDirectory(prefix="libredisplay-partial-update-rollback-") as td:
+            base = Path(td)
+            install = base / "install"
+            old = base / "old"
+            data = install / "data"
+            for path in (install / "app", install / "scripts", install / "assets", install / "plugins", data, old / "app", old / "plugins" / "bundled", old / "new-plugins", old / "files"):
+                path.mkdir(parents=True, exist_ok=True)
+
+            (install / "app" / "new.txt").write_text("new app", encoding="utf-8")
+            (old / "app" / "old.txt").write_text("old app", encoding="utf-8")
+            (install / "scripts" / "keep.txt").write_text("old scripts", encoding="utf-8")
+            (install / "assets" / "keep.txt").write_text("old assets", encoding="utf-8")
+
+            (install / "plugins" / "bundled").mkdir(exist_ok=True)
+            (install / "plugins" / "bundled" / "plugin.py").write_text("new bundled", encoding="utf-8")
+            (old / "plugins" / "bundled" / "plugin.py").write_text("old bundled", encoding="utf-8")
+            (install / "plugins" / "untouched").mkdir()
+            (install / "plugins" / "untouched" / "plugin.py").write_text("old untouched", encoding="utf-8")
+            (install / "plugins" / "new-plugin").mkdir()
+            (install / "plugins" / "new-plugin" / "plugin.py").write_text("new plugin", encoding="utf-8")
+            (old / "new-plugins" / "new-plugin").write_text("", encoding="utf-8")
+            (install / "plugins" / "custom-local").mkdir()
+            (install / "plugins" / "custom-local" / "plugin.py").write_text("custom", encoding="utf-8")
+
+            (install / "README.md").write_text("new readme", encoding="utf-8")
+            (old / "files" / "README.md").write_text("old readme", encoding="utf-8")
+            (install / "VERSION").write_text("1.6.3\n", encoding="utf-8")
+            (old / "installed-version").write_text("1.6.1\n", encoding="utf-8")
+            (data / ".installed").write_text("1.6.3\n", encoding="utf-8")
+
+            result = subprocess.run(
+                ["sh", "-c", restore_block + "\nrestore_previous_release\n"],
+                env={"PATH": "/usr/bin:/bin", "INSTALL_DIR": str(install), "OLD_DIR": str(old), "DATA_DIR": str(data)},
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((install / "app" / "old.txt").read_text(), "old app")
+            self.assertFalse((install / "app" / "new.txt").exists())
+            self.assertEqual((install / "scripts" / "keep.txt").read_text(), "old scripts")
+            self.assertEqual((install / "assets" / "keep.txt").read_text(), "old assets")
+            self.assertEqual((install / "plugins" / "bundled" / "plugin.py").read_text(), "old bundled")
+            self.assertEqual((install / "plugins" / "untouched" / "plugin.py").read_text(), "old untouched")
+            self.assertFalse((install / "plugins" / "new-plugin").exists())
+            self.assertEqual((install / "plugins" / "custom-local" / "plugin.py").read_text(), "custom")
+            self.assertEqual((install / "README.md").read_text(), "old readme")
+            self.assertEqual((install / "VERSION").read_text(), "1.6.3\n")
+            self.assertEqual((data / ".installed").read_text(), "1.6.1\n")
 
     def test_release_tree_matches_v158_minimal_surface(self):
         expected = {"Dockerfile", "LICENSE", "README.md", "VERSION", "app", "assets", "docker-compose.yml", "install.sh", "plugins", "scripts", "tests", "uninstall.sh", "update.sh"}

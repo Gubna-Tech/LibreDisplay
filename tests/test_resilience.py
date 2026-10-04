@@ -24,18 +24,53 @@ spec.loader.exec_module(server)
 class ResilienceContractTests(unittest.TestCase):
     def test_screen_care_is_layout_safe_and_configurable(self):
         for marker in (
+            "burnInCareEnabled:false",
+            "burnInDimMode:'activity'",
+            "burnInQuietStart:'22:00'",
+            "burnInQuietEnd:'07:00'",
+            "burnInQuietWakeMin:5",
             "burnInProtection:false",
+            "burnInPixelShift:false",
             "burnInIdleMin:30",
             "burnInBrightnessPct:40",
+            "burnInDeepProtection:false",
+            "burnInDeepIdleMin:180",
+            "burnInDeepBrightnessPct:5",
+            "burnInShiftMode:'always'",
+            "burnInShiftMin:5",
+            "burnInShiftPx:2",
+            "burnInShiftTransitionSec:1.2",
             "function applyScreenCarePreferences",
             "function updateScreenCareState",
+            "function screenCareQuietScheduleState",
+            "function advanceScreenCareShift",
+            "screen-care-pixel-shift",
+            "SCREEN_CARE_SHIFT_STEPS",
+            "#screen-care-overlay{position:fixed;inset:0;z-index:299",
             "body.ld-burnin-dim #screen-care-overlay",
+            "body.ld-burnin-shift #app",
             "layoutEditorActive||remoteLayoutProxyActive||LAYOUT_PREVIEW_MODE",
+            "if(!screenCareDimmed&&source?.burnInShiftMode==='idle')resetScreenCareShift();",
         ):
             self.assertIn(marker, HTML)
+        self.assertIn('id="s-burnin-care-enabled"', HTML)
+        self.assertIn('id="s-burnin-dim-mode"', HTML)
+        self.assertIn('id="s-burnin-quiet-start" type="time"', HTML)
+        self.assertIn('id="s-burnin-quiet-end" type="time"', HTML)
+        self.assertIn('id="s-burnin-quiet-wake" type="range" min="1" max="30" step="1"', HTML)
         self.assertIn('id="s-burnin-protection"', HTML)
-        self.assertIn('id="s-burnin-idle"', HTML)
+        self.assertIn('id="s-burnin-pixel-shift"', HTML)
+        self.assertIn('id="s-burnin-deep-protection"', HTML)
+        self.assertIn('id="s-burnin-deep-idle"', HTML)
+        self.assertIn('id="s-burnin-deep-brightness"', HTML)
+        self.assertIn('id="s-burnin-shift-mode"', HTML)
+        self.assertIn('id="s-burnin-shift-transition"', HTML)
+        self.assertIn('id="s-burnin-idle" type="range" min="1" max="240" step="1"', HTML)
         self.assertIn('id="s-burnin-brightness"', HTML)
+        self.assertIn('id="s-burnin-shift-interval"', HTML)
+        self.assertIn('id="s-burnin-shift-distance" type="range" min="1" max="8" step="1"', HTML)
+        self.assertIn('id="s-burnin-shift-interval" type="range" min="0.5" max="30" step="0.5"', HTML)
+        self.assertIn("if(typeof cfg.burnInCareEnabled!=='boolean')cfg.burnInCareEnabled=!!(cfg.burnInProtection||cfg.burnInPixelShift);", HTML)
 
     def test_display_readiness_reports_without_mutating_layout(self):
         for marker in (
