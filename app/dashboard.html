@@ -79,6 +79,7 @@
     <div class="settings-tabs" role="tablist" aria-label="Settings categories">
      <button class="settings-tab-btn active" type="button" role="tab" aria-selected="true" data-tab="overview" onclick="switchSettingsTab('overview')"><span class="settings-nav-icon" aria-hidden="true">⌂</span><span class="settings-nav-copy"><b>Home</b><small>Status, displays &amp; shortcuts</small></span></button>
      <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="weather" onclick="switchSettingsTab('weather')"><span class="settings-nav-icon" aria-hidden="true">☁</span><span class="settings-nav-copy"><b>Weather</b><small>Location, forecast &amp; alerts</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="naturescape" onclick="switchSettingsTab('naturescape')"><span class="settings-nav-icon" aria-hidden="true">✿</span><span class="settings-nav-copy"><b>Naturescape</b><small>Seasons, wildlife &amp; living scenery</small></span></button>
      <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="calendars" onclick="switchSettingsTab('calendars')"><span class="settings-nav-icon" aria-hidden="true">▦</span><span class="settings-nav-copy"><b>Calendars</b><small>Feeds, events &amp; display rules</small></span></button>
      <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="backgrounds" onclick="switchSettingsTab('backgrounds')"><span class="settings-nav-icon" aria-hidden="true">▧</span><span class="settings-nav-copy"><b>Backgrounds</b><small>Photos, folders &amp; slideshow</small></span></button>
      <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="look" onclick="switchSettingsTab('look')"><span class="settings-nav-icon" aria-hidden="true">◐</span><span class="settings-nav-copy"><b>Personalization</b><small>Themes, text &amp; accessibility</small></span></button>
@@ -133,6 +134,7 @@
    <div class="quick-edit-grid">
     <button class="quick-edit-card" type="button" onclick="launchLayoutEditorFromSettings()"><b>Arrange dashboard</b><span>Drag, resize, add, duplicate, configure, and use keyboard shortcuts for fast edits.</span></button>
     <button class="quick-edit-card" type="button" onclick="switchSettingsTab('weather')"><b>Weather</b><span>Location, forecast preferences, details, and severe-weather alerts.</span></button>
+    <button class="quick-edit-card" type="button" onclick="switchSettingsTab('naturescape')"><b>Naturescape</b><span>Seasonal scenery, birds, butterflies, insects, leaves, grass, frost, and regional ambience.</span></button>
     <button class="quick-edit-card" type="button" onclick="switchSettingsTab('calendars')"><b>Calendars</b><span>Calendar feeds, event display rules, refresh timing, and legend behavior.</span></button>
     <button class="quick-edit-card" type="button" onclick="switchSettingsTab('backgrounds')"><b>Backgrounds</b><span>Photos, stock images, local folders, rotation, and slideshow presentation.</span></button>
     <button class="quick-edit-card" type="button" onclick="switchSettingsTab('look')"><b>Personalization</b><span>Themes, typography, accessibility, and the Settings button.</span></button>
@@ -163,7 +165,7 @@
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.9</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.10</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -405,6 +407,7 @@
     <label class="checkline"><input id="s-weather-animations" type="checkbox" onchange="weatherAnimationControlChanged(this)"> Enable weather animations</label>
     <label class="checkline"><input id="s-weather-widget-animations" type="checkbox" checked onchange="weatherAnimationControlChanged(this)"> Animate weather icons and forecast areas</label>
     <label class="checkline"><input id="s-weather-fullscreen-effects" type="checkbox" onchange="weatherAnimationControlChanged(this)"> Full-screen weather atmosphere <button class="help-tip" type="button" aria-label="Full-screen weather effects help" data-help="The full-screen atmosphere is authoritative when enabled and renders behind dashboard content. Use the Weather Effect Lab to tune it before real weather arrives.">?</button></label>
+    <label class="checkline"><input id="s-weather-effect-precipitation" type="checkbox" checked onchange="previewAppearance()"> Enable rain and snow particles</label>
     <div class="utility-actions weather-effect-presets"><button class="btn-util" type="button" onclick="applyWeatherEffectPreset('subtle')">Subtle</button><button class="btn-util" type="button" onclick="applyWeatherEffectPreset('balanced')">Balanced</button><button class="btn-util" type="button" onclick="applyWeatherEffectPreset('immersive')">Immersive</button><button class="btn-util" type="button" onclick="previewCurrentWeatherOverlay()">Show current overlay</button></div>
     <div class="s-subhead">Weather Effect Lab</div>
     <label class="checkline"><input id="s-weather-effect-test-mode" type="checkbox" onchange="handleWeatherEffectTestModeChange(this)"> Test mode — force a weather type <button class="help-tip" type="button" aria-label="Weather effect test mode help" data-help="Preview simulated weather while tuning controls. Test weather is temporary and is never saved as forecast data.">?</button></label>
@@ -421,99 +424,135 @@
    </div>
   </div>
 
-  <div class="s-section" id="settings-weather-precipitation" data-settings-tab="weather">
-   <h3>Rain, snow &amp; fog</h3>
-   <div class="howto">Tune each weather family independently. Use the Weather Effect Lab above to see changes immediately.</div>
+  <div class="s-section" id="settings-weather-rain" data-settings-tab="weather">
+   <h3>Rain</h3>
+   <div class="howto">Tune rainfall independently. Use Weather Effect Lab to preview light rain, normal rain, or heavy rain while adjusting these controls.</div>
    <div class="settings-grid">
-    <label class="checkline"><input id="s-weather-effect-precipitation" type="checkbox" checked onchange="previewAppearance()"> Rain and snow precipitation</label>
-    <div class="s-subhead">Rain</div>
     <div class="s-row"><label>Rain density <span id="s-weather-rain-density-value" class="range-value">100%</span></label><input id="s-weather-rain-density" type="range" min="0" max="150" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Drop length <span id="s-weather-rain-size-value" class="range-value">100%</span></label><input id="s-weather-rain-size" type="range" min="30" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Drop width <span id="s-weather-rain-width-value" class="range-value">100%</span></label><input id="s-weather-rain-width" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Rain fall speed <span id="s-weather-rain-speed-value" class="range-value">100%</span></label><input id="s-weather-rain-speed" type="range" min="35" max="200" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Drop opacity <span id="s-weather-rain-opacity-value" class="range-value">100%</span></label><input id="s-weather-rain-opacity" type="range" min="10" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Drop opacity <span id="s-weather-rain-opacity-value" class="range-value">100%</span></label><input id="s-weather-rain-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Wind angle <span id="s-weather-rain-angle-value" class="range-value">100%</span></label><input id="s-weather-rain-angle" type="range" min="0" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Near / far depth variation <span id="s-weather-rain-depth-value" class="range-value">100%</span></label><input id="s-weather-rain-depth" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Surface splash amount <span id="s-weather-rain-splash-value" class="range-value">70%</span></label><input id="s-weather-rain-splash" type="range" min="0" max="180" step="5" value="70" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Splash size <span id="s-weather-rain-splash-size-value" class="range-value">100%</span></label><input id="s-weather-rain-splash-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Wet-streak glow <span id="s-weather-rain-glow-value" class="range-value">100%</span></label><input id="s-weather-rain-glow" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-subhead">Snow</div>
+   </div>
+  </div>
+
+  <div class="s-section" id="settings-weather-snow" data-settings-tab="weather">
+   <h3>Snow</h3>
+   <div class="howto">Tune snow density, flake appearance, drift, and depth without changing rain or fog.</div>
+   <div class="settings-grid">
     <div class="s-row"><label>Snow density <span id="s-weather-snow-density-value" class="range-value">100%</span></label><input id="s-weather-snow-density" type="range" min="0" max="150" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Flake size <span id="s-weather-snow-size-value" class="range-value">100%</span></label><input id="s-weather-snow-size" type="range" min="40" max="150" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Snow drift <span id="s-weather-snow-drift-value" class="range-value">100%</span></label><input id="s-weather-snow-drift" type="range" min="0" max="150" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Snow fall speed <span id="s-weather-snow-speed-value" class="range-value">100%</span></label><input id="s-weather-snow-speed" type="range" min="30" max="180" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Flake opacity <span id="s-weather-snow-opacity-value" class="range-value">100%</span></label><input id="s-weather-snow-opacity" type="range" min="10" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Flake opacity <span id="s-weather-snow-opacity-value" class="range-value">100%</span></label><input id="s-weather-snow-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Flake spin <span id="s-weather-snow-spin-value" class="range-value">100%</span></label><input id="s-weather-snow-spin" type="range" min="0" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Snow depth variation <span id="s-weather-snow-depth-value" class="range-value">100%</span></label><input id="s-weather-snow-depth" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-subhead">Fog &amp; mist</div>
+   </div>
+  </div>
+
+  <div class="s-section" id="settings-weather-fog" data-settings-tab="weather">
+   <h3>Fog &amp; mist</h3>
+   <div class="howto">Control fog visibility, softness, speed, and vertical coverage separately from precipitation.</div>
+   <div class="settings-grid">
     <label class="checkline"><input id="s-weather-effect-fog" type="checkbox" checked onchange="previewAppearance()"> Fog and mist layers</label>
     <div class="s-row"><label>Fog density <span id="s-weather-fog-density-value" class="range-value">115%</span></label><input id="s-weather-fog-density" type="range" min="0" max="180" step="5" value="115" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Fog movement <span id="s-weather-fog-speed-value" class="range-value">80%</span></label><input id="s-weather-fog-speed" type="range" min="20" max="150" step="5" value="80" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Fog opacity <span id="s-weather-fog-opacity-value" class="range-value">100%</span></label><input id="s-weather-fog-opacity" type="range" min="10" max="180" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Fog opacity <span id="s-weather-fog-opacity-value" class="range-value">100%</span></label><input id="s-weather-fog-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Mist softness / blur <span id="s-weather-fog-blur-value" class="range-value">100%</span></label><input id="s-weather-fog-blur" type="range" min="20" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Fog band height <span id="s-weather-fog-layer-height-value" class="range-value">100%</span></label><input id="s-weather-fog-layer-height" type="range" min="40" max="200" step="5" value="100" oninput="previewAppearance()"></div>
    </div>
   </div>
 
-  <div class="s-section" id="settings-weather-seasonal" data-settings-tab="weather">
-   <h3>Seasonal atmosphere</h3>
-   <div class="howto">Automatic mode uses the weather location, hemisphere, climate band, local month, and temperature so seasonal details remain region-appropriate.</div>
+  <div class="s-section" id="settings-naturescape-overview" data-settings-tab="naturescape">
+   <h3>Naturescape behavior</h3>
+   <div class="howto">Naturescape adds living, seasonal scenery around the weather overlay. Automatic mode uses the saved weather location, hemisphere, climate band, local month, daylight, temperature, and current conditions.</div>
    <div class="settings-grid">
     <label class="checkline"><input id="s-weather-seasonal-effects" type="checkbox" checked onchange="previewAppearance()"> Add seasonal atmosphere</label>
     <div class="s-row"><label>Season</label><select id="s-weather-season-mode" onchange="previewAppearance()"><option value="auto" selected>Automatic — region + season</option><option value="off">Off</option><option value="spring">Spring</option><option value="summer">Summer</option><option value="fall">Fall / Autumn</option><option value="winter">Winter</option></select></div>
     <div class="s-row"><label>Overall seasonal intensity <span id="s-weather-seasonal-intensity-value" class="range-value">45%</span></label><input id="s-weather-seasonal-intensity" type="range" min="0" max="100" step="5" value="45" oninput="previewAppearance()"></div>
-    <div class="s-subhead">Autumn leaves</div>
+   </div>
+  </div>
+
+  <div class="s-section" id="settings-naturescape-flora" data-settings-tab="naturescape">
+   <h3>Leaves, grass &amp; petals</h3>
+   <div class="howto">Tune non-animal seasonal scenery. Each layer keeps its own amount, scale, movement, and visibility controls.</div>
+   <div class="settings-grid">
     <div class="s-row"><label>Leaf amount <span id="s-weather-leaves-intensity-value" class="range-value">100%</span></label><input id="s-weather-leaves-intensity" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Leaf size <span id="s-weather-leaves-size-value" class="range-value">100%</span></label><input id="s-weather-leaves-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Leaf fall speed <span id="s-weather-leaves-speed-value" class="range-value">100%</span></label><input id="s-weather-leaves-speed" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Leaf wind response <span id="s-weather-leaves-wind-value" class="range-value">100%</span></label><input id="s-weather-leaves-wind" type="range" min="0" max="200" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Leaf opacity <span id="s-weather-leaves-opacity-value" class="range-value">100%</span></label><input id="s-weather-leaves-opacity" type="range" min="10" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Leaf opacity <span id="s-weather-leaves-opacity-value" class="range-value">100%</span></label><input id="s-weather-leaves-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-subhead">Grass &amp; ground life</div>
     <div class="s-row"><label>Grass amount <span id="s-weather-grass-intensity-value" class="range-value">100%</span></label><input id="s-weather-grass-intensity" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Grass height <span id="s-weather-grass-height-value" class="range-value">100%</span></label><input id="s-weather-grass-height" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Grass sway <span id="s-weather-grass-sway-value" class="range-value">100%</span></label><input id="s-weather-grass-sway" type="range" min="0" max="200" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Grass opacity <span id="s-weather-grass-opacity-value" class="range-value">100%</span></label><input id="s-weather-grass-opacity" type="range" min="10" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Grass opacity <span id="s-weather-grass-opacity-value" class="range-value">100%</span></label><input id="s-weather-grass-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
     <label class="checkline"><input id="s-weather-season-petals" type="checkbox" checked onchange="previewAppearance()"> Spring petals</label>
     <div class="s-row"><label>Petal amount <span id="s-weather-petal-intensity-value" class="range-value">80%</span></label><input id="s-weather-petal-intensity" type="range" min="0" max="180" step="5" value="80" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Petal size <span id="s-weather-petal-size-value" class="range-value">100%</span></label><input id="s-weather-petal-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Petal drift speed <span id="s-weather-petal-speed-value" class="range-value">100%</span></label><input id="s-weather-petal-speed" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Petal opacity <span id="s-weather-petal-opacity-value" class="range-value">100%</span></label><input id="s-weather-petal-opacity" type="range" min="10" max="160" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-subhead">Regional wildlife</div>
+    <div class="s-row"><label>Petal opacity <span id="s-weather-petal-opacity-value" class="range-value">100%</span></label><input id="s-weather-petal-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
+   </div>
+  </div>
+
+  <div class="s-section" id="settings-naturescape-insects" data-settings-tab="naturescape">
+   <h3>Bees, butterflies &amp; fireflies</h3>
+   <div class="howto">Day and night insects follow season, region, weather, and daylight. Amount, size, speed, visibility, glow, and butterfly diversity remain independently adjustable.</div>
+   <div class="settings-grid">
     <div class="settings-note">Wildlife follows the saved weather location, season, daylight, temperature and current conditions. Rain, snow, storms and dense fog automatically quiet the scene.</div>
     <label class="checkline"><input id="s-weather-season-bees" type="checkbox" checked onchange="previewAppearance()"> Daytime bees when region / season fits</label>
     <div class="s-row"><label>Bee activity <span id="s-weather-bee-intensity-value" class="range-value">55%</span></label><input id="s-weather-bee-intensity" type="range" min="0" max="180" step="5" value="55" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Bee size <span id="s-weather-bee-size-value" class="range-value">100%</span></label><input id="s-weather-bee-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Bee flight speed <span id="s-weather-bee-speed-value" class="range-value">100%</span></label><input id="s-weather-bee-speed" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Bee opacity <span id="s-weather-bee-opacity-value" class="range-value">100%</span></label><input id="s-weather-bee-opacity" type="range" min="0" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Bee opacity <span id="s-weather-bee-opacity-value" class="range-value">100%</span></label><input id="s-weather-bee-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
     <label class="checkline"><input id="s-weather-season-butterflies" type="checkbox" checked onchange="previewAppearance()"> Daytime butterflies when region / season fits</label>
     <div class="s-row"><label>Butterfly activity <span id="s-weather-butterfly-intensity-value" class="range-value">50%</span></label><input id="s-weather-butterfly-intensity" type="range" min="0" max="180" step="5" value="50" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Butterfly size <span id="s-weather-butterfly-size-value" class="range-value">100%</span></label><input id="s-weather-butterfly-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Butterfly flight speed <span id="s-weather-butterfly-speed-value" class="range-value">100%</span></label><input id="s-weather-butterfly-speed" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Butterfly opacity <span id="s-weather-butterfly-opacity-value" class="range-value">100%</span></label><input id="s-weather-butterfly-opacity" type="range" min="0" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Butterfly opacity <span id="s-weather-butterfly-opacity-value" class="range-value">100%</span></label><input id="s-weather-butterfly-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Butterfly species diversity <span id="s-weather-butterfly-diversity-value" class="range-value">75%</span></label><input id="s-weather-butterfly-diversity" type="range" min="0" max="100" step="5" value="75" oninput="previewAppearance()"><div class="settings-note">Lower values favor familiar/common regional species; higher values mix in more locally plausible color and wing-pattern variants.</div></div>
     <label class="checkline"><input id="s-weather-season-fireflies" type="checkbox" checked onchange="previewAppearance()"> Evening / night fireflies in warm seasons</label>
     <div class="s-row"><label>Firefly activity <span id="s-weather-firefly-intensity-value" class="range-value">70%</span></label><input id="s-weather-firefly-intensity" type="range" min="0" max="180" step="5" value="70" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Firefly size <span id="s-weather-firefly-size-value" class="range-value">100%</span></label><input id="s-weather-firefly-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Firefly drift speed <span id="s-weather-firefly-speed-value" class="range-value">100%</span></label><input id="s-weather-firefly-speed" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Firefly glow <span id="s-weather-firefly-glow-value" class="range-value">100%</span></label><input id="s-weather-firefly-glow" type="range" min="0" max="200" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Firefly opacity <span id="s-weather-firefly-opacity-value" class="range-value">100%</span></label><input id="s-weather-firefly-opacity" type="range" min="0" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Firefly opacity <span id="s-weather-firefly-opacity-value" class="range-value">100%</span></label><input id="s-weather-firefly-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
+   </div>
+  </div>
+
+  <div class="s-section" id="settings-naturescape-birds" data-settings-tab="naturescape">
+   <h3>Birds &amp; regional wildlife</h3>
+   <div class="howto">Bird species and flight style follow the saved location, season, daylight, and weather. Tune the population, size, speed, flocking, visibility, flight height, species diversity, and rare/large-bird frequency here.</div>
+   <div class="settings-grid">
     <label class="checkline"><input id="s-weather-season-birds" type="checkbox" checked onchange="previewAppearance()"> Region / season-aware daytime birds</label>
     <div class="s-row"><label>Bird activity <span id="s-weather-bird-intensity-value" class="range-value">55%</span></label><input id="s-weather-bird-intensity" type="range" min="0" max="180" step="5" value="55" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Bird size <span id="s-weather-bird-size-value" class="range-value">100%</span></label><input id="s-weather-bird-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Bird flight speed <span id="s-weather-bird-speed-value" class="range-value">100%</span></label><input id="s-weather-bird-speed" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Bird flock size <span id="s-weather-bird-flock-value" class="range-value">60%</span></label><input id="s-weather-bird-flock" type="range" min="0" max="180" step="5" value="60" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Bird opacity <span id="s-weather-bird-opacity-value" class="range-value">100%</span></label><input id="s-weather-bird-opacity" type="range" min="0" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Bird opacity <span id="s-weather-bird-opacity-value" class="range-value">100%</span></label><input id="s-weather-bird-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Bird flight height <span id="s-weather-bird-height-value" class="range-value">100%</span></label><input id="s-weather-bird-height" type="range" min="35" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Bird species diversity <span id="s-weather-bird-diversity-value" class="range-value">72%</span></label><input id="s-weather-bird-diversity" type="range" min="0" max="100" step="5" value="72" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Rare / large bird frequency <span id="s-weather-bird-rare-value" class="range-value">30%</span></label><input id="s-weather-bird-rare" type="range" min="0" max="100" step="5" value="30" oninput="previewAppearance()"><div class="settings-note">Controls how often raptors and larger waders appear. They remain uncommon by design for a more natural scene.</div></div>
+   </div>
+  </div>
+
+  <div class="s-section" id="settings-naturescape-winter" data-settings-tab="naturescape">
+   <h3>Winter atmosphere</h3>
+   <div class="howto">Cold-air crystals and screen-edge frost are separate from snowfall and only appear when seasonal/location logic makes them appropriate.</div>
+   <div class="settings-grid">
     <div class="s-row"><label>Winter crystal / cold-air accents <span id="s-weather-crystal-intensity-value" class="range-value">70%</span></label><input id="s-weather-crystal-intensity" type="range" min="0" max="180" step="5" value="70" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Crystal size <span id="s-weather-crystal-size-value" class="range-value">100%</span></label><input id="s-weather-crystal-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Crystal fall speed <span id="s-weather-crystal-speed-value" class="range-value">100%</span></label><input id="s-weather-crystal-speed" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Crystal opacity <span id="s-weather-crystal-opacity-value" class="range-value">100%</span></label><input id="s-weather-crystal-opacity" type="range" min="0" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Crystal opacity <span id="s-weather-crystal-opacity-value" class="range-value">100%</span></label><input id="s-weather-crystal-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
     <label class="checkline"><input id="s-weather-cold-frost" type="checkbox" checked onchange="previewAppearance()"> Extreme-cold edge frost</label>
     <div class="s-row"><label>Cold frost intensity <span id="s-weather-cold-frost-intensity-value" class="range-value">55%</span></label><input id="s-weather-cold-frost-intensity" type="range" min="0" max="150" step="5" value="55" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Frost edge width <span id="s-weather-cold-frost-width-value" class="range-value">100%</span></label><input id="s-weather-cold-frost-width" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Frost opacity <span id="s-weather-cold-frost-opacity-value" class="range-value">100%</span></label><input id="s-weather-cold-frost-opacity" type="range" min="0" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Frost opacity <span id="s-weather-cold-frost-opacity-value" class="range-value">100%</span></label><input id="s-weather-cold-frost-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
    </div>
   </div>
 
@@ -523,7 +562,7 @@
    <div class="settings-grid">
     <label class="checkline"><input id="s-weather-effect-clouds" type="checkbox" checked onchange="previewAppearance()"> Moving cloud layers</label>
     <div class="s-row"><label>Cloud amount <span id="s-weather-cloud-density-value" class="range-value">100%</span></label><input id="s-weather-cloud-density" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
-    <div class="s-row"><label>Cloud opacity <span id="s-weather-cloud-opacity-value" class="range-value">100%</span></label><input id="s-weather-cloud-opacity" type="range" min="10" max="180" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Cloud opacity <span id="s-weather-cloud-opacity-value" class="range-value">100%</span></label><input id="s-weather-cloud-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Cloud movement speed <span id="s-weather-cloud-speed-value" class="range-value">100%</span></label><input id="s-weather-cloud-speed" type="range" min="20" max="200" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Cloud scale <span id="s-weather-cloud-scale-value" class="range-value">100%</span></label><input id="s-weather-cloud-scale" type="range" min="40" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <label class="checkline"><input id="s-weather-effect-sun" type="checkbox" checked onchange="previewAppearance()"> Sun glow and animated rays</label>
@@ -802,7 +841,7 @@
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.9</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.10</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>

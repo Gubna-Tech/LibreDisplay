@@ -1,10 +1,11 @@
 // Settings tabs, section metadata, help registry, search, and navigation.
 const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 
-const SETTINGS_TABS=['overview','weather','calendars','backgrounds','look','layout','family','integrations','system'];
+const SETTINGS_TABS=['overview','weather','naturescape','calendars','backgrounds','look','layout','family','integrations','system'];
 const SETTINGS_TAB_TITLES={
   overview:'Home',
   weather:'Weather',
+  naturescape:'Naturescape',
   calendars:'Calendars',
   backgrounds:'Backgrounds',
   look:'Personalization',
@@ -15,7 +16,8 @@ const SETTINGS_TAB_TITLES={
 };
 const SETTINGS_TAB_HINTS={
   overview:'Dashboard status, displays, common actions, and a quick path to the settings you use most.',
-  weather:'Weather location, forecast behavior, Weather Details, and severe-weather alerts.',
+  weather:'Weather location, forecast behavior, precipitation, atmosphere, storms, Weather Details, and severe-weather alerts.',
+  naturescape:'Season-aware living scenery, regional wildlife, birds, butterflies, insects, leaves, grass, petals, crystals, and frost.',
   calendars:'Calendar feeds, imported files, event presentation, refresh timing, and display rules.',
   backgrounds:'Photo sources, local or NAS folders, slideshow rotation, and background presentation.',
   look:'Themes, typography, accessibility, templates, and the Settings-button experience.',
@@ -52,8 +54,14 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-backgrounds':'Picture sources, Google Photos, local/NAS folders, rotation and order.',
   'settings-weather-options':'Temperature units and weather refresh timing.',
   'settings-weather-motion':'Enable and preview the full-screen atmosphere, choose presets, and tune global weather behavior.',
-  'settings-weather-precipitation':'Tune rain, snow, surface splashes, fog density, and fog movement independently.',
-  'settings-weather-seasonal':'Tune location-aware leaves, grass, petals, insects, butterflies, fireflies, regional bird species, and extreme-cold frost.',
+  'settings-weather-rain':'Tune rainfall density, drop geometry, speed, angle, depth, splashes, visibility, and glow.',
+  'settings-weather-snow':'Tune snowfall density, flake size, drift, speed, visibility, spin, and depth.',
+  'settings-weather-fog':'Tune fog and mist density, movement, visibility, blur, and vertical coverage.',
+  'settings-naturescape-overview':'Choose automatic or manual season behavior and the overall Naturescape intensity.',
+  'settings-naturescape-flora':'Tune leaves, grass, petals, their movement, size, amount, and visibility.',
+  'settings-naturescape-insects':'Tune bees, butterflies, fireflies, daylight behavior, glow, diversity, movement, and visibility.',
+  'settings-naturescape-birds':'Tune regional birds, flocking, size, flight, visibility, height, species diversity, and rare/large species.',
+  'settings-naturescape-winter':'Tune winter crystals and extreme-cold edge frost independently from snowfall.',
   'settings-weather-sky':'Tune clouds, sun, wind, lightning realism, reduced motion, and OLED dimming behavior.',
   'settings-weather-details':'Choose, enable and reorder Weather Details metrics.',
   'settings-background-style':'Power-user controls for how backgrounds are rendered.',
@@ -358,8 +366,14 @@ const SETTINGS_SEARCH_ALIASES={
   'settings-calendars':'calendar calendars calander agenda events ics google proton outlook icloud',
   'settings-alerts':'alerts warning warnings severe weather test preview rotate rotation scroll scrolling motion',
   'settings-weather-motion':'weather animation animations preview test lab immersive fullscreen overlay motion effects',
-  'settings-weather-precipitation':'weather rain snow drizzle precipitation drops flakes splash splashes fog mist density drift',
-  'settings-weather-seasonal':'weather season seasonal spring summer fall autumn winter leaves grass petals bugs bees butterflies fireflies birds species sparrow cardinal blue jay finch owl hawk eagle crane egret wildlife frost cold ice',
+  'settings-weather-rain':'weather rain drizzle precipitation drops splash splashes density wet streaks',
+  'settings-weather-snow':'weather snow flakes snowfall drift spin density winter',
+  'settings-weather-fog':'weather fog mist haze density opacity blur layer visibility',
+  'settings-naturescape-overview':'naturescape nature season seasonal spring summer fall autumn winter region hemisphere climate living scenery',
+  'settings-naturescape-flora':'naturescape nature leaves leaf grass petals plants flora autumn spring summer opacity visibility sway wind',
+  'settings-naturescape-insects':'naturescape wildlife bugs insects bees butterflies butterfly fireflies firefly species glow day night opacity visibility',
+  'settings-naturescape-birds':'naturescape wildlife birds bird species sparrow cardinal blue jay finch owl hawk eagle crane egret flock flight opacity visibility rare large',
+  'settings-naturescape-winter':'naturescape winter crystal crystals frost cold ice edge opacity visibility',
   'settings-weather-sky':'weather sky clouds sun wind storm thunder lightning bolt flash reduced motion oled dimming',
   'settings-backgrounds':'background backgrounds picture pictures photo photos images slideshow google album nas media folder startup loading performance',
   'settings-accessibility':'accessibility readable readability larger large text contrast focus keyboard motion language settings size eyesight vision',

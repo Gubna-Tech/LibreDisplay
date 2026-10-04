@@ -247,7 +247,7 @@
     "module": "settings",
     "part": "navigation",
     "path": "/js/settings/navigation.js",
-    "lines": 433,
+    "lines": 447,
     "functions": 22,
     "bindings": 9
   },
