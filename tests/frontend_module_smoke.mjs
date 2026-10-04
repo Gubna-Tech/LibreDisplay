@@ -108,6 +108,19 @@ const weatherKeyB=modules.weather.weatherLocationKey({lat:39.739236,lon:-104.990
 if(!weatherKeyA||weatherKeyA===weatherKeyB)throw new Error('weather location fingerprint did not distinguish saved locations');
 if(!modules.weather.weatherPayloadMatchesRequest({latitude:41.9,longitude:-87.65},{lat:41.881832,lon:-87.623177})||modules.weather.weatherPayloadMatchesRequest({latitude:39.74,longitude:-104.99},{lat:41.881832,lon:-87.623177}))throw new Error('weather response location guard failed');
 if(typeof modules.weatherEffects?.weatherGlyphEnabled!=='function')throw new Error('weather effects module did not load');
+const northFall=modules.weatherEffects.weatherSeasonForData({latitude:41.88,current:{time:'2026-10-04T12:00:00'}},{weatherSeasonalEffects:true,weatherSeasonMode:'auto'});
+const southSpring=modules.weatherEffects.weatherSeasonForData({latitude:-33.86,current:{time:'2026-10-04T12:00:00'}},{weatherSeasonalEffects:true,weatherSeasonMode:'auto'});
+const usSummer=modules.weatherEffects.weatherSeasonForData({latitude:41.88,current:{time:'2026-07-04T12:00:00'}},{weatherSeasonalEffects:true,weatherSeasonMode:'auto'});
+const ausWinter=modules.weatherEffects.weatherSeasonForData({latitude:-33.86,current:{time:'2026-07-04T12:00:00'}},{weatherSeasonalEffects:true,weatherSeasonMode:'auto'});
+if(northFall!=='fall'||southSpring!=='spring'||usSummer!=='summer'||ausWinter!=='winter')throw new Error('automatic hemisphere-aware weather season detection failed');
+const tropicalSeason=modules.weatherEffects.weatherSeasonContextForData({latitude:-12.46,current:{time:'2026-07-04T12:00:00',temperature_2m:27}},{weatherSeasonalEffects:true,weatherSeasonMode:'auto'});
+const mildAusWinter=modules.weatherEffects.weatherSeasonContextForData({latitude:-27.47,current:{time:'2026-07-04T12:00:00',temperature_2m:18}},{weatherSeasonalEffects:true,weatherSeasonMode:'auto'});
+if(tropicalSeason.season!=='none'||tropicalSeason.climateBand!=='tropical'||mildAusWinter.season!=='winter'||mildAusWinter.climateBand!=='subtropical'||!(mildAusWinter.scale<.4))throw new Error('regional seasonal adaptation failed');
+modules.weatherEffects.setWeatherEffectTestProfile('heavy-rain');
+const forcedWeather=modules.weatherEffects.weatherTestData({latitude:41.88,current:{weather_code:0,temperature_2m:20}});
+if(!modules.weatherEffects.weatherEffectTestState().active||forcedWeather.current.weather_code!==65)throw new Error('transient weather effect lab did not force the selected profile');
+modules.weatherEffects.setWeatherEffectTestProfile('live');
+if(modules.weatherEffects.weatherEffectTestState().active)throw new Error('weather effect lab did not return to live weather');
 const liveHeavy=modules.weatherEffects.weatherEffectIntensityForData('rain',{current:{weather_code:65,precipitation:9,wind_speed_10m:35}},{weatherEffectIntensity:50,weatherEffectAutoIntensity:true});
 const fixedHeavy=modules.weatherEffects.weatherEffectIntensityForData('rain',{current:{weather_code:65,precipitation:9,wind_speed_10m:35}},{weatherEffectIntensity:50,weatherEffectAutoIntensity:false});
 if(!(liveHeavy>fixedHeavy)||fixedHeavy!==50)throw new Error('live weather auto-intensity contract failed');
@@ -158,6 +171,9 @@ try{
   overlayHost.classList.remove('show');overlayHost.replaceChildren();
   if(!modules.weatherEffects.weatherOverlayNeedsRepair(restartRain,restartSource))throw new Error('weather overlay watchdog did not detect an enabled empty overlay');
   if(!modules.weatherEffects.ensureWeatherOverlayLive(restartRain,restartSource)||!overlayHost.classList.contains('show')||overlayHost.children.length===0)throw new Error('weather overlay watchdog did not rebuild rain particles');
+  const fallSource={...restartSource,weatherSeasonalEffects:true,weatherSeasonMode:'fall',weatherSeasonalIntensity:80};
+  modules.weatherEffects.applyWeatherEffects(restartRain,fallSource);
+  if(!overlayHost.classList.contains('weather-season-fall')||!overlayHost.children.some(child=>child.classList.contains('weather-fx-leaf')))throw new Error('fall seasonal overlay did not render leaf particles');
 }finally{document.createElement=originalCreateElement;document.createDocumentFragment=originalCreateDocumentFragment;document.getElementById=originalOverlayGet;}
 if(modules.weatherEffects.weatherPauseClassSignature('ld-weather-widget-motion ld-weather-fullscreen-motion')!=='000')throw new Error('weather effect self classes incorrectly trigger pause-state refreshes');
 if(modules.weatherEffects.weatherPauseClassSignature('ld-burnin-dim')!=='100'||modules.weatherEffects.weatherPauseClassSignature('layout-editing')!=='010'||modules.weatherEffects.weatherPauseClassSignature('remote-layout-proxy')!=='001')throw new Error('weather pause-state class signature failed');
@@ -168,7 +184,7 @@ if(typeof globalThis.retryDisplayHydration!=='undefined')throw new Error('lifecy
 if(typeof modules.appearance.screenCareQuietScheduleState!=='function')throw new Error('OLED quiet-hours schedule helper did not load');
 const originalGetElementById=document.getElementById;
 const resetElements=new Map();
-for(const id of ['s-weather-animations','s-weather-widget-animations','s-weather-fullscreen-effects','s-weather-effect-auto-intensity','s-weather-effect-atmosphere','s-weather-effect-particle-scale','s-weather-effect-wind-strength','s-weather-effect-lightning-frequency','s-weather-effect-lightning-brightness','s-weather-effect-precipitation','s-weather-effect-clouds','s-weather-effect-fog','s-weather-effect-sun','s-weather-effect-wind','s-weather-effect-lightning','s-weather-effect-reduced-motion','s-weather-effect-pause-dimmed','s-weather-effect-mode','s-weather-effect-intensity','s-weather-effect-opacity','s-weather-effect-speed','s-burnin-care-enabled','s-burnin-idle-dimming','s-burnin-quiet-hours','s-burnin-quiet-wake-enabled','s-burnin-pause-animations','s-burnin-pixel-shift','s-burnin-deep-protection','s-burnin-quiet-start','s-burnin-quiet-end','s-burnin-quiet-wake','s-burnin-idle','s-burnin-brightness','s-burnin-deep-trigger','s-burnin-deep-idle','s-burnin-deep-brightness','s-burnin-shift-mode','s-burnin-shift-interval','s-burnin-shift-distance','s-burnin-shift-transition','s-bg-opacity']){const el=dummyElement();el.id=id;resetElements.set(id,el);}
+for(const id of ['s-weather-animations','s-weather-widget-animations','s-weather-fullscreen-effects','s-weather-effect-auto-intensity','s-weather-effect-atmosphere','s-weather-effect-particle-scale','s-weather-effect-wind-strength','s-weather-effect-lightning-frequency','s-weather-effect-lightning-brightness','s-weather-effect-precipitation','s-weather-effect-clouds','s-weather-effect-fog','s-weather-effect-sun','s-weather-effect-wind','s-weather-effect-lightning','s-weather-effect-reduced-motion','s-weather-effect-pause-dimmed','s-weather-effect-mode','s-weather-effect-intensity','s-weather-effect-opacity','s-weather-effect-speed','s-weather-seasonal-effects','s-weather-season-mode','s-weather-seasonal-intensity','s-burnin-care-enabled','s-burnin-idle-dimming','s-burnin-quiet-hours','s-burnin-quiet-wake-enabled','s-burnin-pause-animations','s-burnin-pixel-shift','s-burnin-deep-protection','s-burnin-quiet-start','s-burnin-quiet-end','s-burnin-quiet-wake','s-burnin-idle','s-burnin-brightness','s-burnin-deep-trigger','s-burnin-deep-idle','s-burnin-deep-brightness','s-burnin-shift-mode','s-burnin-shift-interval','s-burnin-shift-distance','s-burnin-shift-transition','s-bg-opacity']){const el=dummyElement();el.id=id;resetElements.set(id,el);}
 resetElements.get('s-bg-opacity').value='73';
 document.getElementById=id=>resetElements.get(id)||originalGetElementById.call(document,id);
 try{
@@ -191,14 +207,14 @@ if(!quietLate.active||quietLate.elapsedMs!==60*60*1000)throw new Error('OLED qui
 if(!quietEarly.active||quietEarly.elapsedMs!==8*60*60*1000)throw new Error('OLED quiet-hours schedule failed overnight boundary');
 if(quietDay.active||quietDisabled.active)throw new Error('OLED quiet-hours schedule failed daytime/equal-time boundary');
 const bridge=LibreDisplayRuntime.describeBridge();
-if(bridge.length>270)throw new Error(`compatibility bridge regressed to ${bridge.length} globals`);
+if(bridge.length>276)throw new Error(`compatibility bridge regressed to ${bridge.length} globals`);
 const bridgeStateCount=bridge.filter(row=>row.kind==='state').length;
 if(bridgeStateCount>10)throw new Error(`compatibility state bridge regressed to ${bridgeStateCount} bindings`);
 for(const handler of ['editLocalAccount','deleteLocalAccount','weatherDetailDragStart','weatherDetailDrop','addIntegrationFromSettings','removeSceneRule','startReleaseRollback','selectLayoutPreset','runWizardHealthChecks']){
   if(typeof globalThis[handler]!=='function')throw new Error(`required generated UI handler missing from compatibility bridge: ${handler}`);
 }
 const bridgeFunctions=bridge.filter(row=>row.kind==='function').length,bridgeStates=bridge.filter(row=>row.kind==='state').length;
-if(bridgeFunctions>260)throw new Error(`compatibility function bridge regressed to ${bridgeFunctions} bindings`);
+if(bridgeFunctions>267)throw new Error(`compatibility function bridge regressed to ${bridgeFunctions} bindings`);
 for(const stateName of ['ACTIVE_ENDPOINT','SESSION_ROLE','wxData','calStatuses','displayEndpoints','systemHealthState','settingsPreviewMode']){
   if(typeof globalThis[stateName]!=='undefined')throw new Error(`migrated state leaked back onto compatibility bridge: ${stateName}`);
 }

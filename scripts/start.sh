@@ -37,8 +37,25 @@ fi
 export DASHBOARD_HOST DASHBOARD_PORT DASHBOARD_REMOTE_ENABLED DASHBOARD_REMOTE_NETWORKS DASHBOARD_DATA_DIR DASHBOARD_ENDPOINT
 mkdir -p "$DASHBOARD_DATA_DIR"
 KIOSK_HEARTBEAT_FILE="$DASHBOARD_DATA_DIR/kiosk-heartbeat.json"
+DISPLAY_MODE_FILE="$DASHBOARD_DATA_DIR/display-mode.json"
 WATCHDOG_STATE_FILE="$DASHBOARD_DATA_DIR/watchdog-state.json"
 STARTUP_INTEGRITY_FILE="$DASHBOARD_DATA_DIR/startup-integrity.json"
+
+reset_display_mode() {
+  tmp="$DISPLAY_MODE_FILE.tmp.$$"
+  printf '{"mode":"kiosk"}\n' >"$tmp"
+  chmod 600 "$tmp" 2>/dev/null || true
+  mv -f "$tmp" "$DISPLAY_MODE_FILE"
+}
+read_display_mode() {
+  mode=kiosk
+  if [ -f "$DISPLAY_MODE_FILE" ]; then
+    parsed=$(sed -n 's/.*"mode"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$DISPLAY_MODE_FILE" 2>/dev/null | head -n 1)
+    [ "$parsed" = "windowed" ] && mode=windowed
+  fi
+  printf '%s' "$mode"
+}
+reset_display_mode
 
 verify_startup_integrity() {
   version=$(cat "$ROOT_DIR/VERSION" 2>/dev/null || printf 'unknown')
@@ -119,22 +136,41 @@ done
 launch_browser() {
   rm -f "$KIOSK_HEARTBEAT_FILE" 2>/dev/null || true
   BROWSER_STARTED_AT=$(date +%s)
-  "$BROWSER" \
-    --kiosk \
-    --start-maximized \
-    --noerrdialogs \
-    --disable-infobars \
-    --disable-session-crashed-bubble \
-    --disable-background-timer-throttling \
-    --disable-backgrounding-occluded-windows \
-    --disable-renderer-backgrounding \
-    --no-first-run \
-    --password-store=basic \
-    --disable-pinch \
-    --overscroll-history-navigation=0 \
-    --enable-features=OverlayScrollbar \
-    --user-data-dir="$DATA_DIR/chromium" \
-    "$URL" &
+  CURRENT_BROWSER_MODE=$(read_display_mode)
+  if [ "$CURRENT_BROWSER_MODE" = "windowed" ]; then
+    "$BROWSER" \
+      --start-maximized \
+      --new-window \
+      --noerrdialogs \
+      --disable-session-crashed-bubble \
+      --disable-background-timer-throttling \
+      --disable-backgrounding-occluded-windows \
+      --disable-renderer-backgrounding \
+      --no-first-run \
+      --password-store=basic \
+      --disable-pinch \
+      --overscroll-history-navigation=0 \
+      --enable-features=OverlayScrollbar \
+      --user-data-dir="$DATA_DIR/chromium" \
+      "$URL" &
+  else
+    "$BROWSER" \
+      --kiosk \
+      --start-maximized \
+      --noerrdialogs \
+      --disable-infobars \
+      --disable-session-crashed-bubble \
+      --disable-background-timer-throttling \
+      --disable-backgrounding-occluded-windows \
+      --disable-renderer-backgrounding \
+      --no-first-run \
+      --password-store=basic \
+      --disable-pinch \
+      --overscroll-history-navigation=0 \
+      --enable-features=OverlayScrollbar \
+      --user-data-dir="$DATA_DIR/chromium" \
+      "$URL" &
+  fi
   BROWSER_PID=$!
 }
 
@@ -164,6 +200,17 @@ while :; do
       fi
     else
       SERVER_HEALTH_FAILURES=0
+    fi
+
+    DESIRED_BROWSER_MODE=$(read_display_mode)
+    if [ "$DESIRED_BROWSER_MODE" != "$CURRENT_BROWSER_MODE" ]; then
+      write_watchdog_state "display-mode-$DESIRED_BROWSER_MODE"
+      kill "$BROWSER_PID" 2>/dev/null || true
+      wait "$BROWSER_PID" 2>/dev/null || true
+      BROWSER_PID=""
+      launch_browser
+      sleep 1
+      continue
     fi
 
     if ! kill -0 "$BROWSER_PID" 2>/dev/null; then

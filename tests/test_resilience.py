@@ -169,13 +169,13 @@ class ResilienceContractTests(unittest.TestCase):
 
     def test_system_health_reports_startup_integrity_state(self):
         server.atomic_write_json_file(server.STARTUP_INTEGRITY_PATH, {
-            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.4",
+            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.5",
             "coreFiles": 11, "pythonFiles": 3, "frontendVerified": True,
         })
         payload = server.system_health_payload()
         self.assertTrue(payload["startupIntegrity"]["ok"])
         self.assertTrue(payload["startupIntegrity"]["frontendVerified"])
-        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.4")
+        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.5")
 
     def test_stale_broker_returns_cached_data_while_refresh_runs(self):
         key = "resilience-stale-while-revalidate"
@@ -693,6 +693,38 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn("weather.invalidateWeatherIfLocationChanged();", settings)
         self.assertIn("configApi.serverConfigAvailable=true;configApi.serverConfigLastError=''", remote)
         self.assertIn("resumeOnVisible:true,immediate:true", remote)
+
+    def test_v185_weather_lab_seasons_and_local_kiosk_escape(self):
+        effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
+        config = (ROOT / "app" / "js" / "core" / "config.js").read_text(encoding="utf-8")
+        css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
+        actions = (ROOT / "app" / "js" / "settings" / "actions.js").read_text(encoding="utf-8")
+        server = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
+        start = (ROOT / "scripts" / "start.sh").read_text(encoding="utf-8")
+        for marker in ("weatherSeasonalEffects:true", "weatherSeasonMode:'auto'", "weatherSeasonalIntensity:45"):
+            self.assertIn(marker, config)
+        for marker in ("WEATHER_TEST_PROFILES", "function weatherTestData", "function setWeatherEffectTestProfile",
+                       "function weatherSeasonContextForData", "function weatherSeasonForData", "function seasonalParticleCount",
+                       "climateBand==='equatorial'", "climateBand==='subtropical'", "hemisphere==='south'"):
+            self.assertIn(marker, effects)
+        for control in ('id="s-weather-effect-test-mode"', 'id="s-weather-effect-test-condition"',
+                        'id="s-weather-seasonal-effects"', 'id="s-weather-season-mode"',
+                        'id="s-weather-seasonal-intensity"'):
+            self.assertIn(control, HTML)
+        for marker in (".weather-fx-leaf", ".weather-fx-grass", ".weather-fx-summer-grass", ".weather-fx-firefly",
+                       ".weather-fx-crystal", ".weather-fx-winter-mote", ".weather-fx-splash"):
+            self.assertIn(marker, css)
+        self.assertIn("function requestDeviceDisplayMode(mode)", actions)
+        self.assertIn("resilientFetch('/api/display-mode'", actions)
+        self.assertIn("quickAccessUseDevice()", HTML)
+        self.assertIn("quickAccessFullscreen()", HTML)
+        self.assertIn('DISPLAY_MODE_PATH = DATA_ROOT / "display-mode.json"', server)
+        self.assertIn('if parsed.path == "/api/display-mode":', server)
+        self.assertIn("self.client_is_loopback()", server)
+        self.assertIn('DISPLAY_MODE_FILE="$DASHBOARD_DATA_DIR/display-mode.json"', start)
+        self.assertIn("read_display_mode()", start)
+        self.assertIn("--new-window", start)
+        self.assertIn("--kiosk", start)
 
     def test_v180_screen_care_controls_are_independent(self):
         config = (ROOT / "app" / "js" / "core" / "config.js").read_text(encoding="utf-8")
