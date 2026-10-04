@@ -24,7 +24,9 @@ import datetime
 import importlib.util
 import queue
 import platform
+import random
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 
 HOST = os.environ.get("DASHBOARD_HOST", "127.0.0.1")
 PORT = int(os.environ.get("DASHBOARD_PORT", "8787"))
@@ -52,6 +54,7 @@ CALENDAR_FILES_DIR = DATA_ROOT / "calendar_files"
 BROKER_DIR = DATA_ROOT / "broker"
 SCENE_BASE_DIR = DATA_ROOT / "scene_base"
 RESTORE_POINTS_DIR = DATA_ROOT / "restore_points"
+CONFIG_RECOVERY_DIR = DATA_ROOT / "recovery" / "config"
 HOUSEHOLD_PATH = DATA_ROOT / "dashboard_household.json"
 PLUGINS_ROOT = PROJECT_ROOT / "plugins"
 if str(PLUGINS_ROOT) not in sys.path:
@@ -78,6 +81,7 @@ CALENDAR_FILES_DIR.mkdir(parents=True, exist_ok=True)
 BROKER_DIR.mkdir(parents=True, exist_ok=True)
 SCENE_BASE_DIR.mkdir(parents=True, exist_ok=True)
 RESTORE_POINTS_DIR.mkdir(parents=True, exist_ok=True)
+CONFIG_RECOVERY_DIR.mkdir(parents=True, exist_ok=True)
 
 GOOGLE_BATCH_URL = "https://photos.google.com/u/0/_/PhotosUi/data/batchexecute"
 GOOGLE_RPC_ID = "snAcKc"
@@ -86,6 +90,23 @@ GOOGLE_RPC_ID = "snAcKc"
 BROKER_LOCK = threading.Lock()
 BROKER_KEY_LOCKS = {}
 BROKER_STATUS = {}
+BROKER_REFRESHING = set()
+BROKER_REFRESH_WORKERS = max(1, min(16, int(os.environ.get("DASHBOARD_BROKER_REFRESH_WORKERS", "4"))))
+BROKER_REFRESH_EXECUTOR = ThreadPoolExecutor(max_workers=BROKER_REFRESH_WORKERS, thread_name_prefix="libredisplay-broker")
+BROKER_BACKOFF_SECONDS = (5, 15, 30, 60, 120, 300, 600)
+OUTBOUND_RETRY_STATUSES = {408, 425, 429, 500, 502, 503, 504}
+OUTBOUND_RETRY_METHODS = {"GET", "HEAD"}
+OUTBOUND_RETRY_ATTEMPTS = max(1, min(4, int(os.environ.get("DASHBOARD_OUTBOUND_RETRY_ATTEMPTS", "2"))))
+OUTBOUND_RETRY_BASE_SECONDS = max(0.05, min(2.0, float(os.environ.get("DASHBOARD_OUTBOUND_RETRY_BASE_SECONDS", "0.35"))))
+DNS_RESOLVE_WORKERS = max(1, min(16, int(os.environ.get("DASHBOARD_DNS_RESOLVE_WORKERS", "4"))))
+DNS_RESOLVE_SLOTS = threading.BoundedSemaphore(DNS_RESOLVE_WORKERS)
+OUTBOUND_HEALTH_LOCK = threading.Lock()
+OUTBOUND_HEALTH = {
+    "requests": 0, "successes": 0, "failures": 0, "retries": 0, "inFlight": 0,
+    "lastLatencyMs": 0, "totalLatencyMs": 0, "lastSuccessAt": 0, "lastFailureAt": 0,
+    "lastFailureKind": "", "recoverySignals": 0, "releasedBackoffs": 0,
+    "failureKinds": {},
+}
 DEVICE_LOCK = threading.Lock()
 DEVICE_STATE = {}
 EVENT_LOCK = threading.Lock()
@@ -107,6 +128,9 @@ ROLLBACK_LOG_PATH = DATA_ROOT / "rollback.log"
 ROLLBACK_ROOT = Path.home() / "libredisplay-rollbacks"
 MAINTENANCE_HISTORY_PATH = DATA_ROOT / "maintenance_history.json"
 KIOSK_HEARTBEAT_PATH = DATA_ROOT / "kiosk-heartbeat.json"
+WATCHDOG_STATE_PATH = DATA_ROOT / "watchdog-state.json"
+STARTUP_INTEGRITY_PATH = DATA_ROOT / "startup-integrity.json"
+CONFIG_RECOVERY_STATE_PATH = DATA_ROOT / "config-recovery-state.json"
 PRIVILEGED_HELPER = Path("/usr/local/libexec/libredisplay-privileged")
 ROLLBACK_RUN_LOCK = threading.Lock()
 ROLLBACK_RUN_STATE = {"state": "idle", "startedAt": 0, "targetVersion": "", "snapshotId": "", "error": ""}
@@ -114,9 +138,19 @@ ROLLBACK_RUN_STATE = {"state": "idle", "startedAt": 0, "targetVersion": "", "sna
 
 
 
+def _valid_json_object_file(path):
+    try:
+        with path.open("r", encoding="utf-8") as fh:
+            return isinstance(json.load(fh), dict)
+    except Exception:
+        return False
+
+
 def atomic_write_json_file(path, payload, backup_path=None):
     path.parent.mkdir(parents=True, exist_ok=True)
-    if backup_path and path.exists():
+    # Config backups must stay known-good. Never replace a valid previous copy
+    # with a malformed/truncated primary file during a recovery save.
+    if backup_path and path.exists() and _valid_json_object_file(path):
         try:
             shutil.copy2(path, backup_path)
         except Exception:
@@ -151,6 +185,59 @@ def load_json_path(path, fallback=None):
         return fallback
 
 
+
+
+def _write_config_recovery_state(endpoint_id, recovered_from, quarantined):
+    try:
+        atomic_write_json_file(CONFIG_RECOVERY_STATE_PATH, {
+            "recoveredAt": int(time.time()),
+            "endpoint": endpoint_slug(endpoint_id or "main"),
+            "recoveredFrom": str(recovered_from.name)[:160],
+            "quarantinedFile": str(quarantined.name)[:160] if quarantined else "",
+        })
+    except Exception:
+        pass
+
+
+def load_endpoint_config_resilient(endpoint_id):
+    """Load one display config, restoring the last known-good copy if the primary is corrupt."""
+    endpoint_id = endpoint_slug(endpoint_id or "main")
+    path = endpoint_config_path(endpoint_id)
+    backup = endpoint_backup_path(endpoint_id)
+    if not path.exists():
+        return None
+    try:
+        data = load_json_path(path, None)
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+    previous = load_json_path(backup, None) if backup.exists() else None
+    if not isinstance(previous, dict):
+        return None
+    quarantined = None
+    try:
+        stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d-%H%M%S")
+        base = f"{endpoint_id}-{stamp}-corrupt.json"
+        quarantined = CONFIG_RECOVERY_DIR / base
+        counter = 2
+        while quarantined.exists():
+            quarantined = CONFIG_RECOVERY_DIR / f"{endpoint_id}-{stamp}-corrupt-{counter}.json"
+            counter += 1
+        shutil.copy2(path, quarantined)
+        try:
+            os.chmod(quarantined, 0o600)
+        except Exception:
+            pass
+        # Do not pass backup_path here: the existing previous copy is the source
+        # of truth being restored and must not be overwritten by the corrupt file.
+        atomic_write_json_file(path, previous)
+        _write_config_recovery_state(endpoint_id, backup, quarantined)
+        publish_event(endpoint_id, "config", {"reason": "automatic-config-recovery"})
+    except Exception:
+        return previous
+    return previous
+
 def restore_point_slug(value):
     value = re.sub(r"[^A-Za-z0-9_-]+", "-", str(value or "").strip()).strip("-")[:80]
     return value
@@ -169,9 +256,7 @@ def create_restore_point(endpoint_id="main", label=""):
         raise ValueError("Unknown display endpoint")
     stamp = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
     point_id = f"rp-{stamp.strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3)}"
-    config = load_json_path(endpoint_config_path(endpoint_id), {})
-    if not isinstance(config, dict):
-        config = {}
+    config = load_endpoint_config_resilient(endpoint_id) or {}
     profiles = load_json_path(PROFILES_PATH, {})
     if not isinstance(profiles, dict):
         profiles = {}
@@ -677,7 +762,7 @@ def apply_scene_schedules(force=False):
                 continue
             base_path = SCENE_BASE_DIR / f"{endpoint_id}.json"
             if desired and not previous and not base_path.exists():
-                current = load_json_path(endpoint_config_path(endpoint_id), None)
+                current = load_endpoint_config_resilient(endpoint_id)
                 if isinstance(current, dict):
                     atomic_write_json_file(base_path, current)
             SCENE_ACTIVE[endpoint_id] = desired
@@ -772,34 +857,131 @@ def broker_record(key, **values):
         BROKER_STATUS[key] = row
 
 
+def broker_backoff_seconds(failures):
+    count = max(1, int(failures or 1))
+    return BROKER_BACKOFF_SECONDS[min(count - 1, len(BROKER_BACKOFF_SECONDS) - 1)]
+
+
+def broker_release_transient_backoff():
+    transient = {"dns", "network", "timeout", "refused", "unreachable", "tls"}
+    released = 0
+    with BROKER_LOCK:
+        for key, current in list(BROKER_STATUS.items()):
+            row = dict(current or {})
+            if row.get("errorKind") not in transient or not int(row.get("retryAt") or 0):
+                continue
+            row["retryAt"] = 0
+            BROKER_STATUS[key] = row
+            released += 1
+    with OUTBOUND_HEALTH_LOCK:
+        OUTBOUND_HEALTH["recoverySignals"] += 1
+        OUTBOUND_HEALTH["releasedBackoffs"] += released
+    return released
+
+
+def broker_refresh_once(key, ttl, fetcher, source, cached=None):
+    now = int(time.time())
+    cached = cached or broker_load(key)
+    broker_record(key, source=source, lastAttemptAt=now, refreshing=True)
+    started = time.monotonic()
+    try:
+        data, content_type = fetcher()
+        finished = int(time.time())
+        broker_save(key, data, content_type, source)
+        broker_record(
+            key, source=source, status="fresh", savedAt=finished, age=0, error="", errorKind="",
+            lastAttemptAt=now, lastSuccessAt=finished, refreshing=False,
+            consecutiveFailures=0, retryAt=0, lastDurationMs=max(0, int((time.monotonic() - started) * 1000)),
+        )
+        return data, content_type, "fresh", 0
+    except Exception as exc:
+        finished = int(time.time())
+        safe_error = public_integration_error(exc)
+        error_kind = integration_error_kind(exc)
+        with BROKER_LOCK:
+            previous = dict(BROKER_STATUS.get(key) or {})
+        failures = max(0, int(previous.get("consecutiveFailures") or 0)) + 1
+        retry_at = finished + broker_backoff_seconds(failures)
+        duration = max(0, int((time.monotonic() - started) * 1000))
+        if cached:
+            age = max(0, finished - cached[2])
+            broker_record(
+                key, source=source, status="stale", savedAt=cached[2], age=age, error=safe_error, errorKind=error_kind,
+                lastAttemptAt=now, lastSuccessAt=cached[2], refreshing=False,
+                consecutiveFailures=failures, retryAt=retry_at, lastDurationMs=duration,
+            )
+            return cached[0], cached[1], "stale", age
+        broker_record(
+            key, source=source, status="error", savedAt=0, age=0, error=safe_error, errorKind=error_kind,
+            lastAttemptAt=now, lastSuccessAt=0, refreshing=False,
+            consecutiveFailures=failures, retryAt=retry_at, lastDurationMs=duration,
+        )
+        raise
+
+
+def broker_start_background_refresh(key, ttl, fetcher, source, cached):
+    with BROKER_LOCK:
+        if key in BROKER_REFRESHING:
+            return False
+        BROKER_REFRESHING.add(key)
+    def worker():
+        try:
+            lock = broker_lock_for(key)
+            with lock:
+                latest = broker_load(key) or cached
+                now = int(time.time())
+                if latest and now - latest[2] < ttl:
+                    broker_record(key, source=source, status="fresh", savedAt=latest[2], age=now-latest[2], error="", errorKind="", lastSuccessAt=latest[2], refreshing=False, consecutiveFailures=0, retryAt=0)
+                    return
+                broker_refresh_once(key, ttl, fetcher, source, latest)
+        except Exception:
+            pass
+        finally:
+            with BROKER_LOCK:
+                BROKER_REFRESHING.discard(key)
+    try:
+        BROKER_REFRESH_EXECUTOR.submit(worker)
+    except RuntimeError:
+        with BROKER_LOCK:
+            BROKER_REFRESHING.discard(key)
+        return False
+    return True
+
+
 def broker_fetch(key, ttl_seconds, fetcher, source="", force=False):
     ttl = max(5, min(86400, int(ttl_seconds or 300)))
     cached = broker_load(key)
     now = int(time.time())
     if not force and cached and now - cached[2] < ttl:
-        broker_record(key, source=source, status="fresh", savedAt=cached[2], age=now-cached[2], error="", lastSuccessAt=cached[2])
+        broker_record(key, source=source, status="fresh", savedAt=cached[2], age=now-cached[2], error="", errorKind="", lastSuccessAt=cached[2], refreshing=False, consecutiveFailures=0, retryAt=0)
         return cached[0], cached[1], "fresh", now-cached[2]
+
+    with BROKER_LOCK:
+        status = dict(BROKER_STATUS.get(key) or {})
+    retry_at = max(0, int(status.get("retryAt") or 0))
+    if not force and retry_at > now:
+        if cached:
+            age = max(0, now - cached[2])
+            broker_record(key, source=source, status="stale", savedAt=cached[2], age=age, lastSuccessAt=cached[2], refreshing=False)
+            return cached[0], cached[1], "stale", age
+        raise RuntimeError(f"Provider temporarily unavailable; automatic retry in {retry_at-now}s")
+
+    # Stale-while-revalidate keeps wall displays responsive: cached data is returned
+    # immediately while one background refresh updates the broker.
+    if not force and cached:
+        age = max(0, now - cached[2])
+        broker_record(key, source=source, status="stale", savedAt=cached[2], age=age, lastSuccessAt=cached[2], refreshing=True)
+        broker_start_background_refresh(key, ttl, fetcher, source, cached)
+        return cached[0], cached[1], "stale", age
+
     lock = broker_lock_for(key)
     with lock:
         cached = broker_load(key)
         now = int(time.time())
         if not force and cached and now - cached[2] < ttl:
-            broker_record(key, source=source, status="fresh", savedAt=cached[2], age=now-cached[2], error="", lastSuccessAt=cached[2])
+            broker_record(key, source=source, status="fresh", savedAt=cached[2], age=now-cached[2], error="", errorKind="", lastSuccessAt=cached[2], refreshing=False, consecutiveFailures=0, retryAt=0)
             return cached[0], cached[1], "fresh", now-cached[2]
-        broker_record(key, source=source, lastAttemptAt=now)
-        try:
-            data, content_type = fetcher()
-            broker_save(key, data, content_type, source)
-            broker_record(key, source=source, status="fresh", savedAt=now, age=0, error="", lastAttemptAt=now, lastSuccessAt=now)
-            return data, content_type, "fresh", 0
-        except Exception as exc:
-            safe_error = public_integration_error(exc)
-            if cached:
-                age = max(0, now-cached[2])
-                broker_record(key, source=source, status="stale", savedAt=cached[2], age=age, error=safe_error, lastAttemptAt=now, lastSuccessAt=cached[2])
-                return cached[0], cached[1], "stale", age
-            broker_record(key, source=source, status="error", savedAt=0, age=0, error=safe_error, lastAttemptAt=now, lastSuccessAt=0)
-            raise
+        return broker_refresh_once(key, ttl, fetcher, source, cached)
 
 
 def publish_event(endpoint_id, event, payload=None):
@@ -950,8 +1132,7 @@ class IntegrationContext:
 
     def fetch_bytes(self, url, *, headers=None, timeout=25, max_bytes=MAX_BYTES):
         target = str(url or "").strip()
-        validate_outbound_url(target)
-        status, response_headers, data, _ = safe_fetch(target, headers=headers or {"User-Agent": "LibreDisplay integration"}, timeout=timeout, max_bytes=max_bytes)
+        status, response_headers, data, _ = resilient_safe_fetch(target, headers=headers or {"User-Agent": "LibreDisplay integration"}, timeout=min(10, max(3, timeout)), max_bytes=max_bytes)
         if status >= 400:
             raise RuntimeError(f"HTTP {status}")
         return data, response_headers.get("Content-Type", "application/octet-stream")
@@ -965,8 +1146,7 @@ class IntegrationContext:
 
     def request(self, url, *, method="GET", headers=None, body=None, timeout=25, max_bytes=MAX_BYTES):
         target = str(url or "").strip()
-        validate_outbound_url(target)
-        status, response_headers, data, final_url = safe_fetch(target, method=method, headers=headers or {"User-Agent": "LibreDisplay integration"}, body=body, timeout=timeout, max_bytes=max_bytes, redirects=0)
+        status, response_headers, data, final_url = resilient_safe_fetch(target, method=method, headers=headers or {"User-Agent": "LibreDisplay integration"}, body=body, timeout=min(10, max(3, timeout)), max_bytes=max_bytes, redirects=0)
         if status in {301, 302, 303, 307, 308}:
             raise ValueError("Integration endpoint redirected; configure the canonical API URL")
         return status, response_headers, data, final_url
@@ -975,11 +1155,7 @@ class IntegrationContext:
         if self.plugin_id not in TRUSTED_PRIVATE_PLUGINS:
             raise PermissionError("This integration is not allowed to access private/LAN addresses")
         target = str(url or "").strip()
-        if require_private:
-            validate_private_outbound_url(target)
-        else:
-            validate_trusted_outbound_url(target)
-        status, response_headers, data, final_url = safe_fetch(target, method=method, headers=headers or {"User-Agent": "LibreDisplay trusted integration"}, body=body, timeout=timeout, max_bytes=max_bytes, redirects=0, allow_private=True, private_only=require_private, verify_tls=verify_tls)
+        status, response_headers, data, final_url = resilient_safe_fetch(target, method=method, headers=headers or {"User-Agent": "LibreDisplay trusted integration"}, body=body, timeout=min(10, max(3, timeout)), max_bytes=max_bytes, redirects=0, allow_private=True, private_only=require_private, verify_tls=verify_tls)
         if status in {301, 302, 303, 307, 308}:
             raise ValueError("Integration endpoint redirected; configure the canonical collection URL")
         return status, response_headers, data, final_url
@@ -1315,8 +1491,50 @@ def set_remote_access_enabled(enabled):
     return enabled
 
 
-def resolve_public_addresses(host, port):
-    infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+def _bounded_getaddrinfo(host, port, deadline=None):
+    if deadline is None:
+        return socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+
+    remaining = float(deadline) - time.monotonic()
+    if remaining <= 0:
+        raise OutboundRequestError("timeout", "Connection timed out")
+    if not DNS_RESOLVE_SLOTS.acquire(timeout=remaining):
+        raise OutboundRequestError("timeout", "Connection timed out")
+
+    result_queue = queue.Queue(maxsize=1)
+
+    def resolve():
+        try:
+            result = (True, socket.getaddrinfo(host, port, type=socket.SOCK_STREAM))
+        except Exception as exc:
+            result = (False, exc)
+        try:
+            result_queue.put_nowait(result)
+        except queue.Full:
+            pass
+        finally:
+            DNS_RESOLVE_SLOTS.release()
+
+    resolver = threading.Thread(target=resolve, name="libredisplay-dns", daemon=True)
+    try:
+        resolver.start()
+    except Exception:
+        DNS_RESOLVE_SLOTS.release()
+        raise
+    remaining = float(deadline) - time.monotonic()
+    if remaining <= 0:
+        raise OutboundRequestError("timeout", "Connection timed out")
+    try:
+        ok, payload = result_queue.get(timeout=remaining)
+    except queue.Empty as exc:
+        raise OutboundRequestError("timeout", "Connection timed out") from exc
+    if ok:
+        return payload
+    raise payload
+
+
+def resolve_public_addresses(host, port, deadline=None):
+    infos = _bounded_getaddrinfo(host, port, deadline)
     if not infos:
         raise ValueError("Remote host could not be resolved")
     found = []
@@ -1331,7 +1549,7 @@ def resolve_public_addresses(host, port):
     return found
 
 
-def validate_outbound_url(target):
+def validate_outbound_url(target, deadline=None):
     u = urlparse(str(target or ""))
     if u.scheme not in ("http", "https") or not u.hostname:
         raise ValueError("Only http/https URLs are allowed")
@@ -1343,12 +1561,12 @@ def validate_outbound_url(target):
         raise ValueError("Invalid remote port") from exc
     if not 1 <= port <= 65535:
         raise ValueError("Invalid remote port")
-    addresses = resolve_public_addresses(u.hostname, port)
+    addresses = resolve_public_addresses(u.hostname, port, deadline)
     return u, port, addresses
 
 
-def resolve_trusted_addresses(host, port):
-    infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+def resolve_trusted_addresses(host, port, deadline=None):
+    infos = _bounded_getaddrinfo(host, port, deadline)
     if not infos:
         raise ValueError("Remote host could not be resolved")
     found = []
@@ -1363,8 +1581,8 @@ def resolve_trusted_addresses(host, port):
     return found
 
 
-def resolve_private_addresses(host, port):
-    infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+def resolve_private_addresses(host, port, deadline=None):
+    infos = _bounded_getaddrinfo(host, port, deadline)
     if not infos:
         raise ValueError("Remote host could not be resolved")
     found = []
@@ -1379,7 +1597,7 @@ def resolve_private_addresses(host, port):
     return found
 
 
-def validate_trusted_outbound_url(target):
+def validate_trusted_outbound_url(target, deadline=None):
     u = urlparse(str(target or ""))
     if u.scheme not in ("http", "https") or not u.hostname:
         raise ValueError("Only http/https URLs are allowed")
@@ -1391,10 +1609,10 @@ def validate_trusted_outbound_url(target):
         raise ValueError("Invalid remote port") from exc
     if not 1 <= port <= 65535:
         raise ValueError("Invalid remote port")
-    return u, port, resolve_trusted_addresses(u.hostname, port)
+    return u, port, resolve_trusted_addresses(u.hostname, port, deadline)
 
 
-def validate_private_outbound_url(target):
+def validate_private_outbound_url(target, deadline=None):
     u = urlparse(str(target or ""))
     if u.scheme not in ("http", "https") or not u.hostname:
         raise ValueError("Only http/https URLs are allowed")
@@ -1406,7 +1624,7 @@ def validate_private_outbound_url(target):
         raise ValueError("Invalid remote port") from exc
     if not 1 <= port <= 65535:
         raise ValueError("Invalid remote port")
-    return u, port, resolve_private_addresses(u.hostname, port)
+    return u, port, resolve_private_addresses(u.hostname, port, deadline)
 
 
 class PinnedHTTPConnection(http.client.HTTPConnection):
@@ -1435,18 +1653,188 @@ def _url_origin(value):
     return (u.scheme.lower(), (u.hostname or "").lower(), port)
 
 
+class OutboundRequestError(OSError):
+    def __init__(self, kind, message):
+        super().__init__(message)
+        self.kind = str(kind or "network")
+
+
+def outbound_error_kind(error=None, status=None):
+    try:
+        code = int(status) if status is not None else 0
+    except (TypeError, ValueError):
+        code = 0
+    if code:
+        if code in {401, 403}:
+            return "authentication"
+        if code == 408:
+            return "timeout"
+        if code == 429:
+            return "rate-limit"
+        if 500 <= code <= 599:
+            return "provider"
+        if code >= 400:
+            return "request"
+    if isinstance(error, OutboundRequestError):
+        return error.kind
+    if isinstance(error, socket.gaierror):
+        return "dns"
+    if isinstance(error, (ssl.SSLCertVerificationError, ssl.SSLError)):
+        return "tls"
+    if isinstance(error, (socket.timeout, TimeoutError)):
+        return "timeout"
+    if isinstance(error, ConnectionRefusedError):
+        return "refused"
+    text = str(error or "").lower()
+    if any(token in text for token in ("name or service not known", "temporary failure in name resolution", "nodename nor servname", "dns")):
+        return "dns"
+    if any(token in text for token in ("certificate", "tls", "ssl")):
+        return "tls"
+    if "refused" in text:
+        return "refused"
+    if any(token in text for token in ("network is unreachable", "no route to host", "host is unreachable")):
+        return "unreachable"
+    if any(token in text for token in ("timed out", "timeout")):
+        return "timeout"
+    return "network"
+
+
+def outbound_public_error(kind):
+    return {
+        "dns": "DNS resolution failed",
+        "tls": "TLS/certificate validation failed",
+        "timeout": "Connection timed out",
+        "refused": "Connection refused",
+        "unreachable": "Network unreachable",
+        "network": "Network connection failed",
+    }.get(str(kind or "network"), "Network connection failed")
+
+
+def outbound_record_result(*, ok, started, retries=0, kind=""):
+    latency = max(0, int((time.monotonic() - started) * 1000))
+    now = int(time.time())
+    with OUTBOUND_HEALTH_LOCK:
+        row = OUTBOUND_HEALTH
+        row["requests"] += 1
+        row["retries"] += max(0, int(retries or 0))
+        row["lastLatencyMs"] = latency
+        row["totalLatencyMs"] += latency
+        if ok:
+            row["successes"] += 1
+            row["lastSuccessAt"] = now
+        else:
+            safe_kind = str(kind or "network")[:32]
+            row["failures"] += 1
+            row["lastFailureAt"] = now
+            row["lastFailureKind"] = safe_kind
+            kinds = row.setdefault("failureKinds", {})
+            kinds[safe_kind] = max(0, int(kinds.get(safe_kind) or 0)) + 1
+
+
+def outbound_health_payload():
+    with OUTBOUND_HEALTH_LOCK:
+        row = dict(OUTBOUND_HEALTH)
+        row["failureKinds"] = dict(OUTBOUND_HEALTH.get("failureKinds") or {})
+    completed = max(0, int(row.get("successes") or 0)) + max(0, int(row.get("failures") or 0))
+    row["averageLatencyMs"] = round((int(row.get("totalLatencyMs") or 0) / completed), 1) if completed else 0
+    row.pop("totalLatencyMs", None)
+    return row
+
+
+def retry_after_seconds(headers, maximum=5.0):
+    raw = ""
+    for key, value in (headers or {}).items():
+        if str(key).lower() == "retry-after":
+            raw = str(value or "").strip()
+            break
+    if not raw:
+        return 0.0
+    try:
+        return max(0.0, min(float(maximum), float(raw)))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def outbound_retry_delay(attempt, headers=None):
+    hinted = retry_after_seconds(headers)
+    if hinted > 0:
+        return hinted
+    base = OUTBOUND_RETRY_BASE_SECONDS * (2 ** max(0, int(attempt) - 1))
+    return min(3.0, base + random.uniform(0.0, base * 0.25))
+
+
+def outbound_remaining_seconds(deadline, floor=0.05):
+    remaining = float(deadline) - time.monotonic()
+    if remaining <= 0:
+        raise OutboundRequestError("timeout", outbound_public_error("timeout"))
+    return max(float(floor), remaining)
+
+
+def resilient_safe_fetch(target, method="GET", headers=None, body=None, timeout=12, max_bytes=MAX_BYTES, redirects=5, allow_private=False, private_only=False, verify_tls=True, attempts=None):
+    method = str(method or "GET").upper()
+    total = max(1, min(4, int(attempts or OUTBOUND_RETRY_ATTEMPTS))) if method in OUTBOUND_RETRY_METHODS else 1
+    started = time.monotonic()
+    budget = max(0.25, min(60.0, float(timeout or 12)))
+    deadline = started + budget
+    retries = 0
+    with OUTBOUND_HEALTH_LOCK:
+        OUTBOUND_HEALTH["inFlight"] += 1
+    try:
+        last_error = None
+        for attempt in range(1, total + 1):
+            try:
+                remaining = outbound_remaining_seconds(deadline)
+                result = safe_fetch(target, method=method, headers=headers, body=body, timeout=remaining, max_bytes=max_bytes, redirects=redirects, allow_private=allow_private, private_only=private_only, verify_tls=verify_tls)
+                status = int(result[0])
+                if status in OUTBOUND_RETRY_STATUSES and attempt < total:
+                    retries += 1
+                    delay = min(outbound_retry_delay(attempt, result[1]), max(0.0, deadline - time.monotonic()))
+                    if delay <= 0:
+                        raise OutboundRequestError("timeout", outbound_public_error("timeout"))
+                    time.sleep(delay)
+                    continue
+                if status >= 400:
+                    outbound_record_result(ok=False, started=started, retries=retries, kind=outbound_error_kind(status=status))
+                else:
+                    outbound_record_result(ok=True, started=started, retries=retries)
+                return result
+            except (OSError, TimeoutError, socket.timeout, ssl.SSLError, http.client.HTTPException) as exc:
+                last_error = exc
+                if attempt >= total or time.monotonic() >= deadline:
+                    kind = "timeout" if time.monotonic() >= deadline else outbound_error_kind(exc)
+                    outbound_record_result(ok=False, started=started, retries=retries, kind=kind)
+                    if kind == "timeout" and outbound_error_kind(exc) != "timeout":
+                        raise OutboundRequestError("timeout", outbound_public_error("timeout")) from exc
+                    raise
+                retries += 1
+                delay = min(outbound_retry_delay(attempt), max(0.0, deadline - time.monotonic()))
+                if delay <= 0:
+                    outbound_record_result(ok=False, started=started, retries=retries, kind="timeout")
+                    raise OutboundRequestError("timeout", outbound_public_error("timeout")) from exc
+                time.sleep(delay)
+        if last_error:
+            raise last_error
+        raise RuntimeError("Outbound request failed")
+    finally:
+        with OUTBOUND_HEALTH_LOCK:
+            OUTBOUND_HEALTH["inFlight"] = max(0, int(OUTBOUND_HEALTH.get("inFlight") or 0) - 1)
+
+
 def safe_fetch(target, method="GET", headers=None, body=None, timeout=25, max_bytes=MAX_BYTES, redirects=5, allow_private=False, private_only=False, verify_tls=True):
     current = str(target or "").strip()
     current_method = str(method or "GET").upper()
     current_body = body
     current_headers = dict(headers or {})
+    deadline = time.monotonic() + max(0.25, min(60.0, float(timeout or 25)))
     for _ in range(redirects + 1):
+        outbound_remaining_seconds(deadline)
         if private_only:
-            u, port, addresses = validate_private_outbound_url(current)
+            u, port, addresses = validate_private_outbound_url(current, deadline)
         elif allow_private:
-            u, port, addresses = validate_trusted_outbound_url(current)
+            u, port, addresses = validate_trusted_outbound_url(current, deadline)
         else:
-            u, port, addresses = validate_outbound_url(current)
+            u, port, addresses = validate_outbound_url(current, deadline)
+        outbound_remaining_seconds(deadline)
         path = u.path or "/"
         if u.query:
             path += "?" + u.query
@@ -1455,11 +1843,12 @@ def safe_fetch(target, method="GET", headers=None, body=None, timeout=25, max_by
         conn = None
         for ip in addresses:
             try:
+                remaining = outbound_remaining_seconds(deadline)
                 cls = PinnedHTTPSConnection if u.scheme == "https" else PinnedHTTPConnection
                 if cls is PinnedHTTPSConnection:
-                    conn = cls(u.hostname, port, ip, timeout=timeout, verify_tls=verify_tls)
+                    conn = cls(u.hostname, port, ip, timeout=remaining, verify_tls=verify_tls)
                 else:
-                    conn = cls(u.hostname, port, ip, timeout=timeout)
+                    conn = cls(u.hostname, port, ip, timeout=remaining)
                 req_headers = dict(current_headers)
                 host_for_header = u.hostname
                 if ":" in host_for_header and not host_for_header.startswith("["):
@@ -1477,8 +1866,12 @@ def safe_fetch(target, method="GET", headers=None, body=None, timeout=25, max_by
                 except Exception:
                     pass
                 conn = None
+                if time.monotonic() >= deadline:
+                    last_error = OutboundRequestError("timeout", outbound_public_error("timeout"))
+                    break
         if response is None:
-            raise OSError(f"Could not connect to validated remote address: {last_error}")
+            kind = outbound_error_kind(last_error)
+            raise OutboundRequestError(kind, outbound_public_error(kind)) from last_error
         status = int(response.status)
         response_headers = {k: v for k, v in response.getheaders()}
         if status in {301, 302, 303, 307, 308}:
@@ -1487,6 +1880,7 @@ def safe_fetch(target, method="GET", headers=None, body=None, timeout=25, max_by
                 response.read(min(4096, max_bytes))
                 conn.close()
                 return status, response_headers, b"", current
+            outbound_remaining_seconds(deadline)
             response.read(4096)
             conn.close()
             if not location:
@@ -1511,8 +1905,16 @@ def safe_fetch(target, method="GET", headers=None, body=None, timeout=25, max_by
                     raise OverflowError("Remote response is too large")
             except ValueError:
                 pass
-        data = response.read(max_bytes + 1)
-        conn.close()
+        try:
+            remaining = outbound_remaining_seconds(deadline)
+            try:
+                if getattr(conn, "sock", None) is not None:
+                    conn.sock.settimeout(remaining)
+            except Exception:
+                pass
+            data = response.read(max_bytes + 1)
+        finally:
+            conn.close()
         if len(data) > max_bytes:
             raise OverflowError("Remote response is too large")
         return status, response_headers, data, current
@@ -1877,6 +2279,7 @@ def normalize_frontend_performance(value):
         tier = "constrained" if bool(value.get("constrained")) else "standard"
     long_tasks = value.get("longTasks") if isinstance(value.get("longTasks"), dict) else {}
     heap = value.get("heap") if isinstance(value.get("heap"), dict) else {}
+    connectivity = value.get("connectivity") if isinstance(value.get("connectivity"), dict) else {}
     payload = {
         "cores": bounded_int(value.get("cores"), 0, 256),
         "memoryGB": bounded_float(value.get("memoryGB"), 0, 1024, 2),
@@ -1899,6 +2302,20 @@ def normalize_frontend_performance(value):
             "usedBytes": bounded_int(heap.get("usedBytes"), 0, 10**15),
             "totalBytes": bounded_int(heap.get("totalBytes"), 0, 10**15),
             "limitBytes": bounded_int(heap.get("limitBytes"), 0, 10**15),
+        }
+    if connectivity:
+        payload["connectivity"] = {
+            "requests": bounded_int(connectivity.get("requests"), 0, 10**9),
+            "successes": bounded_int(connectivity.get("successes"), 0, 10**9),
+            "failures": bounded_int(connectivity.get("failures"), 0, 10**9),
+            "timeouts": bounded_int(connectivity.get("timeouts"), 0, 10**9),
+            "retries": bounded_int(connectivity.get("retries"), 0, 10**9),
+            "inFlight": bounded_int(connectivity.get("inFlight"), 0, 10000),
+            "lastLatencyMs": bounded_int(connectivity.get("lastLatencyMs"), 0, 10**7),
+            "averageLatencyMs": bounded_int(connectivity.get("averageLatencyMs"), 0, 10**7),
+            "lastSuccessAt": bounded_int(connectivity.get("lastSuccessAt"), 0, 10**13),
+            "lastFailureAt": bounded_int(connectivity.get("lastFailureAt"), 0, 10**13),
+            "online": bool(connectivity.get("online", True)),
         }
     return payload
 
@@ -1966,6 +2383,34 @@ def system_health_payload():
             }
         except Exception:
             kiosk_payload = {"present": False}
+    watchdog = load_json_path(WATCHDOG_STATE_PATH, {})
+    if not isinstance(watchdog, dict):
+        watchdog = {}
+    startup_integrity = load_json_path(STARTUP_INTEGRITY_PATH, {})
+    if not isinstance(startup_integrity, dict):
+        startup_integrity = {}
+    config_recovery = load_json_path(CONFIG_RECOVERY_STATE_PATH, {})
+    if not isinstance(config_recovery, dict):
+        config_recovery = {}
+    def safe_nonnegative_int(value):
+        try:
+            return max(0, int(value or 0))
+        except Exception:
+            return 0
+    recovery_payload = {
+        "watchdog": {
+            "serverRestarts": safe_nonnegative_int(watchdog.get("serverRestarts")),
+            "browserRestarts": safe_nonnegative_int(watchdog.get("browserRestarts")),
+            "lastReason": str(watchdog.get("lastReason") or "")[:80],
+            "lastRecoveryAt": safe_nonnegative_int(watchdog.get("lastRecoveryAt")),
+        },
+        "config": {
+            "recoveredAt": safe_nonnegative_int(config_recovery.get("recoveredAt")),
+            "endpoint": endpoint_slug(config_recovery.get("endpoint") or "main"),
+            "recoveredFrom": str(config_recovery.get("recoveredFrom") or "")[:160],
+            "quarantinedFile": str(config_recovery.get("quarantinedFile") or "")[:160],
+        },
+    }
     return {
         "ok": True,
         "version": APP_VERSION,
@@ -1979,6 +2424,17 @@ def system_health_payload():
         "disk": disk_payload,
         "dataWritable": os.access(DATA_ROOT, os.W_OK),
         "kioskHeartbeat": kiosk_payload,
+        "outboundConnectivity": outbound_health_payload(),
+        "startupIntegrity": {
+            "ok": bool(startup_integrity.get("ok")),
+            "checkedAt": safe_nonnegative_int(startup_integrity.get("checkedAt")),
+            "version": str(startup_integrity.get("version") or "")[:40],
+            "coreFiles": safe_nonnegative_int(startup_integrity.get("coreFiles")),
+            "pythonFiles": safe_nonnegative_int(startup_integrity.get("pythonFiles")),
+            "shellFiles": safe_nonnegative_int(startup_integrity.get("shellFiles")),
+            "frontendVerified": bool(startup_integrity.get("frontendVerified")),
+        },
+        "recovery": recovery_payload,
         "update": update_run_status(),
     }
 
@@ -2006,10 +2462,9 @@ def broker_request_headers(target):
 def broker_remote_url(target, ttl_seconds=300):
     target = str(target or "").replace("\\&", "&").replace("&amp;", "&").replace("&#38;", "&").replace("&#x26;", "&")
     target = re.sub(r"[\u200B-\u200D\uFEFF]", "", target).strip()
-    validate_outbound_url(target)
     key = hashlib.sha256(("remote\n" + target).encode("utf-8", "replace")).hexdigest()
     def fetcher():
-        status, response_headers, data, _ = safe_fetch(target, headers=broker_request_headers(target), timeout=25, max_bytes=MAX_BYTES)
+        status, response_headers, data, _ = resilient_safe_fetch(target, headers=broker_request_headers(target), timeout=10, max_bytes=MAX_BYTES)
         if status >= 400:
             raise RuntimeError(f"Remote server returned HTTP {status}")
         content_type = response_headers.get("Content-Type", "application/octet-stream")
@@ -2021,11 +2476,7 @@ def broker_remote_url(target, ttl_seconds=300):
 
 
 def integration_block_for(endpoint_id, block_id):
-    try:
-        path = endpoint_config_path(endpoint_id)
-        data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-    except Exception:
-        data = {}
+    data = load_endpoint_config_resilient(endpoint_id) or {}
     for block in data.get("customBlocks") or []:
         if isinstance(block, dict) and str(block.get("id")) == str(block_id) and block.get("type") == "integration":
             return block
@@ -2096,6 +2547,8 @@ def invalidate_broker_key(key):
 
 
 def integration_error_kind(message):
+    if isinstance(message, (OutboundRequestError, socket.gaierror, ssl.SSLError, socket.timeout, TimeoutError, ConnectionRefusedError)):
+        return outbound_error_kind(message)
     text = str(message or "").lower()
     if not text:
         return ""
@@ -2107,10 +2560,18 @@ def integration_error_kind(message):
         return "rate-limit"
     if any(token in text for token in ("certificate", "tls", "ssl")):
         return "tls"
-    if any(token in text for token in ("timed out", "timeout", "name or service not known", "temporary failure", "connection refused", "unreachable", "dns")):
-        return "network"
+    if any(token in text for token in ("name or service not known", "temporary failure in name resolution", "nodename nor servname", "dns resolution", "dns")):
+        return "dns"
+    if "connection refused" in text or "refused" in text:
+        return "refused"
+    if any(token in text for token in ("network is unreachable", "no route to host", "host is unreachable", "unreachable")):
+        return "unreachable"
+    if any(token in text for token in ("timed out", "timeout")):
+        return "timeout"
     if re.search(r"\b5\d\d\b", text):
         return "provider"
+    if "network" in text or "connection" in text:
+        return "network"
     return "request"
 
 
@@ -2132,10 +2593,7 @@ def safe_response_header_value(value, limit=512):
 
 def integration_status_rows(endpoint_id):
     """Return display-safe integration health without exposing saved credentials."""
-    try:
-        data = json.loads(endpoint_config_path(endpoint_id).read_text(encoding="utf-8"))
-    except Exception:
-        data = {}
+    data = load_endpoint_config_resilient(endpoint_id) or {}
     rows = []
     now = int(time.time())
     for block in data.get("customBlocks") or []:
@@ -2164,6 +2622,10 @@ def integration_status_rows(endpoint_id):
             "refreshMin": refresh_min,
             "error": "",
             "errorKind": "",
+            "refreshing": False,
+            "consecutiveFailures": 0,
+            "retryAt": 0,
+            "lastDurationMs": 0,
         }
         if not plugin:
             row.update(status="missing", error="Integration plugin is not installed", errorKind="configuration")
@@ -2186,7 +2648,11 @@ def integration_status_rows(endpoint_id):
                     lastSuccessAt=max(0, int(state.get("lastSuccessAt") or saved_at)),
                     lastAttemptAt=max(0, int(state.get("lastAttemptAt") or 0)),
                     error=error,
-                    errorKind=integration_error_kind(error),
+                    errorKind=str(state.get("errorKind") or integration_error_kind(error))[:32],
+                    refreshing=bool(state.get("refreshing")),
+                    consecutiveFailures=max(0, int(state.get("consecutiveFailures") or 0)),
+                    retryAt=max(0, int(state.get("retryAt") or 0)),
+                    lastDurationMs=max(0, int(state.get("lastDurationMs") or 0)),
                 )
             else:
                 cached = broker_load(key)
@@ -2681,7 +3147,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         endpoint_id = requested_endpoint(parsed)
         if not endpoint_id:
             return {}, ""
-        config = self.load_json_file(endpoint_config_path(endpoint_id))
+        config = load_endpoint_config_resilient(endpoint_id)
         return (config if isinstance(config, dict) else {}), endpoint_id
 
     def display_media_path(self, value, parsed, require_dir=False, require_file=False):
@@ -2907,7 +3373,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         endpoint_id = requested_endpoint(parsed)
         calendar_id = str(parse_qs(parsed.query).get("id", [""])[0] or "")[:100]
         try:
-            config = self.load_json_file(endpoint_config_path(endpoint_id)) or {}
+            config = load_endpoint_config_resilient(endpoint_id) or {}
             calendar = next((x for x in config.get("calendars") or [] if isinstance(x, dict) and str(x.get("id")) == calendar_id), None)
             if not calendar:
                 raise ValueError("Calendar is not configured for this display")
@@ -2939,7 +3405,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         endpoint_id = requested_endpoint(parsed)
         block_id = str(parse_qs(parsed.query).get("block", [""])[0] or "")[:120]
         try:
-            config = self.load_json_file(endpoint_config_path(endpoint_id)) or {}
+            config = load_endpoint_config_resilient(endpoint_id) or {}
             block = next((x for x in config.get("customBlocks") or [] if isinstance(x, dict) and str(x.get("id")) == block_id), None)
             if not block or block.get("type") not in {"rss", "json"}:
                 raise ValueError("Data block is not configured for this display")
@@ -3301,6 +3767,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 }
                 with DEVICE_LOCK:
                     DEVICE_STATE[endpoint_id + ":" + device_id] = row
+                if bool((body or {}).get("connectivityRecovered")):
+                    broker_release_transient_backoff()
                 if row["mode"] == "local" and self.client_is_loopback():
                     atomic_write_json_file(KIOSK_HEARTBEAT_PATH, {
                         "lastSeen": row["lastSeen"],
@@ -3503,7 +3971,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if parsed.path in ("/login", "/login/"):
             if not self.client_network_allowed():
                 return self.text_response(403, "Login is limited to trusted LAN/private VPN clients.")
-            page = b"""<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>LibreDisplay Sign In</title><style>body{margin:0;background:#0c0f0d;color:#eef2ef;font:16px system-ui;display:grid;place-items:center;min-height:100vh}.card{width:min(420px,calc(100vw - 40px));background:#161a17;border:1px solid #303832;border-radius:18px;padding:28px;box-shadow:0 20px 70px #0008}h1{margin:0 0 4px}p{color:#aab5ad}label{display:block;margin:16px 0 6px}input{box-sizing:border-box;width:100%;padding:12px 14px;border-radius:10px;border:1px solid #3a443d;background:#0f1310;color:#fff}button{margin-top:18px;width:100%;padding:12px;border:0;border-radius:10px;background:#3fb950;color:#061006;font-weight:800;cursor:pointer}.err{min-height:22px;color:#ff8b8b;margin-top:12px}</style></head><body><form class='card' id='f'><h1>LibreDisplay</h1><p>Sign in to a local Owner, Editor, or Viewer account.</p><label>Username</label><input id='u' autocomplete='username' required><label>Password</label><input id='p' type='password' autocomplete='current-password' required><button>Sign in</button><div class='err' id='e'></div></form><script>f.onsubmit=async e=>{e.preventDefault();const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.value,password:p.value})});const d=await r.json().catch(()=>({}));if(r.ok&&d.ok)location.href=d.role==='viewer'?'/dashboard.html?display=1&endpoint='+(d.endpoint||'main'):'/settings?endpoint='+(d.endpoint||'main');else document.getElementById('e').textContent=d.error||'Sign-in failed';}</script></body></html>"""
+            page = b"""<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>LibreDisplay Sign In</title><style>body{margin:0;background:#0c0f0d;color:#eef2ef;font:16px system-ui;display:grid;place-items:center;min-height:100vh}.card{width:min(420px,calc(100vw - 40px));background:#161a17;border:1px solid #303832;border-radius:18px;padding:28px;box-shadow:0 20px 70px #0008}h1{margin:0 0 4px}p{color:#aab5ad}label{display:block;margin:16px 0 6px}input{box-sizing:border-box;width:100%;padding:12px 14px;border-radius:10px;border:1px solid #3a443d;background:#0f1310;color:#fff}button{margin-top:18px;width:100%;padding:12px;border:0;border-radius:10px;background:#3fb950;color:#061006;font-weight:800;cursor:pointer}.err{min-height:22px;color:#ff8b8b;margin-top:12px}</style></head><body><form class='card' id='f'><h1>LibreDisplay</h1><p>Sign in to a local Owner, Editor, or Viewer account.</p><label>Username</label><input id='u' autocomplete='username' required><label>Password</label><input id='p' type='password' autocomplete='current-password' required><button>Sign in</button><div class='err' id='e'></div></form><script>f.onsubmit=async e=>{e.preventDefault();const b=f.querySelector('button'),c=new AbortController(),t=setTimeout(()=>c.abort(),8000),m=document.getElementById('e');b.disabled=true;m.textContent='';try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.value,password:p.value}),signal:c.signal});const d=await r.json().catch(()=>({}));if(r.ok&&d.ok)location.href=d.role==='viewer'?'/dashboard.html?display=1&endpoint='+(d.endpoint||'main'):'/settings?endpoint='+(d.endpoint||'main');else m.textContent=d.error||'Sign-in failed';}catch(err){m.textContent=err&&err.name==='AbortError'?'Sign-in timed out. Check the LibreDisplay connection and try again.':'Could not reach LibreDisplay. Try again.';}finally{clearTimeout(t);b.disabled=false;}}</script></body></html>"""
             return self.bytes_response(200, page, "text/html; charset=utf-8", {"Cache-Control": "no-store"})
         if parsed.path == "/healthz":
             if not self.client_is_loopback():
@@ -3713,7 +4181,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             endpoint_id = requested_endpoint(parsed)
             if not endpoint_id:
                 return self.json_response(404, {"ok": False, "error": "Unknown display endpoint"})
-            config = self.load_json_file(endpoint_config_path(endpoint_id))
+            config = load_endpoint_config_resilient(endpoint_id)
             outgoing = config if isinstance(config, dict) else None
             if outgoing is not None and not self.authorized(parsed):
                 outgoing = json.loads(json.dumps(outgoing))

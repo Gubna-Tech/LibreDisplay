@@ -5,7 +5,7 @@ const {saveCfg}=configApi;
 const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 const {serverPath}=bootstrapApi;
 const {mediaFoldersFromForm}=LibreDisplayRuntime.getModule('backgrounds');
-const {uiCfg,fetchRemoteText,escHtml,esc,normalizeHexColor}=LibreDisplayRuntime.getModule('shared');
+const {uiCfg,fetchRemoteText,escHtml,esc,normalizeHexColor,resilientFetch}=LibreDisplayRuntime.getModule('shared');
 const calendarApi=LibreDisplayRuntime.getModule('calendar');
 const {normalizeCalendarUrl}=calendarApi;
 const integrationsApi=LibreDisplayRuntime.getModule('integrations');
@@ -149,11 +149,11 @@ async function wizardCommitDisplayName(){
 }
 async function wizardCreateSetupBaseline(){
   if(!configApi.wizardCreateBaseline||bootstrapApi.SESSION_ROLE!=='owner')return {ok:true,skipped:true};
-  try{const res=await fetch('/api/restore-points',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create',endpoint:bootstrapApi.ACTIVE_ENDPOINT,label:'Initial setup baseline'}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||`HTTP ${res.status}`);configApi.wizardBaselineCreated=true;configApi.wizardRestorePointCount=Array.isArray(data.points)?data.points.length:configApi.wizardRestorePointCount;return {ok:true};}catch(e){return {ok:false,error:String(e?.message||e)};}
+  try{const res=await resilientFetch('/api/restore-points',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create',endpoint:bootstrapApi.ACTIVE_ENDPOINT,label:'Initial setup baseline'}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||`HTTP ${res.status}`);configApi.wizardBaselineCreated=true;configApi.wizardRestorePointCount=Array.isArray(data.points)?data.points.length:configApi.wizardRestorePointCount;return {ok:true};}catch(e){return {ok:false,error:String(e?.message||e)};}
 }
 async function wizardLoadRestorePointCount(){
   if(bootstrapApi.SESSION_ROLE!=='owner'){configApi.wizardRestorePointCount=null;return;}
-  try{const res=await fetch('/api/restore-points',{cache:'no-store'}),data=await res.json().catch(()=>({}));if(res.ok&&data.ok)configApi.wizardRestorePointCount=Array.isArray(data.points)?data.points.length:0;}catch(e){}
+  try{const res=await resilientFetch('/api/restore-points',{cache:'no-store'}),data=await res.json().catch(()=>({}));if(res.ok&&data.ok)configApi.wizardRestorePointCount=Array.isArray(data.points)?data.points.length:0;}catch(e){}
 }
 async function runWizardHealthChecks(){
   if(configApi.wizardHealthRunning)return;configApi.wizardHealthRunning=true;configApi.wizardHealthRows=[...configApi.wizardHealthNotices];renderWizardHealth();
@@ -252,7 +252,7 @@ async function importCalendarFile(input){
   for(const file of files){
     try{
       const content=await file.text();
-      const res=await fetch(serverPath('/api/calendar-file'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:file.name,content}),cache:'no-store'});
+      const res=await resilientFetch(serverPath('/api/calendar-file'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:file.name,content}),cache:'no-store'});
       const data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));
       addCalendarSource({label:file.name.replace(/\.ics$/i,'')||'Imported calendar',url:data.url});imported++;
     }catch(e){failed.push(`${file.name}: ${e.message||e}`);}

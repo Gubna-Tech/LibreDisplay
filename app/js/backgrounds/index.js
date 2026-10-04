@@ -2,7 +2,7 @@
 const configApi=LibreDisplayRuntime.getModule('config');
 
 const {serverPath}=LibreDisplayRuntime.getModule('bootstrap');
-const {fetchRemoteText,escHtml,scaledClamp}=LibreDisplayRuntime.getModule('shared');
+const {fetchRemoteText,escHtml,scaledClamp,resilientFetch}=LibreDisplayRuntime.getModule('shared');
 const {extractAllGooglePhotoUrls,GOOGLE_PHOTOS_MAX_ITEMS}=LibreDisplayRuntime.getModule('backgrounds');
 
 let bgTimer=null;
@@ -26,7 +26,7 @@ async function loadMediaFolderBrowser(path=''){
   if(list)list.innerHTML='<div class="settings-note" style="padding:10px;">Loading folders…</div>';
   try{
     const url=serverPath('/api/media/browse'+(path?'?path='+encodeURIComponent(path):''));
-    const res=await fetch(url,{cache:'no-store'});
+    const res=await resilientFetch(url,{cache:'no-store'});
     const data=await res.json().catch(()=>({}));
     if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));
     mediaBrowsePath=data.path||'';
@@ -70,7 +70,7 @@ async function loadFolderBackgrounds(paths=cfg.mediaFolders,recursive=cfg.mediaR
     clearBackgroundPrepared(true);
     configApi.bgImages=[];configApi.bgSourceImages=[];configApi.bgIdx=0;configApi.bgLastUrl='';
     setBackgroundStatus('Scanning local / NAS picture folders…');
-    const res=await fetch(serverPath('/api/media/scan'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paths,recursive:recursive!==false}),cache:'no-store'});
+    const res=await resilientFetch(serverPath('/api/media/scan'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paths,recursive:recursive!==false}),cache:'no-store'},{timeoutMs:60000,retry:false});
     const data=await res.json().catch(()=>({}));
     if(sourceSerial!==configApi.bgSourceSerial)return;
     if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));

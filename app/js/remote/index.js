@@ -4,7 +4,7 @@ const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 const {serverPath}=bootstrapApi;
 const {healthAgeText}=LibreDisplayRuntime.getModule('integrations');
 const {ensureAlertMotionRunning}=LibreDisplayRuntime.getModule('weather');
-const {escHtml,esc}=LibreDisplayRuntime.getModule('shared');
+const {escHtml,esc,resilientFetch,connectivitySnapshot}=LibreDisplayRuntime.getModule('shared');
 
 let displayEndpoints=[];
 let displayDevices=[];
@@ -43,14 +43,14 @@ function renderDisplayReadiness(){
   const host=document.getElementById('display-readiness-notes');if(host)host.innerHTML=result.notes.map(n=>`<div class="display-readiness-item ${n.state}">${escHtml(n.text)}</div>`).join('');
 }
 async function refreshDisplayReadiness(){
-  try{await fetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'heartbeat',endpoint:bootstrapApi.ACTIVE_ENDPOINT}),cache:'no-store'});}catch(e){}
+  try{await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'heartbeat',endpoint:bootstrapApi.ACTIVE_ENDPOINT}),cache:'no-store'});}catch(e){}
   await Promise.allSettled([loadDisplayEndpoints(),loadSystemHealth()]);renderDisplayReadiness();
 }
 
 async function loadDisplayEndpoints(){
   const list=document.getElementById('endpoint-list'),status=document.getElementById('endpoint-status');if(!list)return;
   try{
-    const [endpointRes,deviceRes]=await Promise.all([fetch(serverPath('/api/endpoints'),{cache:'no-store'}),fetch(serverPath('/api/devices'),{cache:'no-store'})]);
+    const [endpointRes,deviceRes]=await Promise.all([resilientFetch(serverPath('/api/endpoints'),{cache:'no-store'}),resilientFetch(serverPath('/api/devices'),{cache:'no-store'})]);
     const data=await endpointRes.json().catch(()=>({})),devices=await deviceRes.json().catch(()=>({}));if(!endpointRes.ok||!data.ok)throw new Error(data.error||('HTTP '+endpointRes.status));
     displayEndpoints=Array.isArray(data.endpoints)?data.endpoints:[];displayDevices=deviceRes.ok&&Array.isArray(devices.devices)?devices.devices:[];endpointsRemoteEnabled=!!data.remoteEnabled;
     LibreDisplayRuntime.getModule('system').renderProfileEndpointSelect?.();
@@ -59,8 +59,8 @@ async function loadDisplayEndpoints(){
     LibreDisplayRuntime.getModule('onboarding').syncWizardDisplayNameFromEndpoints?.();renderDisplayReadiness();
   }catch(e){if(status)status.textContent='Display manager unavailable: '+(e.message||e);list.innerHTML='';renderDisplayReadiness();}
 }
-async function endpointAction(body){const res=await fetch(serverPath('/api/endpoints'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});const data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));return data;}
-async function sendDisplayCommand(endpoint,action){try{const res=await fetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint,action}),cache:'no-store'});const data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));if(action==='reload')setTimeout(loadDisplayEndpoints,1200);}catch(e){alert('Could not send display command: '+(e.message||e));}}
+async function endpointAction(body){const res=await resilientFetch(serverPath('/api/endpoints'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});const data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));return data;}
+async function sendDisplayCommand(endpoint,action){try{const res=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint,action}),cache:'no-store'});const data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));if(action==='reload')setTimeout(loadDisplayEndpoints,1200);}catch(e){alert('Could not send display command: '+(e.message||e));}}
 async function createDisplayEndpoint(){
   const name=prompt('Name this display (for example: Kitchen, Office, Bedroom):','');if(!name?.trim())return;
   const copy=confirm('Copy the current display configuration into the new display?');
@@ -76,7 +76,9 @@ function cacheSourceName(url){
   try{return new URL(url).hostname.replace(/^www\./,'');}catch(e){return 'remote data';}
 }
 let serverConnectionState=navigator.onLine===false?'offline':'online',serverReconnectRefreshPending=false,serverReconnectNoticeTimer=null;
+let serverRecoveryTimer=null,serverRecoveryRunning=false,serverRecoveryAttempt=0;
 const SERVER_RECONNECT_NOTICE_DELAY_MS=8000;
+const SERVER_RECOVERY_DELAYS_MS=[1000,3000,8000,15000,30000,60000];
 function updateOfflinePill(){
   const pill=document.getElementById('offline-pill');if(!pill)return;
   const stale=configApi.staleCacheSources.size>0,networkOffline=navigator.onLine===false,serverDown=serverConnectionState!=='online';
@@ -87,18 +89,41 @@ function updateOfflinePill(){
   pill.dataset.state=state;pill.classList.toggle('show',active);if(pill.textContent!==text)pill.textContent=text;
   updateSettingsOverview?.();
 }
+function clearServerRecoveryTimer(){if(serverRecoveryTimer){clearTimeout(serverRecoveryTimer);serverRecoveryTimer=null;}}
 function setServerConnectionState(state){
   const previous=serverConnectionState;serverConnectionState=state==='online'?'online':state==='offline'?'offline':'reconnecting';updateOfflinePill();
   if(serverConnectionState==='online'&&previous!=='online'&&!serverReconnectRefreshPending&&(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)){
-    serverReconnectRefreshPending=true;setTimeout(async()=>{try{await pollServerConfig();await Promise.allSettled([LibreDisplayRuntime.getModule('settings').refreshDataNow(),LibreDisplayRuntime.getModule('lifecycle').retryDisplayHydration('server-reconnected')]);}finally{serverReconnectRefreshPending=false;}},450);
+    serverReconnectRefreshPending=true;setTimeout(async()=>{try{await sendDisplayHeartbeat(true);await pollServerConfig();await Promise.allSettled([LibreDisplayRuntime.getModule('settings').refreshDataNow(),LibreDisplayRuntime.getModule('lifecycle').retryDisplayHydration('server-reconnected')]);scheduleDisplayHeartbeat(0);}finally{serverReconnectRefreshPending=false;}},250);
   }
 }
 function clearServerReconnectNotice(){if(serverReconnectNoticeTimer){clearTimeout(serverReconnectNoticeTimer);serverReconnectNoticeTimer=null;}}
-function markServerTransportOpen(){clearServerReconnectNotice();setServerConnectionState('online');}
+function markServerTransportOpen(){clearServerReconnectNotice();clearServerRecoveryTimer();serverRecoveryAttempt=0;setServerConnectionState('online');}
+function scheduleServerRecovery(reason='transport',delayMs=null){
+  if(navigator.onLine===false){clearServerRecoveryTimer();setServerConnectionState('offline');return;}
+  if(serverRecoveryTimer)return;
+  setServerConnectionState('reconnecting');
+  const wait=delayMs==null?SERVER_RECOVERY_DELAYS_MS[Math.min(serverRecoveryAttempt,SERVER_RECOVERY_DELAYS_MS.length-1)]:Math.max(0,Number(delayMs)||0);
+  serverRecoveryTimer=setTimeout(()=>{serverRecoveryTimer=null;recoverServerConnection(reason);},wait);
+}
+async function recoverServerConnection(reason='scheduled'){
+  if(serverRecoveryRunning)return false;
+  if(navigator.onLine===false){setServerConnectionState('offline');return false;}
+  serverRecoveryRunning=true;clearServerReconnectNotice();setServerConnectionState('reconnecting');
+  try{
+    const res=await resilientFetch(serverPath('/api/session-info'),{cache:'no-store'},{timeoutMs:3500,attempts:1,retry:false});
+    if(!res.ok)throw new Error('LibreDisplay server HTTP '+res.status);
+    markServerTransportOpen();
+    return true;
+  }catch(e){
+    serverRecoveryAttempt=Math.min(serverRecoveryAttempt+1,SERVER_RECOVERY_DELAYS_MS.length-1);
+    scheduleServerRecovery(reason);
+    return false;
+  }finally{serverRecoveryRunning=false;}
+}
 function noteServerTransportError(){
-  if(navigator.onLine===false){clearServerReconnectNotice();setServerConnectionState('offline');return;}
+  if(navigator.onLine===false){clearServerReconnectNotice();clearServerRecoveryTimer();setServerConnectionState('offline');return;}
   if(serverConnectionState==='reconnecting'||serverReconnectNoticeTimer)return;
-  serverReconnectNoticeTimer=setTimeout(()=>{serverReconnectNoticeTimer=null;if(navigator.onLine!==false&&liveEventSource?.readyState!==EventSource.OPEN)setServerConnectionState('reconnecting');},SERVER_RECONNECT_NOTICE_DELAY_MS);
+  serverReconnectNoticeTimer=setTimeout(()=>{serverReconnectNoticeTimer=null;if(navigator.onLine!==false&&liveEventSource?.readyState!==EventSource.OPEN){setServerConnectionState('reconnecting');scheduleServerRecovery('event-stream',0);}},SERVER_RECONNECT_NOTICE_DELAY_MS);
 }
 function noteCacheResponse(url,res){
   const name=cacheSourceName(url);
@@ -123,7 +148,7 @@ async function loadRemoteInfo(){
     return;
   }
   try{
-    const res=await fetch('/api/remote-info',{cache:'no-store'});
+    const res=await resilientFetch('/api/remote-info',{cache:'no-store'});
     if(!res.ok)throw new Error('HTTP '+res.status);
     configApi.remoteInfo=await res.json();
     const enabled=!!configApi.remoteInfo?.remoteEnabled;
@@ -155,7 +180,7 @@ async function toggleRemoteAccess(){
   if(!confirm(message))return;
   const status=document.getElementById('remote-settings-status');
   try{
-    const res=await fetch('/api/remote-access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!currentlyEnabled}),cache:'no-store'});
+    const res=await resilientFetch('/api/remote-access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!currentlyEnabled}),cache:'no-store'});
     const data=await res.json().catch(()=>({}));
     if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));
     await loadRemoteInfo();
@@ -185,7 +210,7 @@ async function rotateRemoteAccessKey(){
   if(!confirm('Rotate remote access keys? Existing admin sessions and read-only display links will stop working immediately.'))return;
   const status=document.getElementById('remote-settings-status');
   try{
-    const res=await fetch('/api/access-rotate',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'});
+    const res=await resilientFetch('/api/access-rotate',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'});
     const data=await res.json().catch(()=>({}));
     if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));
     await loadRemoteInfo();
@@ -196,7 +221,7 @@ async function rotateRemoteAccessKey(){
 async function loadCacheStatus(){
   const el=document.getElementById('cache-status');
   try{
-    const res=await fetch(serverPath('/api/cache-status'),{cache:'no-store'});
+    const res=await resilientFetch(serverPath('/api/cache-status'),{cache:'no-store'});
     if(!res.ok)throw new Error('HTTP '+res.status);
     const d=await res.json();
     const mb=(Number(d.bytes||0)/1048576).toFixed(1);
@@ -208,7 +233,7 @@ async function clearOfflineCache(){
   if(!confirm('Clear the saved offline cache? Live services will be fetched again as needed.'))return;
   const el=document.getElementById('cache-status');
   try{
-    const res=await fetch(serverPath('/api/cache-clear'),{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'});
+    const res=await resilientFetch(serverPath('/api/cache-clear'),{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'});
     if(!res.ok)throw new Error('HTTP '+res.status);
     configApi.staleCacheSources.clear();updateOfflinePill();
     if(el){el.style.display='block';el.textContent='Offline cache cleared.';}
@@ -227,7 +252,7 @@ async function pollServerConfig(){
   // remote edits or the explicit full-screen preview state.
   if(setupOpen&&(!bootstrapApi.REMOTE_SETTINGS_MODE||LibreDisplayRuntime.getModule('system').settingsDirty||LibreDisplayRuntime.getModule('settings').settingsPreviewMode))return;
   try{
-    const res=await fetch(serverPath('/api/config'),{cache:'no-store'});
+    const res=await resilientFetch(serverPath('/api/config'),{cache:'no-store'});
     if(!res.ok)return;
     const data=await res.json();
     const remote=data?.config;
@@ -261,7 +286,7 @@ function displayViewportMetrics(){
   const layoutWidth=Math.max(1,Math.round(appRect?.width||viewportWidth)),layoutHeight=Math.max(1,Math.round(appRect?.height||viewportHeight));
   return {width:layoutWidth,height:layoutHeight,layoutWidth,layoutHeight,viewportWidth,viewportHeight,visualViewportWidth:Math.max(1,Math.round(vv?.width||viewportWidth)),visualViewportHeight:Math.max(1,Math.round(vv?.height||viewportHeight)),visualViewportScale:Number(vv?.scale)||1,screenWidth:Math.round(screen.width||layoutWidth),screenHeight:Math.round(screen.height||layoutHeight),dpr:Number(devicePixelRatio)||1,fontProbeWidth:Number(fontProbe.width.toFixed(3))||0,fontProbeHeight:Number(fontProbe.height.toFixed(3))||0,fontName:String(cfg?.fontFamily||'Inter')};
 }
-async function sendDisplayHeartbeat(){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;try{const m=displayViewportMetrics(),frontendPerformance=LibreDisplayRuntime.getModule('performance').frontendPerformanceSnapshot();await fetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:bootstrapApi.READ_ONLY_DISPLAY_MODE?'viewer':(bootstrapApi.LOCAL_CLIENT_MODE?'local':'admin'),version:bootstrapApi.DASHBOARD_BUILD,userAgent:navigator.userAgent,frontendPerformance}),cache:'no-store'});}catch(e){}}
+async function sendDisplayHeartbeat(connectivityRecovered=false){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;try{const m=displayViewportMetrics(),frontendPerformance={...LibreDisplayRuntime.getModule('performance').frontendPerformanceSnapshot(),connectivity:connectivitySnapshot()};await resilientFetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:bootstrapApi.READ_ONLY_DISPLAY_MODE?'viewer':(bootstrapApi.LOCAL_CLIENT_MODE?'local':'admin'),version:bootstrapApi.DASHBOARD_BUILD,userAgent:navigator.userAgent,frontendPerformance,connectivityRecovered:!!connectivityRecovered}),cache:'no-store'},{timeoutMs:5000,retry:false});}catch(e){}}
 function scheduleDisplayHeartbeat(delay=100){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;if(heartbeatResizeTimer)clearTimeout(heartbeatResizeTimer);heartbeatResizeTimer=setTimeout(()=>{heartbeatResizeTimer=null;LibreDisplayRuntime.getModule('performance').runExclusiveTask('display-heartbeat',sendDisplayHeartbeat);},Math.max(0,delay));}
 function bindDisplayViewportHeartbeat(){
   if(window.__ldViewportHeartbeatBound)return;window.__ldViewportHeartbeatBound=true;
@@ -272,7 +297,7 @@ function bindDisplayViewportHeartbeat(){
   window.visualViewport?.addEventListener('resize',()=>scheduleDisplayHeartbeat(80),{passive:true});
 }
 function startLiveDisplayConnection(){
-  clearServerReconnectNotice();
+  clearServerReconnectNotice();clearServerRecoveryTimer();serverRecoveryAttempt=0;
   try{liveEventSource?.close();}catch(e){}liveEventSource=null;
   try{
     liveEventSource=new EventSource(serverPath('/api/events'));
@@ -310,7 +335,7 @@ function clearSettingsInitializationError(){
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,markServerTransportOpen,noteServerTransportError,noteCacheResponse,loadRemoteInfo,toggleRemoteAccess,copyRemoteSettingsUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,sendDisplayHeartbeat,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
+LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,toggleRemoteAccess,copyRemoteSettingsUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,sendDisplayHeartbeat,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
   "displayEndpoints": {configurable:true,get:()=>displayEndpoints,set:(value)=>{displayEndpoints=value;}},
   "displayDevices": {configurable:true,get:()=>displayDevices,set:(value)=>{displayDevices=value;}},
   "endpointsRemoteEnabled": {configurable:true,get:()=>endpointsRemoteEnabled,set:(value)=>{endpointsRemoteEnabled=value;}},

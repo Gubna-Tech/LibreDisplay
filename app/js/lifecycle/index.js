@@ -37,8 +37,8 @@ function startDisplayHydrationRecovery(attempt=0){
   displayHydrationRecoveryStarted=true;
   [5000,15000,35000,75000,150000].forEach(ms=>setTimeout(()=>retryDisplayHydration('startup+'+Math.round(ms/1000)+'s'),ms));
   const remote=LibreDisplayRuntime.getModule('remote');
-  window.addEventListener('online',()=>{remote.noteServerTransportError();setTimeout(()=>retryDisplayHydration('online'),350);});
-  window.addEventListener('offline',()=>{remote.clearServerReconnectNotice();remote.setServerConnectionState('offline');});
+  window.addEventListener('online',()=>{remote.recoverServerConnection('browser-online');setTimeout(()=>retryDisplayHydration('online'),350);});
+  window.addEventListener('offline',()=>{remote.clearServerReconnectNotice();remote.clearServerRecoveryTimer();remote.setServerConnectionState('offline');});
   window.addEventListener('pageshow',()=>setTimeout(()=>retryDisplayHydration('pageshow'),500));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>retryDisplayHydration('visible'),500);});
 }

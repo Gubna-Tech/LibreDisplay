@@ -2,7 +2,7 @@ const layoutApi=()=>LibreDisplayRuntime.getModule("layout");
 // Remote-display Arrange proxy and preview workspace.
 const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 const {serverPath}=bootstrapApi;
-const {escHtml}=LibreDisplayRuntime.getModule('shared');
+const {escHtml,resilientFetch}=LibreDisplayRuntime.getModule('shared');
 
 
 let remoteLayoutProxyActive=false;
@@ -104,13 +104,13 @@ function bestLayoutTargetDevice(rows,{freshSince=0}={}){
   return candidates[0]||null;
 }
 async function readDisplayDevices(){
-  const res=await fetch(serverPath('/api/devices'),{cache:'no-store'}),data=await res.json().catch(()=>({}));
+  const res=await resilientFetch(serverPath('/api/devices'),{cache:'no-store'}),data=await res.json().catch(()=>({}));
   if(!res.ok||!Array.isArray(data.devices))throw new Error(data.error||('HTTP '+res.status));
   return data.devices;
 }
 async function requestFreshDisplayMetrics(){
   const requestedAt=Date.now()/1000;
-  try{await fetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'heartbeat',endpoint:bootstrapApi.ACTIVE_ENDPOINT}),cache:'no-store'});}catch(e){}
+  try{await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'heartbeat',endpoint:bootstrapApi.ACTIVE_ENDPOINT}),cache:'no-store'});}catch(e){}
   let latestValid=null;
   for(let attempt=0;attempt<18;attempt++){
     await new Promise(resolve=>setTimeout(resolve,attempt?140:90));

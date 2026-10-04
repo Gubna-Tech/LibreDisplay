@@ -5,7 +5,7 @@ const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 const {serverPath}=bootstrapApi;
 const remoteApi=LibreDisplayRuntime.getModule('remote');
 const systemApi=LibreDisplayRuntime.getModule('system');
-const {escHtml}=LibreDisplayRuntime.getModule('shared');
+const {escHtml,resilientFetch}=LibreDisplayRuntime.getModule('shared');
 
 
 function setProfileStatus(text,error=false){
@@ -86,11 +86,11 @@ async function applySelectedProfileToDisplay(){
   const label=profileDisplayName(endpoint);if(!confirm(`Apply profile “${p.name}” to “${label}”?
 
 This replaces that display's saved dashboard configuration. The profile itself is not changed.`))return;
-  try{const next=JSON.parse(JSON.stringify(p.config));next.onboardingComplete=true;next._savedAt=Date.now();const res=await fetch(endpointConfigPath(endpoint),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:next}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));setActiveProfileForEndpoint(endpoint,id);persistProfiles();if(endpoint===bootstrapApi.ACTIVE_ENDPOINT){cfg={...cfg,...next};ensureCfgDefaults();try{localStorage.setItem(bootstrapApi.CFG_KEY,JSON.stringify(cfg));}catch{}configApi.alertRuntimeState=null;window.__uiPreviewCfg=null;applySettings();setAppearanceForm(cfg);}setProfileStatus(`Applied “${p.name}” to ${label}.`);renderProfileSelect();}catch(e){setProfileStatus('Could not apply profile: '+(e.message||e),true);}
+  try{const next=JSON.parse(JSON.stringify(p.config));next.onboardingComplete=true;next._savedAt=Date.now();const res=await resilientFetch(endpointConfigPath(endpoint),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:next}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));setActiveProfileForEndpoint(endpoint,id);persistProfiles();if(endpoint===bootstrapApi.ACTIVE_ENDPOINT){cfg={...cfg,...next};ensureCfgDefaults();try{localStorage.setItem(bootstrapApi.CFG_KEY,JSON.stringify(cfg));}catch{}configApi.alertRuntimeState=null;window.__uiPreviewCfg=null;applySettings();setAppearanceForm(cfg);}setProfileStatus(`Applied “${p.name}” to ${label}.`);renderProfileSelect();}catch(e){setProfileStatus('Could not apply profile: '+(e.message||e),true);}
 }
 async function captureTargetDisplayAsProfile(){
   const endpoint=document.getElementById('s-profile-endpoint')?.value||bootstrapApi.ACTIVE_ENDPOINT,label=profileDisplayName(endpoint);let name=(document.getElementById('s-profile-name')?.value||'').trim();if(!name)name=label;
-  try{const res=await fetch(endpointConfigPath(endpoint),{cache:'no-store'}),data=await res.json();if(!res.ok||!data.ok||!data.config)throw new Error(data.error||'That display does not have a saved configuration yet.');const id=uniqueProfileId();const snap=JSON.parse(JSON.stringify(data.config));delete snap._savedAt;configApi.profileStore.items.push({id,name:name.slice(0,48),config:snap,updatedAt:Date.now(),sourceEndpoint:endpoint,sourceDisplayName:label});persistProfiles();renderProfileSelect();document.getElementById('s-profile-select').value=id;document.getElementById('s-profile-name').value=name.slice(0,48);setProfileStatus(`Captured ${label} as profile “${name.slice(0,48)}”.`);}catch(e){setProfileStatus('Could not capture display: '+(e.message||e),true);}
+  try{const res=await resilientFetch(endpointConfigPath(endpoint),{cache:'no-store'}),data=await res.json();if(!res.ok||!data.ok||!data.config)throw new Error(data.error||'That display does not have a saved configuration yet.');const id=uniqueProfileId();const snap=JSON.parse(JSON.stringify(data.config));delete snap._savedAt;configApi.profileStore.items.push({id,name:name.slice(0,48),config:snap,updatedAt:Date.now(),sourceEndpoint:endpoint,sourceDisplayName:label});persistProfiles();renderProfileSelect();document.getElementById('s-profile-select').value=id;document.getElementById('s-profile-name').value=name.slice(0,48);setProfileStatus(`Captured ${label} as profile “${name.slice(0,48)}”.`);}catch(e){setProfileStatus('Could not capture display: '+(e.message||e),true);}
 }
 
 function sceneProfileOptions(selected='',allowEmpty=true){
@@ -104,7 +104,7 @@ function normalizeClientSceneStore(raw){
 }
 async function loadScenes(){
   const status=document.getElementById('scene-status');
-  try{const res=await fetch(serverPath('/api/scenes'),{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();configApi.sceneStore=normalizeClientSceneStore(data.scenes);configApi.sceneActive=data.active||{};renderScenes();if(status)status.textContent=configApi.sceneActive[bootstrapApi.ACTIVE_ENDPOINT]?`Active scheduled profile: ${configApi.profileStore.items.find(p=>p.id===configApi.sceneActive[bootstrapApi.ACTIVE_ENDPOINT])?.name||configApi.sceneActive[bootstrapApi.ACTIVE_ENDPOINT]}`:'No scheduled scene is active right now.';}catch(e){if(status)status.textContent='Could not load schedules: '+(e.message||e);}
+  try{const res=await resilientFetch(serverPath('/api/scenes'),{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();configApi.sceneStore=normalizeClientSceneStore(data.scenes);configApi.sceneActive=data.active||{};renderScenes();if(status)status.textContent=configApi.sceneActive[bootstrapApi.ACTIVE_ENDPOINT]?`Active scheduled profile: ${configApi.profileStore.items.find(p=>p.id===configApi.sceneActive[bootstrapApi.ACTIVE_ENDPOINT])?.name||configApi.sceneActive[bootstrapApi.ACTIVE_ENDPOINT]}`:'No scheduled scene is active right now.';}catch(e){if(status)status.textContent='Could not load schedules: '+(e.message||e);}
 }
 function renderScenes(){
   const auto=document.getElementById('scene-automatic');if(auto)auto.checked=configApi.sceneStore.automatic!==false;
@@ -120,7 +120,7 @@ function collectScenesFromUi(){
 }
 function addSceneRule(){if(!configApi.profileStore.items.length){document.getElementById('scene-status').textContent='Create at least one Profile before adding a scene.';return;}collectScenesFromUi();configApi.sceneStore.items.push({id:sceneRuleId(),name:'New scene',endpoint:bootstrapApi.ACTIVE_ENDPOINT,profileId:configApi.profileStore.items[0].id,days:[0,1,2,3,4,5,6],start:'07:00',end:'22:00',enabled:true});renderScenes();}
 function removeSceneRule(id){collectScenesFromUi();configApi.sceneStore.items=configApi.sceneStore.items.filter(x=>x.id!==id);renderScenes();}
-async function saveScenes(){collectScenesFromUi();const status=document.getElementById('scene-status');try{const res=await fetch(serverPath('/api/scenes'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scenes:configApi.sceneStore}),cache:'no-store'});if(!res.ok)throw new Error(await res.text());if(status)status.textContent='Schedules saved. The server will apply matching scenes automatically.';setTimeout(loadScenes,400);}catch(e){if(status)status.textContent='Could not save schedules: '+(e.message||e);}}
+async function saveScenes(){collectScenesFromUi();const status=document.getElementById('scene-status');try{const res=await resilientFetch(serverPath('/api/scenes'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scenes:configApi.sceneStore}),cache:'no-store'});if(!res.ok)throw new Error(await res.text());if(status)status.textContent='Schedules saved. The server will apply matching scenes automatically.';setTimeout(loadScenes,400);}catch(e){if(status)status.textContent='Could not save schedules: '+(e.message||e);}}
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.

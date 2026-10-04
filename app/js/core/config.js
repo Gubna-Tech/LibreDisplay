@@ -1,6 +1,7 @@
 const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 const {serverPath}=bootstrapApi;
 const integrationsApi=LibreDisplayRuntime.getModule('integrations');
+const {resilientFetch}=LibreDisplayRuntime.getModule('shared');
 let calendarEditorRows=[];
 let cfg = {
   city:'', locName:'', lat:null, lon:null,
@@ -380,7 +381,7 @@ async function loadCfg(){
   let localObj=null, serverObj=null;
   try{const s=localStorage.getItem(bootstrapApi.CFG_KEY);if(s)localObj=JSON.parse(s);}catch(e){}
   try{
-    const res=await fetch(serverPath('/api/config'),{cache:'no-store'});
+    const res=await resilientFetch(serverPath('/api/config'),{cache:'no-store'});
     if(res.ok){
       const data=await res.json();
       serverConfigAvailable=true;serverConfigLastError='';
@@ -401,7 +402,7 @@ async function loadCfg(){
 
 async function persistCfgToServer(snapshot){
   try{
-    const res=await fetch(serverPath('/api/config'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:snapshot}),cache:'no-store'});
+    const res=await resilientFetch(serverPath('/api/config'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:snapshot}),cache:'no-store'});
     if(!res.ok)throw new Error(await res.text());
     const data=await res.json().catch(()=>({}));
     serverConfigAvailable=true;serverConfigLastError='';
@@ -442,7 +443,7 @@ async function loadProfiles(){
   let localObj=null, serverObj=null;
   try{const s=localStorage.getItem(bootstrapApi.PROFILES_KEY);if(s)localObj=normalizeProfileStore(JSON.parse(s));}catch(e){}
   try{
-    const res=await fetch(serverPath('/api/profiles'),{cache:'no-store'});
+    const res=await resilientFetch(serverPath('/api/profiles'),{cache:'no-store'});
     if(res.ok){const data=await res.json();if(data?.exists&&data.profiles)serverObj=normalizeProfileStore(data.profiles);}
   }catch(e){}
   const ls=Number(localObj?.updatedAt)||0, ss=Number(serverObj?.updatedAt)||0;
@@ -454,7 +455,7 @@ async function persistProfiles(){
   profileStore.updatedAt=Date.now();
   try{localStorage.setItem(bootstrapApi.PROFILES_KEY,JSON.stringify(profileStore));}catch(e){}
   try{
-    const res=await fetch(serverPath('/api/profiles'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profiles:profileStore}),cache:'no-store'});
+    const res=await resilientFetch(serverPath('/api/profiles'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profiles:profileStore}),cache:'no-store'});
     const data=await res.json().catch(()=>({}));
     if(!res.ok||!data.ok)throw new Error(data.error||`HTTP ${res.status}`);
     return {ok:true};

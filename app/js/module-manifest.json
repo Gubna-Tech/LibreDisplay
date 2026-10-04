@@ -13,7 +13,7 @@
     "module": "shared",
     "part": "shared",
     "path": "/js/core/shared.js",
-    "lines": 25,
+    "lines": 90,
     "functions": 7,
     "bindings": 0
   },
@@ -31,7 +31,7 @@
     "module": "config",
     "part": "config",
     "path": "/js/core/config.js",
-    "lines": 522,
+    "lines": 523,
     "functions": 9,
     "bindings": 53
   },
@@ -175,8 +175,8 @@
     "module": "remote",
     "part": "index",
     "path": "/js/remote/index.js",
-    "lines": 324,
-    "functions": 39,
+    "lines": 349,
+    "functions": 42,
     "bindings": 10
   },
   {
@@ -184,7 +184,7 @@
     "module": "system",
     "part": "index",
     "path": "/js/system/index.js",
-    "lines": 460,
+    "lines": 475,
     "functions": 34,
     "bindings": 16
   },

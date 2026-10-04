@@ -2,7 +2,7 @@
 const configApi=LibreDisplayRuntime.getModule('config');
 
 const {serverPath}=LibreDisplayRuntime.getModule('bootstrap');
-const {uiCfg,fetchRemoteText,esc}=LibreDisplayRuntime.getModule('shared');
+const {uiCfg,fetchRemoteText,resilientFetch,esc}=LibreDisplayRuntime.getModule('shared');
 const integrationsApi=LibreDisplayRuntime.getModule('integrations');
 const weatherApi=LibreDisplayRuntime.getModule('weather');
 const {fmtTime,parseICS,normalizeCalendarUrl,expandCalendarFeed}=LibreDisplayRuntime.getModule('calendar');
@@ -42,7 +42,7 @@ async function fetchCal(cal,calIdx,{preferFormUrl=false}={}){
       text=await fetchRemoteText(url,(cfg.calendarRefreshMin||15)*60);
     }else if(cal?.id){
       const target=serverPath('/api/calendar-source?id='+encodeURIComponent(cal.id));
-      const res=await fetch(target,{cache:'no-store'});
+      const res=await resilientFetch(target,{cache:'no-store'},{timeoutMs:18000,attempts:2});
       LibreDisplayRuntime.getModule('remote').noteCacheResponse('calendar:'+cal.id,res);
       if(!res.ok){const msg=await res.text().catch(()=>res.statusText);throw new Error('Calendar source HTTP '+res.status+(msg?' — '+msg:''));}
       text=await res.text();

@@ -8,7 +8,7 @@ const {setWizardMode,renderCalendarSourceList,renderCalendarOrderList,bindCalend
 const configApi=LibreDisplayRuntime.getModule('config');
 const {ensureCfgDefaults}=configApi;
 const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
-const {serverPath}=bootstrapApi;
+const {serverPath}=bootstrapApi;const {resilientFetch}=LibreDisplayRuntime.getModule('shared');
 const {setBackgroundStatus}=LibreDisplayRuntime.getModule('backgrounds');
 const {updateCalStatusUI,renderCalendar}=LibreDisplayRuntime.getModule('calendar');
 const {tick,renderWeather,renderWeatherDetailsSettings,previewAlertSize,syncAlertRuntimeStateFromForm,previewAlertMotionSpeed,setAlertStatus,restartAlertScroller,fetchWeatherAlerts,ensureAlertMotionRunning}=LibreDisplayRuntime.getModule('weather');
@@ -198,7 +198,7 @@ function applySettings(){
 // Browser cursor fallback.
 async function loadSessionInfo(){
   try{
-    const res=await fetch(serverPath('/api/session-info'),{cache:'no-store'});
+    const res=await resilientFetch(serverPath('/api/session-info'),{cache:'no-store'});
     if(!res.ok)return;
     const data=await res.json();
     bootstrapApi.READ_ONLY_DISPLAY_MODE=!!data?.display;

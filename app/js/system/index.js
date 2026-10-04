@@ -11,7 +11,7 @@ const calendarApi=LibreDisplayRuntime.getModule('calendar');
 const {loadCalendars}=calendarApi;
 const weatherApi=LibreDisplayRuntime.getModule('weather');
 const {weatherWindUnitLabel,fetchWeather,fetchWeatherAlerts}=weatherApi;
-const {escHtml,safeHttpUrl}=LibreDisplayRuntime.getModule('shared');
+const {escHtml,safeHttpUrl,resilientFetch,connectivitySnapshot}=LibreDisplayRuntime.getModule('shared');
 
 
 let settingsInitializing=false;
@@ -92,7 +92,7 @@ async function checkSoftwareUpdate(force=false){
   const run=(async()=>{
     try{
       const suffix=force?'?force=1':'';
-      const r=await fetch(serverPath('/api/update-status'+suffix),{cache:'no-store'});
+      const r=await resilientFetch(serverPath('/api/update-status'+suffix),{cache:'no-store'},{timeoutMs:18000,attempts:2});
       const d=await r.json().catch(()=>({ok:false}));
       softwareUpdateState=r.ok?d:{ok:false};
     }catch(e){softwareUpdateState={ok:false};}
@@ -134,7 +134,7 @@ async function monitorSoftwareUpdate(targetVersion){
     for(let attempt=0;attempt<120;attempt++){
       await sleepMs(attempt<4?2000:4000);
       try{
-        const statusResponse=await fetch(serverPath('/api/update-run-status'),{cache:'no-store'});
+        const statusResponse=await resilientFetch(serverPath('/api/update-run-status'),{cache:'no-store'});
         if(statusResponse.status===403&&sawOffline){setSoftwareUpdateActionStatus('LibreDisplay restarted successfully enough to answer requests, but this remote Owner session expired during the reboot. Reopen Settings with a fresh pairing link to verify the new version.','warn');return;}
         if(statusResponse.ok){
           const run=await statusResponse.json().catch(()=>({}));
@@ -145,7 +145,7 @@ async function monitorSoftwareUpdate(targetVersion){
           }
           if(run.state==='running'||run.state==='starting')setSoftwareUpdateActionStatus(`Installing v${targetVersion}… The display will restart when installation is complete.`,'warn');
         }
-        const versionResponse=await fetch(serverPath('/api/update-status'),{cache:'no-store'});
+        const versionResponse=await resilientFetch(serverPath('/api/update-status'),{cache:'no-store'});
         if(versionResponse.ok){
           const info=await versionResponse.json().catch(()=>({}));
           if(info.currentVersion===targetVersion&&!info.updateAvailable){
@@ -170,7 +170,7 @@ async function startSoftwareUpdate(){
   const btn=document.getElementById('software-update-now');if(btn){btn.disabled=true;btn.textContent='Starting update…';}
   setSoftwareUpdateActionStatus(`Starting the v${target} update…`,'warn');
   try{
-    const r=await fetch(serverPath('/api/update-now'),{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'});
+    const r=await resilientFetch(serverPath('/api/update-now'),{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'});
     const result=await r.json().catch(()=>({}));
     if(!r.ok||!result.ok)throw new Error(result.error||`HTTP ${r.status}`);
     if(result.state==='current'){
@@ -203,7 +203,7 @@ function renderReleaseRollbacks(){
 }
 async function loadReleaseRollbacks(){
   const host=document.getElementById('release-rollback-list');if(host&&!releaseRollbackState)host.innerHTML='<div class="settings-note">Loading rollback snapshots…</div>';
-  try{const r=await fetch(serverPath('/api/release-rollbacks'),{cache:'no-store'}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||`HTTP ${r.status}`);releaseRollbackState=d;renderReleaseRollbacks();}catch(e){releaseRollbackState={ok:false,snapshots:[]};if(host)host.innerHTML='';setReleaseRollbackStatus('Could not load update history: '+(e?.message||e),'bad');}
+  try{const r=await resilientFetch(serverPath('/api/release-rollbacks'),{cache:'no-store'}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||`HTTP ${r.status}`);releaseRollbackState=d;renderReleaseRollbacks();}catch(e){releaseRollbackState={ok:false,snapshots:[]};if(host)host.innerHTML='';setReleaseRollbackStatus('Could not load update history: '+(e?.message||e),'bad');}
 }
 async function monitorReleaseRollback(targetVersion){
   if(releaseRollbackMonitorActive)return;releaseRollbackMonitorActive=true;let sawOffline=false;
@@ -211,10 +211,10 @@ async function monitorReleaseRollback(targetVersion){
     for(let attempt=0;attempt<120;attempt++){
       await sleepMs(attempt<4?2000:4000);
       try{
-        const versionResponse=await fetch(serverPath('/api/update-status'),{cache:'no-store'});
+        const versionResponse=await resilientFetch(serverPath('/api/update-status'),{cache:'no-store'});
         if(versionResponse.status===403&&sawOffline){setReleaseRollbackStatus(`LibreDisplay restarted during rollback to v${targetVersion}, but this remote Owner session expired. Reopen Settings with a fresh pairing link to verify the restored version.`,'warn');return;}
         if(versionResponse.ok){const info=await versionResponse.json().catch(()=>({}));if(info.currentVersion===targetVersion){setReleaseRollbackStatus(`Rollback to v${targetVersion} completed. Reloading Settings…`,'good');await sleepMs(1200);location.reload();return;}if(sawOffline)setReleaseRollbackStatus('LibreDisplay is back online. Verifying the restored version…','warn');}
-        const runResponse=await fetch(serverPath('/api/release-rollback-run-status'),{cache:'no-store'});
+        const runResponse=await resilientFetch(serverPath('/api/release-rollback-run-status'),{cache:'no-store'});
         if(runResponse.ok){const run=await runResponse.json().catch(()=>({}));if(run.state==='failed'){setReleaseRollbackStatus(run.error||'Rollback did not complete. Review data/rollback.log.','bad');return;}}
       }catch(e){sawOffline=true;setReleaseRollbackStatus(`LibreDisplay is restoring v${targetVersion} and restarting. This page will reconnect automatically…`,'warn');}
     }
@@ -226,7 +226,7 @@ async function startReleaseRollback(snapshotId,targetVersion){
   const warning=`Restore LibreDisplay v${targetVersion}?\n\nThis is a full pre-update rollback: application files, settings, media, plugins, and project .env return to the state captured before that update. LibreDisplay first creates a new private safety snapshot of the current state so it remains recoverable. The device will restart.${bootstrapApi.REMOTE_SETTINGS_MODE?'\n\nYour remote Owner session may expire during the restart.':''}`;
   if(!confirm(warning))return;
   setReleaseRollbackStatus(`Preparing rollback to v${targetVersion}…`,'warn');
-  try{const r=await fetch(serverPath('/api/release-rollback'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:snapshotId}),cache:'no-store'}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||`HTTP ${r.status}`);setReleaseRollbackStatus(`Restoring v${targetVersion}… A recovery snapshot of the current installation is being created first.`,'warn');monitorReleaseRollback(targetVersion);}catch(e){setReleaseRollbackStatus('Could not start rollback: '+(e?.message||e),'bad');}
+  try{const r=await resilientFetch(serverPath('/api/release-rollback'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:snapshotId}),cache:'no-store'}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||`HTTP ${r.status}`);setReleaseRollbackStatus(`Restoring v${targetVersion}… A recovery snapshot of the current installation is being created first.`,'warn');monitorReleaseRollback(targetVersion);}catch(e){setReleaseRollbackStatus('Could not start rollback: '+(e?.message||e),'bad');}
 }
 
 function formatHealthBytes(bytes){
@@ -243,7 +243,7 @@ function formatHealthUptime(seconds){
 function renderSystemHealth(){
   const d=systemHealthState;
   const set=(id,text,state='')=>setHealth(id,text,state);
-  if(!d?.ok){for(const id of ['system-health-deployment','system-health-uptime','system-health-storage','system-health-data','system-health-host','system-health-hardware','system-health-memory','system-health-load','system-health-browser'])set(id,'Unavailable','warn');return;}
+  if(!d?.ok){for(const id of ['system-health-deployment','system-health-uptime','system-health-storage','system-health-data','system-health-host','system-health-hardware','system-health-memory','system-health-load','system-health-browser','system-health-connectivity','system-health-integrity','system-health-recovery'])set(id,'Unavailable','warn');return;}
   set('system-health-deployment',`${d.deployment||'unknown'} · v${d.version||bootstrapApi.DASHBOARD_BUILD}`,'good');
   set('system-health-uptime',d.uptimeSeconds==null?'Unavailable':formatHealthUptime(d.uptimeSeconds),d.uptimeSeconds==null?'warn':'good');
   const free=Number(d.disk?.freeBytes)||0,freePct=Number(d.disk?.freePercent)||0;
@@ -260,6 +260,18 @@ function renderSystemHealth(){
   const kiosk=d.kioskHeartbeat||{},perf=kiosk.frontendPerformance||{},longTasks=perf.longTasks||{};
   const perfText=kiosk.present&&Object.keys(perf).length?[`${perf.tier||'browser'} tier`,`${Number(longTasks.count)||0} long tasks`,`${Number(longTasks.maxMs)||0} ms max`,perf.heap?.usedBytes?`${formatHealthBytes(perf.heap.usedBytes)} JS heap`:'' ].filter(Boolean).join(' · '):(kiosk.present?'Waiting for browser metrics':'No local kiosk heartbeat');
   set('system-health-browser',perfText,kiosk.present?'good':'warn');
+  const conn=perf.connectivity||{},requests=Number(conn.requests)||0,failures=Number(conn.failures)||0,timeouts=Number(conn.timeouts)||0,retries=Number(conn.retries)||0,avg=Number(conn.averageLatencyMs)||0;
+  const outbound=d.outboundConnectivity||{},serverRequests=Number(outbound.requests)||0,serverFailures=Number(outbound.failures)||0,serverRetries=Number(outbound.retries)||0,serverAvg=Number(outbound.averageLatencyMs)||0,lastKind=String(outbound.lastFailureKind||'');
+  const browserText=kiosk.present&&requests?`${conn.online===false?'Offline':'Online'} · browser ${failures}/${requests} failed · ${timeouts} timed out · ${retries} retries${avg?' · '+avg+' ms avg':''}`:(kiosk.present?'Browser metrics pending':'No local kiosk heartbeat');
+  const serverText=serverRequests?`server ${serverFailures}/${serverRequests} failed · ${serverRetries} retries${serverAvg?' · '+serverAvg+' ms avg':''}${lastKind?' · last '+lastKind:''}`:'server provider metrics pending';
+  const connText=`${browserText} · ${serverText}`;
+  set('system-health-connectivity',connText,!kiosk.present?'warn':conn.online===false?'bad':(failures||timeouts||serverFailures)?'warn':'good');
+  const integrity=d.startupIntegrity||{},integrityChecked=Number(integrity.checkedAt)||0,integrityAge=integrityChecked?healthAgeText(Math.max(0,Date.now()/1000-integrityChecked)):'';
+  const integrityText=integrity.ok?`Verified${integrity.version?' · v'+integrity.version:''}${integrityAge?' · '+integrityAge:''}`:'Not verified at startup';
+  set('system-health-integrity',integrityText,integrity.ok&&integrity.frontendVerified?'good':'warn');
+  const recovery=d.recovery||{},watchdog=recovery.watchdog||{},configRecovery=recovery.config||{},serverRestarts=Number(watchdog.serverRestarts)||0,browserRestarts=Number(watchdog.browserRestarts)||0,configRecoveredAt=Number(configRecovery.recoveredAt)||0;
+  const recoveryParts=[];if(serverRestarts)recoveryParts.push(`${serverRestarts} server restart${serverRestarts===1?'':'s'}`);if(browserRestarts)recoveryParts.push(`${browserRestarts} browser restart${browserRestarts===1?'':'s'}`);if(configRecoveredAt)recoveryParts.push(`config recovered ${healthAgeText(Math.max(0,Date.now()/1000-configRecoveredAt))}`);
+  set('system-health-recovery',recoveryParts.length?recoveryParts.join(' · '):'Ready · no recovery actions recorded',recoveryParts.length?'warn':'good');
 }
 function renderSystemHealthRefreshStatus(refreshing=false){
   const el=document.getElementById('system-health-refresh-status');if(!el)return;
@@ -272,7 +284,7 @@ async function loadSystemHealth(){
   renderSystemHealthRefreshStatus(true);
   systemHealthRefreshPromise=(async()=>{
     try{
-      const r=await fetch(serverPath('/api/system-health'),{cache:'no-store'});
+      const r=await resilientFetch(serverPath('/api/system-health'),{cache:'no-store'},{timeoutMs:6000,attempts:2});
       systemHealthState=r.ok?await r.json():{ok:false};
     }catch(e){systemHealthState={ok:false};}
     systemHealthUpdatedAt=Date.now();
@@ -368,7 +380,9 @@ function buildDiagnosticsPayload(){
     dataWritable:systemHealthState.dataWritable,
     loadAverage:systemHealthState.loadAverage,
     hardware:systemHealthState.hardware,
-    kioskHeartbeat:systemHealthState.kioskHeartbeat
+    kioskHeartbeat:systemHealthState.kioskHeartbeat,
+    recovery:systemHealthState.recovery,
+    outboundConnectivity:systemHealthState.outboundConnectivity
   }:undefined;
   return {
     build:bootstrapApi.DASHBOARD_BUILD,
@@ -379,11 +393,12 @@ function buildDiagnosticsPayload(){
     software:softwareUpdateState?.ok?{currentVersion:softwareUpdateState.currentVersion,latestVersion:softwareUpdateState.latestVersion,updateAvailable:softwareUpdateState.updateAvailable,deployment:softwareUpdateState.deployment,canUpdateInApp:softwareUpdateState.canUpdateInApp}:undefined,
     viewport:{width:innerWidth,height:innerHeight,devicePixelRatio:devicePixelRatio||1},
     frontendPerformance:LibreDisplayRuntime.getModule('performance').frontendPerformanceSnapshot(),
+    frontendConnectivity:connectivitySnapshot(),
     fullscreen:!!document.fullscreenElement,
     appearance:{theme:cfg.uiTheme||'libre-night',font:cfg.fontFamily||'Inter'},
     weather:{configured:!!(cfg.lat&&cfg.lon),loaded:!!configApi.wxData,unit:cfg.useFahrenheit?'imperial':'metric',windUnit:weatherWindUnitLabel(cfg),place:LibreDisplayRuntime.getModule('onboarding').weatherLocationTitle(LibreDisplayRuntime.getModule('onboarding').savedWeatherLocation())||undefined,timezone:cfg.locationTimezone||weatherApi.weatherLastGridPoint?.timezone||undefined,source:weatherApi.weatherLastSource||undefined,error:weatherApi.weatherLastError||undefined},
     calendars:(cfg.calendars||[]).map((c,i)=>({name:c.label||`Calendar ${i+1}`,type:(String(c.url||'').startsWith('/calendar-files/')?'file':'ics'),enabled:c.enabled!==false,status:calendarApi.calStatuses[i]?.ok===true?'ok':calendarApi.calStatuses[i]?.disabled?'disabled':calendarApi.calStatuses[i]?.pending?'checking':calendarApi.calStatuses[i]?.error?'error':'unknown',checkedAt:calendarApi.calStatuses[i]?.checkedAt||undefined})),
-    integrations:integrationsApi.integrationHealthRows.map(r=>({name:r.name,plugin:r.pluginId,status:r.status,errorKind:r.errorKind||undefined,lastSuccessAt:r.lastSuccessAt||undefined,lastAttemptAt:r.lastAttemptAt||undefined,refreshMin:r.refreshMin||undefined})),
+    integrations:integrationsApi.integrationHealthRows.map(r=>({name:r.name,plugin:r.pluginId,status:r.status,errorKind:r.errorKind||undefined,lastSuccessAt:r.lastSuccessAt||undefined,lastAttemptAt:r.lastAttemptAt||undefined,refreshMin:r.refreshMin||undefined,refreshing:!!r.refreshing,consecutiveFailures:r.consecutiveFailures||0,retryAt:r.retryAt||undefined,lastDurationMs:r.lastDurationMs||undefined})),
     background:{source:cfg.backgroundSource,configured:cfg.backgroundSource==='stock'||(cfg.backgroundSource==='folders'&&!!cfg.mediaFolders?.length)||!!cfg.photosUrl,photosLoaded:(cfg.backgroundSource==='google'||cfg.backgroundSource==='folders')?(configApi.bgSourceImages?.length||0):undefined,stockCategory:cfg.backgroundSource==='stock'?cfg.stockCategory:undefined,stockResolution:cfg.backgroundSource==='stock'?cfg.stockResolution:undefined,mediaFolders:cfg.backgroundSource==='folders'?(cfg.mediaFolders||[]).length:undefined,order:cfg.photoOrder,intervalSec:cfg.photoIntervalSec,status:configApi.lastBackgroundStatus?.error?'error':'ok',updatedAt:configApi.lastBackgroundStatus?.updatedAt||undefined},
     alerts:{enabled:cfg.alertsEnabled,testMode:cfg.alertTestMode,active:configApi.activeWeatherAlerts.length,motion:cfg.alertMotionMode},
     refreshMinutes:{weather:cfg.weatherRefreshMin,calendar:cfg.calendarRefreshMin,alerts:cfg.alertRefreshMin},

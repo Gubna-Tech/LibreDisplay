@@ -1,6 +1,6 @@
 // Google Photos shared-album parsing and pagination.
 
-const {serverPath}=LibreDisplayRuntime.getModule('bootstrap');
+const {serverPath}=LibreDisplayRuntime.getModule('bootstrap');const {resilientFetch}=LibreDisplayRuntime.getModule('shared');
 
 function decodeGoogleMarkup(text){
   let out=String(text||'');
@@ -201,7 +201,7 @@ function parseGoogleBatchPage(body){
 
 async function fetchGoogleAlbumPage(request,pageToken){
   const q=new URLSearchParams({albumKey:request.albumKey,authKey:request.authKey,pageToken});
-  const res=await fetch(serverPath('/gphotos-page?'+q.toString()),{cache:'no-store'});
+  const res=await resilientFetch(serverPath('/gphotos-page?'+q.toString()),{cache:'no-store'},{timeoutMs:35000,retry:false});
   LibreDisplayRuntime.getModule('remote').noteCacheResponse('https://photos.google.com/',res);
   if(!res.ok){
     const msg=await res.text().catch(()=>res.statusText);
