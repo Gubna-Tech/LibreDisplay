@@ -163,6 +163,7 @@ const SETTINGS_CONTROL_HELP={
   's-photos':'The Google Photos shared-album URL used when Google Photos is selected as the background source.',
   's-photo-order':'Controls whether background photos advance in their listed order or shuffle.',
   's-photo-preload':'Loads and decodes the exact upcoming image before the transition while keeping the current photo visible until it is ready.',
+  's-background-motion':'Allows animated GIF, video and Motion JPEG backgrounds from local/NAS folders. Continuous decoding can be demanding on lower-powered devices.',
   's-bg-startup-priority':'Starts weather, air quality, calendars, and the dashboard shell before refreshing the background source. The last displayed background can be reused immediately while source discovery runs.',
   's-bg-startup-delay':'Sets the short delay before background-source discovery begins when startup prioritization is enabled.',
   's-weather-animations':'Master switch for optional decorative motion based on the current weather.',

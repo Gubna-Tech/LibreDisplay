@@ -11,6 +11,7 @@ const {normalizeCalendarUrl}=calendarApi;
 const integrationsApi=LibreDisplayRuntime.getModule('integrations');
 const appearanceApi=LibreDisplayRuntime.getModule('appearance');
 const systemApi=LibreDisplayRuntime.getModule('system');
+const performanceApi=LibreDisplayRuntime.getModule('performance');
 const weatherApi=LibreDisplayRuntime.getModule('weather');
 
 const STARTER_TEMPLATES={
@@ -59,6 +60,16 @@ function setWizardMode(on){
   const setup=document.getElementById('setup');setup?.classList.toggle('wizard-mode',configApi.isWizardMode);
   if(configApi.isWizardMode){configApi.wizardStepIndex=Math.max(0,Math.min(configApi.wizardStepIndex,configApi.WIZARD_STEPS.length-1));renderWizardStep();}
 }
+const WIZARD_PERFORMANCE_PRESETS={
+  lightweight:{widget:false,overlay:false,seasonal:false,motionBg:false,preload:false},
+  balanced:{widget:true,overlay:false,seasonal:false,motionBg:false,preload:true},
+  immersive:{widget:true,overlay:true,seasonal:true,motionBg:true,preload:true}
+};
+function wizardPerformanceState(){return {widget:!!document.getElementById('s-weather-widget-animations')?.checked,overlay:!!document.getElementById('s-weather-fullscreen-effects')?.checked,seasonal:!!document.getElementById('s-weather-seasonal-effects')?.checked,motionBg:!!document.getElementById('s-background-motion')?.checked,preload:!!document.getElementById('s-photo-preload')?.checked};}
+function wizardPerformanceProfile(){const state=wizardPerformanceState();for(const [name,preset] of Object.entries(WIZARD_PERFORMANCE_PRESETS))if(Object.keys(preset).every(k=>state[k]===preset[k]))return name;return 'custom';}
+function syncWizardPerformanceMaster(){const widget=document.getElementById('s-weather-widget-animations')?.checked===true,overlay=document.getElementById('s-weather-fullscreen-effects')?.checked===true,master=document.getElementById('s-weather-animations');if(master)master.checked=widget||overlay;}
+function applyWizardPerformancePreset(name){const preset=WIZARD_PERFORMANCE_PRESETS[name];if(!preset)return;const map={widget:'s-weather-widget-animations',overlay:'s-weather-fullscreen-effects',seasonal:'s-weather-seasonal-effects',motionBg:'s-background-motion',preload:'s-photo-preload'};for(const [key,id] of Object.entries(map)){const el=document.getElementById(id);if(el)el.checked=!!preset[key];}syncWizardPerformanceMaster();previewAppearance();markSettingsDirty();renderWizardExtra({key:'performance'});}
+function wizardPerformanceFeatureChanged(){syncWizardPerformanceMaster();previewAppearance();markSettingsDirty();const badge=document.getElementById('wizard-performance-current');if(badge){const profile=wizardPerformanceProfile();badge.textContent=profile==='custom'?'Custom mix':profile[0].toUpperCase()+profile.slice(1);}}
 function renderWizardSummary(){
   const el=document.getElementById('wizard-summary');if(!el)return;
   const city=pendingWeatherLocation?weatherLocationTitle(pendingWeatherLocation):((document.getElementById('s-city')?.value||'').trim()||'Not set');
@@ -71,8 +82,9 @@ function renderWizardSummary(){
   const theme=appearanceApi.LIBREDISPLAY_THEMES[themeKey]?.name||'Libre Night';
   const remote=configApi.remoteInfo?.remoteEnabled?'Enabled for trusted private-network clients':'Disabled';
   const recovery=configApi.wizardCreateBaseline?'Create an Initial setup baseline':'Skip initial restore point';
+  const performanceProfile=wizardPerformanceProfile(),performanceLabel=performanceProfile==='custom'?'Custom visual mix':performanceProfile[0].toUpperCase()+performanceProfile.slice(1);
   const display=(configApi.wizardDisplayNameDraft||currentWizardDisplayName()).trim()||currentWizardDisplayName();
-  el.innerHTML=[['Display',display],['Location',city],['Calendars',calendars?`${calendars} connected`:'None yet'],['Background',bgLabel],['Weather',unit],['Alerts',alerts],['Theme',theme],['Remote editing',remote],['Recovery',recovery]]
+  el.innerHTML=[['Display',display],['Location',city],['Calendars',calendars?`${calendars} connected`:'None yet'],['Background',bgLabel],['Visual performance',performanceLabel],['Weather',unit],['Alerts',alerts],['Theme',theme],['Remote editing',remote],['Recovery',recovery]]
     .map(([a,b])=>`<div class="wizard-summary-card"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join('');
 }
 function wizardHealthCard(name,detail,state='warn'){
@@ -112,6 +124,13 @@ function renderWizardExtra(step){
       extra.innerHTML=`<div class="wizard-form-card"><div class="s-row"><label for="wizard-display-name">Display name</label><input id="wizard-display-name" type="text" maxlength="80" value="${escHtml(configApi.wizardDisplayNameDraft||currentWizardDisplayName())}" placeholder="Living Room, Kitchen, Office…"></div><div class="wizard-inline-note">This is the friendly name shown in multi-display management. The internal endpoint ID remains unchanged.</div></div>`;
       const input=document.getElementById('wizard-display-name');input?.addEventListener('input',()=>{configApi.wizardDisplayNameDraft=input.value;configApi.wizardDisplayNameTouched=true;});
     }
+  }else if(step.key==='performance'){
+    const caps=performanceApi.frontendCapabilities(),profile=wizardPerformanceProfile(),hardware=caps.cores||caps.memoryGB?`${caps.cores?caps.cores+' CPU threads':'CPU unknown'}${caps.memoryGB?` · about ${caps.memoryGB} GB browser memory hint`:''}`:'Browser hardware details unavailable',recommendation=caps.constrained?'Lightweight is strongly recommended on this device.':'Lightweight is the safest default; Balanced is a reasonable next step if the dashboard stays responsive.';
+    const state=wizardPerformanceState();
+    extra.innerHTML=`<div class="wizard-performance-intro"><b>Safe by default</b><span>${escHtml(hardware)} · ${escHtml(recommendation)}</span><span>Fullscreen weather, seasonal wildlife and continuously decoded moving backgrounds can be demanding on Pi 3-class and other lower-powered devices. You can change these later at any time.</span></div><div class="wizard-performance-presets"><button type="button" class="wizard-performance-card ${profile==='lightweight'?'selected':''}" data-wizard-profile="lightweight"><b>Lightweight</b><span>Static weather icons, no fullscreen atmosphere, no seasonal particles, still backgrounds only, no preload.</span><em>Recommended for Pi 3 / low-end devices</em></button><button type="button" class="wizard-performance-card ${profile==='balanced'?'selected':''}" data-wizard-profile="balanced"><b>Balanced</b><span>Animated weather icons and smoother photo transitions without the fullscreen overlay or moving backgrounds.</span><em>Moderate load</em></button><button type="button" class="wizard-performance-card ${profile==='immersive'?'selected':''}" data-wizard-profile="immersive"><b>Immersive</b><span>Fullscreen weather, seasonal atmosphere, moving/video backgrounds and preload enabled.</span><em>High load · faster hardware recommended</em></button></div><div class="wizard-performance-current">Current selection: <b id="wizard-performance-current">${profile==='custom'?'Custom mix':profile[0].toUpperCase()+profile.slice(1)}</b></div><div class="wizard-feature-options"><label class="wizard-feature-option"><input id="wizard-perf-widget" type="checkbox" ${state.widget?'checked':''}><span><b>Animated weather icons</b><small>Low–moderate load. Adds motion to current and forecast weather glyphs.</small></span><em>LOW</em></label><label class="wizard-feature-option"><input id="wizard-perf-overlay" type="checkbox" ${state.overlay?'checked':''}><span><b>Fullscreen weather atmosphere</b><small>Rain, snow, fog, storms and particles cover the display. This is one of the heaviest visual features, especially during dense precipitation.</small></span><em>HIGH</em></label><label class="wizard-feature-option"><input id="wizard-perf-seasonal" type="checkbox" ${state.seasonal?'checked':''}><span><b>Seasonal wildlife &amp; atmosphere</b><small>Adds leaves, grass, petals, insects, fireflies, birds, crystals and frost when appropriate. Most noticeable with fullscreen effects enabled.</small></span><em>HIGH</em></label><label class="wizard-feature-option"><input id="wizard-perf-motion-bg" type="checkbox" ${state.motionBg?'checked':''}><span><b>Animated / video backgrounds</b><small>Allows animated GIF, video and Motion JPEG media from local/NAS folders. Continuous decoding can be expensive on older Raspberry Pi hardware.</small></span><em>HIGH</em></label><label class="wizard-feature-option"><input id="wizard-perf-preload" type="checkbox" ${state.preload?'checked':''}><span><b>Preload next background</b><small>Smoother transitions, but uses extra memory and network bandwidth to prepare the next item ahead of time.</small></span><em>MED</em></label></div>`;
+    extra.querySelectorAll('[data-wizard-profile]').forEach(btn=>btn.addEventListener('click',()=>applyWizardPerformancePreset(btn.dataset.wizardProfile)));
+    const featureMap={'wizard-perf-widget':'s-weather-widget-animations','wizard-perf-overlay':'s-weather-fullscreen-effects','wizard-perf-seasonal':'s-weather-seasonal-effects','wizard-perf-motion-bg':'s-background-motion','wizard-perf-preload':'s-photo-preload'};
+    for(const [from,to] of Object.entries(featureMap)){document.getElementById(from)?.addEventListener('change',e=>{const target=document.getElementById(to);if(target)target.checked=!!e.currentTarget.checked;wizardPerformanceFeatureChanged();});}
   }else if(step.key==='remote'){
     extra.innerHTML='<div class="wizard-inline-note">Remote editing is optional. Keep it disabled for a local-only installation, or enable it only on a trusted LAN/private VPN. Never port-forward LibreDisplay directly to the public internet.</div>';
   }else if(step.key==='backup'){
@@ -357,6 +376,7 @@ async function saveSetup(options={}){
   cfg.photosUrl=document.getElementById('s-photos').value.trim();
   cfg.mediaFolders=mediaFoldersFromForm();
   cfg.mediaRecursive=document.getElementById('s-media-recursive')?.checked!==false;
+  cfg.backgroundMotionEnabled=!!document.getElementById('s-background-motion')?.checked;
   cfg.useFahrenheit=document.getElementById('s-unit').value==='F';
   cfg.photoIntervalSec=Math.max(0,Number(document.getElementById('s-photo-interval').value)||0);
   cfg.photoOrder=document.getElementById('s-photo-order').value;
@@ -393,7 +413,7 @@ async function saveSetup(options={}){
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("onboarding", {applyStarterTemplate,currentWizardDisplayName,beginWizardSession,syncWizardDisplayNameFromEndpoints,setWizardMode,renderWizardSummary,wizardHealthCard,buildWizardHealthRows,renderWizardHealth,renderWizardExtra,renderWizardStep,wizardCommitDisplayName,wizardCreateSetupBaseline,wizardLoadRestorePointCount,runWizardHealthChecks,wizardSaveAndRunChecks,wizardBack,wizardSkip,wizardNext,openFullSettingsFromWizard,startWizardFromSettings,newCalendarId,calendarRowsFromDom,readCalendarInputs,syncCalendarEditorRows,calendarCardHtml,bindCalendarCard,renderCalendarSourceList,addCalendarSource,removeCalendarSource,duplicateCalendarSource,importCalendarFile,calendarOrderIds,calendarPriority,readCalendarOrder,renderCalendarOrderList,moveCalendarOrder,renderCalendarLegend,bindCalendarColorControls,bindCalendarUxInputs,updateCalendarEntryVisibility,toggleEmptyCalendarSlots,normalizeWeatherLocationResult,savedWeatherLocation,weatherLocationTitle,weatherLocationSearchText,renderWeatherLocationSelected,weatherLocationQueryChanged,selectWeatherLocationResult,searchWeatherLocations,previewWeatherLocationLabel,saveSetup}, {
+LibreDisplayRuntime.exposeModule("onboarding", {applyStarterTemplate,wizardPerformanceState,wizardPerformanceProfile,applyWizardPerformancePreset,wizardPerformanceFeatureChanged,currentWizardDisplayName,beginWizardSession,syncWizardDisplayNameFromEndpoints,setWizardMode,renderWizardSummary,wizardHealthCard,buildWizardHealthRows,renderWizardHealth,renderWizardExtra,renderWizardStep,wizardCommitDisplayName,wizardCreateSetupBaseline,wizardLoadRestorePointCount,runWizardHealthChecks,wizardSaveAndRunChecks,wizardBack,wizardSkip,wizardNext,openFullSettingsFromWizard,startWizardFromSettings,newCalendarId,calendarRowsFromDom,readCalendarInputs,syncCalendarEditorRows,calendarCardHtml,bindCalendarCard,renderCalendarSourceList,addCalendarSource,removeCalendarSource,duplicateCalendarSource,importCalendarFile,calendarOrderIds,calendarPriority,readCalendarOrder,renderCalendarOrderList,moveCalendarOrder,renderCalendarLegend,bindCalendarColorControls,bindCalendarUxInputs,updateCalendarEntryVisibility,toggleEmptyCalendarSlots,normalizeWeatherLocationResult,savedWeatherLocation,weatherLocationTitle,weatherLocationSearchText,renderWeatherLocationSelected,weatherLocationQueryChanged,selectWeatherLocationResult,searchWeatherLocations,previewWeatherLocationLabel,saveSetup}, {
   "STARTER_TEMPLATES": {configurable:true,get:()=>STARTER_TEMPLATES},
   "STARTER_TEMPLATE_LAYOUTS": {configurable:true,get:()=>STARTER_TEMPLATE_LAYOUTS},
   "pendingWeatherLocation": {configurable:true,get:()=>pendingWeatherLocation,set:(value)=>{pendingWeatherLocation=value;}},

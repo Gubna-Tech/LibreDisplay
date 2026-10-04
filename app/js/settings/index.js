@@ -118,6 +118,7 @@ function openSetup(startWizard=false){
     document.getElementById('s-photos').value=cfg.photosUrl||'';
     document.getElementById('s-media-folders').value=(cfg.mediaFolders||[]).join('\n');
     document.getElementById('s-media-recursive').checked=cfg.mediaRecursive!==false;
+    document.getElementById('s-background-motion').checked=cfg.backgroundMotionEnabled===true;
     updateBackgroundSourceUI();
     document.getElementById('s-unit').value=cfg.useFahrenheit?'F':'C';
     document.getElementById('s-photo-interval').value=String(cfg.photoIntervalSec);

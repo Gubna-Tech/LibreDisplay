@@ -3,7 +3,7 @@ const configApi=LibreDisplayRuntime.getModule('config');
 
 const {serverPath}=LibreDisplayRuntime.getModule('bootstrap');
 const {fetchRemoteText,escHtml,scaledClamp,resilientFetch}=LibreDisplayRuntime.getModule('shared');
-const {extractAllGooglePhotoUrls,GOOGLE_PHOTOS_MAX_ITEMS,backgroundMediaKind,backgroundMediaHasVisual,resetBackgroundLayerMedia,activateBackgroundLayerMedia,deactivateBackgroundLayerMedia,loadBackgroundMedia}=LibreDisplayRuntime.getModule('backgrounds');
+const {extractAllGooglePhotoUrls,GOOGLE_PHOTOS_MAX_ITEMS,backgroundMediaKind,backgroundMediaIsMotion,backgroundMediaHasVisual,resetBackgroundLayerMedia,activateBackgroundLayerMedia,deactivateBackgroundLayerMedia,loadBackgroundMedia}=LibreDisplayRuntime.getModule('backgrounds');
 
 let bgTimer=null;
 const LAST_BACKGROUND_KEY='libredisplay_last_background_v2';
@@ -114,7 +114,7 @@ function addCurrentMediaFolder(){
   const values=mediaFoldersFromText(input.value);if(!values.includes(mediaBrowsePath))values.push(mediaBrowsePath);
   input.value=values.join('\n');markSettingsDirty();scanFolderBackgroundsFromForm();
 }
-async function loadFolderBackgrounds(paths=cfg.mediaFolders,recursive=cfg.mediaRecursive){
+async function loadFolderBackgrounds(paths=cfg.mediaFolders,recursive=cfg.mediaRecursive,motionEnabled=cfg.backgroundMotionEnabled){
   paths=[...new Set((paths||[]).map(x=>String(x||'').trim()).filter(Boolean))].slice(0,32);
   if(!paths.length){setBackgroundStatus('Add at least one local or mounted NAS picture folder.',true);return;}
   try{
@@ -127,15 +127,15 @@ async function loadFolderBackgrounds(paths=cfg.mediaFolders,recursive=cfg.mediaR
     const data=await res.json().catch(()=>({}));
     if(sourceSerial!==configApi.bgSourceSerial)return;
     if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));
-    configApi.bgSourceImages=(data.images||[]).map(x=>x.url).filter(Boolean);
+    const allMedia=(data.images||[]).map(x=>x.url).filter(Boolean);configApi.bgSourceImages=motionEnabled===false?allMedia.filter(url=>!backgroundMediaIsMotion(url)):allMedia;
     if(!configApi.bgSourceImages.length){
       const problems=(data.sources||[]).filter(x=>x.error).map(x=>x.path+': '+x.error);
-      throw new Error(problems[0]||'No supported image, video, or Motion JPEG files were found in the selected folders');
+      throw new Error(problems[0]||(motionEnabled===false?'No still-image backgrounds were found. Enable animated / video backgrounds to include moving media.':'No supported image, video, or Motion JPEG files were found in the selected folders'));
     }
     prepareBackgroundOrder(configApi.bgSourceImages,false);
     const sourceCount=(data.sources||[]).filter(x=>Number(x.count)>0).length;
     const limit=data.limitReached?' · scan limit reached':'';
-    setBackgroundStatus(`${configApi.bgSourceImages.length} local/network media items · ${sourceCount} source${sourceCount===1?'':'s'}${limit} · ${cfg.photoIntervalSec?formatBackgroundInterval(cfg.photoIntervalSec):'rotation off'}`);
+    const motionSkipped=allMedia.length-configApi.bgSourceImages.length,motionNote=motionSkipped>0?` · ${motionSkipped} moving item${motionSkipped===1?'':'s'} skipped`:'';setBackgroundStatus(`${configApi.bgSourceImages.length} local/network media items · ${sourceCount} source${sourceCount===1?'':'s'}${motionNote}${limit} · ${cfg.photoIntervalSec?formatBackgroundInterval(cfg.photoIntervalSec):'rotation off'}`);
     await showBg(configApi.bgIdx,0,sourceSerial);
     if(sourceSerial===configApi.bgSourceSerial)scheduleBackgroundRotation();
   }catch(e){
@@ -144,7 +144,7 @@ async function loadFolderBackgrounds(paths=cfg.mediaFolders,recursive=cfg.mediaR
   }
 }
 function scanFolderBackgroundsFromForm(){
-  loadFolderBackgrounds(mediaFoldersFromForm(),document.getElementById('s-media-recursive')?.checked!==false);
+  loadFolderBackgrounds(mediaFoldersFromForm(),document.getElementById('s-media-recursive')?.checked!==false,document.getElementById('s-background-motion')?.checked===true);
 }
 
 function setBackgroundStatus(text,error=false){

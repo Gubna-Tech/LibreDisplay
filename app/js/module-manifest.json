@@ -58,7 +58,7 @@
     "module": "weather",
     "part": "effects",
     "path": "/js/weather/effects.js",
-    "lines": 236,
+    "lines": 250,
     "functions": 17,
     "bindings": 0
   },
@@ -111,7 +111,7 @@
     "module": "backgrounds",
     "part": "media",
     "path": "/js/backgrounds/media.js",
-    "lines": 21,
+    "lines": 23,
     "functions": 9,
     "bindings": 0,
     "order": 13
@@ -229,7 +229,7 @@
     "module": "onboarding",
     "part": "index",
     "path": "/js/onboarding/index.js",
-    "lines": 401,
+    "lines": 421,
     "functions": 52,
     "bindings": 4
   },
@@ -238,7 +238,7 @@
     "module": "settings",
     "part": "index",
     "path": "/js/settings/index.js",
-    "lines": 241,
+    "lines": 242,
     "functions": 11,
     "bindings": 1
   },
@@ -247,7 +247,7 @@
     "module": "settings",
     "part": "navigation",
     "path": "/js/settings/navigation.js",
-    "lines": 432,
+    "lines": 433,
     "functions": 22,
     "bindings": 9
   },

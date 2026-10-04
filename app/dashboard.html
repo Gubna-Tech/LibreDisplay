@@ -56,7 +56,7 @@
 
   <div id="wizard-shell" class="wizard-shell">
    <div class="wizard-brand-row"><div class="wizard-brand-mark">LD</div><div><b>Welcome to LibreDisplay</b><span>Private, local-first, and built to make the display yours.</span></div></div>
-   <div class="wizard-progress-row"><span id="wizard-step-label" class="wizard-progress-label">Step 1 of 11</span><span id="wizard-mode-label" class="wizard-progress-label">First-run setup</span></div>
+   <div class="wizard-progress-row"><span id="wizard-step-label" class="wizard-progress-label">Step 1 of 12</span><span id="wizard-mode-label" class="wizard-progress-label">First-run setup</span></div>
    <div class="wizard-progress-track"><div id="wizard-progress-bar" class="wizard-progress-bar"></div></div>
    <div id="wizard-title" class="wizard-title">Welcome</div>
    <div id="wizard-desc" class="wizard-desc"></div>
@@ -163,7 +163,7 @@
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.7</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.8</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -376,7 +376,8 @@
      </select></div>
      <div class="s-row"><label>Photo order <button class="help-tip" type="button" aria-label="Photo order help" data-help="Sequential follows source order. Shuffle cycle shows every image once before reshuffling. Random chooses independently while avoiding immediate repeats.">?</button></label><select id="s-photo-order"><option value="sequential">Sequential — source order</option><option value="shuffle">Shuffle cycle — every photo once</option><option value="random">Random — avoid immediate repeats</option></select></div>
      <label class="checkline"><input id="s-photo-random-start" type="checkbox"> Random starting photo</label>
-     <label class="checkline"><input id="s-photo-preload" type="checkbox" checked> Preload the next photo <button class="help-tip" type="button" aria-label="Photo preload help" data-help="Loads and decodes the exact upcoming image in a hidden background layer before the transition. The current photo stays visible until the next one is ready, preventing blank or black frames. This uses a little more network and memory.">?</button></label>
+     <label class="checkline"><input id="s-photo-preload" type="checkbox"> Preload the next photo <button class="help-tip" type="button" aria-label="Photo preload help" data-help="Loads and decodes the exact upcoming image in a hidden background layer before the transition. The current photo stays visible until the next one is ready, preventing blank or black frames. This uses extra memory and network bandwidth, so it is off by default on fresh installs.">?</button></label>
+     <label class="checkline"><input id="s-background-motion" type="checkbox"> Allow animated / video backgrounds <button class="help-tip" type="button" aria-label="Animated background performance help" data-help="Allows animated GIF, video and Motion JPEG items from local/NAS media folders. Continuous decoding can be demanding on Pi 3-class or lower-powered hardware, so fresh installs leave this off unless you enable it.">?</button></label>
     </div>
     <div class="settings-note">Shuffle cycle shows every available image once before reshuffling. Random chooses a new image each change and avoids showing the same image twice in a row.</div>
    </div>
@@ -798,7 +799,7 @@
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.7</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.8</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
