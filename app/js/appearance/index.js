@@ -76,28 +76,86 @@ function measureDashboardFontProbe(fontName){
   }catch(e){return {width:0,height:0};}
 }
 
-let screenCareTimer=null,screenCareLastActivity=Date.now(),screenCareDimmed=false;
-function noteScreenCareActivity(){screenCareLastActivity=Date.now();if(screenCareDimmed){screenCareDimmed=false;document.body.classList.remove('ld-burnin-dim');}}
-function screenCareCanDim(source=uiCfg()){
-  if(!source?.burnInProtection||layoutEditorActive||remoteLayoutProxyActive||LAYOUT_PREVIEW_MODE)return false;
+const SCREEN_CARE_SHIFT_STEPS=[[0,0],[1,0],[0,1],[-1,0],[0,-1],[1,1],[-1,1],[-1,-1],[1,-1]];
+let screenCareTimer=null,screenCareLastActivity=Date.now(),screenCareDimmed=false,screenCareShiftIndex=0,screenCareScheduleWakeUntil=0;
+function screenCareClockMinutes(value,fallback='00:00'){const match=String(value||fallback).match(/^([01]\d|2[0-3]):([0-5]\d)$/);const safe=match?match:String(fallback).match(/^([01]\d|2[0-3]):([0-5]\d)$/);return Number(safe?.[1]||0)*60+Number(safe?.[2]||0);}
+function screenCareQuietScheduleState(source=uiCfg(),now=new Date()){
+  const start=screenCareClockMinutes(source?.burnInQuietStart,'22:00'),end=screenCareClockMinutes(source?.burnInQuietEnd,'07:00'),current=now.getHours()*60+now.getMinutes();
+  if(start===end)return {active:false,elapsedMs:0};
+  const active=start<end?(current>=start&&current<end):(current>=start||current<end);
+  if(!active)return {active:false,elapsedMs:0};
+  const elapsedMin=current>=start?current-start:current+1440-start;
+  return {active:true,elapsedMs:elapsedMin*60000};
+}
+function noteScreenCareActivity(){
+  const source=uiCfg();screenCareLastActivity=Date.now();
+  if(source?.burnInDimMode==='schedule'&&screenCareQuietScheduleState(source).active){const wakeMin=Math.min(30,Math.max(1,Number(source?.burnInQuietWakeMin)||5));screenCareScheduleWakeUntil=Date.now()+wakeMin*60000;}else screenCareScheduleWakeUntil=0;
+  if(screenCareDimmed){screenCareDimmed=false;document.body.classList.remove('ld-burnin-dim');document.documentElement.style.setProperty('--ld-burnin-overlay','0');}
+  if(source?.burnInShiftMode==='idle')resetScreenCareShift();
+}
+function screenCareAvailable(){
+  if(layoutEditorActive||remoteLayoutProxyActive||LAYOUT_PREVIEW_MODE)return false;
   const setup=document.getElementById('setup');if(setup&&!setup.classList.contains('hidden'))return false;
   return bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE;
 }
+function screenCareCanDim(source=uiCfg()){return !!source?.burnInCareEnabled&&!!(source?.burnInProtection||source?.burnInDeepProtection)&&screenCareAvailable();}
+function screenCareCanShift(source=uiCfg()){return !!source?.burnInCareEnabled&&!!source?.burnInPixelShift&&screenCareAvailable()&&(source?.burnInShiftMode!=='idle'||screenCareDimmed);}
+function setScreenCareShift(x=0,y=0){
+  const root=document.documentElement,source=uiCfg();
+  const distance=Math.min(8,Math.max(1,Number(source?.burnInShiftPx)||2));
+  const transitionRaw=Number(source?.burnInShiftTransitionSec),transition=Math.min(3,Math.max(0,Number.isFinite(transitionRaw)?transitionRaw:1.2));
+  root.style.setProperty('--ld-screen-shift-transition',`${transition}s`);
+  root.style.setProperty('--ld-screen-shift-x',`${Number(x)||0}px`);
+  root.style.setProperty('--ld-screen-shift-y',`${Number(y)||0}px`);
+  root.style.setProperty('--ld-screen-shift-bleed',`${distance*2+4}px`);
+  root.style.setProperty('--ld-screen-shift-inset',`${-(distance+2)}px`);
+  document.body.classList.toggle('ld-burnin-shift',!!(x||y));
+}
+function resetScreenCareShift(){screenCareShiftIndex=0;setScreenCareShift(0,0);}
+function advanceScreenCareShift(source=uiCfg()){
+  if(!screenCareCanShift(source)){resetScreenCareShift();return;}
+  screenCareShiftIndex=(screenCareShiftIndex+1)%SCREEN_CARE_SHIFT_STEPS.length;
+  const amount=Math.min(8,Math.max(1,Number(source?.burnInShiftPx)||2));
+  const [x,y]=SCREEN_CARE_SHIFT_STEPS[screenCareShiftIndex];setScreenCareShift(x*amount,y*amount);
+}
 function updateScreenCareState(source=uiCfg()){
-  const brightness=Math.min(70,Math.max(25,Number(source?.burnInBrightnessPct)||40));
+  if(!screenCareCanDim(source)){screenCareDimmed=false;document.body.classList.remove('ld-burnin-dim');document.documentElement.style.setProperty('--ld-burnin-overlay','0');if(source?.burnInShiftMode==='idle')resetScreenCareShift();return;}
+  const mode=source?.burnInDimMode==='schedule'?'schedule':'activity';
+  const idleFor=Date.now()-screenCareLastActivity;
+  const idleMin=Math.min(240,Math.max(1,Number(source?.burnInIdleMin)||30));
+  const deepFloor=mode==='activity'&&source?.burnInProtection?idleMin:15;
+  const deepIdleMin=Math.min(720,Math.max(deepFloor,Number(source?.burnInDeepIdleMin)||180));
+  let normalActive=false,deepActive=false;
+  if(mode==='schedule'){
+    const quiet=screenCareQuietScheduleState(source),temporarilyAwake=quiet.active&&Date.now()<screenCareScheduleWakeUntil;
+    if(!quiet.active)screenCareScheduleWakeUntil=0;
+    normalActive=quiet.active&&!temporarilyAwake&&!!source?.burnInProtection;
+    deepActive=quiet.active&&!temporarilyAwake&&!!source?.burnInDeepProtection&&quiet.elapsedMs>=deepIdleMin*60000;
+  }else{
+    normalActive=!!source?.burnInProtection&&idleFor>=idleMin*60000;
+    deepActive=!!source?.burnInDeepProtection&&idleFor>=deepIdleMin*60000;
+  }
+  const normalBrightness=Math.min(90,Math.max(5,Number(source?.burnInBrightnessPct)||40));
+  const deepBrightnessRaw=Number(source?.burnInDeepBrightnessPct),deepBrightness=Math.min(source?.burnInProtection?normalBrightness:25,Math.max(0,Number.isFinite(deepBrightnessRaw)?deepBrightnessRaw:5));
+  const brightness=deepActive?deepBrightness:(normalActive?normalBrightness:100);
   document.documentElement.style.setProperty('--ld-burnin-overlay',String((100-brightness)/100));
-  if(!screenCareCanDim(source)){screenCareDimmed=false;document.body.classList.remove('ld-burnin-dim');return;}
-  const idleMs=Math.max(15,Number(source?.burnInIdleMin)||30)*60000;
-  const shouldDim=Date.now()-screenCareLastActivity>=idleMs;
-  screenCareDimmed=shouldDim;document.body.classList.toggle('ld-burnin-dim',shouldDim);
+  screenCareDimmed=normalActive||deepActive;document.body.classList.toggle('ld-burnin-dim',screenCareDimmed);
+  if(!screenCareDimmed&&source?.burnInShiftMode==='idle')resetScreenCareShift();
 }
 function applyScreenCarePreferences(source=cfg){
   updateScreenCareState(source);
   if(screenCareTimer)clearInterval(screenCareTimer);
-  if(source?.burnInProtection)screenCareTimer=setInterval(()=>updateScreenCareState(uiCfg()),15000);
+  if(source?.burnInCareEnabled&&(source?.burnInProtection||source?.burnInDeepProtection))screenCareTimer=setInterval(()=>updateScreenCareState(uiCfg()),5000);
+  const performance=LibreDisplayRuntime.getModule('performance');
+  performance.stopManagedInterval('screen-care-pixel-shift');
+  if(source?.burnInCareEnabled&&source?.burnInPixelShift){
+    if(!screenCareCanShift(source))resetScreenCareShift();
+    const shiftMs=Math.min(30,Math.max(.5,Number(source?.burnInShiftMin)||5))*60*1000;
+    performance.startManagedInterval('screen-care-pixel-shift',()=>advanceScreenCareShift(uiCfg()),shiftMs,{skipWhenHidden:true,resumeOnVisible:true});
+  }else resetScreenCareShift();
 }
 ['pointerdown','keydown','touchstart','wheel'].forEach(type=>window.addEventListener(type,noteScreenCareActivity,{passive:true}));
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)noteScreenCareActivity();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(uiCfg()?.burnInDimMode==='activity')noteScreenCareActivity();else updateScreenCareState(uiCfg());}});
 
 function applyAccessibilityPreferences(source=cfg){
   const locale=source.locale&&source.locale!=='auto'?source.locale:(navigator.language||'en-US');
@@ -211,8 +269,26 @@ function applyUiCustomization(source=cfg){
   tick();
 }
 
+function formatScreenCareMinutes(value){
+  const n=Number(value)||0;if(n<1)return `${Math.round(n*60)} sec`;if(n<60)return `${Number.isInteger(n)?n:n.toFixed(1)} min`;const h=n/60;return `${Number.isInteger(h)?h:h.toFixed(1)} hr`;
+}
+function updateScreenCareControlState(source=null){
+  const getBool=id=>!!document.getElementById(id)?.checked;
+  const dim=source?!!source.burnInProtection:getBool('s-burnin-protection');
+  const deep=source?!!source.burnInDeepProtection:getBool('s-burnin-deep-protection');
+  const shift=source?!!source.burnInPixelShift:getBool('s-burnin-pixel-shift');
+  const mode=source?.burnInDimMode||document.getElementById('s-burnin-dim-mode')?.value||'activity';
+  const idleControl=document.getElementById('s-burnin-idle');if(idleControl)idleControl.disabled=!dim||mode==='schedule';
+  const brightnessControl=document.getElementById('s-burnin-brightness');if(brightnessControl)brightnessControl.disabled=!dim;
+  for(const id of ['s-burnin-quiet-start','s-burnin-quiet-end','s-burnin-quiet-wake']){const el=document.getElementById(id);if(el)el.disabled=mode!=='schedule';}
+  for(const id of ['s-burnin-deep-idle','s-burnin-deep-brightness']){const el=document.getElementById(id);if(el)el.disabled=!deep;}
+  for(const id of ['s-burnin-shift-mode','s-burnin-shift-interval','s-burnin-shift-distance','s-burnin-shift-transition']){const el=document.getElementById(id);if(el)el.disabled=!shift;}
+  const idle=Number(document.getElementById('s-burnin-idle')?.value)||30,deepIdle=document.getElementById('s-burnin-deep-idle');
+  if(deepIdle){const min=mode==='activity'&&dim?Math.max(15,idle):15;deepIdle.min=String(min);if(Number(deepIdle.value)<min)deepIdle.value=String(Math.ceil(min/5)*5);}
+}
+
 function appearanceFromForm(){
-  return {...cfg,
+  const result={...cfg,
     uiTheme:document.querySelector('.theme-choice-card.selected')?.dataset.theme||cfg.uiTheme||'libre-night',
     fontFamily:document.getElementById('s-font-family')?.value||'Inter',
     primaryTextColor:normalizeHexColor(document.getElementById('s-text-hex')?.value,document.getElementById('s-text-color')?.value||'#ffffff'),
@@ -271,14 +347,29 @@ function appearanceFromForm(){
     highContrast:!!document.getElementById('s-high-contrast')?.checked,
     focusOutline:!!document.getElementById('s-focus-outline')?.checked,
     settingsUiSize:document.getElementById('s-settings-ui-size')?.value||'standard',
+    burnInCareEnabled:!!document.getElementById('s-burnin-care-enabled')?.checked,
+    burnInDimMode:document.getElementById('s-burnin-dim-mode')?.value||'activity',
+    burnInQuietStart:document.getElementById('s-burnin-quiet-start')?.value||'22:00',
+    burnInQuietEnd:document.getElementById('s-burnin-quiet-end')?.value||'07:00',
+    burnInQuietWakeMin:Number(document.getElementById('s-burnin-quiet-wake')?.value)||5,
     burnInProtection:!!document.getElementById('s-burnin-protection')?.checked,
+    burnInPixelShift:!!document.getElementById('s-burnin-pixel-shift')?.checked,
     burnInIdleMin:Number(document.getElementById('s-burnin-idle')?.value)||30,
     burnInBrightnessPct:Number(document.getElementById('s-burnin-brightness')?.value)||40,
+    burnInDeepProtection:!!document.getElementById('s-burnin-deep-protection')?.checked,
+    burnInDeepIdleMin:Number(document.getElementById('s-burnin-deep-idle')?.value)||180,
+    burnInDeepBrightnessPct:Number(document.getElementById('s-burnin-deep-brightness')?.value??5),
+    burnInShiftMode:document.getElementById('s-burnin-shift-mode')?.value||'always',
+    burnInShiftMin:Number(document.getElementById('s-burnin-shift-interval')?.value)||5,
+    burnInShiftPx:Number(document.getElementById('s-burnin-shift-distance')?.value)||2,
+    burnInShiftTransitionSec:Number(document.getElementById('s-burnin-shift-transition')?.value??1.2),
     settingsCogPosition:document.getElementById('s-cog-position')?.value||'bottom-right',
     settingsCogOpacity:Number(document.getElementById('s-cog-opacity')?.value)||42,
     settingsCogSize:Number(document.getElementById('s-cog-size')?.value)||46,
     settingsCogLabel:document.getElementById('s-cog-label')?.checked!==false
   };
+  updateScreenCareControlState(result);
+  return result;
 }
 
 function updateAppearanceLabels(v){
@@ -290,6 +381,18 @@ function updateAppearanceLabels(v){
     ['s-bg-top-value',v.bgShadeTop,'%'],['s-bg-bottom-value',v.bgShadeBottom,'%'],['s-bg-blur-value',v.bgBlurPx,'px'],['s-bg-transition-value',v.bgTransitionSec,'s'],['s-alert-opacity-value',v.alertOpacityPct,'%'],['s-cog-opacity-value',v.settingsCogOpacity??42,'%']
   ];
   for(const [id,val,suffix] of map){const el=document.getElementById(id);if(el)el.textContent=String(val)+suffix;}
+  const labels={
+    's-burnin-quiet-wake-value':formatScreenCareMinutes(v.burnInQuietWakeMin||5),
+    's-burnin-idle-value':formatScreenCareMinutes(v.burnInIdleMin||30),
+    's-burnin-brightness-value':`${v.burnInBrightnessPct??40}%`,
+    's-burnin-deep-idle-value':formatScreenCareMinutes(v.burnInDeepIdleMin||180),
+    's-burnin-deep-brightness-value':`${v.burnInDeepBrightnessPct??5}%`,
+    's-burnin-shift-interval-value':formatScreenCareMinutes(v.burnInShiftMin||5),
+    's-burnin-shift-distance-value':`${v.burnInShiftPx||2} px`,
+    's-burnin-shift-transition-value':`${Number(v.burnInShiftTransitionSec??1.2).toFixed(1)}s`
+  };
+  for(const [id,text] of Object.entries(labels)){const el=document.getElementById(id);if(el)el.textContent=text;}
+  updateScreenCareControlState(v);
 }
 
 const APPEARANCE_DEFAULTS={
@@ -297,7 +400,7 @@ const APPEARANCE_DEFAULTS={
   uiCalendarPct:100,uiCurrentPct:100,uiClockPct:100,uiForecastPct:100,uiDetailsPct:100,uiAlertPct:100,
   calendarBandHeight:150,bottomPanelHeight:330,leftPanelWidth:470,sidePaddingPx:28,forecastGapPx:5,forecastRowGapPx:18,forecastColumns:12,hourlyForecastHours:12,dailyForecastDays:12,calendarDays:7,calendarColumns:7,calendarCellHeight:150,calendarScrollMode:'off',calendarScrollSpeed:12,layoutGridPx:20,layoutSnap:true,calendarMaxEvents:4,
   showNoEvents:true,showEventTimes:true,showDailyForecast:true,showHourlyForecast:true,showPrecip:true,timeFormat:'12',dateFormat:'long',showSeconds:true,showAmPm:true,showDate:true,showCurrentIcon:true,showSunset:true,showWind:true,showHumidity:true,weatherDetailsOrder:['sunset','wind','humidity','sunrise','airquality','uvindex','feelslike','pressure','cloudcover','dewpoint','precipitation'],weatherDetailsEnabled:{sunset:true,wind:true,humidity:true,sunrise:false,airquality:false,uvindex:false,feelslike:false,pressure:false,cloudcover:false,dewpoint:false,precipitation:false},
-  bgShadeTop:52,bgShadeBottom:55,bgBlurPx:0,bgTransitionSec:1.5,bgFit:'cover',bgPosition:'center',alertOpacityPct:100,alertMinSeverity:'all',alertShowExpiry:true,alertShowMeta:true,locale:'auto',motionPreference:'auto',highContrast:false,focusOutline:false,settingsUiSize:'standard',burnInProtection:false,burnInIdleMin:30,burnInBrightnessPct:40,settingsCogPosition:'bottom-right',settingsCogOpacity:42,settingsCogSize:46,settingsCogLabel:true
+  bgShadeTop:52,bgShadeBottom:55,bgBlurPx:0,bgTransitionSec:1.5,bgFit:'cover',bgPosition:'center',alertOpacityPct:100,alertMinSeverity:'all',alertShowExpiry:true,alertShowMeta:true,locale:'auto',motionPreference:'auto',highContrast:false,focusOutline:false,settingsUiSize:'standard',burnInCareEnabled:false,burnInDimMode:'activity',burnInQuietStart:'22:00',burnInQuietEnd:'07:00',burnInQuietWakeMin:5,burnInProtection:false,burnInPixelShift:false,burnInIdleMin:30,burnInBrightnessPct:40,burnInDeepProtection:false,burnInDeepIdleMin:180,burnInDeepBrightnessPct:5,burnInShiftMode:'always',burnInShiftMin:5,burnInShiftPx:2,burnInShiftTransitionSec:1.2,settingsCogPosition:'bottom-right',settingsCogOpacity:42,settingsCogSize:46,settingsCogLabel:true
 };
 
 
@@ -307,9 +410,23 @@ function setAppearanceForm(v){
   const contrast=document.getElementById('s-high-contrast');if(contrast)contrast.checked=!!v.highContrast;
   const focus=document.getElementById('s-focus-outline');if(focus)focus.checked=!!v.focusOutline;
   const settingsUiSize=document.getElementById('s-settings-ui-size');if(settingsUiSize)settingsUiSize.value=v.settingsUiSize||'standard';
+  const burnCare=document.getElementById('s-burnin-care-enabled');if(burnCare)burnCare.checked=!!v.burnInCareEnabled;
+  const burnDimMode=document.getElementById('s-burnin-dim-mode');if(burnDimMode)burnDimMode.value=v.burnInDimMode||'activity';
+  const burnQuietStart=document.getElementById('s-burnin-quiet-start');if(burnQuietStart)burnQuietStart.value=v.burnInQuietStart||'22:00';
+  const burnQuietEnd=document.getElementById('s-burnin-quiet-end');if(burnQuietEnd)burnQuietEnd.value=v.burnInQuietEnd||'07:00';
+  const burnQuietWake=document.getElementById('s-burnin-quiet-wake');if(burnQuietWake)burnQuietWake.value=String(v.burnInQuietWakeMin||5);
   const burnIn=document.getElementById('s-burnin-protection');if(burnIn)burnIn.checked=!!v.burnInProtection;
+  const burnDeep=document.getElementById('s-burnin-deep-protection');if(burnDeep)burnDeep.checked=!!v.burnInDeepProtection;
+  const burnShift=document.getElementById('s-burnin-pixel-shift');if(burnShift)burnShift.checked=!!v.burnInPixelShift;
   const burnIdle=document.getElementById('s-burnin-idle');if(burnIdle)burnIdle.value=String(v.burnInIdleMin||30);
   const burnBrightness=document.getElementById('s-burnin-brightness');if(burnBrightness)burnBrightness.value=String(v.burnInBrightnessPct||40);
+  const burnDeepIdle=document.getElementById('s-burnin-deep-idle');if(burnDeepIdle)burnDeepIdle.value=String(v.burnInDeepIdleMin||180);
+  const burnDeepBrightness=document.getElementById('s-burnin-deep-brightness');if(burnDeepBrightness)burnDeepBrightness.value=String(v.burnInDeepBrightnessPct??5);
+  const burnShiftMode=document.getElementById('s-burnin-shift-mode');if(burnShiftMode)burnShiftMode.value=v.burnInShiftMode||'always';
+  const burnShiftMin=document.getElementById('s-burnin-shift-interval');if(burnShiftMin)burnShiftMin.value=String(v.burnInShiftMin||5);
+  const burnShiftPx=document.getElementById('s-burnin-shift-distance');if(burnShiftPx)burnShiftPx.value=String(v.burnInShiftPx||2);
+  const burnShiftTransition=document.getElementById('s-burnin-shift-transition');if(burnShiftTransition)burnShiftTransition.value=String(v.burnInShiftTransitionSec??1.2);
+  updateScreenCareControlState(v);
   renderThemeChoices(v.uiTheme||'libre-night');
   const values={
     's-font-family':v.fontFamily,'s-secondary-opacity':v.secondaryOpacity,'s-text-shadow':v.textShadowPct,
@@ -335,7 +452,7 @@ function setAppearanceForm(v){
   updateFontPreview();
 }
 
-const PRESET_CONTENT_PRESERVE_KEYS=['weatherDetailsOrder','weatherDetailsEnabled','showSunset','showWind','showHumidity','calendarTimeStyle','calendarLegend','calendarShowContinuation','burnInProtection','burnInIdleMin','burnInBrightnessPct'];
+const PRESET_CONTENT_PRESERVE_KEYS=['weatherDetailsOrder','weatherDetailsEnabled','showSunset','showWind','showHumidity','calendarTimeStyle','calendarLegend','calendarShowContinuation','burnInCareEnabled','burnInDimMode','burnInQuietStart','burnInQuietEnd','burnInQuietWakeMin','burnInProtection','burnInPixelShift','burnInIdleMin','burnInBrightnessPct','burnInDeepProtection','burnInDeepIdleMin','burnInDeepBrightnessPct','burnInShiftMode','burnInShiftMin','burnInShiftPx','burnInShiftTransitionSec'];
 function preservePresetState(target,current){for(const prop of PRESET_CONTENT_PRESERVE_KEYS)target[prop]=JSON.parse(JSON.stringify(current[prop]));return target;}
 
 function resetAppearanceForm(){
@@ -359,7 +476,7 @@ function bindTextColorControls(){
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("appearance", {applyProductTheme,renderThemeChoices,selectThemeChoice,renderFontChoices,selectFontChoice,styleFontSelectOptions,updateFontPreview,fontCssValue,measureDashboardFontProbe,noteScreenCareActivity,screenCareCanDim,updateScreenCareState,applyScreenCarePreferences,applyAccessibilityPreferences,applyUiCustomization,appearanceFromForm,updateAppearanceLabels,setAppearanceForm,preservePresetState,resetAppearanceForm,bindTextColorControls}, {
+LibreDisplayRuntime.exposeModule("appearance", {applyProductTheme,renderThemeChoices,selectThemeChoice,renderFontChoices,selectFontChoice,styleFontSelectOptions,updateFontPreview,fontCssValue,measureDashboardFontProbe,formatScreenCareMinutes,updateScreenCareControlState,screenCareClockMinutes,screenCareQuietScheduleState,noteScreenCareActivity,screenCareAvailable,screenCareCanDim,screenCareCanShift,setScreenCareShift,resetScreenCareShift,advanceScreenCareShift,updateScreenCareState,applyScreenCarePreferences,applyAccessibilityPreferences,applyUiCustomization,appearanceFromForm,updateAppearanceLabels,setAppearanceForm,preservePresetState,resetAppearanceForm,bindTextColorControls}, {
   "LIBREDISPLAY_THEMES": {configurable:true,get:()=>LIBREDISPLAY_THEMES},
   "LIBREDISPLAY_FONTS": {configurable:true,get:()=>LIBREDISPLAY_FONTS},
   "screenCareTimer": {configurable:true,get:()=>screenCareTimer,set:(value)=>{screenCareTimer=value;}},

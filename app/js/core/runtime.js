@@ -1,7 +1,7 @@
 // LibreDisplay frontend module runtime.
 // A logical module can be assembled from several native ES-module source files.
-// The compatibility bridge remains temporary: feature code can be split safely while
-// existing HTML event handlers and legacy bare-identifier calls continue to work.
+// The compatibility bridge supports existing HTML event handlers and bare-identifier
+// call sites while feature modules expose explicit APIs.
 const registry = new Map();
 const exportOwners = new Map();
 const exportKinds = new Map();

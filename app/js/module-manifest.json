@@ -31,7 +31,7 @@
     "module": "config",
     "part": "config",
     "path": "/js/core/config.js",
-    "lines": 494,
+    "lines": 522,
     "functions": 9,
     "bindings": 53
   },
@@ -148,8 +148,8 @@
     "module": "appearance",
     "part": "index",
     "path": "/js/appearance/index.js",
-    "lines": 370,
-    "functions": 21,
+    "lines": 487,
+    "functions": 25,
     "bindings": 7
   },
   {
@@ -220,7 +220,7 @@
     "module": "settings",
     "part": "navigation",
     "path": "/js/settings/navigation.js",
-    "lines": 389,
+    "lines": 402,
     "functions": 20,
     "bindings": 9
   },

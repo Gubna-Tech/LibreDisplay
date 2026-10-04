@@ -158,7 +158,7 @@
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.6.2</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.6.3</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -449,14 +449,27 @@
     <label class="checkline"><input id="s-high-contrast" type="checkbox" onchange="previewAppearance()"> Stronger contrast and borders <button class="help-tip" type="button" aria-label="Contrast help" data-help="Brightens muted Settings text and strengthens borders so controls and secondary information are easier to distinguish.">?</button></label>
     <label class="checkline"><input id="s-focus-outline" type="checkbox" onchange="previewAppearance()"> Always show strong keyboard focus <button class="help-tip" type="button" aria-label="Keyboard focus help" data-help="Makes the currently focused control easier to see when navigating Settings with Tab, Shift+Tab, Enter, or Space.">?</button></label>
    </div>
-   <div class="s-subhead">Always-on display care</div>
-   <div class="howto">Optional screen care can lower static brightness after a period without local interaction. It never moves or rewrites your saved layout and wakes instantly when the screen is used.</div>
+   <div class="s-subhead">OLED / always-on display care</div>
+   <div class="howto">Fine-tune optional screen care for the exact panel and room you use. The master switch can disable protection without erasing tuned values. Screen care reduces static-pixel wear risk but cannot guarantee prevention of OLED burn-in.</div>
    <div class="settings-grid">
-    <label class="checkline"><input id="s-burnin-protection" type="checkbox" onchange="previewAppearance()"> Dim after inactivity <button class="help-tip" type="button" aria-label="Always-on dimming help" data-help="Reduces overall brightness with a non-interactive overlay after the selected idle time. The saved layout and element positions are never changed.">?</button></label>
-    <div class="s-row"><label>Idle time</label><select id="s-burnin-idle" onchange="previewAppearance()"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">1 hour</option><option value="120">2 hours</option></select></div>
-    <div class="s-row"><label>Idle brightness</label><select id="s-burnin-brightness" onchange="previewAppearance()"><option value="25">25%</option><option value="40">40%</option><option value="55">55%</option><option value="70">70%</option></select></div>
+    <label class="checkline"><input id="s-burnin-care-enabled" type="checkbox" onchange="previewAppearance()"> Enable OLED protection <button class="help-tip" type="button" aria-label="OLED protection help" data-help="Master switch for LibreDisplay screen care. Turning it off temporarily disables every screen-care action while preserving all tuned values below.">?</button></label>
+    <div class="s-row"><label>Dimming trigger <button class="help-tip" type="button" aria-label="Dimming trigger help" data-help="Local inactivity is intended for touch or regularly-operated displays. Quiet hours are intended for unattended wall dashboards and automatically return to full brightness when the quiet period ends.">?</button></label><select id="s-burnin-dim-mode" onchange="previewAppearance()"><option value="activity">Local inactivity — interactive display</option><option value="schedule">Quiet hours — unattended kiosk</option></select></div>
+    <div class="s-row"><label>Quiet hours start</label><input id="s-burnin-quiet-start" type="time" value="22:00" onchange="previewAppearance()"></div>
+    <div class="s-row"><label>Quiet hours end</label><input id="s-burnin-quiet-end" type="time" value="07:00" onchange="previewAppearance()"></div>
+    <div class="s-row"><label>Temporary wake after local input <span id="s-burnin-quiet-wake-value" class="range-value">5 min</span></label><input id="s-burnin-quiet-wake" type="range" min="1" max="30" step="1" value="5" oninput="previewAppearance()"><div class="range-ends"><span>1 min</span><span>30 min</span></div></div>
+    <label class="checkline"><input id="s-burnin-protection" type="checkbox" onchange="previewAppearance()"> Dim display <button class="help-tip" type="button" aria-label="Always-on dimming help" data-help="With Local inactivity, dimming begins after the selected idle time. With Quiet hours, dimming begins automatically at the quiet-hours start time and returns to full brightness at the end time.">?</button></label>
+    <div class="s-row"><label>Dim after <span id="s-burnin-idle-value" class="range-value">30 min</span></label><input id="s-burnin-idle" type="range" min="1" max="240" step="1" value="30" oninput="previewAppearance()"><div class="range-ends"><span>1 min</span><span>4 hr</span></div></div>
+    <div class="s-row"><label>Dim brightness <span id="s-burnin-brightness-value" class="range-value">40%</span></label><input id="s-burnin-brightness" type="range" min="5" max="90" step="1" value="40" oninput="previewAppearance()"><div class="range-ends"><span>Darker</span><span>Lighter</span></div></div>
+    <label class="checkline"><input id="s-burnin-deep-protection" type="checkbox" onchange="previewAppearance()"> Deep idle protection <button class="help-tip" type="button" aria-label="Deep idle protection help" data-help="After a longer idle period, applies a second stronger dim level. Set Deep brightness to 0% for a fully black screen that wakes on local interaction.">?</button></label>
+    <div class="s-row"><label>Deep protection after <span id="s-burnin-deep-idle-value" class="range-value">3 hr</span></label><input id="s-burnin-deep-idle" type="range" min="15" max="720" step="5" value="180" oninput="previewAppearance()"><div class="range-ends"><span>15 min</span><span>12 hr</span></div></div>
+    <div class="s-row"><label>Deep brightness <span id="s-burnin-deep-brightness-value" class="range-value">5%</span></label><input id="s-burnin-deep-brightness" type="range" min="0" max="25" step="1" value="5" oninput="previewAppearance()"><div class="range-ends"><span>0% black</span><span>25%</span></div></div>
+    <label class="checkline"><input id="s-burnin-pixel-shift" type="checkbox" onchange="previewAppearance()"> Pixel shift <button class="help-tip" type="button" aria-label="Pixel shift help" data-help="Moves the rendered dashboard and background on a slow cycle to distribute static OLED wear. Saved positions and sizes are never changed.">?</button></label>
+    <div class="s-row"><label>Pixel shift timing</label><select id="s-burnin-shift-mode" onchange="previewAppearance()"><option value="always">Always while protection is enabled</option><option value="idle">Only while the screen is dimmed</option></select></div>
+    <div class="s-row"><label>Pixel-shift interval <span id="s-burnin-shift-interval-value" class="range-value">5 min</span></label><input id="s-burnin-shift-interval" type="range" min="0.5" max="30" step="0.5" value="5" oninput="previewAppearance()"><div class="range-ends"><span>30 sec</span><span>30 min</span></div></div>
+    <div class="s-row"><label>Pixel-shift distance <span id="s-burnin-shift-distance-value" class="range-value">2 px</span></label><input id="s-burnin-shift-distance" type="range" min="1" max="8" step="1" value="2" oninput="previewAppearance()"><div class="range-ends"><span>1 px</span><span>8 px</span></div></div>
+    <div class="s-row"><label>Shift transition <span id="s-burnin-shift-transition-value" class="range-value">1.2s</span></label><input id="s-burnin-shift-transition" type="range" min="0" max="3" step="0.1" value="1.2" oninput="previewAppearance()"><div class="range-ends"><span>Instant</span><span>3 sec</span></div></div>
    </div>
-   <div class="settings-note">Reduced motion disables decorative transitions and continuous alert/background animation where possible. It does not stop data refreshes. Screen care is off by default.</div>
+   <div class="settings-note">For unattended wall dashboards, use Quiet hours so screen care follows a schedule instead of waiting for touch or mouse activity. The display automatically returns to full brightness when quiet hours end. Balanced starting point: 40% during quiet hours, deep protection after 3 hours to 5%, and a 2 px shift every 5 minutes. For maximum overnight protection, set Deep brightness to 0%. Pixel shift is suppressed during Arrange and layout preview, and no screen-care setting rewrites saved layout geometry.</div>
   </div>
 
   <div class="s-section" id="settings-settings-button" data-settings-tab="look">
@@ -621,7 +634,7 @@
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.6.2</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.6.3</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>

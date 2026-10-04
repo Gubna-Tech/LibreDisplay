@@ -516,9 +516,14 @@ body {
 }
 #offline-pill.show { display:block; }
 #offline-pill[data-state=offline],#offline-pill[data-state=reconnecting]{border-color:rgba(251,191,36,.38);background:rgba(45,32,4,.82);color:#fff4c2}
-#screen-care-overlay{position:fixed;inset:0;z-index:19;pointer-events:none;background:#000;opacity:0;transition:opacity .6s ease}
+#screen-care-overlay{position:fixed;inset:0;z-index:299;pointer-events:none;background:#000;opacity:0;transition:opacity .6s ease}
 body.ld-burnin-dim #screen-care-overlay{opacity:var(--ld-burnin-overlay,.55)}
 body.layout-editing #screen-care-overlay,body.remote-layout-proxy #screen-care-overlay{opacity:0!important}
+body.ld-burnin-shift #app{transform:translate3d(var(--ld-screen-shift-x,0px),var(--ld-screen-shift-y,0px),0);transition:transform var(--ld-screen-shift-transition,1.2s) ease}
+body.ld-burnin-shift .bg-layer>img{width:calc(100% + var(--ld-screen-shift-bleed,8px));height:calc(100% + var(--ld-screen-shift-bleed,8px));left:var(--ld-screen-shift-inset,-4px);top:var(--ld-screen-shift-inset,-4px);transform:translate3d(var(--ld-screen-shift-x,0px),var(--ld-screen-shift-y,0px),0);transition:transform var(--ld-screen-shift-transition,1.2s) ease}
+body.layout-editing #app,body.remote-layout-proxy #app,body.layout-preview-embedded #app{transform:none!important;transition:none!important}
+body.layout-editing .bg-layer>img,body.remote-layout-proxy .bg-layer>img,body.layout-preview-embedded .bg-layer>img{width:100%!important;height:100%!important;left:0!important;top:0!important;transform:none!important;transition:none!important}
+html.ld-reduce-motion body.ld-burnin-shift #app,html.ld-reduce-motion body.ld-burnin-shift .bg-layer>img{transition:none}
 .display-readiness-list{display:grid;gap:7px;margin-top:9px}.display-readiness-item{padding:9px 10px;border:1px solid var(--ld-border);border-radius:10px;background:color-mix(in srgb,var(--ld-surface-2) 88%,transparent);font-size:11px;line-height:1.4}.display-readiness-item.good{border-color:color-mix(in srgb,var(--ld-success) 40%,var(--ld-border))}.display-readiness-item.warn{border-color:color-mix(in srgb,var(--ld-warning) 45%,var(--ld-border))}
 .remote-url-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; }
 .remote-url-row input { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:11px; }

@@ -99,9 +99,22 @@ let cfg = {
   highContrast:false,
   focusOutline:false,
   settingsUiSize:'standard',
+  burnInCareEnabled:null,
+  burnInDimMode:'activity',
+  burnInQuietStart:'22:00',
+  burnInQuietEnd:'07:00',
+  burnInQuietWakeMin:5,
   burnInProtection:false,
+  burnInPixelShift:false,
   burnInIdleMin:30,
   burnInBrightnessPct:40,
+  burnInDeepProtection:false,
+  burnInDeepIdleMin:180,
+  burnInDeepBrightnessPct:5,
+  burnInShiftMode:'always',
+  burnInShiftMin:5,
+  burnInShiftPx:2,
+  burnInShiftTransitionSec:1.2,
   onboardingComplete:false,
   _schemaVersion:2,
   _savedAt:0
@@ -332,9 +345,24 @@ function ensureCfgDefaults(){
   if(typeof cfg.highContrast!=='boolean')cfg.highContrast=false;
   if(typeof cfg.focusOutline!=='boolean')cfg.focusOutline=false;
   cfg.settingsUiSize=['standard','large','xlarge'].includes(cfg.settingsUiSize)?cfg.settingsUiSize:'standard';
+  cfg.burnInDimMode=['activity','schedule'].includes(cfg.burnInDimMode)?cfg.burnInDimMode:'activity';
+  const normalizeClock=(value,fallback)=>{const match=String(value||'').match(/^([01]\d|2[0-3]):([0-5]\d)$/);return match?`${match[1]}:${match[2]}`:fallback;};
+  cfg.burnInQuietStart=normalizeClock(cfg.burnInQuietStart,'22:00');
+  cfg.burnInQuietEnd=normalizeClock(cfg.burnInQuietEnd,'07:00');
+  cfg.burnInQuietWakeMin=Math.round(Math.min(30,Math.max(1,num(cfg.burnInQuietWakeMin,5))));
   if(typeof cfg.burnInProtection!=='boolean')cfg.burnInProtection=false;
-  cfg.burnInIdleMin=[15,30,60,120].includes(Number(cfg.burnInIdleMin))?Number(cfg.burnInIdleMin):30;
-  cfg.burnInBrightnessPct=[25,40,55,70].includes(Number(cfg.burnInBrightnessPct))?Number(cfg.burnInBrightnessPct):40;
+  if(typeof cfg.burnInPixelShift!=='boolean')cfg.burnInPixelShift=false;
+  if(typeof cfg.burnInCareEnabled!=='boolean')cfg.burnInCareEnabled=!!(cfg.burnInProtection||cfg.burnInPixelShift);
+  cfg.burnInIdleMin=Math.round(Math.min(240,Math.max(1,num(cfg.burnInIdleMin,30))));
+  cfg.burnInBrightnessPct=Math.round(Math.min(90,Math.max(5,num(cfg.burnInBrightnessPct,40))));
+  if(typeof cfg.burnInDeepProtection!=='boolean')cfg.burnInDeepProtection=false;
+  const burnInDeepFloor=cfg.burnInDimMode==='activity'&&cfg.burnInProtection?cfg.burnInIdleMin:15;
+  cfg.burnInDeepIdleMin=Math.round(Math.min(720,Math.max(burnInDeepFloor,Math.max(15,num(cfg.burnInDeepIdleMin,180))))/5)*5;
+  cfg.burnInDeepBrightnessPct=Math.round(Math.min(cfg.burnInProtection?cfg.burnInBrightnessPct:25,Math.max(0,num(cfg.burnInDeepBrightnessPct,5))));
+  cfg.burnInShiftMode=['always','idle'].includes(cfg.burnInShiftMode)?cfg.burnInShiftMode:'always';
+  cfg.burnInShiftMin=Math.round(Math.min(30,Math.max(.5,num(cfg.burnInShiftMin,5)))*2)/2;
+  cfg.burnInShiftPx=Math.round(Math.min(8,Math.max(1,num(cfg.burnInShiftPx,2))));
+  cfg.burnInShiftTransitionSec=Math.round(Math.min(3,Math.max(0,num(cfg.burnInShiftTransitionSec,1.2)))*10)/10;
   cfg._schemaVersion=2;
   if(typeof cfg.onboardingComplete!=='boolean')cfg.onboardingComplete=!!(cfg.city&&cfg.lat&&cfg.lon);
   cfg._savedAt=Number.isFinite(Number(cfg._savedAt))?Number(cfg._savedAt):0;
