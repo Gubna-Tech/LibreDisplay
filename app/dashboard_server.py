@@ -2068,7 +2068,7 @@ def _watch_update_process(proc):
             detail = update_log_failure_detail()
             error = detail or f"Updater exited with status {return_code}."
     with UPDATE_RUN_LOCK:
-        # A successful native update normally stops/reboots this server before this
+        # A successful native update normally stops/restarts this server before this
         # state is observed. This branch mainly reports download/setup failures.
         UPDATE_RUN_STATE.update({
             "state": "completed" if return_code == 0 else "failed",
@@ -2098,7 +2098,7 @@ def start_in_app_update():
     log = UPDATE_LOG_PATH.open("w", encoding="utf-8")
     try:
         proc = subprocess.Popen(
-            [str(updater), "update"],
+            [str(updater), "update", "--no-reboot"],
             cwd=str(PROJECT_ROOT),
             stdin=subprocess.DEVNULL,
             stdout=log,

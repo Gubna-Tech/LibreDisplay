@@ -28,11 +28,13 @@ function connectivityDelayMs(attempt,res){
 function connectivitySleep(ms){return new Promise(resolve=>setTimeout(resolve,Math.max(0,Number(ms)||0)));}
 function connectivitySnapshot(){
   const finished=connectivityStats.successes+connectivityStats.failures;
+  const localServerOnline=!connectivityStats.lastFailureAt||connectivityStats.lastSuccessAt>=connectivityStats.lastFailureAt;
   return {
     requests:connectivityStats.requests,successes:connectivityStats.successes,failures:connectivityStats.failures,
     timeouts:connectivityStats.timeouts,retries:connectivityStats.retries,inFlight:connectivityStats.inFlight,
     lastLatencyMs:connectivityStats.lastLatencyMs,averageLatencyMs:finished?Math.round(connectivityStats.totalLatencyMs/finished):0,
-    lastSuccessAt:connectivityStats.lastSuccessAt,lastFailureAt:connectivityStats.lastFailureAt,online:navigator.onLine!==false
+    lastSuccessAt:connectivityStats.lastSuccessAt,lastFailureAt:connectivityStats.lastFailureAt,online:localServerOnline,
+    browserOnlineHint:navigator.onLine!==false
   };
 }
 async function resilientFetch(input,init={},policy={}){

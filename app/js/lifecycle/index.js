@@ -38,7 +38,9 @@ function startDisplayHydrationRecovery(attempt=0){
   [5000,15000,35000,75000,150000].forEach(ms=>setTimeout(()=>retryDisplayHydration('startup+'+Math.round(ms/1000)+'s'),ms));
   const remote=LibreDisplayRuntime.getModule('remote');
   window.addEventListener('online',()=>{remote.recoverServerConnection('browser-online');setTimeout(()=>retryDisplayHydration('online'),350);});
-  window.addEventListener('offline',()=>{remote.clearServerReconnectNotice();remote.clearServerRecoveryTimer();remote.setServerConnectionState('offline');});
+  // navigator.onLine reflects Chromium's internet/network hint, not reachability of
+  // LibreDisplay on localhost/LAN. Never mark the local server offline from it.
+  window.addEventListener('offline',()=>{remote.recoverServerConnection('browser-offline-hint');});
   window.addEventListener('pageshow',()=>setTimeout(()=>retryDisplayHydration('pageshow'),500));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>retryDisplayHydration('visible'),500);});
 }

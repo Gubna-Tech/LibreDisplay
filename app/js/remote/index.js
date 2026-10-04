@@ -75,16 +75,15 @@ async function deleteDisplayEndpoint(id){const row=displayEndpoints.find(e=>e.id
 function cacheSourceName(url){
   try{return new URL(url).hostname.replace(/^www\./,'');}catch(e){return 'remote data';}
 }
-let serverConnectionState=navigator.onLine===false?'offline':'online',serverReconnectRefreshPending=false,serverReconnectNoticeTimer=null;
+let serverConnectionState='online',serverReconnectRefreshPending=false,serverReconnectNoticeTimer=null;
 let serverRecoveryTimer=null,serverRecoveryRunning=false,serverRecoveryAttempt=0;
 const SERVER_RECONNECT_NOTICE_DELAY_MS=8000;
 const SERVER_RECOVERY_DELAYS_MS=[1000,3000,8000,15000,30000,60000];
 function updateOfflinePill(){
   const pill=document.getElementById('offline-pill');if(!pill)return;
-  const stale=configApi.staleCacheSources.size>0,networkOffline=navigator.onLine===false,serverDown=serverConnectionState!=='online';
-  const active=stale||networkOffline||serverDown;let state='online',text='';
-  if(networkOffline){state='offline';text=stale?'Offline · showing last known data':'Offline · waiting for network';}
-  else if(serverDown){state='reconnecting';text=stale?'Connection interrupted · showing last known data':'Connection interrupted · retrying automatically';}
+  const stale=configApi.staleCacheSources.size>0,serverDown=serverConnectionState!=='online';
+  const active=stale||serverDown;let state='online',text='';
+  if(serverDown){state='reconnecting';text=stale?'Connection interrupted · showing last known data':'Connection interrupted · retrying automatically';}
   else if(stale){state='cached';text='Provider delayed · showing last known data';}
   pill.dataset.state=state;pill.classList.toggle('show',active);if(pill.textContent!==text)pill.textContent=text;
   updateSettingsOverview?.();
@@ -99,7 +98,6 @@ function setServerConnectionState(state){
 function clearServerReconnectNotice(){if(serverReconnectNoticeTimer){clearTimeout(serverReconnectNoticeTimer);serverReconnectNoticeTimer=null;}}
 function markServerTransportOpen(){clearServerReconnectNotice();clearServerRecoveryTimer();serverRecoveryAttempt=0;setServerConnectionState('online');}
 function scheduleServerRecovery(reason='transport',delayMs=null){
-  if(navigator.onLine===false){clearServerRecoveryTimer();setServerConnectionState('offline');return;}
   if(serverRecoveryTimer)return;
   setServerConnectionState('reconnecting');
   const wait=delayMs==null?SERVER_RECOVERY_DELAYS_MS[Math.min(serverRecoveryAttempt,SERVER_RECOVERY_DELAYS_MS.length-1)]:Math.max(0,Number(delayMs)||0);
@@ -107,7 +105,6 @@ function scheduleServerRecovery(reason='transport',delayMs=null){
 }
 async function recoverServerConnection(reason='scheduled'){
   if(serverRecoveryRunning)return false;
-  if(navigator.onLine===false){setServerConnectionState('offline');return false;}
   serverRecoveryRunning=true;clearServerReconnectNotice();setServerConnectionState('reconnecting');
   try{
     const res=await resilientFetch(serverPath('/api/session-info'),{cache:'no-store'},{timeoutMs:3500,attempts:1,retry:false});
@@ -121,9 +118,8 @@ async function recoverServerConnection(reason='scheduled'){
   }finally{serverRecoveryRunning=false;}
 }
 function noteServerTransportError(){
-  if(navigator.onLine===false){clearServerReconnectNotice();clearServerRecoveryTimer();setServerConnectionState('offline');return;}
   if(serverConnectionState==='reconnecting'||serverReconnectNoticeTimer)return;
-  serverReconnectNoticeTimer=setTimeout(()=>{serverReconnectNoticeTimer=null;if(navigator.onLine!==false&&liveEventSource?.readyState!==EventSource.OPEN){setServerConnectionState('reconnecting');scheduleServerRecovery('event-stream',0);}},SERVER_RECONNECT_NOTICE_DELAY_MS);
+  serverReconnectNoticeTimer=setTimeout(()=>{serverReconnectNoticeTimer=null;if(liveEventSource?.readyState!==EventSource.OPEN){setServerConnectionState('reconnecting');scheduleServerRecovery('event-stream',0);}},SERVER_RECONNECT_NOTICE_DELAY_MS);
 }
 function noteCacheResponse(url,res){
   const name=cacheSourceName(url);

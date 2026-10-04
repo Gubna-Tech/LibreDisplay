@@ -13,7 +13,7 @@
     "module": "shared",
     "part": "shared",
     "path": "/js/core/shared.js",
-    "lines": 90,
+    "lines": 92,
     "functions": 7,
     "bindings": 0
   },
@@ -175,7 +175,7 @@
     "module": "remote",
     "part": "index",
     "path": "/js/remote/index.js",
-    "lines": 349,
+    "lines": 345,
     "functions": 42,
     "bindings": 10
   },
@@ -256,7 +256,7 @@
     "module": "lifecycle",
     "part": "index",
     "path": "/js/lifecycle/index.js",
-    "lines": 103,
+    "lines": 105,
     "functions": 5,
     "bindings": 3
   }
