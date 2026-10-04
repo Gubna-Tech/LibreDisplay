@@ -175,7 +175,7 @@
     "module": "remote",
     "part": "index",
     "path": "/js/remote/index.js",
-    "lines": 345,
+    "lines": 349,
     "functions": 42,
     "bindings": 10
   },
@@ -211,7 +211,7 @@
     "module": "settings",
     "part": "index",
     "path": "/js/settings/index.js",
-    "lines": 231,
+    "lines": 232,
     "functions": 11,
     "bindings": 1
   },

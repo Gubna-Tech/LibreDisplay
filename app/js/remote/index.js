@@ -73,7 +73,11 @@ async function rotateDisplayEndpoint(id){const row=displayEndpoints.find(e=>e.id
 async function deleteDisplayEndpoint(id){const row=displayEndpoints.find(e=>e.id===id);if(!confirm(`Delete “${row?.name||id}” and its saved display configuration?`))return;try{await endpointAction({action:'delete',id});await loadDisplayEndpoints();}catch(e){alert('Could not delete display: '+(e.message||e));}}
 
 function cacheSourceName(url){
-  try{return new URL(url).hostname.replace(/^www\./,'');}catch(e){return 'remote data';}
+  const raw=String(url||'');
+  if(raw.startsWith('calendar:'))return 'calendar';
+  if(raw.startsWith('block:'))return 'data block';
+  if(raw.startsWith('integration:'))return 'integration';
+  try{return new URL(raw).hostname.replace(/^www\./,'')||'remote data';}catch(e){return 'remote data';}
 }
 let serverConnectionState='online',serverReconnectRefreshPending=false,serverReconnectNoticeTimer=null;
 let serverRecoveryTimer=null,serverRecoveryRunning=false,serverRecoveryAttempt=0;
@@ -121,12 +125,12 @@ function noteServerTransportError(){
   if(serverConnectionState==='reconnecting'||serverReconnectNoticeTimer)return;
   serverReconnectNoticeTimer=setTimeout(()=>{serverReconnectNoticeTimer=null;if(liveEventSource?.readyState!==EventSource.OPEN){setServerConnectionState('reconnecting');scheduleServerRecovery('event-stream',0);}},SERVER_RECONNECT_NOTICE_DELAY_MS);
 }
-function noteCacheResponse(url,res){
-  const name=cacheSourceName(url);
+function noteCacheResponse(url,res,nameOverride=''){
+  const name=String(nameOverride||cacheSourceName(url)||'remote data');
   const key=String(url||name);
   const state=String(res?.headers?.get('X-LibreDisplay-Cache')||'').toLowerCase();
-  if(state==='stale')configApi.staleCacheSources.set(key,{name,at:Date.now()});
-  else if(state==='fresh')configApi.staleCacheSources.delete(key);
+  if(res?.ok&&state==='stale')configApi.staleCacheSources.set(key,{name,at:Date.now()});
+  else if(res?.ok)configApi.staleCacheSources.delete(key);
   updateOfflinePill();
 }
 async function loadRemoteInfo(){

@@ -163,6 +163,7 @@ function openSetup(startWizard=false){
 
 function applySettings(){
   ensureCfgDefaults();
+  configApi.staleCacheSources.clear();LibreDisplayRuntime.getModule('remote').updateOfflinePill();
   const performance=LibreDisplayRuntime.getModule('performance');
   const weather=LibreDisplayRuntime.getModule('weather');
   const calendar=LibreDisplayRuntime.getModule('calendar');

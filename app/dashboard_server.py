@@ -967,12 +967,24 @@ def broker_fetch(key, ttl_seconds, fetcher, source="", force=False):
         raise RuntimeError(f"Provider temporarily unavailable; automatic retry in {retry_at-now}s")
 
     # Stale-while-revalidate keeps wall displays responsive: cached data is returned
-    # immediately while one background refresh updates the broker.
+    # immediately while one background refresh updates the broker. A routine TTL
+    # refresh is not a provider failure and must not be exposed as stale fallback.
+    # If this source is already recovering from a confirmed provider failure, keep
+    # the stale state visible until a live refresh actually succeeds.
     if not force and cached:
         age = max(0, now - cached[2])
-        broker_record(key, source=source, status="stale", savedAt=cached[2], age=age, lastSuccessAt=cached[2], refreshing=True)
+        recovering = max(0, int(status.get("consecutiveFailures") or 0)) > 0 or bool(status.get("error"))
+        if recovering:
+            broker_record(key, source=source, status="stale", savedAt=cached[2], age=age, lastSuccessAt=cached[2], refreshing=True)
+            response_state = "stale"
+        else:
+            broker_record(
+                key, source=source, status="fresh", savedAt=cached[2], age=age, error="", errorKind="",
+                lastSuccessAt=cached[2], refreshing=True, consecutiveFailures=0, retryAt=0,
+            )
+            response_state = "refreshing"
         broker_start_background_refresh(key, ttl, fetcher, source, cached)
-        return cached[0], cached[1], "stale", age
+        return cached[0], cached[1], response_state, age
 
     lock = broker_lock_for(key)
     with lock:
@@ -3358,7 +3370,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return self.bytes_response(200, data, content_type, {
                 "X-LibreDisplay-Broker": state,
                 "X-LibreDisplay-Broker-Age": str(age),
-                "X-LibreDisplay-Cache": "stale" if state == "stale" else "fresh",
+                "X-LibreDisplay-Cache": "stale" if state == "stale" else ("refreshing" if state == "refreshing" else "fresh"),
             })
         except OverflowError:
             return self.text_response(413, "Remote response is too large")
@@ -3391,7 +3403,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 return self.bytes_response(200, data, "text/calendar; charset=utf-8", {"X-LibreDisplay-Broker": "local"})
             ttl = max(60, min(86400, int(config.get("calendarRefreshMin") or 15) * 60))
             data, content_type, state, age = broker_remote_url(target, ttl)
-            return self.bytes_response(200, data, content_type, {"X-LibreDisplay-Broker": state, "X-LibreDisplay-Broker-Age": str(age), "X-LibreDisplay-Cache": "stale" if state == "stale" else "fresh"})
+            return self.bytes_response(200, data, content_type, {"X-LibreDisplay-Broker": state, "X-LibreDisplay-Broker-Age": str(age), "X-LibreDisplay-Cache": "stale" if state == "stale" else ("refreshing" if state == "refreshing" else "fresh")})
         except OverflowError:
             return self.text_response(413, "Calendar source is too large")
         except ValueError as exc:
@@ -3415,7 +3427,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 raise ValueError("Data block URL is not configured")
             ttl = max(60, min(86400, int(bc.get("refreshMin") or (15 if block.get("type") == "rss" else 5)) * 60))
             data, content_type, state, age = broker_remote_url(target, ttl)
-            return self.bytes_response(200, data, content_type, {"X-LibreDisplay-Broker": state, "X-LibreDisplay-Broker-Age": str(age), "X-LibreDisplay-Cache": "stale" if state == "stale" else "fresh"})
+            return self.bytes_response(200, data, content_type, {"X-LibreDisplay-Broker": state, "X-LibreDisplay-Broker-Age": str(age), "X-LibreDisplay-Cache": "stale" if state == "stale" else ("refreshing" if state == "refreshing" else "fresh")})
         except ValueError as exc:
             return self.text_response(404, str(exc))
         except Exception as exc:
@@ -3438,6 +3450,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return self.bytes_response(200, data, content_type, {
                 "X-LibreDisplay-Broker": state,
                 "X-LibreDisplay-Broker-Age": str(age),
+                "X-LibreDisplay-Cache": "stale" if state == "stale" else ("refreshing" if state == "refreshing" else "fresh"),
                 "X-LibreDisplay-Integration": manifest["id"],
             })
         except ValueError as exc:
