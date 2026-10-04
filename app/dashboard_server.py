@@ -2749,6 +2749,8 @@ def allowed_request_hosts():
         name = str(name or "").strip().rstrip(".").lower()
         if name:
             allowed.add(name)
+            if "." not in name:
+                allowed.add(name + ".local")
     for value in [x.strip() for x in ALLOWED_HOSTS_RAW.split(",") if x.strip()]:
         host = normalized_host_header(value) if ":" in value else value.rstrip(".").lower()
         if host:
@@ -2758,35 +2760,42 @@ def allowed_request_hosts():
 
 def local_ipv4_addresses():
     found = []
+    blocked_prefixes = ("docker", "br-", "veth", "virbr", "podman", "cni", "flannel")
+
+    def interface_ok(name):
+        return not str(name or "").lower().startswith(blocked_prefixes)
 
     def add(value, first=False):
         try:
             addr = ipaddress.ip_address(str(value or "").strip())
         except ValueError:
             return
-        if addr.version != 4 or addr.is_loopback or addr.is_unspecified or addr.is_multicast:
-            return
-        if not private_lan_address(addr):
+        if addr.version != 4 or addr.is_loopback or addr.is_unspecified or addr.is_multicast or not private_lan_address(addr):
             return
         text = str(addr)
         if text in found:
             return
-        if first:
-            found.insert(0, text)
-        else:
-            found.append(text)
+        found.insert(0, text) if first else found.append(text)
 
-    # Enumerate configured interfaces when the host provides the `ip` utility.
-    # This also picks up private VPN addresses such as WireGuard/Tailscale.
+    # Prefer the source address the host would actually use for outbound traffic.
     try:
-        result = subprocess.run(
-            ["ip", "-o", "-4", "addr", "show"],
-            capture_output=True, text=True, timeout=3, check=False,
-        )
+        route = subprocess.run(["ip", "-4", "route", "get", "1.1.1.1"], capture_output=True, text=True, timeout=3, check=False)
+        parts = route.stdout.split()
+        dev = parts[parts.index("dev") + 1] if "dev" in parts and parts.index("dev") + 1 < len(parts) else ""
+        src = parts[parts.index("src") + 1] if "src" in parts and parts.index("src") + 1 < len(parts) else ""
+        if route.returncode == 0 and interface_ok(dev):
+            add(src, first=True)
+    except Exception:
+        pass
+
+    # Add real LAN/VPN interfaces, skipping container/bridge addresses that remote devices cannot reach.
+    try:
+        result = subprocess.run(["ip", "-o", "-4", "addr", "show", "scope", "global"], capture_output=True, text=True, timeout=3, check=False)
         if result.returncode == 0:
             for line in result.stdout.splitlines():
                 parts = line.split()
-                if "inet" in parts:
+                iface = parts[1].split("@", 1)[0] if len(parts) > 1 else ""
+                if interface_ok(iface) and "inet" in parts:
                     idx = parts.index("inet")
                     if idx + 1 < len(parts):
                         add(parts[idx + 1].split("/", 1)[0])
@@ -2794,19 +2803,33 @@ def local_ipv4_addresses():
         pass
 
     try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.connect(("8.8.8.8", 80)); add(sock.getsockname()[0], first=not found); sock.close()
+    except Exception:
+        pass
+    try:
         for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
             add(info[4][0])
     except Exception:
         pass
-
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        add(s.getsockname()[0], first=True)
-        s.close()
-    except Exception:
-        pass
     return found
+
+
+def remote_link_hosts():
+    hosts = local_ipv4_addresses()
+    hostname = re.sub(r"[^A-Za-z0-9-]", "", str(socket.gethostname() or "").split(".", 1)[0])
+    if hostname:
+        mdns = hostname + ".local"
+        if mdns not in hosts:
+            hosts.append(mdns)
+    return hosts
+
+
+def remote_management_urls(token):
+    hosts = remote_link_hosts()
+    settings_urls = [f"http://{host}:{PORT}/pair?access={token}" for host in hosts]
+    display_urls = [{"id": e["id"], "name": e["name"], "url": f"http://{host}:{PORT}/display/{e['id']}?access={e['displayToken']}"} for host in hosts for e in endpoint_items()]
+    return settings_urls, display_urls
 
 
 ACCESS_TOKEN, DISPLAY_TOKEN = load_or_create_access_tokens()
@@ -3672,8 +3695,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     raise ValueError("enabled must be true or false")
                 set_remote_access_enabled(enabled)
                 ips = local_ipv4_addresses() if enabled else []
-                urls = [f"http://{ip}:{PORT}/pair?access={ACCESS_TOKEN}" for ip in ips]
-                display_urls = [{"id": e["id"], "name": e["name"], "url": f"http://{ip}:{PORT}/display/{e['id']}?access={e['displayToken']}"} for ip in ips for e in endpoint_items()]
+                urls, display_urls = remote_management_urls(ACCESS_TOKEN) if enabled else ([], [])
                 return self.json_response(200, {"ok": True, "enabled": enabled, "settingsUrls": urls, "displayUrls": display_urls})
             except ValueError as exc:
                 return self.json_response(400, {"ok": False, "error": str(exc)})
@@ -3850,9 +3872,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if not self.client_is_loopback():
                 return self.json_response(403, {"ok": False, "error": "The remote access key can only be rotated from the local dashboard display."})
             token, display_token = rotate_access_tokens()
-            ips = local_ipv4_addresses()
-            urls = [f"http://{ip}:{PORT}/pair?access={token}" for ip in ips]
-            display_urls = [{"id": e["id"], "name": e["name"], "url": f"http://{ip}:{PORT}/display/{e['id']}?access={e['displayToken']}"} for ip in ips for e in endpoint_items()]
+            urls, display_urls = remote_management_urls(token)
             return self.json_response(200, {"ok": True, "settingsUrls": urls, "displayUrls": display_urls})
         if parsed.path == "/api/config":
             try:
@@ -4062,8 +4082,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 return self.json_response(403, {"ok": False, "error": "Remote-info is available only from the local display."})
             enabled = remote_access_enabled()
             ips = local_ipv4_addresses() if enabled else []
-            urls = [f"http://{ip}:{PORT}/pair?access={ACCESS_TOKEN}" for ip in ips]
-            display_urls = [{"id": e["id"], "name": e["name"], "url": f"http://{ip}:{PORT}/display/{e['id']}?access={e['displayToken']}"} for ip in ips for e in endpoint_items()]
+            urls, display_urls = remote_management_urls(ACCESS_TOKEN) if enabled else ([], [])
             return self.json_response(200, {
                 "ok": True,
                 "hostname": socket.gethostname(),

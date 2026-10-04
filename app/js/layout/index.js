@@ -16,7 +16,7 @@ const LAYOUT_BLOCK_DEFS={
 
 const LAYOUT_PART_DEFS={
   calendar:[{key:'dayNumber',label:'Day number'},{key:'dayLabel',label:'Day / date label'},{key:'eventText',label:'All event text'},{key:'eventTitle',label:'Event titles'},{key:'eventTime',label:'Event times'},{key:'emptyText',label:'No events text'}],
-  current:[{key:'temperature',label:'Temperature'},{key:'icon',label:'Weather icon'},{key:'condition',label:'Condition'},{key:'feelsLike',label:'Feels like'}],
+  current:[{key:'locationLabel',label:'Location / display label'},{key:'temperature',label:'Temperature'},{key:'icon',label:'Weather icon'},{key:'condition',label:'Condition'},{key:'feelsLike',label:'Feels like'}],
   clock:[{key:'time',label:'Main time'},{key:'seconds',label:'Seconds / AM-PM'},{key:'date',label:'Date'}],
   details:[{key:'icon',label:'Detail icons'},{key:'label',label:'Detail labels'},{key:'value',label:'Detail values'}],
   daily:[{key:'day',label:'Day names'},{key:'icon',label:'Forecast icons'},{key:'precip',label:'Rain chance'},{key:'temperature',label:'Temperatures'}],

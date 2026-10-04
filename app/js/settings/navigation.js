@@ -51,7 +51,10 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-alert-appearance':'Power-user filtering and alert-card presentation.',
   'settings-backgrounds':'Picture sources, Google Photos, local/NAS folders, rotation and order.',
   'settings-weather-options':'Temperature units and weather refresh timing.',
-  'settings-weather-motion':'Optional widget motion and full-screen atmosphere that follows current weather conditions.',
+  'settings-weather-motion':'Enable and preview the full-screen atmosphere, choose presets, and tune global weather behavior.',
+  'settings-weather-precipitation':'Tune rain, snow, surface splashes, fog density, and fog movement independently.',
+  'settings-weather-seasonal':'Tune location-aware leaves, grass, petals, bugs, fireflies, and extreme-cold frost.',
+  'settings-weather-sky':'Tune clouds, sun, wind, lightning realism, reduced motion, and OLED dimming behavior.',
   'settings-weather-details':'Choose, enable and reorder Weather Details metrics.',
   'settings-background-style':'Power-user controls for how backgrounds are rendered.',
   'settings-templates':'Apply safe layout and presentation starting points without replacing data sources.',
@@ -353,7 +356,10 @@ function switchSettingsTab(tab,scrollTop=true){
 const SETTINGS_SEARCH_ALIASES={
   'settings-calendars':'calendar calendars calander agenda events ics google proton outlook icloud',
   'settings-alerts':'alerts warning warnings severe weather test preview rotate rotation scroll scrolling motion',
-  'settings-weather-motion':'weather animation animations rain snow clouds fog lightning immersive fullscreen overlay motion effects',
+  'settings-weather-motion':'weather animation animations preview test lab immersive fullscreen overlay motion effects',
+  'settings-weather-precipitation':'weather rain snow drizzle precipitation drops flakes splash splashes fog mist density drift',
+  'settings-weather-seasonal':'weather season seasonal spring summer fall autumn winter leaves grass petals bugs fireflies frost cold ice',
+  'settings-weather-sky':'weather sky clouds sun wind storm thunder lightning bolt flash reduced motion oled dimming',
   'settings-backgrounds':'background backgrounds picture pictures photo photos images slideshow google album nas media folder startup loading performance',
   'settings-accessibility':'accessibility readable readability larger large text contrast focus keyboard motion language settings size eyesight vision',
   'settings-layout-presentation':'appearance typography sizing font text color colour content scale',
@@ -371,30 +377,37 @@ function settingsSectionSearchText(section){
   return `${section.textContent} ${section.id} ${section.dataset.settingsTab||''} ${SETTINGS_SECTION_SUMMARIES[section.id]||''} ${SETTINGS_SEARCH_ALIASES[section.id]||''} ${attrs}`.toLowerCase();
 }
 
+function settingsSearchControlText(el){
+  const label=settingsControlLabel(el)||'';
+  const attrs=[el.id,el.name,el.dataset?.help,el.getAttribute?.('aria-label'),el.getAttribute?.('placeholder'),el.getAttribute?.('title')].filter(Boolean).join(' ');
+  const options=el.tagName==='SELECT'?[...el.options].map(o=>o.textContent).join(' '):'';
+  return `${label} ${attrs} ${options}`.replace(/\s+/g,' ').trim().toLowerCase();
+}
+function openSettingsSearchResult(sectionId,controlId=''){
+  const section=document.getElementById(sectionId);if(!section)return;
+  const search=document.getElementById('s-settings-search');if(search)search.value='';
+  document.getElementById('settings-search-results')?.replaceChildren();
+  const status=document.getElementById('settings-search-status');if(status){status.style.display='none';status.textContent='';}
+  if(section.dataset.settingsLevel==='advanced'){settingsViewMode='all';try{localStorage.setItem('libredisplay_settings_view','all');}catch(e){}}
+  switchSettingsTab(section.dataset.settingsTab||'overview',false);toggleSettingsSection(section.id,false);applySettingsSectionVisibility();
+  const target=controlId?document.getElementById(controlId):section;
+  requestAnimationFrame(()=>{target?.scrollIntoView({behavior:'smooth',block:'center'});if(target&&target!==section){target.focus?.({preventScroll:true});const hit=target.closest('.s-row,.checkline,.utility-actions')||target;hit.classList.add('settings-search-hit');setTimeout(()=>hit.classList.remove('settings-search-hit'),1800);}});
+}
 function filterSettings(value){
-  const raw=String(value||'').trim();
-  const q=raw.toLowerCase();
-  const status=document.getElementById('settings-search-status');
+  const raw=String(value||'').trim(),tokens=raw.toLowerCase().split(/\s+/).filter(Boolean);
+  const status=document.getElementById('settings-search-status'),results=document.getElementById('settings-search-results');
   const sections=[...document.querySelectorAll('.s-section[data-settings-tab]')];
-  if(!q){
-    applySettingsSectionVisibility();
-    if(status){status.style.display='none';status.textContent='';}
-    return;
-  }
-  updateSettingsPageHeader(raw);
-  let matches=0,advancedMatches=0;
+  if(!tokens.length){results?.replaceChildren();applySettingsSectionVisibility();if(status){status.style.display='none';status.textContent='';}return;}
+  updateSettingsPageHeader(raw);if(results)results.replaceChildren();let matches=0,advancedMatches=0,controlMatches=0;
   sections.forEach(section=>{
-    section.classList.remove('settings-advanced-hidden');
-    const hay=settingsSectionSearchText(section);
-    const on=hay.includes(q);
-    section.classList.toggle('tab-active',on);
-    if(on){section.classList.remove('section-collapsed');section.querySelector(':scope > h3')?.setAttribute('aria-expanded','true');matches++;if(section.dataset.settingsLevel==='advanced')advancedMatches++;}
+    section.classList.remove('settings-advanced-hidden');const hay=settingsSectionSearchText(section),on=tokens.every(t=>hay.includes(t));section.classList.toggle('tab-active',on);
+    if(!on)return;section.classList.remove('section-collapsed');section.querySelector(':scope > h3')?.setAttribute('aria-expanded','true');matches++;if(section.dataset.settingsLevel==='advanced')advancedMatches++;
+    if(!results)return;const controls=[...section.querySelectorAll('input:not([type="hidden"]),select,textarea,button:not(.help-tip)')];let sectionHits=0;
+    controls.forEach(el=>{if(controlMatches>=30||!el.id)return;const text=settingsSearchControlText(el);if(!tokens.every(t=>text.includes(t)))return;sectionHits++;controlMatches++;const b=document.createElement('button');b.type='button';b.className='settings-search-result';const title=document.createElement('b');title.textContent=settingsControlLabel(el)||el.getAttribute('aria-label')||el.id;const meta=document.createElement('small');meta.textContent=`${SETTINGS_TAB_TITLES[section.dataset.settingsTab]||section.dataset.settingsTab} · ${section.querySelector(':scope > h3')?.childNodes[0]?.textContent?.trim()||section.id}`;b.append(title,meta);b.addEventListener('click',()=>openSettingsSearchResult(section.id,el.id));results.appendChild(b);});
+    if(!sectionHits&&controlMatches<30){const b=document.createElement('button');b.type='button';b.className='settings-search-result section-result';const title=document.createElement('b');title.textContent=section.querySelector(':scope > h3')?.childNodes[0]?.textContent?.trim()||section.id;const meta=document.createElement('small');meta.textContent=`Open ${SETTINGS_TAB_TITLES[section.dataset.settingsTab]||section.dataset.settingsTab}`;b.append(title,meta);b.addEventListener('click',()=>openSettingsSearchResult(section.id));results.appendChild(b);}
   });
   document.getElementById('settings-empty-state')?.classList.remove('show');
-  if(status){
-    status.style.display='block';
-    status.textContent=matches?`Showing ${matches} matching section${matches===1?'':'s'} across all tabs${advancedMatches?` · ${advancedMatches} advanced`:''}.`:'No settings matched that search.';
-  }
+  if(status){status.style.display='block';status.textContent=matches?`${controlMatches?`${controlMatches} direct match${controlMatches===1?'':'es'} · `:''}${matches} matching section${matches===1?'':'s'}${advancedMatches?` · ${advancedMatches} advanced`:''}.`:'No settings matched that search.';}
 }
 
 function clearSettingsSearch(){
@@ -406,7 +419,7 @@ function clearSettingsSearch(){
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("settings", {updateSettingsPageHeader,settingsControlLabel,cleanSettingsLabelText,makeSettingsHelpButton,enhanceSettingsControlHelp,loadSettingsViewMode,setSettingsViewMode,enhanceSettingsSections,saveCollapsedSettingsSections,toggleSettingsSection,setAllSettingsSectionsCollapsed,settingsSectionRoleAllowed,visibleSettingsSectionsForTab,buildSettingsSectionJump,jumpToSettingsSection,applySettingsSectionVisibility,switchSettingsTab,settingsSectionSearchText,filterSettings,clearSettingsSearch}, {
+LibreDisplayRuntime.exposeModule("settings", {updateSettingsPageHeader,settingsControlLabel,cleanSettingsLabelText,makeSettingsHelpButton,enhanceSettingsControlHelp,loadSettingsViewMode,setSettingsViewMode,enhanceSettingsSections,saveCollapsedSettingsSections,toggleSettingsSection,setAllSettingsSectionsCollapsed,settingsSectionRoleAllowed,visibleSettingsSectionsForTab,buildSettingsSectionJump,jumpToSettingsSection,applySettingsSectionVisibility,switchSettingsTab,settingsSectionSearchText,settingsSearchControlText,openSettingsSearchResult,filterSettings,clearSettingsSearch}, {
   "SETTINGS_TABS": {configurable:true,get:()=>SETTINGS_TABS},
   "SETTINGS_TAB_TITLES": {configurable:true,get:()=>SETTINGS_TAB_TITLES},
   "SETTINGS_TAB_HINTS": {configurable:true,get:()=>SETTINGS_TAB_HINTS},
@@ -416,4 +429,4 @@ LibreDisplayRuntime.exposeModule("settings", {updateSettingsPageHeader,settingsC
   "settingsViewMode": {configurable:true,get:()=>settingsViewMode,set:(value)=>{settingsViewMode=value;}},
   "settingsSectionsEnhanced": {configurable:true,get:()=>settingsSectionsEnhanced,set:(value)=>{settingsSectionsEnhanced=value;}},
   "SETTINGS_SEARCH_ALIASES": {configurable:true,get:()=>SETTINGS_SEARCH_ALIASES}
-}, {globalFunctions:['enhanceSettingsControlHelp','loadSettingsViewMode','setSettingsViewMode','enhanceSettingsSections','setAllSettingsSectionsCollapsed','jumpToSettingsSection','switchSettingsTab','filterSettings','clearSettingsSearch'],globalStates:[]});
+}, {globalFunctions:['enhanceSettingsControlHelp','loadSettingsViewMode','setSettingsViewMode','enhanceSettingsSections','setAllSettingsSectionsCollapsed','jumpToSettingsSection','switchSettingsTab','openSettingsSearchResult','filterSettings','clearSettingsSearch'],globalStates:[]});

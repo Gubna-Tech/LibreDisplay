@@ -71,6 +71,7 @@
      </div>
      <button class="btn-util settings-search-clear" type="button" onclick="clearSettingsSearch()">Clear</button>
      <div id="settings-search-status" class="settings-search-status"></div>
+     <div id="settings-search-results" class="settings-search-results" aria-live="polite"></div>
     </div>
 
     <div class="settings-tabs" role="tablist" aria-label="Settings categories">
@@ -160,7 +161,7 @@
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.5</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.6</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -394,53 +395,81 @@
   </div>
 
   <div class="s-section" id="settings-weather-motion" data-settings-tab="weather">
-   <h3>Weather animation</h3>
-   <div class="howto">Weather motion can animate forecast icons and build a full-screen atmosphere from the live conditions. Full-screen effects now activate immediately when enabled, and live intensity can automatically react to precipitation, cloud cover, and wind.</div>
+   <h3>Weather effects &amp; preview</h3>
+   <div class="howto">Turn on the full-screen atmosphere, preview any condition, and set the overall look here. Detailed rain, snow, fog, seasonal and storm tuning is grouped into the sections below.</div>
    <div id="weather-effect-live-status" class="settings-note weather-effect-status">Waiting for current weather data.</div>
    <div class="settings-grid">
     <label class="checkline"><input id="s-weather-animations" type="checkbox" onchange="weatherAnimationControlChanged(this)"> Enable weather animations</label>
     <label class="checkline"><input id="s-weather-widget-animations" type="checkbox" checked onchange="weatherAnimationControlChanged(this)"> Animate weather icons and forecast areas</label>
-    <label class="checkline"><input id="s-weather-fullscreen-effects" type="checkbox" onchange="weatherAnimationControlChanged(this)"> Full-screen weather atmosphere <button class="help-tip" type="button" aria-label="Full-screen weather effects help" data-help="Enabling this also enables weather animations so the overlay appears immediately. Rain, snow, clouds, fog, sun glow, and storms follow the live weather.">?</button></label>
-    <div class="utility-actions weather-effect-presets">
-     <button class="btn-util" type="button" onclick="applyWeatherEffectPreset('subtle')">Subtle</button>
-     <button class="btn-util" type="button" onclick="applyWeatherEffectPreset('balanced')">Balanced</button>
-     <button class="btn-util" type="button" onclick="applyWeatherEffectPreset('immersive')">Immersive</button>
-     <button class="btn-util" type="button" onclick="previewCurrentWeatherOverlay()">Show current overlay</button>
-    </div>
-    <div class="s-subhead">Weather effect lab</div>
-    <label class="checkline"><input id="s-weather-effect-test-mode" type="checkbox" onchange="handleWeatherEffectTestModeChange(this)"> Test mode — force a weather type <button class="help-tip" type="button" aria-label="Weather effect test mode help" data-help="Preview simulated weather without changing the real forecast. Test mode is temporary and is never saved as weather data.">?</button></label>
+    <label class="checkline"><input id="s-weather-fullscreen-effects" type="checkbox" onchange="weatherAnimationControlChanged(this)"> Full-screen weather atmosphere <button class="help-tip" type="button" aria-label="Full-screen weather effects help" data-help="The full-screen atmosphere is authoritative when enabled and renders behind dashboard content. Use the Weather Effect Lab to tune it before real weather arrives.">?</button></label>
+    <div class="utility-actions weather-effect-presets"><button class="btn-util" type="button" onclick="applyWeatherEffectPreset('subtle')">Subtle</button><button class="btn-util" type="button" onclick="applyWeatherEffectPreset('balanced')">Balanced</button><button class="btn-util" type="button" onclick="applyWeatherEffectPreset('immersive')">Immersive</button><button class="btn-util" type="button" onclick="previewCurrentWeatherOverlay()">Show current overlay</button></div>
+    <div class="s-subhead">Weather Effect Lab</div>
+    <label class="checkline"><input id="s-weather-effect-test-mode" type="checkbox" onchange="handleWeatherEffectTestModeChange(this)"> Test mode — force a weather type <button class="help-tip" type="button" aria-label="Weather effect test mode help" data-help="Preview simulated weather while tuning controls. Test weather is temporary and is never saved as forecast data.">?</button></label>
     <div class="s-row"><label>Test weather</label><select id="s-weather-effect-test-condition" onchange="weatherEffectTestProfileChanged(this)"><option value="drizzle">Light drizzle</option><option value="rain" selected>Rain</option><option value="heavy-rain">Heavy rain</option><option value="storm">Thunderstorm</option><option value="snow">Snow</option><option value="heavy-snow">Heavy snow</option><option value="fog">Fog</option><option value="cloud">Cloudy</option><option value="windy">Windy clouds</option><option value="partly">Partly cloudy</option><option value="clear">Clear day</option><option value="night">Clear night</option></select></div>
     <div class="utility-actions weather-effect-presets"><button class="btn-util" type="button" onclick="previewWeatherTestFullScreen()">Preview test full screen</button><button class="btn-util" type="button" onclick="stopWeatherEffectTest()">Stop test</button></div>
-    <div class="settings-note">Use test mode while adjusting the controls below. The simulated condition follows your unsaved sliders and toggles immediately; leaving test mode returns to live weather.</div>
     <div class="s-row"><label>Full-screen effect behavior</label><select id="s-weather-effect-mode" onchange="previewAppearance()"><option value="auto">Automatic — match current weather</option><option value="precipitation">Precipitation only — rain, snow, storms</option><option value="ambient">Ambient only — clouds, fog, clear sky</option></select></div>
-    <label class="checkline"><input id="s-weather-effect-auto-intensity" type="checkbox" checked onchange="previewAppearance()"> Auto-match effect intensity to live weather <button class="help-tip" type="button" aria-label="Automatic weather intensity help" data-help="Uses the current weather code plus live precipitation, cloud cover, and wind to strengthen or soften the overlay while keeping your selected intensity as the baseline.">?</button></label>
+    <label class="checkline"><input id="s-weather-effect-auto-intensity" type="checkbox" checked onchange="previewAppearance()"> Auto-match intensity to live conditions</label>
     <div class="s-row"><label>Effect intensity <span id="s-weather-effect-intensity-value" class="range-value">50%</span></label><input id="s-weather-effect-intensity" type="range" min="10" max="100" step="5" value="50" oninput="previewAppearance()"><div class="range-ends"><span>Subtle</span><span>Dense</span></div></div>
     <div class="s-row"><label>Overlay visibility <span id="s-weather-effect-opacity-value" class="range-value">34%</span></label><input id="s-weather-effect-opacity" type="range" min="5" max="80" step="1" value="34" oninput="previewAppearance()"><div class="range-ends"><span>Soft</span><span>Strong</span></div></div>
     <div class="s-row"><label>Atmosphere depth <span id="s-weather-effect-atmosphere-value" class="range-value">55%</span></label><input id="s-weather-effect-atmosphere" type="range" min="0" max="100" step="5" value="55" oninput="previewAppearance()"><div class="range-ends"><span>Clean</span><span>Moody</span></div></div>
     <div class="s-row"><label>Particle size <span id="s-weather-effect-particle-scale-value" class="range-value">100%</span></label><input id="s-weather-effect-particle-scale" type="range" min="60" max="160" step="5" value="100" oninput="previewAppearance()"><div class="range-ends"><span>Fine</span><span>Large</span></div></div>
     <div class="s-row"><label>Animation speed <span id="s-weather-effect-speed-value" class="range-value">100%</span></label><input id="s-weather-effect-speed" type="range" min="40" max="180" step="5" value="100" oninput="previewAppearance()"><div class="range-ends"><span>Slow</span><span>Fast</span></div></div>
     <div class="s-row"><label>Wind influence <span id="s-weather-effect-wind-strength-value" class="range-value">100%</span></label><input id="s-weather-effect-wind-strength" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"><div class="range-ends"><span>Vertical</span><span>Strong drift</span></div></div>
-    <div class="s-subhead">Seasonal atmosphere</div>
-    <label class="checkline"><input id="s-weather-seasonal-effects" type="checkbox" checked onchange="previewAppearance()"> Add seasonal atmosphere <button class="help-tip" type="button" aria-label="Seasonal atmosphere help" data-help="Adds location-aware seasonal details. Automatic mode uses the weather location latitude, hemisphere, month, climate band, and current temperature: Northern and Southern Hemisphere seasons are inverted correctly, tropical locations avoid inappropriate temperate leaves/frost, and mild subtropical winters avoid icy effects.">?</button></label>
-    <div class="s-row"><label>Season</label><select id="s-weather-season-mode" onchange="previewAppearance()"><option value="auto" selected>Automatic — region + season</option><option value="off">Off</option><option value="spring">Spring</option><option value="summer">Summer</option><option value="fall">Fall</option><option value="winter">Winter</option></select></div>
-    <div class="s-row"><label>Seasonal intensity <span id="s-weather-seasonal-intensity-value" class="range-value">45%</span></label><input id="s-weather-seasonal-intensity" type="range" min="0" max="100" step="5" value="45" oninput="previewAppearance()"><div class="range-ends"><span>Subtle</span><span>Rich</span></div></div>
-    <div class="s-subhead">Thunderstorms</div>
-    <div class="s-row"><label>Lightning frequency</label><select id="s-weather-effect-lightning-frequency" onchange="previewAppearance()"><option value="rare">Rare</option><option value="normal" selected>Normal</option><option value="frequent">Frequent</option></select></div>
-    <div class="s-row"><label>Lightning brightness <span id="s-weather-effect-lightning-brightness-value" class="range-value">65%</span></label><input id="s-weather-effect-lightning-brightness" type="range" min="20" max="100" step="5" value="65" oninput="previewAppearance()"><div class="range-ends"><span>Soft</span><span>Bright</span></div></div>
-    <div class="s-subhead">Individual effects</div>
+   </div>
+  </div>
+
+  <div class="s-section" id="settings-weather-precipitation" data-settings-tab="weather">
+   <h3>Rain, snow &amp; fog</h3>
+   <div class="howto">Tune each weather family independently. Use the Weather Effect Lab above to see changes immediately.</div>
+   <div class="settings-grid">
     <label class="checkline"><input id="s-weather-effect-precipitation" type="checkbox" checked onchange="previewAppearance()"> Rain and snow precipitation</label>
-    <label class="checkline"><input id="s-weather-effect-clouds" type="checkbox" checked onchange="previewAppearance()"> Moving cloud layers</label>
+    <div class="s-subhead">Rain</div>
+    <div class="s-row"><label>Rain density <span id="s-weather-rain-density-value" class="range-value">100%</span></label><input id="s-weather-rain-density" type="range" min="0" max="150" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Drop size / length <span id="s-weather-rain-size-value" class="range-value">100%</span></label><input id="s-weather-rain-size" type="range" min="40" max="150" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Surface splashes <span id="s-weather-rain-splash-value" class="range-value">70%</span></label><input id="s-weather-rain-splash" type="range" min="0" max="150" step="5" value="70" oninput="previewAppearance()"></div>
+    <div class="s-subhead">Snow</div>
+    <div class="s-row"><label>Snow density <span id="s-weather-snow-density-value" class="range-value">100%</span></label><input id="s-weather-snow-density" type="range" min="0" max="150" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Flake size <span id="s-weather-snow-size-value" class="range-value">100%</span></label><input id="s-weather-snow-size" type="range" min="40" max="150" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Snow drift <span id="s-weather-snow-drift-value" class="range-value">100%</span></label><input id="s-weather-snow-drift" type="range" min="0" max="150" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-subhead">Fog &amp; mist</div>
     <label class="checkline"><input id="s-weather-effect-fog" type="checkbox" checked onchange="previewAppearance()"> Fog and mist layers</label>
+    <div class="s-row"><label>Fog density <span id="s-weather-fog-density-value" class="range-value">115%</span></label><input id="s-weather-fog-density" type="range" min="0" max="180" step="5" value="115" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Fog movement <span id="s-weather-fog-speed-value" class="range-value">80%</span></label><input id="s-weather-fog-speed" type="range" min="20" max="150" step="5" value="80" oninput="previewAppearance()"></div>
+   </div>
+  </div>
+
+  <div class="s-section" id="settings-weather-seasonal" data-settings-tab="weather">
+   <h3>Seasonal atmosphere</h3>
+   <div class="howto">Automatic mode uses the weather location, hemisphere, climate band, local month, and temperature so seasonal details remain region-appropriate.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-seasonal-effects" type="checkbox" checked onchange="previewAppearance()"> Add seasonal atmosphere</label>
+    <div class="s-row"><label>Season</label><select id="s-weather-season-mode" onchange="previewAppearance()"><option value="auto" selected>Automatic — region + season</option><option value="off">Off</option><option value="spring">Spring</option><option value="summer">Summer</option><option value="fall">Fall / Autumn</option><option value="winter">Winter</option></select></div>
+    <div class="s-row"><label>Overall seasonal intensity <span id="s-weather-seasonal-intensity-value" class="range-value">45%</span></label><input id="s-weather-seasonal-intensity" type="range" min="0" max="100" step="5" value="45" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Autumn leaves <span id="s-weather-leaves-intensity-value" class="range-value">100%</span></label><input id="s-weather-leaves-intensity" type="range" min="0" max="150" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Seasonal grass <span id="s-weather-grass-intensity-value" class="range-value">100%</span></label><input id="s-weather-grass-intensity" type="range" min="0" max="150" step="5" value="100" oninput="previewAppearance()"></div>
+    <label class="checkline"><input id="s-weather-season-petals" type="checkbox" checked onchange="previewAppearance()"> Spring petals</label>
+    <div class="s-row"><label>Petal intensity <span id="s-weather-petal-intensity-value" class="range-value">80%</span></label><input id="s-weather-petal-intensity" type="range" min="0" max="150" step="5" value="80" oninput="previewAppearance()"></div>
+    <label class="checkline"><input id="s-weather-season-bugs" type="checkbox" checked onchange="previewAppearance()"> Summer bugs / fireflies</label>
+    <div class="s-row"><label>Bug / firefly intensity <span id="s-weather-bug-intensity-value" class="range-value">70%</span></label><input id="s-weather-bug-intensity" type="range" min="0" max="150" step="5" value="70" oninput="previewAppearance()"></div>
+    <label class="checkline"><input id="s-weather-cold-frost" type="checkbox" checked onchange="previewAppearance()"> Extreme-cold edge frost</label>
+    <div class="s-row"><label>Cold frost intensity <span id="s-weather-cold-frost-intensity-value" class="range-value">55%</span></label><input id="s-weather-cold-frost-intensity" type="range" min="0" max="150" step="5" value="55" oninput="previewAppearance()"></div>
+   </div>
+  </div>
+
+  <div class="s-section" id="settings-weather-sky" data-settings-tab="weather">
+   <h3>Sky, wind &amp; thunderstorms</h3>
+   <div class="howto">Control ambient sky layers and storm details separately from precipitation.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-effect-clouds" type="checkbox" checked onchange="previewAppearance()"> Moving cloud layers</label>
     <label class="checkline"><input id="s-weather-effect-sun" type="checkbox" checked onchange="previewAppearance()"> Sun glow and animated rays</label>
     <label class="checkline"><input id="s-weather-effect-wind" type="checkbox" checked onchange="previewAppearance()"> Wind drift and directional movement</label>
-    <label class="checkline"><input id="s-weather-effect-lightning" type="checkbox" checked onchange="previewAppearance()"> Lightning flashes during thunderstorms</label>
+    <label class="checkline"><input id="s-weather-effect-lightning" type="checkbox" checked onchange="previewAppearance()"> Realistic lightning bolts and sky flashes</label>
+    <div class="s-row"><label>Lightning frequency</label><select id="s-weather-effect-lightning-frequency" onchange="previewAppearance()"><option value="rare">Rare</option><option value="normal" selected>Normal</option><option value="frequent">Frequent</option></select></div>
+    <div class="s-row"><label>Lightning brightness <span id="s-weather-effect-lightning-brightness-value" class="range-value">65%</span></label><input id="s-weather-effect-lightning-brightness" type="range" min="20" max="100" step="5" value="65" oninput="previewAppearance()"></div>
     <label class="checkline"><input id="s-weather-effect-reduced-motion" type="checkbox" checked onchange="previewAppearance()"> Respect reduced-motion preferences</label>
-    <label class="checkline"><input id="s-weather-effect-pause-dimmed" type="checkbox" checked onchange="previewAppearance()"> Pause full-screen effects while OLED protection is dimming the display</label>
+    <label class="checkline"><input id="s-weather-effect-pause-dimmed" type="checkbox" checked onchange="previewAppearance()"> Pause full-screen effects while OLED protection is dimming</label>
    </div>
-   <div class="utility-actions" style="margin-top:8px;">
-    <button class="btn-util" type="button" onclick="resetWeatherAnimationSettings()">Reset weather animation settings</button>
-   </div>
-   <div class="settings-note">Animations are decorative only and never affect weather data refresh. Full-screen effects render behind dashboard content and are suppressed during Arrange/layout preview.</div>
+   <div class="utility-actions" style="margin-top:8px;"><button class="btn-util" type="button" onclick="resetWeatherAnimationSettings()">Reset all weather effect settings</button></div>
   </div>
 
   <div class="s-section" id="settings-weather-details" data-settings-level="advanced" data-settings-tab="weather">
@@ -703,7 +732,7 @@
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.5</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.6</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>

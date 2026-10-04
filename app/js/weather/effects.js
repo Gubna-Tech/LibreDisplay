@@ -89,9 +89,9 @@ function particleCount(condition,intensity,constrained,source){
   if(condition==='partly')return 0;
   if(condition==='fog'&&source.weatherEffectFog===false)return 0;
   if(condition==='clear'&&source.weatherEffectSun===false)return 0;
-  const base={rain:94,snow:64,storm:116,cloud:10,fog:10,clear:5}[condition]||0;
-  const factor=wxClamp(Number(intensity)/100,.08,1.5,.5),limit=constrained?98:190;
-  return Math.max(0,Math.min(limit,Math.round(base*factor*(constrained?.62:1))));
+  const base={rain:94,snow:64,storm:116,cloud:10,fog:18,clear:5}[condition]||0,tune=(condition==='rain'||condition==='storm')?wxClamp(source.weatherRainDensity,0,150,100)/100:condition==='snow'?wxClamp(source.weatherSnowDensity,0,150,100)/100:condition==='fog'?wxClamp(source.weatherFogDensity,0,180,115)/100:1;
+  const factor=wxClamp(Number(intensity)/100,.08,1.5,.5),limit=constrained?110:220;
+  return Math.max(0,Math.min(limit,Math.round(base*factor*tune*(constrained?.62:1))));
 }
 function weatherReducedMotionActive(source){return source.weatherEffectRespectReducedMotion!==false&&document.documentElement.classList.contains('ld-reduce-motion');}
 function fullscreenPauseReason(source){
@@ -138,22 +138,21 @@ function weatherSeasonContextForData(data,source,date=null){
 function weatherSeasonForData(data,source,date=null){return weatherSeasonContextForData(data,source,date).season;}
 function seasonalParticleCount(season,source,constrained,data=null){
   if(season==='none'||source.weatherSeasonalEffects===false)return 0;
-  const context=weatherSeasonContextForData(data||configApi.wxData,source),base={spring:42,summer:40,fall:34,winter:24}[season]||0,factor=wxClamp(source.weatherSeasonalIntensity,0,100,45)/100;
-  return Math.round(base*factor*(context.automatic?context.scale:1)*(constrained?.62:1));
+  const context=weatherSeasonContextForData(data||configApi.wxData,source),base={spring:42,summer:42,fall:34,winter:22}[season]||0,factor=wxClamp(source.weatherSeasonalIntensity,0,100,45)/100,tune=season==='fall'?wxClamp(source.weatherSeasonLeavesIntensity,0,150,100)/100:season==='spring'?Math.max(wxClamp(source.weatherSeasonGrassIntensity,0,150,100),source.weatherSeasonPetals===false?0:wxClamp(source.weatherSeasonPetalIntensity,0,150,80))/100:season==='summer'?Math.max(wxClamp(source.weatherSeasonGrassIntensity,0,150,100),source.weatherSeasonBugs===false?0:wxClamp(source.weatherSeasonBugIntensity,0,150,70))/100:1;
+  return Math.round(base*factor*tune*(context.automatic?context.scale:1)*(constrained?.62:1));
 }
 function appendSeasonalParticles(frag,season,count,source,data,wind){
   const speed=wxClamp(source.weatherEffectSpeed,40,180,100)/100,isNight=Number(data?.current?.is_day)===0,context=weatherSeasonContextForData(data,source),temp=Number(data?.current?.temperature_2m),mildWinter=context.automatic&&season==='winter'&&context.climateBand==='subtropical'&&(!Number.isFinite(temp)||temp>6);
   for(let i=0;i<count;i++){
     const p=document.createElement('span');p.className='weather-fx-seasonal';
-    p.style.setProperty('--season-x',`${(seededUnit(i,31)*108-4).toFixed(2)}vw`);p.style.setProperty('--season-y',`${(seededUnit(i,32)*98).toFixed(2)}vh`);p.style.setProperty('--season-delay',`${(-seededUnit(i,33)*18/speed).toFixed(2)}s`);p.style.setProperty('--season-scale',(0.55+seededUnit(i,34)*1.15).toFixed(2));
+    p.style.setProperty('--season-x',`${(seededUnit(i,31)*108-4).toFixed(2)}vw`);p.style.setProperty('--season-y',`${(seededUnit(i,32)*98).toFixed(2)}vh`);p.style.setProperty('--season-delay',`${(-seededUnit(i,33)*18/speed).toFixed(2)}s`);const seasonScale=.55+seededUnit(i,34)*1.15;p.style.setProperty('--season-scale',seasonScale.toFixed(2));
     const drift=wind.direction*(8+seededUnit(i,35)*28)*Math.max(.28,wind.strength);p.style.setProperty('--season-drift',`${drift.toFixed(1)}vw`);
     if(season==='spring'){
-      if(i%3===0){p.classList.add('weather-fx-grass');p.style.setProperty('--grass-h',`${(2.5+seededUnit(i,36)*6).toFixed(1)}vh`);}
-      else{p.classList.add('weather-fx-petal');p.style.setProperty('--season-duration',`${(8+seededUnit(i,37)*10)/speed}s`);p.style.setProperty('--petal-hue',String(Math.round(320+seededUnit(i,38)*40)));}
+      const grassOn=wxClamp(source.weatherSeasonGrassIntensity,0,150,100)>0,petalOn=source.weatherSeasonPetals!==false&&wxClamp(source.weatherSeasonPetalIntensity,0,150,80)>0;if(grassOn&&(i%3===0||!petalOn)){p.classList.add('weather-fx-grass');p.style.setProperty('--season-scale',(seasonScale*wxClamp(source.weatherSeasonGrassIntensity,20,150,100)/100).toFixed(2));p.style.setProperty('--grass-h',`${(2.5+seededUnit(i,36)*6).toFixed(1)}vh`);}else if(petalOn){p.classList.add('weather-fx-petal');p.style.setProperty('--season-scale',(seasonScale*wxClamp(source.weatherSeasonPetalIntensity,20,150,80)/100).toFixed(2));p.style.setProperty('--season-duration',`${(8+seededUnit(i,37)*10)/speed}s`);p.style.setProperty('--petal-hue',String(Math.round(320+seededUnit(i,38)*40)));}else continue;
     }else if(season==='summer'){
-      if(i%4===0){p.classList.add('weather-fx-grass','weather-fx-summer-grass');p.style.setProperty('--grass-h',`${(3+seededUnit(i,36)*7).toFixed(1)}vh`);}else{p.classList.add(isNight?'weather-fx-firefly':'weather-fx-summer-mote');p.style.setProperty('--season-duration',`${(5+seededUnit(i,39)*8)/speed}s`);}
+      const grassOn=wxClamp(source.weatherSeasonGrassIntensity,0,150,100)>0,bugOn=source.weatherSeasonBugs!==false&&wxClamp(source.weatherSeasonBugIntensity,0,150,70)>0;if(grassOn&&(i%4===0||!bugOn)){p.classList.add('weather-fx-grass','weather-fx-summer-grass');p.style.setProperty('--season-scale',(seasonScale*wxClamp(source.weatherSeasonGrassIntensity,20,150,100)/100).toFixed(2));p.style.setProperty('--grass-h',`${(3+seededUnit(i,36)*7).toFixed(1)}vh`);}else if(bugOn){p.classList.add(isNight?'weather-fx-firefly':'weather-fx-summer-bug');p.style.setProperty('--season-scale',(seasonScale*wxClamp(source.weatherSeasonBugIntensity,20,150,70)/100).toFixed(2));p.style.setProperty('--season-duration',`${(5+seededUnit(i,39)*8)/speed}s`);}else{p.classList.add('weather-fx-summer-mote');p.style.setProperty('--season-duration',`${(5+seededUnit(i,39)*8)/speed}s`);}
     }else if(season==='fall'){
-      p.classList.add('weather-fx-leaf');p.style.setProperty('--season-duration',`${(5.5+seededUnit(i,40)*8)/speed}s`);p.style.setProperty('--leaf-hue',String(Math.round(18+seededUnit(i,41)*38)));
+      if(wxClamp(source.weatherSeasonLeavesIntensity,0,150,100)<=0)continue;p.classList.add('weather-fx-leaf');p.style.setProperty('--season-scale',(seasonScale*wxClamp(source.weatherSeasonLeavesIntensity,20,150,100)/100).toFixed(2));p.style.setProperty('--season-duration',`${(5.5+seededUnit(i,40)*8)/speed}s`);p.style.setProperty('--leaf-hue',String(Math.round(18+seededUnit(i,41)*38)));
     }else if(season==='winter'){
       p.classList.add(mildWinter?'weather-fx-winter-mote':'weather-fx-crystal');p.style.setProperty('--season-duration',`${(7+seededUnit(i,42)*10)/speed}s`);
     }
@@ -161,26 +160,28 @@ function appendSeasonalParticles(frag,season,count,source,data,wind){
   }
 }
 function appendWeatherParticles(frag,condition,count,source,data,wind){
-  const speed=wxClamp(source.weatherEffectSpeed,40,180,100)/100,particleScale=wxClamp(source.weatherEffectParticleScale,60,160,100)/100;
+  const baseSpeed=wxClamp(source.weatherEffectSpeed,40,180,100)/100,speed=condition==='fog'?baseSpeed*wxClamp(source.weatherFogSpeed,25,160,80)/100:baseSpeed,particleScale=wxClamp(source.weatherEffectParticleScale,60,160,100)/100,conditionScale=(condition==='rain'||condition==='storm'?wxClamp(source.weatherRainSize,40,160,100):condition==='snow'?wxClamp(source.weatherSnowSize,40,160,100):100)/100;
   for(let i=0;i<count;i++){
     const p=document.createElement('span'),depth=.24+seededUnit(i,7)*.76;p.className='weather-fx-particle weather-fx-primary';
     p.style.setProperty('--fx-x',`${(seededUnit(i,1)*106-3).toFixed(2)}vw`);p.style.setProperty('--fx-y',`${(seededUnit(i,6)*20-14).toFixed(2)}vh`);p.style.setProperty('--fx-static-y',`${(seededUnit(i,8)*108-4).toFixed(2)}vh`);p.style.setProperty('--fx-delay',`${(-seededUnit(i,2)*16/speed).toFixed(2)}s`);
-    const drift=wind.strength?(wind.direction*(.5+seededUnit(i,3))*(6+18*depth)*wind.strength):0;p.style.setProperty('--fx-drift',`${drift.toFixed(1)}vw`);p.style.setProperty('--fx-depth',depth.toFixed(2));p.style.setProperty('--fx-scale',((.52+seededUnit(i,5)*1.08)*particleScale*(.80+depth*.36)).toFixed(2));p.style.setProperty('--fx-alpha',(.42+depth*.54).toFixed(2));
+    const drift=wind.strength?(wind.direction*(.5+seededUnit(i,3))*(6+18*depth)*wind.strength):0;p.style.setProperty('--fx-drift',`${drift.toFixed(1)}vw`);p.style.setProperty('--fx-depth',depth.toFixed(2));p.style.setProperty('--fx-scale',((.52+seededUnit(i,5)*1.08)*particleScale*conditionScale*(.80+depth*.36)).toFixed(2));p.style.setProperty('--fx-alpha',(.42+depth*.54).toFixed(2));
     if(condition==='rain'||condition==='storm'){
       p.style.setProperty('--fx-duration',`${((.58+seededUnit(i,4)*.82)/(speed*(.8+depth*.4))).toFixed(2)}s`);p.style.setProperty('--fx-width',`${(.7+depth*1.6).toFixed(2)}px`);p.style.setProperty('--fx-length',`${(4.8+depth*6.8).toFixed(2)}vh`);p.style.setProperty('--fx-angle',`${(wind.direction*(6+wind.strength*7)).toFixed(1)}deg`);
     }else if(condition==='snow'){
-      p.style.setProperty('--fx-duration',`${((4.8+seededUnit(i,4)*7.4)/(speed*(.78+depth*.34))).toFixed(2)}s`);p.style.setProperty('--fx-blur',`${((1-depth)*1.2).toFixed(2)}px`);
+      const snowDrift=wxClamp(source.weatherSnowDrift,0,150,100)/100;p.style.setProperty('--fx-drift',`${(drift*snowDrift).toFixed(1)}vw`);p.style.setProperty('--fx-duration',`${((4.8+seededUnit(i,4)*7.4)/(speed*(.78+depth*.34))).toFixed(2)}s`);p.style.setProperty('--fx-blur',`${((1-depth)*1.2).toFixed(2)}px`);
     }else p.style.setProperty('--fx-duration',`${((12+seededUnit(i,4)*18)/(speed*Math.max(.45,.78+wind.strength*.18))).toFixed(2)}s`);
     frag.appendChild(p);
   }
   if((condition==='rain'||condition==='storm')&&count>8&&source.weatherEffectPrecipitation!==false){
-    const splashCount=Math.min(20,Math.max(4,Math.round(count*.14)));
+    const splashCount=Math.min(26,Math.max(0,Math.round(count*.16*wxClamp(source.weatherRainSplash,0,150,70)/100)));
     for(let i=0;i<splashCount;i++){const p=document.createElement('span');p.className='weather-fx-splash';p.style.setProperty('--fx-x',`${(seededUnit(i,51)*100).toFixed(2)}vw`);p.style.setProperty('--fx-delay',`${(-seededUnit(i,52)*4/speed).toFixed(2)}s`);p.style.setProperty('--fx-duration',`${(.65+seededUnit(i,53)*.8).toFixed(2)}s`);p.style.setProperty('--fx-scale',(.6+seededUnit(i,54)*1.2).toFixed(2));frag.appendChild(p);}
   }
 }
 function buildParticles(host,condition,count,source,data,season){
-  const wind=weatherWindProfile(data,source),frag=document.createDocumentFragment(),constrained=performanceApi.frontendCapabilities().constrained;
-  appendWeatherParticles(frag,condition,count,source,data,wind);appendSeasonalParticles(frag,season,seasonalParticleCount(season,source,constrained,data),source,data,wind);host.replaceChildren(frag);
+  const wind=weatherWindProfile(data,source),frag=document.createDocumentFragment(),constrained=performanceApi.frontendCapabilities().constrained;appendWeatherParticles(frag,condition,count,source,data,wind);appendSeasonalParticles(frag,season,seasonalParticleCount(season,source,constrained,data),source,data,wind);
+  if(condition==='storm'&&source.weatherEffectLightning!==false){for(let i=0;i<2;i++){const bolt=document.createElement('span');bolt.className='weather-fx-lightning-bolt';bolt.style.setProperty('--bolt-x',`${18+seededUnit(i,71)*64}vw`);bolt.style.setProperty('--bolt-delay',`${(-seededUnit(i,72)*18).toFixed(2)}s`);bolt.style.setProperty('--bolt-scale',(0.7+seededUnit(i,73)*.75).toFixed(2));frag.appendChild(bolt);}}
+  const temp=Number(data?.current?.temperature_2m),frost=source.weatherColdFrost!==false&&Number.isFinite(temp)&&temp<=-8&&season==='winter';if(frost){const edge=document.createElement('span');edge.className='weather-fx-edge-frost';edge.style.setProperty('--frost-alpha',String(wxClamp(source.weatherColdFrostIntensity,0,150,55)/100*wxClamp((-temp-5)/20,.15,1,1)));frag.appendChild(edge);}
+  host.replaceChildren(frag);
 }
 
 function weatherTestData(data=configApi.wxData){
@@ -223,10 +224,10 @@ function applyWeatherEffects(data=configApi.wxData,source=null){
   syncWeatherGlyphVisibility(source,widgetOn);document.body.dataset.weatherCondition=condition;document.body.dataset.weatherSeason=season;document.body.dataset.weatherSeasonRegion=state.seasonContext?.climateBand||'unknown';
   host.className='';host.classList.toggle('weather-fx-no-precip',source.weatherEffectPrecipitation===false);host.classList.toggle('weather-fx-no-clouds',source.weatherEffectClouds===false);host.classList.toggle('weather-fx-no-fog',source.weatherEffectFog===false);host.classList.toggle('weather-fx-no-sun',source.weatherEffectSun===false);host.classList.toggle('weather-fx-no-wind',source.weatherEffectWind===false);host.classList.toggle('weather-fx-no-lightning',source.weatherEffectLightning===false);
   const wind=weatherWindProfile(data,source),lightningSeconds={rare:16,normal:10,frequent:6}[source.weatherEffectLightningFrequency]||10;host.classList.toggle('weather-fx-wind-reverse',wind.direction<0);host.classList.toggle('weather-fx-static',state.reducedMotion);if(season!=='none')host.classList.add('weather-season-'+season);if(state.seasonContext?.climateBand)host.classList.add('weather-region-'+state.seasonContext.climateBand);
-  host.style.setProperty('--weather-fx-opacity',String(wxClamp(source.weatherEffectOpacity,5,80,34)/100));host.style.setProperty('--weather-fx-speed',String(wxClamp(source.weatherEffectSpeed,40,180,100)/100));host.style.setProperty('--weather-fx-atmosphere',String(wxClamp(source.weatherEffectAtmosphere,0,100,55)/100));host.style.setProperty('--weather-fx-lightning-alpha',String(wxClamp(source.weatherEffectLightningBrightness,20,100,65)/100));host.style.setProperty('--weather-fx-lightning-duration',`${lightningSeconds}s`);host.style.setProperty('--weather-season-intensity',String(wxClamp(source.weatherSeasonalIntensity,0,100,45)/100));
+  host.style.setProperty('--weather-fx-opacity',String(wxClamp(source.weatherEffectOpacity,5,80,34)/100));host.style.setProperty('--weather-fx-speed',String(wxClamp(source.weatherEffectSpeed,40,180,100)/100));host.style.setProperty('--weather-fx-atmosphere',String(wxClamp(source.weatherEffectAtmosphere,0,100,55)/100));host.style.setProperty('--weather-fx-lightning-alpha',String(wxClamp(source.weatherEffectLightningBrightness,20,100,65)/100));host.style.setProperty('--weather-fx-lightning-duration',`${lightningSeconds}s`);host.style.setProperty('--weather-season-intensity',String(wxClamp(source.weatherSeasonalIntensity,0,100,45)/100));host.style.setProperty('--weather-fog-strength',String(wxClamp(source.weatherFogDensity,0,180,115)/100));
   updateWeatherEffectStatus(state,data);if(!fullOn){lastSignature='';host.replaceChildren();return;}
   host.classList.add('show','weather-fx-'+condition);const count=particleCount(condition,state.effectiveIntensity,constrained,source),seasonCount=seasonalParticleCount(season,source,constrained,data);
-  const signature=[condition,season,state.seasonContext?.hemisphere,state.seasonContext?.climateBand,Math.round((state.seasonContext?.scale||0)*100),count,seasonCount,source.weatherEffectSpeed,source.weatherEffectOpacity,source.weatherEffectAtmosphere,source.weatherEffectParticleScale,source.weatherEffectWindStrength,source.weatherEffectAutoIntensity,source.weatherEffectPrecipitation,source.weatherEffectClouds,source.weatherEffectFog,source.weatherEffectSun,source.weatherEffectWind,source.weatherEffectLightning,source.weatherEffectLightningFrequency,source.weatherEffectLightningBrightness,source.weatherSeasonalEffects,source.weatherSeasonMode,source.weatherSeasonalIntensity,wind.direction,Math.round(wind.strength*100),state.testProfile,constrained].join('|');
+  const signature=[condition,season,state.seasonContext?.hemisphere,state.seasonContext?.climateBand,Math.round((state.seasonContext?.scale||0)*100),count,seasonCount,source.weatherEffectSpeed,source.weatherEffectOpacity,source.weatherEffectAtmosphere,source.weatherEffectParticleScale,source.weatherEffectWindStrength,source.weatherEffectAutoIntensity,source.weatherEffectPrecipitation,source.weatherEffectClouds,source.weatherEffectFog,source.weatherEffectSun,source.weatherEffectWind,source.weatherEffectLightning,source.weatherEffectLightningFrequency,source.weatherEffectLightningBrightness,source.weatherRainDensity,source.weatherRainSize,source.weatherRainSplash,source.weatherSnowDensity,source.weatherSnowSize,source.weatherSnowDrift,source.weatherFogDensity,source.weatherFogSpeed,source.weatherSeasonLeavesIntensity,source.weatherSeasonGrassIntensity,source.weatherSeasonPetals,source.weatherSeasonPetalIntensity,source.weatherSeasonBugs,source.weatherSeasonBugIntensity,source.weatherColdFrost,source.weatherColdFrostIntensity,source.weatherSeasonalEffects,source.weatherSeasonMode,source.weatherSeasonalIntensity,wind.direction,Math.round(wind.strength*100),state.testProfile,constrained].join('|');
   if(signature!==lastSignature){buildParticles(host,condition,count,source,data,season);lastSignature=signature;}host.classList.toggle('weather-fx-lightning',condition==='storm'&&source.weatherEffectLightning!==false);
 }
 function refreshWeatherEffects(){applyWeatherEffects(configApi.wxData);}
