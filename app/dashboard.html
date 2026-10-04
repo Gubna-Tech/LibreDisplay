@@ -160,7 +160,7 @@
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.2</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.3</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -395,15 +395,29 @@
 
   <div class="s-section" id="settings-weather-motion" data-settings-tab="weather">
    <h3>Weather animation</h3>
-   <div class="howto">Optional weather motion can animate the weather areas and add a full-screen atmosphere that follows the current conditions outside. Every effect can be disabled independently.</div>
+   <div class="howto">Weather motion can animate forecast icons and build a full-screen atmosphere from the live conditions. Full-screen effects now activate immediately when enabled, and live intensity can automatically react to precipitation, cloud cover, and wind.</div>
+   <div id="weather-effect-live-status" class="settings-note weather-effect-status">Waiting for current weather data.</div>
    <div class="settings-grid">
-    <label class="checkline"><input id="s-weather-animations" type="checkbox" onchange="previewAppearance()"> Enable weather animations</label>
-    <label class="checkline"><input id="s-weather-widget-animations" type="checkbox" checked onchange="previewAppearance()"> Animate weather icons and forecast areas</label>
-    <label class="checkline"><input id="s-weather-fullscreen-effects" type="checkbox" onchange="previewAppearance()"> Full-screen weather atmosphere <button class="help-tip" type="button" aria-label="Full-screen weather effects help" data-help="Adds lightweight rain, snow, cloud, fog, clear-sky glow, or storm effects over the background while keeping dashboard content readable.">?</button></label>
+    <label class="checkline"><input id="s-weather-animations" type="checkbox" onchange="weatherAnimationControlChanged(this)"> Enable weather animations</label>
+    <label class="checkline"><input id="s-weather-widget-animations" type="checkbox" checked onchange="weatherAnimationControlChanged(this)"> Animate weather icons and forecast areas</label>
+    <label class="checkline"><input id="s-weather-fullscreen-effects" type="checkbox" onchange="weatherAnimationControlChanged(this)"> Full-screen weather atmosphere <button class="help-tip" type="button" aria-label="Full-screen weather effects help" data-help="Enabling this also enables weather animations so the overlay appears immediately. Rain, snow, clouds, fog, sun glow, and storms follow the live weather.">?</button></label>
+    <div class="utility-actions weather-effect-presets">
+     <button class="btn-util" type="button" onclick="applyWeatherEffectPreset('subtle')">Subtle</button>
+     <button class="btn-util" type="button" onclick="applyWeatherEffectPreset('balanced')">Balanced</button>
+     <button class="btn-util" type="button" onclick="applyWeatherEffectPreset('immersive')">Immersive</button>
+     <button class="btn-util" type="button" onclick="previewCurrentWeatherOverlay()">Show current overlay</button>
+    </div>
     <div class="s-row"><label>Full-screen effect behavior</label><select id="s-weather-effect-mode" onchange="previewAppearance()"><option value="auto">Automatic — match current weather</option><option value="precipitation">Precipitation only — rain, snow, storms</option><option value="ambient">Ambient only — clouds, fog, clear sky</option></select></div>
+    <label class="checkline"><input id="s-weather-effect-auto-intensity" type="checkbox" checked onchange="previewAppearance()"> Auto-match effect intensity to live weather <button class="help-tip" type="button" aria-label="Automatic weather intensity help" data-help="Uses the current weather code plus live precipitation, cloud cover, and wind to strengthen or soften the overlay while keeping your selected intensity as the baseline.">?</button></label>
     <div class="s-row"><label>Effect intensity <span id="s-weather-effect-intensity-value" class="range-value">50%</span></label><input id="s-weather-effect-intensity" type="range" min="10" max="100" step="5" value="50" oninput="previewAppearance()"><div class="range-ends"><span>Subtle</span><span>Dense</span></div></div>
     <div class="s-row"><label>Overlay visibility <span id="s-weather-effect-opacity-value" class="range-value">34%</span></label><input id="s-weather-effect-opacity" type="range" min="5" max="80" step="1" value="34" oninput="previewAppearance()"><div class="range-ends"><span>Soft</span><span>Strong</span></div></div>
+    <div class="s-row"><label>Atmosphere depth <span id="s-weather-effect-atmosphere-value" class="range-value">55%</span></label><input id="s-weather-effect-atmosphere" type="range" min="0" max="100" step="5" value="55" oninput="previewAppearance()"><div class="range-ends"><span>Clean</span><span>Moody</span></div></div>
+    <div class="s-row"><label>Particle size <span id="s-weather-effect-particle-scale-value" class="range-value">100%</span></label><input id="s-weather-effect-particle-scale" type="range" min="60" max="160" step="5" value="100" oninput="previewAppearance()"><div class="range-ends"><span>Fine</span><span>Large</span></div></div>
     <div class="s-row"><label>Animation speed <span id="s-weather-effect-speed-value" class="range-value">100%</span></label><input id="s-weather-effect-speed" type="range" min="40" max="180" step="5" value="100" oninput="previewAppearance()"><div class="range-ends"><span>Slow</span><span>Fast</span></div></div>
+    <div class="s-row"><label>Wind influence <span id="s-weather-effect-wind-strength-value" class="range-value">100%</span></label><input id="s-weather-effect-wind-strength" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"><div class="range-ends"><span>Vertical</span><span>Strong drift</span></div></div>
+    <div class="s-subhead">Thunderstorms</div>
+    <div class="s-row"><label>Lightning frequency</label><select id="s-weather-effect-lightning-frequency" onchange="previewAppearance()"><option value="rare">Rare</option><option value="normal" selected>Normal</option><option value="frequent">Frequent</option></select></div>
+    <div class="s-row"><label>Lightning brightness <span id="s-weather-effect-lightning-brightness-value" class="range-value">65%</span></label><input id="s-weather-effect-lightning-brightness" type="range" min="20" max="100" step="5" value="65" oninput="previewAppearance()"><div class="range-ends"><span>Soft</span><span>Bright</span></div></div>
     <div class="s-subhead">Individual effects</div>
     <label class="checkline"><input id="s-weather-effect-precipitation" type="checkbox" checked onchange="previewAppearance()"> Rain and snow precipitation</label>
     <label class="checkline"><input id="s-weather-effect-clouds" type="checkbox" checked onchange="previewAppearance()"> Moving cloud layers</label>
@@ -417,7 +431,7 @@
    <div class="utility-actions" style="margin-top:8px;">
     <button class="btn-util" type="button" onclick="resetWeatherAnimationSettings()">Reset weather animation settings</button>
    </div>
-   <div class="settings-note">Animations are decorative only and never affect weather data refresh. Full-screen effects are rendered behind dashboard content and are automatically suppressed during Arrange/layout preview.</div>
+   <div class="settings-note">Animations are decorative only and never affect weather data refresh. Full-screen effects render behind dashboard content and are suppressed during Arrange/layout preview.</div>
   </div>
 
   <div class="s-section" id="settings-weather-details" data-settings-level="advanced" data-settings-tab="weather">
@@ -680,7 +694,7 @@
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.2</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.3</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>

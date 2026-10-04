@@ -1,5 +1,6 @@
 // Weather clock, forecast, and detail rendering.
 const configApi=LibreDisplayRuntime.getModule('config');
+const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 
 const {uiCfg,fetchRemoteText,escHtml}=LibreDisplayRuntime.getModule('shared');
 
@@ -68,7 +69,29 @@ let weatherLastSource='';
 let weatherLastGridPoint=null;
 let weatherLastAttemptAt=0;
 let weatherLastSuccessAt=0;
+let weatherDataLocationKey='';
+let weatherFetchSerial=0;
 
+function weatherLocationKey(source=cfg){
+  const lat=Number(source?.lat),lon=Number(source?.lon);if(!Number.isFinite(lat)||!Number.isFinite(lon))return '';
+  return `${lat.toFixed(5)}|${lon.toFixed(5)}|${String(source?.locationGeocodeId??'')}|${String(source?.locationTimezone||'')}`;
+}
+function weatherPayloadMatchesRequest(data,source){
+  const lat=Number(source?.lat),lon=Number(source?.lon),actualLat=Number(data?.latitude),actualLon=Number(data?.longitude);
+  return Number.isFinite(lat)&&Number.isFinite(lon)&&Number.isFinite(actualLat)&&Number.isFinite(actualLon)&&Math.abs(lat-actualLat)<=1&&Math.abs(lon-actualLon)<=1;
+}
+function showWeatherWaitingState(message='Waiting for fresh weather…'){
+  const ui=uiCfg(),locationEl=document.getElementById('wx-location'),label=String(ui.locName??cfg.locName??'').trim();
+  if(locationEl){locationEl.textContent=label;locationEl.classList.toggle('show',!!label);}const set=(id,text)=>{const el=document.getElementById(id);if(el)el.textContent=text;};
+  set('wx-icon','🌡️');set('wx-temp','--°');set('wx-feels',message);set('wx-cond','Updating conditions…');
+  for(const id of ['wx-details','wx-forecast','wx-hourly'])document.getElementById(id)?.replaceChildren();
+  try{LibreDisplayRuntime.getModule('weatherEffects').applyWeatherEffects(null,ui);}catch(_e){}
+  try{refreshCustomDataBlocks(['weatherview','suntimes']);}catch(_e){}
+}
+function invalidateWeatherIfLocationChanged(force=false){
+  const current=weatherLocationKey(cfg);if(!force&&(!configApi.wxData||!weatherDataLocationKey||weatherDataLocationKey===current))return false;
+  weatherFetchSerial++;weatherDataLocationKey='';configApi.wxData=null;weatherLastSource='';weatherLastGridPoint=null;weatherLastSuccessAt=0;showWeatherWaitingState();return true;
+}
 function weatherWindUnitParam(source=cfg){return source?.useFahrenheit===false?'kmh':'mph';}
 function weatherWindUnitLabel(source=cfg){return source?.useFahrenheit===false?'km/h':'mph';}
 function weatherWindUnitMatches(raw,source=cfg){
@@ -91,26 +114,38 @@ async function fetchWeather(){
   weatherLastAttemptAt=Date.now();
   if(!cfg.lat||!cfg.lon){
     weatherLastError='Location is not configured';
+    invalidateWeatherIfLocationChanged(true);
     setTimeout(updateSettingsOverview,0);
     return;
   }
-  const url=`https://api.open-meteo.com/v1/forecast?latitude=${cfg.lat}&longitude=${cfg.lon}`
+  if((bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE)&&!configApi.serverConfigAvailable){
+    weatherLastError='Waiting for saved location verification';
+    invalidateWeatherIfLocationChanged(true);
+    setTimeout(updateSettingsOverview,0);
+    return;
+  }
+  invalidateWeatherIfLocationChanged();
+  const source={...cfg},requestKey=weatherLocationKey(source),requestSerial=++weatherFetchSerial;
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${source.lat}&longitude=${source.lon}`
     +`&current=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,precipitation,cloud_cover,pressure_msl,weather_code,wind_speed_10m,wind_direction_10m`
     +`&hourly=temperature_2m,weather_code,precipitation_probability`
     +`&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max`
-    +`&temperature_unit=celsius&precipitation_unit=mm&wind_speed_unit=${weatherWindUnitParam(cfg)}`
+    +`&temperature_unit=celsius&precipitation_unit=mm&wind_speed_unit=${weatherWindUnitParam(source)}`
     +`&timezone=auto&forecast_days=14`;
 
   try{
-    const d=validateWeatherPayload(JSON.parse(await fetchRemoteText(url,(cfg.weatherRefreshMin||10)*60)),cfg);
+    const d=validateWeatherPayload(JSON.parse(await fetchRemoteText(url,(source.weatherRefreshMin||10)*60)),source);
+    if(requestSerial!==weatherFetchSerial||requestKey!==weatherLocationKey(cfg))return;
+    if(!weatherPayloadMatchesRequest(d,source))throw new Error('Weather response does not match the saved location');
     weatherLastError='';
-    weatherLastSource='Open-Meteo · '+weatherWindUnitLabel(cfg);
+    weatherLastSource='Open-Meteo · '+weatherWindUnitLabel(source);
     weatherLastGridPoint={latitude:Number(d.latitude),longitude:Number(d.longitude),elevation:Number(d.elevation),timezone:String(d.timezone||'')};
-    weatherLastSuccessAt=Date.now();
+    weatherLastSuccessAt=Date.now();weatherDataLocationKey=requestKey;
     if(!document.getElementById('setup')?.classList.contains('hidden'))LibreDisplayRuntime.getModule('onboarding').renderWeatherLocationSelected();
     configApi.wxData=d;
     renderWeather(d);
   }catch(e){
+    if(requestSerial!==weatherFetchSerial)return;
     weatherLastError=String(e?.message||e);
     weatherLastSource='';
     console.warn('wx error',weatherLastError);
@@ -225,7 +260,7 @@ function resetWeatherDetails(){mutateWeatherDetails(s=>{s.order=['sunset','wind'
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("weather", {activeLocale,formatClockDate,tick,clockTickDelay,startClock,wi,wd,C,u,weatherWindUnitParam,weatherWindUnitLabel,weatherWindUnitMatches,validateWeatherPayload,fetchWeather,renderWeather,weatherDetailsConfig,weatherDetailColumnCount,weatherDetailValue,renderBuiltInWeatherDetails,weatherDetailsFromForm,setWeatherDetailsForm,renderWeatherDetailsSettings,mutateWeatherDetails,toggleWeatherDetailSetting,moveWeatherDetailSetting,weatherDetailDragStart,weatherDetailDrop,enableRecommendedWeatherDetails,enableAllWeatherDetails,resetWeatherDetails}, {
+LibreDisplayRuntime.exposeModule("weather", {activeLocale,formatClockDate,tick,clockTickDelay,startClock,wi,wd,C,u,weatherLocationKey,weatherPayloadMatchesRequest,showWeatherWaitingState,invalidateWeatherIfLocationChanged,weatherWindUnitParam,weatherWindUnitLabel,weatherWindUnitMatches,validateWeatherPayload,fetchWeather,renderWeather,weatherDetailsConfig,weatherDetailColumnCount,weatherDetailValue,renderBuiltInWeatherDetails,weatherDetailsFromForm,setWeatherDetailsForm,renderWeatherDetailsSettings,mutateWeatherDetails,toggleWeatherDetailSetting,moveWeatherDetailSetting,weatherDetailDragStart,weatherDetailDrop,enableRecommendedWeatherDetails,enableAllWeatherDetails,resetWeatherDetails}, {
   "DN": {configurable:true,get:()=>DN},
   "MN": {configurable:true,get:()=>MN},
   "MNS": {configurable:true,get:()=>MNS},
@@ -237,6 +272,8 @@ LibreDisplayRuntime.exposeModule("weather", {activeLocale,formatClockDate,tick,c
   "weatherLastGridPoint": {configurable:true,get:()=>weatherLastGridPoint,set:(value)=>{weatherLastGridPoint=value;}},
   "weatherLastAttemptAt": {configurable:true,get:()=>weatherLastAttemptAt,set:(value)=>{weatherLastAttemptAt=value;}},
   "weatherLastSuccessAt": {configurable:true,get:()=>weatherLastSuccessAt,set:(value)=>{weatherLastSuccessAt=value;}},
+  "weatherDataLocationKey": {configurable:true,get:()=>weatherDataLocationKey,set:(value)=>{weatherDataLocationKey=String(value||'');}},
+  "weatherFetchSerial": {configurable:true,get:()=>weatherFetchSerial,set:(value)=>{weatherFetchSerial=Number(value)||0;}},
   "WEATHER_DETAIL_META": {configurable:true,get:()=>WEATHER_DETAIL_META},
   "weatherDetailDragKey": {configurable:true,get:()=>weatherDetailDragKey,set:(value)=>{weatherDetailDragKey=value;}}
 }, {globalFunctions:['toggleWeatherDetailSetting','moveWeatherDetailSetting','weatherDetailDragStart','weatherDetailDrop','enableRecommendedWeatherDetails','enableAllWeatherDetails','resetWeatherDetails'],globalStates:[]});

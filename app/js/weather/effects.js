@@ -5,6 +5,7 @@ const {uiCfg}=LibreDisplayRuntime.getModule('shared');
 
 let lastSignature='';
 
+function wxClamp(n,lo,hi,fallback=lo){n=Number(n);return Math.min(hi,Math.max(lo,Number.isFinite(n)?n:fallback));}
 function weatherVisualCondition(code){
   const c=Number(code);
   if([95,96,99].includes(c))return 'storm';
@@ -51,23 +52,41 @@ function syncWeatherGlyphVisibility(source,widgetOn){
   }
 }
 
+function liveIntensityMultiplier(condition,data){
+  const current=data?.current||{},code=Number(current.weather_code),precip=Number(current.precipitation),cloud=Number(current.cloud_cover),wind=Number(current.wind_speed_10m);
+  const severity={51:.62,53:.76,55:.92,61:.76,63:1,65:1.32,80:.82,81:1.08,82:1.42,71:.72,73:1,75:1.3,77:.8,85:.88,86:1.26,95:1.18,96:1.38,99:1.55}[code]||1;
+  if(condition==='rain'||condition==='snow'||condition==='storm'){
+    const precipBoost=Number.isFinite(precip)?wxClamp(.68+Math.sqrt(Math.max(0,precip))*.23,.68,1.45,1):1;
+    const windBoost=Number.isFinite(wind)?wxClamp(.86+wind/120,.86,1.22,1):1;
+    return wxClamp(severity*precipBoost*windBoost,.55,1.7,1);
+  }
+  if(condition==='cloud'||condition==='partly')return Number.isFinite(cloud)?wxClamp(.62+cloud/170,.62,1.18,1):1;
+  if(condition==='fog')return Number.isFinite(cloud)?wxClamp(.78+cloud/240,.78,1.16,1):1;
+  return 1;
+}
+function weatherEffectIntensityForData(condition,data,source){
+  const selected=wxClamp(source.weatherEffectIntensity,10,100,50);
+  return wxClamp(selected*(source.weatherEffectAutoIntensity===false?1:liveIntensityMultiplier(condition,data)),8,150,selected);
+}
 function particleCount(condition,intensity,constrained,source){
   if((condition==='rain'||condition==='snow'||condition==='storm')&&source.weatherEffectPrecipitation===false)return 0;
   if(condition==='cloud'&&source.weatherEffectClouds===false)return 0;
   if(condition==='partly')return 0;
   if(condition==='fog'&&source.weatherEffectFog===false)return 0;
   if(condition==='clear'&&source.weatherEffectSun===false)return 0;
-  const base={rain:82,snow:54,storm:96,cloud:8,fog:7,clear:6}[condition]||0;
-  const factor=Math.max(.1,Math.min(1,Number(intensity||50)/100));
-  return Math.max(0,Math.round(base*factor*(constrained?.62:1)));
+  const base={rain:86,snow:58,storm:104,cloud:9,fog:8,clear:5}[condition]||0;
+  const factor=wxClamp(Number(intensity)/100,.08,1.5,.5);
+  const limit=constrained?92:170;
+  return Math.max(0,Math.min(limit,Math.round(base*factor*(constrained?.64:1))));
 }
-function effectPaused(source){
-  if(!source?.weatherAnimationsEnabled)return true;
-  if(source.weatherEffectRespectReducedMotion!==false&&document.documentElement.classList.contains('ld-reduce-motion'))return true;
-  if(source.weatherEffectPauseWhenDimmed!==false&&document.body.classList.contains('ld-burnin-dim'))return true;
-  if(document.body.classList.contains('layout-editing')||document.body.classList.contains('remote-layout-proxy')||globalThis.LAYOUT_PREVIEW_MODE)return true;
-  return false;
+function effectPauseReason(source){
+  if(!source?.weatherAnimationsEnabled)return 'animations-off';
+  if(source.weatherEffectRespectReducedMotion!==false&&document.documentElement.classList.contains('ld-reduce-motion'))return 'reduced-motion';
+  if(source.weatherEffectPauseWhenDimmed!==false&&document.body.classList.contains('ld-burnin-dim'))return 'display-dimmed';
+  if(document.body.classList.contains('layout-editing')||document.body.classList.contains('remote-layout-proxy')||globalThis.LAYOUT_PREVIEW_MODE)return 'layout-preview';
+  return '';
 }
+function effectPaused(source){return !!effectPauseReason(source);}
 function seededUnit(i,salt){
   const x=Math.sin((i+1)*12.9898+salt*78.233)*43758.5453;
   return x-Math.floor(x);
@@ -76,7 +95,7 @@ function precipitationMarkup(kind,count){
   const cls=kind==='snow'?'ld-wx-flake':'ld-wx-drop';
   return Array.from({length:count},(_,i)=>`<i class="${cls}" style="--i:${i}"></i>`).join('');
 }
-function weatherIconMarkup(code,fallback='',source=null){ 
+function weatherIconMarkup(code,fallback='',source=null){
   source=weatherEffectSource(source);
   const condition=weatherVisualCondition(code),safeFallback=String(fallback||'');
   const widgetOn=!!source?.weatherAnimationsEnabled&&!!source?.weatherWidgetAnimations&&!effectPaused(source);
@@ -100,41 +119,55 @@ function decorateWeatherIcon(el,code,fallback='',source=null){
   el.dataset.weatherGlyphSignature=signature;
   el.innerHTML=weatherIconMarkup(code,fallback,source);
 }
-function buildParticles(host,condition,count,source){
-  const speed=Math.max(40,Math.min(180,Number(source.weatherEffectSpeed)||100))/100;
-  const frag=document.createDocumentFragment();
+function weatherWindProfile(data,source){
+  if(source.weatherEffectWind===false)return {strength:0,direction:1};
+  const current=data?.current||{},configured=wxClamp(source.weatherEffectWindStrength,0,180,100)/100,live=Number(current.wind_speed_10m),degrees=Number(current.wind_direction_10m);
+  const liveBoost=source.weatherEffectAutoIntensity===false||!Number.isFinite(live)?1:wxClamp(.65+live/38,.65,1.7,1);
+  const direction=Number.isFinite(degrees)&&Math.sin(degrees*Math.PI/180)<-.05?-1:1;
+  return {strength:wxClamp(configured*liveBoost,0,2.4,configured),direction};
+}
+function buildParticles(host,condition,count,source,data){
+  const speed=wxClamp(source.weatherEffectSpeed,40,180,100)/100,particleScale=wxClamp(source.weatherEffectParticleScale,60,160,100)/100,wind=weatherWindProfile(data,source),frag=document.createDocumentFragment();
   for(let i=0;i<count;i++){
-    const p=document.createElement('span');p.className='weather-fx-particle';
+    const p=document.createElement('span'),depth=.28+seededUnit(i,7)*.72;p.className='weather-fx-particle';
     p.style.setProperty('--fx-x',`${(seededUnit(i,1)*106-3).toFixed(2)}vw`);
     p.style.setProperty('--fx-y',`${(seededUnit(i,6)*18-12).toFixed(2)}vh`);
     p.style.setProperty('--fx-delay',`${(-seededUnit(i,2)*16/speed).toFixed(2)}s`);
-    const drift=source.weatherEffectWind===false?0:((seededUnit(i,3)-.5)*22);p.style.setProperty('--fx-drift',`${drift.toFixed(1)}vw`);
-    if(condition==='rain'||condition==='storm')p.style.setProperty('--fx-duration',`${(.72+seededUnit(i,4)*.9)/speed}s`);
-    else if(condition==='snow')p.style.setProperty('--fx-duration',`${(5+seededUnit(i,4)*7)/speed}s`);
-    else p.style.setProperty('--fx-duration',`${(12+seededUnit(i,4)*18)/speed}s`);
-    p.style.setProperty('--fx-scale',(0.55+seededUnit(i,5)*1.1).toFixed(2));
+    const drift=wind.strength?(wind.direction*(.5+seededUnit(i,3))*(6+18*depth)*wind.strength):0;p.style.setProperty('--fx-drift',`${drift.toFixed(1)}vw`);
+    if(condition==='rain'||condition==='storm')p.style.setProperty('--fx-duration',`${((.66+seededUnit(i,4)*.86)/(speed*(.82+depth*.35))).toFixed(2)}s`);
+    else if(condition==='snow')p.style.setProperty('--fx-duration',`${((5+seededUnit(i,4)*7)/(speed*(.8+depth*.32))).toFixed(2)}s`);
+    else p.style.setProperty('--fx-duration',`${((12+seededUnit(i,4)*18)/(speed*Math.max(.45,.78+wind.strength*.18))).toFixed(2)}s`);
+    p.style.setProperty('--fx-depth',depth.toFixed(2));
+    p.style.setProperty('--fx-scale',((.55+seededUnit(i,5)*1.05)*particleScale*(.82+depth*.32)).toFixed(2));
     frag.appendChild(p);
   }
   host.replaceChildren(frag);
 }
 function weatherEffectRuntimeState(data=configApi.wxData,source=null){
   source=weatherEffectSource(source);
-  const condition=weatherEffectCondition(data?.current?.weather_code);
-  const paused=effectPaused(source);
+  const condition=weatherEffectCondition(data?.current?.weather_code),pauseReason=effectPauseReason(source),allowed=effectAllowed(condition,source),effectiveIntensity=weatherEffectIntensityForData(condition,data,source);
   return {
-    source,condition,paused,
-    widgetOn:!!source.weatherAnimationsEnabled&&!!source.weatherWidgetAnimations&&!paused,
-    fullOn:!!source.weatherAnimationsEnabled&&!!source.weatherFullscreenEffects&&!paused&&effectAllowed(condition,source)
+    source,condition,pauseReason,paused:!!pauseReason,allowed,effectiveIntensity,
+    widgetOn:!!source.weatherAnimationsEnabled&&!!source.weatherWidgetAnimations&&!pauseReason,
+    fullOn:!!source.weatherAnimationsEnabled&&!!source.weatherFullscreenEffects&&!pauseReason&&allowed
   };
 }
+function weatherEffectStatusText(state,data=configApi.wxData){
+  const label={storm:'Thunderstorm',snow:'Snow',rain:'Rain',fog:'Fog',partly:'Partly cloudy',cloud:'Clouds',clear:'Clear sky',none:'Unknown weather'}[state.condition]||'Weather';
+  if(!data?.current)return 'Waiting for current weather data.';
+  if(!state.source.weatherFullscreenEffects)return `${label} detected · full-screen overlay is off.`;
+  if(state.pauseReason==='animations-off')return `${label} detected · turn on weather animations to show the overlay.`;
+  if(state.pauseReason==='reduced-motion')return `${label} detected · overlay paused by reduced-motion preference.`;
+  if(state.pauseReason==='display-dimmed')return `${label} detected · overlay paused while display protection is dimmed.`;
+  if(state.pauseReason==='layout-preview')return `${label} detected · overlay paused during layout editing.`;
+  if(!state.allowed)return `${label} detected · current overlay mode/effect switches exclude this condition.`;
+  return `${label} overlay active · ${Math.round(state.effectiveIntensity)}% effective intensity.`;
+}
+function updateWeatherEffectStatus(state,data=configApi.wxData){const el=document.getElementById('weather-effect-live-status');if(el)el.textContent=weatherEffectStatusText(state,data);}
 function applyWeatherEffects(data=configApi.wxData,source=null){
   const host=document.getElementById('weather-effects-overlay');if(!host)return;
   const state=weatherEffectRuntimeState(data,source);source=state.source;
-  const condition=state.condition;
-  const constrained=performanceApi.frontendCapabilities().constrained;
-  const paused=state.paused;
-  const widgetOn=state.widgetOn;
-  const fullOn=state.fullOn;
+  const condition=state.condition,constrained=performanceApi.frontendCapabilities().constrained,widgetOn=state.widgetOn,fullOn=state.fullOn;
   document.body.classList.toggle('ld-weather-widget-motion',widgetOn);
   document.body.classList.toggle('ld-weather-fullscreen-motion',fullOn);
   document.body.classList.toggle('ld-weather-no-precip',source.weatherEffectPrecipitation===false);
@@ -152,15 +185,20 @@ function applyWeatherEffects(data=configApi.wxData,source=null){
   host.classList.toggle('weather-fx-no-sun',source.weatherEffectSun===false);
   host.classList.toggle('weather-fx-no-wind',source.weatherEffectWind===false);
   host.classList.toggle('weather-fx-no-lightning',source.weatherEffectLightning===false);
-  host.style.setProperty('--weather-fx-opacity',String(Math.max(.05,Math.min(.8,Number(source.weatherEffectOpacity||34)/100))));
-  host.style.setProperty('--weather-fx-speed',String(Math.max(.4,Math.min(1.8,Number(source.weatherEffectSpeed||100)/100))));
+  const wind=weatherWindProfile(data,source),lightningSeconds={rare:16,normal:10,frequent:6}[source.weatherEffectLightningFrequency]||10;
+  host.classList.toggle('weather-fx-wind-reverse',wind.direction<0);
+  host.style.setProperty('--weather-fx-opacity',String(wxClamp(source.weatherEffectOpacity,5,80,34)/100));
+  host.style.setProperty('--weather-fx-speed',String(wxClamp(source.weatherEffectSpeed,40,180,100)/100));
+  host.style.setProperty('--weather-fx-atmosphere',String(wxClamp(source.weatherEffectAtmosphere,0,100,55)/100));
+  host.style.setProperty('--weather-fx-lightning-alpha',String(wxClamp(source.weatherEffectLightningBrightness,20,100,65)/100));
+  host.style.setProperty('--weather-fx-lightning-duration',`${lightningSeconds}s`);
+  updateWeatherEffectStatus(state,data);
   if(!fullOn){lastSignature='';host.replaceChildren();return;}
   host.classList.add('show','weather-fx-'+condition);
-  const count=particleCount(condition,source.weatherEffectIntensity,constrained,source);
-  const signature=[condition,count,source.weatherEffectSpeed,source.weatherEffectOpacity,source.weatherEffectPrecipitation,source.weatherEffectClouds,source.weatherEffectFog,source.weatherEffectSun,source.weatherEffectWind,source.weatherEffectLightning,constrained].join('|');
-  if(signature!==lastSignature){buildParticles(host,condition,count,source);lastSignature=signature;}
+  const count=particleCount(condition,state.effectiveIntensity,constrained,source);
+  const signature=[condition,count,source.weatherEffectSpeed,source.weatherEffectOpacity,source.weatherEffectAtmosphere,source.weatherEffectParticleScale,source.weatherEffectWindStrength,source.weatherEffectAutoIntensity,source.weatherEffectPrecipitation,source.weatherEffectClouds,source.weatherEffectFog,source.weatherEffectSun,source.weatherEffectWind,source.weatherEffectLightning,source.weatherEffectLightningFrequency,source.weatherEffectLightningBrightness,wind.direction,Math.round(wind.strength*100),constrained].join('|');
+  if(signature!==lastSignature){buildParticles(host,condition,count,source,data);lastSignature=signature;}
   host.classList.toggle('weather-fx-lightning',condition==='storm'&&source.weatherEffectLightning!==false);
-  host.classList.toggle('weather-fx-no-wind',source.weatherEffectWind===false);
 }
 function refreshWeatherEffects(){applyWeatherEffects(configApi.wxData);}
 
@@ -176,4 +214,4 @@ const observer=new MutationObserver(records=>{
 observer.observe(document.body,{attributes:true,attributeFilter:['class'],attributeOldValue:true});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshWeatherEffects();});
 
-LibreDisplayRuntime.exposeModule('weatherEffects',{weatherVisualCondition,weatherEffectCondition,weatherEffectSource,effectAllowed,weatherGlyphEnabled,syncWeatherGlyphVisibility,weatherIconMarkup,decorateWeatherIcon,weatherEffectRuntimeState,applyWeatherEffects,refreshWeatherEffects,weatherPauseClassSignature},{},{globals:false});
+LibreDisplayRuntime.exposeModule('weatherEffects',{weatherVisualCondition,weatherEffectCondition,weatherEffectSource,effectAllowed,weatherGlyphEnabled,syncWeatherGlyphVisibility,liveIntensityMultiplier,weatherEffectIntensityForData,particleCount,effectPauseReason,weatherIconMarkup,decorateWeatherIcon,weatherWindProfile,weatherEffectRuntimeState,weatherEffectStatusText,applyWeatherEffects,refreshWeatherEffects,weatherPauseClassSignature},{},{globals:false});

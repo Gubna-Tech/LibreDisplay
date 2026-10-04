@@ -1784,7 +1784,11 @@ html:not(.cursor-active) * {
 /* Weather atmosphere and vector weather icons. Decorative only; content remains above it. */
 #weather-effects-overlay{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden;opacity:0;transition:opacity .6s ease;contain:strict}
 #weather-effects-overlay.show{opacity:var(--weather-fx-opacity,.34)}
-#weather-effects-overlay.show::before{content:"";position:absolute;inset:-10%;pointer-events:none;opacity:.5;filter:blur(28px);transform:translateZ(0)}
+#weather-effects-overlay.show::before{content:"";position:absolute;inset:-10%;pointer-events:none;opacity:var(--weather-fx-atmosphere,.55);filter:blur(28px);transform:translateZ(0)}
+#weather-effects-overlay.weather-fx-rain.show{background:linear-gradient(180deg,rgba(28,54,76,.10),rgba(8,22,38,.05))}
+#weather-effects-overlay.weather-fx-snow.show{background:linear-gradient(180deg,rgba(220,236,246,.08),rgba(95,125,150,.04))}
+#weather-effects-overlay.weather-fx-storm.show{background:linear-gradient(180deg,rgba(5,12,24,.25),rgba(20,34,52,.10))}
+#weather-effects-overlay.weather-fx-fog.show{background:linear-gradient(180deg,rgba(220,230,233,.07),rgba(170,184,190,.05))}
 .weather-fx-cloud::before,.weather-fx-storm::before,.weather-fx-rain::before,.weather-fx-snow::before{background:radial-gradient(ellipse at 28% 18%,rgba(220,230,238,.24),transparent 35%),radial-gradient(ellipse at 72% 24%,rgba(185,198,210,.22),transparent 38%);animation:ldWeatherSkyDrift 24s ease-in-out infinite alternate}
 .weather-fx-partly::before{background:radial-gradient(circle at 78% 18%,rgba(255,220,125,.20),rgba(255,204,95,.07) 16%,transparent 40%),radial-gradient(ellipse at 28% 22%,rgba(220,230,238,.22),transparent 35%),radial-gradient(ellipse at 64% 30%,rgba(185,198,210,.17),transparent 36%);animation:ldWeatherSkyDrift 24s ease-in-out infinite alternate}
 .weather-fx-partly.weather-fx-no-clouds::before{background:radial-gradient(circle at 78% 18%,rgba(255,220,125,.23),rgba(255,204,95,.08) 18%,transparent 42%);animation:ldWeatherClearBreathe 10s ease-in-out infinite alternate}
@@ -1792,13 +1796,13 @@ html:not(.cursor-active) * {
 .weather-fx-rain.weather-fx-no-clouds::before,.weather-fx-snow.weather-fx-no-clouds::before,.weather-fx-storm.weather-fx-no-clouds::before,.weather-fx-cloud.weather-fx-no-clouds::before{background:none;animation:none}
 .weather-fx-fog::before{background:repeating-linear-gradient(0deg,transparent 0 8%,rgba(230,238,240,.11) 10% 14%,transparent 16% 25%);animation:ldWeatherFogVeil 18s ease-in-out infinite alternate}
 .weather-fx-clear::before{background:radial-gradient(circle at 78% 18%,rgba(255,220,125,.23),rgba(255,204,95,.08) 18%,transparent 42%);animation:ldWeatherClearBreathe 10s ease-in-out infinite alternate}
-.weather-fx-particle{position:absolute;left:var(--fx-x,50vw);top:var(--fx-y,-12vh);display:block;pointer-events:none;will-change:transform,opacity;transform:scale(var(--fx-scale,1))}
+.weather-fx-particle{position:absolute;left:var(--fx-x,50vw);top:var(--fx-y,-12vh);display:block;pointer-events:none;will-change:transform,opacity;transform:scale(var(--fx-scale,1));filter:blur(var(--fx-blur,0px))}
 .weather-fx-rain .weather-fx-particle,.weather-fx-storm .weather-fx-particle{width:2px;height:9vh;border-radius:999px;background:linear-gradient(to bottom,rgba(212,235,255,0),rgba(212,235,255,.95) 48%,rgba(170,215,255,.5));box-shadow:0 0 4px rgba(180,220,255,.22);animation:ldWeatherRain var(--fx-duration,1.2s) linear var(--fx-delay,0s) infinite}
 .weather-fx-snow .weather-fx-particle{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.92);box-shadow:0 0 9px rgba(255,255,255,.42);animation:ldWeatherSnow var(--fx-duration,8s) linear var(--fx-delay,0s) infinite}
 .weather-fx-cloud .weather-fx-particle{width:31vw;height:14vh;border-radius:50%;background:radial-gradient(ellipse at 50% 60%,rgba(225,232,236,.36),rgba(205,215,222,.14) 52%,rgba(205,215,222,0) 75%);filter:blur(4px);animation:ldWeatherCloud var(--fx-duration,20s) ease-in-out var(--fx-delay,0s) infinite alternate}
 .weather-fx-fog .weather-fx-particle{width:58vw;height:7vh;border-radius:50%;background:linear-gradient(90deg,transparent,rgba(235,242,244,.32),rgba(235,242,244,.18),transparent);filter:blur(5px);animation:ldWeatherFog var(--fx-duration,18s) linear var(--fx-delay,0s) infinite}
 .weather-fx-clear .weather-fx-particle{width:24vw;height:24vw;max-width:430px;max-height:430px;border-radius:50%;background:radial-gradient(circle,rgba(255,224,140,.18),rgba(255,224,140,.05) 34%,rgba(255,224,140,0) 70%);animation:ldWeatherGlow var(--fx-duration,18s) ease-in-out var(--fx-delay,0s) infinite alternate}
-.weather-fx-lightning::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,rgba(235,247,255,.66),rgba(255,255,255,.08) 55%,transparent);opacity:0;animation:ldWeatherLightning 10s steps(1,end) infinite}
+.weather-fx-lightning::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,rgba(235,247,255,var(--weather-fx-lightning-alpha,.65)),rgba(255,255,255,.08) 55%,transparent);opacity:0;animation:ldWeatherLightning var(--weather-fx-lightning-duration,10s) steps(1,end) infinite}
 @keyframes ldWeatherRain{from{transform:translate3d(0,-15vh,0) rotate(10deg) scale(var(--fx-scale,1));opacity:0}9%{opacity:.95}to{transform:translate3d(var(--fx-drift,5vw),122vh,0) rotate(10deg) scale(var(--fx-scale,1));opacity:.18}}
 @keyframes ldWeatherSnow{from{transform:translate3d(0,-9vh,0) rotate(0) scale(var(--fx-scale,1));opacity:0}10%{opacity:.96}to{transform:translate3d(var(--fx-drift,8vw),114vh,0) rotate(300deg) scale(var(--fx-scale,1));opacity:.18}}
 @keyframes ldWeatherCloud{from{transform:translate3d(-38vw,0,0) scale(var(--fx-scale,1));opacity:.22}to{transform:translate3d(110vw,5vh,0) scale(var(--fx-scale,1));opacity:.55}}
@@ -1808,6 +1812,9 @@ html:not(.cursor-active) * {
 @keyframes ldWeatherSkyDrift{from{transform:translate3d(-4%,0,0) scale(1.03)}to{transform:translate3d(4%,2%,0) scale(1.08)}}
 @keyframes ldWeatherFogVeil{from{transform:translate3d(-3%,0,0);opacity:.32}to{transform:translate3d(3%,1%,0);opacity:.58}}
 @keyframes ldWeatherClearBreathe{from{transform:scale(.94);opacity:.35}to{transform:scale(1.05);opacity:.62}}
+.weather-fx-wind-reverse.weather-fx-cloud .weather-fx-particle,.weather-fx-wind-reverse.weather-fx-fog .weather-fx-particle{animation-direction:alternate-reverse}
+.weather-effect-status{margin:8px 0 10px;padding:9px 11px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.035)}
+.weather-effect-presets{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:7px;margin:2px 0 4px}
 
 /* Animated vector weather glyphs. Emoji remain as a no-motion/fallback representation. */
 .ld-weather-glyph{display:none;position:relative;width:1.18em;height:.92em;vertical-align:-.12em;overflow:visible;filter:drop-shadow(0 .06em .09em rgba(0,0,0,.28))}

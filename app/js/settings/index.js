@@ -180,6 +180,7 @@ function applySettings(){
   weather.previewAlertMotionSpeed(cfg.alertMotionPx);
   appearance.applyUiCustomization(cfg);
   weather.startClock();
+  weather.invalidateWeatherIfLocationChanged();
   performance.runExclusiveTask('weather-refresh',weather.fetchWeather);
   performance.runExclusiveTask('alert-refresh',weather.fetchWeatherAlerts);
   performance.runExclusiveTask('calendar-refresh',calendar.loadCalendars);

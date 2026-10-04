@@ -242,6 +242,7 @@ async function clearOfflineCache(){
 }
 async function pollServerConfig(){
   if(document.hidden)return;
+  const configWasAvailable=configApi.serverConfigAvailable;
   const setup=document.getElementById('setup');
   const setupOpen=!!setup&&!setup.classList.contains('hidden');
   if(layoutEditorActive||remoteLayoutProxyActive||document.getElementById('remote-layout-preview-shell')?.classList.contains('show'))return;
@@ -254,7 +255,7 @@ async function pollServerConfig(){
   try{
     const res=await resilientFetch(serverPath('/api/config'),{cache:'no-store'});
     if(!res.ok)return;
-    const data=await res.json();
+    const data=await res.json();configApi.serverConfigAvailable=true;configApi.serverConfigLastError='';
     const remote=data?.config;
     const remoteSaved=Number(remote?._savedAt||data?.savedAt||0);
     const localSaved=Number(cfg?._savedAt||0);
@@ -275,6 +276,8 @@ async function pollServerConfig(){
       }else{
         setTimeout(ensureAlertMotionRunning,120);
       }
+    }else if(!configWasAvailable&&!configApi.wxData){
+      setTimeout(()=>LibreDisplayRuntime.getModule('weather').fetchWeather(),0);
     }
   }catch(e){}
 }
@@ -310,7 +313,7 @@ function startLiveDisplayConnection(){
   heartbeatTimer=performance.startManagedInterval('display-heartbeat',sendDisplayHeartbeat,30000,{skipWhenHidden:false,resumeOnVisible:false});
   updateOfflinePill();
 }
-function startRemoteConfigPolling(){const performance=LibreDisplayRuntime.getModule('performance');performance.stopManagedInterval('remote-config-poll');configApi.remoteConfigPollTimer=performance.startManagedInterval('remote-config-poll',pollServerConfig,bootstrapApi.REMOTE_SETTINGS_MODE?5000:30000,{skipWhenHidden:true,resumeOnVisible:true});}
+function startRemoteConfigPolling(){const performance=LibreDisplayRuntime.getModule('performance');performance.stopManagedInterval('remote-config-poll');configApi.remoteConfigPollTimer=performance.startManagedInterval('remote-config-poll',pollServerConfig,bootstrapApi.REMOTE_SETTINGS_MODE?5000:30000,{skipWhenHidden:true,resumeOnVisible:true,immediate:true});}
 
 function settingsRecoveryMessage(error){
   const raw=String(error?.message||error||'Settings initialization did not finish.').replace(/\s+/g,' ').trim();
