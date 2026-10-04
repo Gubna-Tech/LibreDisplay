@@ -31,7 +31,7 @@
     "module": "config",
     "part": "config",
     "path": "/js/core/config.js",
-    "lines": 548,
+    "lines": 549,
     "functions": 9,
     "bindings": 53
   },
@@ -58,7 +58,7 @@
     "module": "weather",
     "part": "effects",
     "path": "/js/weather/effects.js",
-    "lines": 217,
+    "lines": 232,
     "functions": 17,
     "bindings": 0
   },

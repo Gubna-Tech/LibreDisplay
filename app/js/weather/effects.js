@@ -79,12 +79,16 @@ function particleCount(condition,intensity,constrained,source){
   const limit=constrained?92:170;
   return Math.max(0,Math.min(limit,Math.round(base*factor*(constrained?.64:1))));
 }
-function effectPauseReason(source){
-  if(!source?.weatherAnimationsEnabled)return 'animations-off';
-  if(source.weatherEffectRespectReducedMotion!==false&&document.documentElement.classList.contains('ld-reduce-motion'))return 'reduced-motion';
+function weatherReducedMotionActive(source){return source.weatherEffectRespectReducedMotion!==false&&document.documentElement.classList.contains('ld-reduce-motion');}
+function fullscreenPauseReason(source){
   if(source.weatherEffectPauseWhenDimmed!==false&&document.body.classList.contains('ld-burnin-dim'))return 'display-dimmed';
   if(document.body.classList.contains('layout-editing')||document.body.classList.contains('remote-layout-proxy')||globalThis.LAYOUT_PREVIEW_MODE)return 'layout-preview';
   return '';
+}
+function effectPauseReason(source){
+  if(!source?.weatherAnimationsEnabled)return 'animations-off';
+  if(weatherReducedMotionActive(source))return 'reduced-motion';
+  return fullscreenPauseReason(source);
 }
 function effectPaused(source){return !!effectPauseReason(source);}
 function seededUnit(i,salt){
@@ -132,6 +136,7 @@ function buildParticles(host,condition,count,source,data){
     const p=document.createElement('span'),depth=.28+seededUnit(i,7)*.72;p.className='weather-fx-particle';
     p.style.setProperty('--fx-x',`${(seededUnit(i,1)*106-3).toFixed(2)}vw`);
     p.style.setProperty('--fx-y',`${(seededUnit(i,6)*18-12).toFixed(2)}vh`);
+    p.style.setProperty('--fx-static-y',`${(seededUnit(i,8)*108-4).toFixed(2)}vh`);
     p.style.setProperty('--fx-delay',`${(-seededUnit(i,2)*16/speed).toFixed(2)}s`);
     const drift=wind.strength?(wind.direction*(.5+seededUnit(i,3))*(6+18*depth)*wind.strength):0;p.style.setProperty('--fx-drift',`${drift.toFixed(1)}vw`);
     if(condition==='rain'||condition==='storm')p.style.setProperty('--fx-duration',`${((.66+seededUnit(i,4)*.86)/(speed*(.82+depth*.35))).toFixed(2)}s`);
@@ -145,22 +150,21 @@ function buildParticles(host,condition,count,source,data){
 }
 function weatherEffectRuntimeState(data=configApi.wxData,source=null){
   source=weatherEffectSource(source);
-  const condition=weatherEffectCondition(data?.current?.weather_code),pauseReason=effectPauseReason(source),allowed=effectAllowed(condition,source),effectiveIntensity=weatherEffectIntensityForData(condition,data,source);
+  const condition=weatherEffectCondition(data?.current?.weather_code),widgetPauseReason=effectPauseReason(source),pauseReason=fullscreenPauseReason(source),allowed=effectAllowed(condition,source),effectiveIntensity=weatherEffectIntensityForData(condition,data,source),reducedMotion=weatherReducedMotionActive(source);
   return {
-    source,condition,pauseReason,paused:!!pauseReason,allowed,effectiveIntensity,
-    widgetOn:!!source.weatherAnimationsEnabled&&!!source.weatherWidgetAnimations&&!pauseReason,
-    fullOn:!!source.weatherAnimationsEnabled&&!!source.weatherFullscreenEffects&&!pauseReason&&allowed
+    source,condition,pauseReason,widgetPauseReason,paused:!!pauseReason,allowed,effectiveIntensity,reducedMotion,
+    widgetOn:!!source.weatherAnimationsEnabled&&!!source.weatherWidgetAnimations&&!widgetPauseReason,
+    fullOn:!!source.weatherFullscreenEffects&&!pauseReason&&allowed
   };
 }
 function weatherEffectStatusText(state,data=configApi.wxData){
   const label={storm:'Thunderstorm',snow:'Snow',rain:'Rain',fog:'Fog',partly:'Partly cloudy',cloud:'Clouds',clear:'Clear sky',none:'Unknown weather'}[state.condition]||'Weather';
   if(!data?.current)return 'Waiting for current weather data.';
   if(!state.source.weatherFullscreenEffects)return `${label} detected · full-screen overlay is off.`;
-  if(state.pauseReason==='animations-off')return `${label} detected · turn on weather animations to show the overlay.`;
-  if(state.pauseReason==='reduced-motion')return `${label} detected · overlay paused by reduced-motion preference.`;
   if(state.pauseReason==='display-dimmed')return `${label} detected · overlay paused while display protection is dimmed.`;
   if(state.pauseReason==='layout-preview')return `${label} detected · overlay paused during layout editing.`;
   if(!state.allowed)return `${label} detected · current overlay mode/effect switches exclude this condition.`;
+  if(state.reducedMotion)return `${label} overlay active · reduced-motion static mode · ${Math.round(state.effectiveIntensity)}% effective intensity.`;
   return `${label} overlay active · ${Math.round(state.effectiveIntensity)}% effective intensity.`;
 }
 function updateWeatherEffectStatus(state,data=configApi.wxData){const el=document.getElementById('weather-effect-live-status');if(el)el.textContent=weatherEffectStatusText(state,data);}
@@ -176,6 +180,8 @@ function applyWeatherEffects(data=configApi.wxData,source=null){
   document.body.classList.toggle('ld-weather-no-sun',source.weatherEffectSun===false);
   document.body.classList.toggle('ld-weather-no-wind',source.weatherEffectWind===false);
   document.body.classList.toggle('ld-weather-no-lightning',source.weatherEffectLightning===false);
+  document.body.classList.toggle('ld-weather-respect-reduced-motion',source.weatherEffectRespectReducedMotion!==false);
+  document.body.classList.toggle('ld-weather-pause-dimmed',source.weatherEffectPauseWhenDimmed!==false);
   syncWeatherGlyphVisibility(source,widgetOn);
   document.body.dataset.weatherCondition=condition;
   host.className='';
@@ -187,6 +193,7 @@ function applyWeatherEffects(data=configApi.wxData,source=null){
   host.classList.toggle('weather-fx-no-lightning',source.weatherEffectLightning===false);
   const wind=weatherWindProfile(data,source),lightningSeconds={rare:16,normal:10,frequent:6}[source.weatherEffectLightningFrequency]||10;
   host.classList.toggle('weather-fx-wind-reverse',wind.direction<0);
+  host.classList.toggle('weather-fx-static',state.reducedMotion);
   host.style.setProperty('--weather-fx-opacity',String(wxClamp(source.weatherEffectOpacity,5,80,34)/100));
   host.style.setProperty('--weather-fx-speed',String(wxClamp(source.weatherEffectSpeed,40,180,100)/100));
   host.style.setProperty('--weather-fx-atmosphere',String(wxClamp(source.weatherEffectAtmosphere,0,100,55)/100));
@@ -201,6 +208,13 @@ function applyWeatherEffects(data=configApi.wxData,source=null){
   host.classList.toggle('weather-fx-lightning',condition==='storm'&&source.weatherEffectLightning!==false);
 }
 function refreshWeatherEffects(){applyWeatherEffects(configApi.wxData);}
+function weatherOverlayNeedsRepair(data=configApi.wxData,source=null){
+  const host=document.getElementById('weather-effects-overlay');if(!host)return false;
+  const state=weatherEffectRuntimeState(data,source);if(!state.fullOn)return false;
+  const expectedClass='weather-fx-'+state.condition,count=particleCount(state.condition,state.effectiveIntensity,performanceApi.frontendCapabilities().constrained,state.source);
+  return !host.classList.contains('show')||!host.classList.contains(expectedClass)||(count>0&&host.children.length===0);
+}
+function ensureWeatherOverlayLive(data=configApi.wxData,source=null){if(!weatherOverlayNeedsRepair(data,source))return false;lastSignature='';applyWeatherEffects(data,source);return true;}
 
 function weatherPauseClassSignature(value=document.body.className){
   const names=new Set(String(value||'').split(/\s+/).filter(Boolean));
@@ -212,6 +226,7 @@ const observer=new MutationObserver(records=>{
   if(records.some(record=>weatherPauseClassSignature(record.oldValue)!==current))refreshWeatherEffects();
 });
 observer.observe(document.body,{attributes:true,attributeFilter:['class'],attributeOldValue:true});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshWeatherEffects();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshWeatherEffects();ensureWeatherOverlayLive();}});
+setInterval(()=>ensureWeatherOverlayLive(),2500);
 
-LibreDisplayRuntime.exposeModule('weatherEffects',{weatherVisualCondition,weatherEffectCondition,weatherEffectSource,effectAllowed,weatherGlyphEnabled,syncWeatherGlyphVisibility,liveIntensityMultiplier,weatherEffectIntensityForData,particleCount,effectPauseReason,weatherIconMarkup,decorateWeatherIcon,weatherWindProfile,weatherEffectRuntimeState,weatherEffectStatusText,applyWeatherEffects,refreshWeatherEffects,weatherPauseClassSignature},{},{globals:false});
+LibreDisplayRuntime.exposeModule('weatherEffects',{weatherVisualCondition,weatherEffectCondition,weatherEffectSource,effectAllowed,weatherGlyphEnabled,syncWeatherGlyphVisibility,liveIntensityMultiplier,weatherEffectIntensityForData,particleCount,weatherReducedMotionActive,fullscreenPauseReason,effectPauseReason,weatherIconMarkup,decorateWeatherIcon,weatherWindProfile,weatherEffectRuntimeState,weatherEffectStatusText,applyWeatherEffects,refreshWeatherEffects,weatherOverlayNeedsRepair,ensureWeatherOverlayLive,weatherPauseClassSignature},{},{globals:false});

@@ -203,7 +203,7 @@ function renderWeather(d){
     hrDiv.appendChild(el);
   }
   refreshCustomDataBlocks(['weatherview','suntimes']);
-  try{LibreDisplayRuntime.getModule('weatherEffects').applyWeatherEffects(d,ui);}catch(_e){}
+  try{effects.applyWeatherEffects(d,ui);requestAnimationFrame(()=>effects.ensureWeatherOverlayLive(d,ui));}catch(_e){}
 }
 
 

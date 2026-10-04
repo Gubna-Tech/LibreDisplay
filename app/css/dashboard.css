@@ -1859,8 +1859,9 @@ body.ld-weather-no-lightning .ld-wx-bolt{display:none!important}
 body.ld-weather-no-wind .ld-wx-cloud,body.ld-weather-no-wind .ld-wx-fog i{animation-play-state:paused!important}
 .weather-fx-no-wind.weather-fx-cloud .weather-fx-particle,.weather-fx-no-wind.weather-fx-fog .weather-fx-particle{animation-play-state:paused!important}
 .weather-fx-no-wind.weather-fx-cloud::before,.weather-fx-no-wind.weather-fx-partly::before,.weather-fx-no-wind.weather-fx-rain::before,.weather-fx-no-wind.weather-fx-snow::before,.weather-fx-no-wind.weather-fx-storm::before,.weather-fx-no-wind.weather-fx-fog::before{animation-play-state:paused!important}
-html.ld-reduce-motion #weather-effects-overlay,html.ld-reduce-motion .ld-weather-glyph *{animation:none!important}
+html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-overlay,html.ld-reduce-motion body.ld-weather-respect-reduced-motion .ld-weather-glyph *{animation:none!important}
+html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-overlay .weather-fx-particle{top:var(--fx-static-y,50vh)!important;opacity:.58!important}
 body.layout-editing #weather-effects-overlay,body.remote-layout-proxy #weather-effects-overlay{display:none!important}
-body.ld-burnin-dim.ld-pause-decorative-motion #weather-effects-overlay{display:none!important}
+body.ld-burnin-dim.ld-pause-decorative-motion.ld-weather-pause-dimmed #weather-effects-overlay{display:none!important}
 body.ld-burnin-dim.ld-pause-decorative-motion .ld-weather-glyph *{animation-play-state:paused!important}
 
