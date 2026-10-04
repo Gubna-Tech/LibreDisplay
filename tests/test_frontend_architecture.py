@@ -70,7 +70,7 @@ class FrontendArchitectureTests(unittest.TestCase):
             "backgrounds", "blocks", "layout", "appearance", "remote",
             "system", "onboarding", "settings", "lifecycle",
         ])
-        self.assertEqual(sum(row["functions"] for row in manifest), 682)
+        self.assertEqual(sum(row["functions"] for row in manifest), 685)
         self.assertGreaterEqual(len(manifest), 28)
         split_modules = {name: sum(row["module"] == name for row in manifest) for name in logical}
         for name in ("weather", "calendar", "backgrounds", "layout", "appearance", "system", "settings"):
@@ -345,6 +345,26 @@ class FrontendArchitectureTests(unittest.TestCase):
         self.assertIn("performanceApi.stopManagedInterval", source)
         self.assertNotIn("setInterval(", source)
         self.assertNotIn("_photoTimer", source)
+    def test_all_frontend_network_requests_use_resilient_fetch_wrapper(self):
+        import re
+        raw_fetch = re.compile(r"\bfetch\s*\(")
+        offenders = []
+        for path in sorted((ROOT / "app" / "js").rglob("*.js")):
+            if path.relative_to(ROOT).as_posix() == "app/js/core/shared.js":
+                continue
+            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if raw_fetch.search(line):
+                    offenders.append(f"{path.relative_to(ROOT)}:{number}")
+        self.assertEqual(offenders, [], "raw frontend fetch() bypasses resilientFetch: " + ", ".join(offenders))
+
+    def test_server_generated_login_fetch_is_explicitly_bounded(self):
+        source = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
+        self.assertEqual(source.count("fetch('/api/login'"), 1)
+        segment = source[source.index("fetch('/api/login'") - 300:source.index("fetch('/api/login'") + 700]
+        self.assertIn("AbortController", segment)
+        self.assertIn("signal:c.signal", segment)
+        self.assertIn("setTimeout(()=>c.abort(),8000)", segment)
+
 
 if __name__ == "__main__":
     unittest.main()

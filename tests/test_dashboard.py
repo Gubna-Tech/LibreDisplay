@@ -291,7 +291,10 @@ class ReleaseContractTests(unittest.TestCase):
     def test_integration_error_classification_is_actionable(self):
         self.assertEqual(server.integration_error_kind("HTTP 401 Unauthorized"), "authentication")
         self.assertEqual(server.integration_error_kind("HTTP 429 Too Many Requests"), "rate-limit")
-        self.assertEqual(server.integration_error_kind("Connection timed out"), "network")
+        self.assertEqual(server.integration_error_kind("Connection timed out"), "timeout")
+        self.assertEqual(server.integration_error_kind("DNS resolution failed"), "dns")
+        self.assertEqual(server.integration_error_kind("Connection refused"), "refused")
+        self.assertEqual(server.integration_error_kind("No route to host"), "unreachable")
         self.assertEqual(server.integration_error_kind("Missing required setting: Token"), "configuration")
 
     def test_public_integration_error_redacts_credentials_and_url_details(self):

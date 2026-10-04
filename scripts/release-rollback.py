@@ -23,6 +23,23 @@ TOP_FILES = (
 )
 CHUNK = 1024 * 1024
 PRIVILEGED_HELPER = Path("/usr/local/libexec/libredisplay-privileged")
+UPDATE_TRANSACTION_NAME = "update-transaction.json"
+UPDATE_TRANSACTION_STATES = {"prepared", "replacing", "validated"}
+CORE_RUNTIME_FILES = (
+    "VERSION", "app/dashboard.html", "app/dashboard_server.py", "app/js/app.js",
+    "app/js/module-manifest.json", "scripts/start.sh", "scripts/verify-frontend.py",
+    "scripts/release-rollback.py", "scripts/server-backup.py", "install.sh", "update.sh", "uninstall.sh",
+)
+CORE_PYTHON_FILES = (
+    "app/dashboard_server.py", "scripts/release-rollback.py", "scripts/server-backup.py",
+    "scripts/libredisplay", "scripts/field-readiness.py",
+)
+CORE_SHELL_FILES = (
+    "install.sh", "update.sh", "uninstall.sh",
+    "scripts/backup.sh", "scripts/docker-setup.sh", "scripts/restore.sh",
+    "scripts/setup-media.sh", "scripts/setup-nas.sh", "scripts/start.sh",
+    "scripts/viewer-setup.sh", "scripts/libredisplay-privileged",
+)
 
 
 def user_home() -> Path:
@@ -274,6 +291,172 @@ def append_history(install_dir: Path, event: str, **fields):
     atomic_json(path, {"version": 1, "items": items[:50]})
 
 
+def update_transaction_path(install_dir: Path) -> Path:
+    return install_dir / "data" / UPDATE_TRANSACTION_NAME
+
+
+def load_update_transaction(install_dir: Path):
+    path = update_transaction_path(install_dir)
+    if not path.is_file():
+        return None
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise ValueError("Pending update transaction metadata is invalid") from exc
+    if not isinstance(raw, dict) or raw.get("product") != "LibreDisplay" or raw.get("kind") != "update-transaction" or int(raw.get("format") or 0) != FORMAT_VERSION:
+        raise ValueError("Pending update transaction metadata is unsupported")
+    raw["snapshotId"] = safe_id(raw.get("snapshotId") or "")
+    state = str(raw.get("state") or "")
+    if state not in UPDATE_TRANSACTION_STATES:
+        raise ValueError("Pending update transaction state is invalid")
+    raw["state"] = state
+    return raw
+
+
+def record_update_transaction(install_dir: Path, rollback_root: Path, snapshot_id: str, state: str):
+    state = str(state or "").strip().lower()
+    if state not in UPDATE_TRANSACTION_STATES:
+        raise ValueError("Invalid update transaction state")
+    snapshot_id = safe_id(snapshot_id)
+    snapshot_dir = rollback_root.expanduser().resolve() / snapshot_id
+    meta = verify_snapshot(snapshot_dir)
+    path = update_transaction_path(install_dir)
+    existing = None
+    if path.is_file():
+        existing = load_update_transaction(install_dir)
+        if existing.get("snapshotId") != snapshot_id:
+            raise RuntimeError("Another LibreDisplay update transaction is already pending")
+    now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
+    payload = {
+        "product": "LibreDisplay",
+        "kind": "update-transaction",
+        "format": FORMAT_VERSION,
+        "snapshotId": snapshot_id,
+        "fromVersion": str(meta.get("fromVersion") or "unknown")[:40],
+        "toVersion": str(meta.get("toVersion") or "")[:40],
+        "state": state,
+        "createdUtc": str((existing or {}).get("createdUtc") or now)[:64],
+        "updatedUtc": now,
+    }
+    atomic_json(path, payload)
+    return payload
+
+
+def clear_update_transaction(install_dir: Path, snapshot_id: str = ""):
+    path = update_transaction_path(install_dir)
+    if not path.exists():
+        return
+    if snapshot_id:
+        raw = load_update_transaction(install_dir)
+        if raw.get("snapshotId") != safe_id(snapshot_id):
+            raise RuntimeError("Pending update transaction does not match the requested snapshot")
+    path.unlink(missing_ok=True)
+
+
+def verify_installed_release(install_dir: Path, expected_version: str = ""):
+    install_dir = install_dir.expanduser().resolve()
+    missing = []
+    for rel in CORE_RUNTIME_FILES:
+        path = install_dir / rel
+        if not path.is_file() or path.is_symlink():
+            missing.append(rel)
+    if missing:
+        raise RuntimeError("Installed LibreDisplay is incomplete: " + ", ".join(missing[:6]))
+    version = (install_dir / "VERSION").read_text(encoding="utf-8").strip()
+    if expected_version and version != str(expected_version).strip():
+        raise RuntimeError(f"Installed LibreDisplay version mismatch: expected {expected_version}, found {version or 'unknown'}")
+    for rel in CORE_PYTHON_FILES:
+        path = install_dir / rel
+        try:
+            compile(path.read_text(encoding="utf-8"), str(path), "exec")
+        except Exception as exc:
+            raise RuntimeError(f"Installed LibreDisplay Python validation failed for {rel}: {exc}") from exc
+    for rel in CORE_SHELL_FILES:
+        path = install_dir / rel
+        result = subprocess.run(
+            ["/bin/sh", "-n", str(path)], cwd=str(install_dir), stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10, check=False,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"Installed LibreDisplay shell validation failed for {rel}")
+    verifier = install_dir / "scripts" / "verify-frontend.py"
+    result = subprocess.run(
+        [sys.executable, str(verifier), str(install_dir)],
+        cwd=str(install_dir), stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=45, check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("Installed LibreDisplay frontend validation failed")
+    return {
+        "ok": True,
+        "version": version,
+        "checkedAt": int(dt.datetime.now(dt.timezone.utc).timestamp()),
+        "coreFiles": len(CORE_RUNTIME_FILES),
+        "pythonFiles": len(CORE_PYTHON_FILES),
+        "shellFiles": len(CORE_SHELL_FILES),
+        "frontendVerified": True,
+    }
+
+
+def installed_matches_snapshot(snapshot_dir: Path, install_dir: Path):
+    raw = verify_snapshot(snapshot_dir)
+    expected = raw.get("files") or []
+    expected_map = {str(row.get("path") or ""): row for row in expected if isinstance(row, dict)}
+    for rel, row in expected_map.items():
+        path = install_dir / rel
+        if not path.is_file() or path.is_symlink():
+            return False
+        if path.stat().st_size != int(row.get("size") or -1):
+            return False
+        if sha256_file(path) != str(row.get("sha256") or ""):
+            return False
+    return True
+
+
+def recover_pending_update(install_dir: Path, rollback_root: Path):
+    install_dir = install_dir.expanduser().resolve()
+    rollback_root = rollback_root.expanduser().resolve()
+    transaction = load_update_transaction(install_dir)
+    if not transaction:
+        return {"ok": True, "state": "none"}
+    snapshot_id = transaction["snapshotId"]
+    snapshot_dir = rollback_root / snapshot_id
+    meta = verify_snapshot(snapshot_dir)
+    from_version = str(meta.get("fromVersion") or "unknown")
+    to_version = str(meta.get("toVersion") or "")
+    state = transaction["state"]
+
+    # If the updater validated the new release before power was lost, keep it only
+    # when the installed tree still passes the same runtime checks.
+    if state == "validated":
+        try:
+            verify_installed_release(install_dir, to_version)
+        except Exception:
+            pass
+        else:
+            clear_update_transaction(install_dir, snapshot_id)
+            append_history(install_dir, "update-recovered-complete", fromVersion=from_version, toVersion=to_version, snapshotId=snapshot_id)
+            return {"ok": True, "state": "completed", "snapshotId": snapshot_id, "version": to_version}
+
+    # If replacement never began and the old application exactly matches the
+    # snapshot, no restore is needed; just clear the abandoned transaction.
+    if state == "prepared" and installed_matches_snapshot(snapshot_dir, install_dir):
+        clear_update_transaction(install_dir, snapshot_id)
+        append_history(install_dir, "update-interrupted-no-change", fromVersion=from_version, toVersion=to_version, snapshotId=snapshot_id)
+        return {"ok": True, "state": "unchanged", "snapshotId": snapshot_id, "version": from_version}
+
+    # A power loss during replacement leaves an uncertain application tree. The
+    # pre-update snapshot was captured while LibreDisplay was stopped, so restoring
+    # it is safer than trying to continue an incomplete swap.
+    apply_snapshot_payload(snapshot_dir, install_dir)
+    verify_installed_release(install_dir, from_version)
+    clear_update_transaction(install_dir)
+    append_history(install_dir, "update-auto-recovered", fromVersion=to_version or "interrupted", toVersion=from_version, snapshotId=snapshot_id)
+    if PRIVILEGED_HELPER.is_file() and shutil.which("sudo"):
+        subprocess.run(["sudo", "-n", str(PRIVILEGED_HELPER), "install-cli"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    return {"ok": True, "state": "restored", "snapshotId": snapshot_id, "version": from_version}
+
+
 def stop_runtime(install_dir: Path):
     subprocess.run(["pkill", "-f", str(install_dir / "scripts" / "start.sh")], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
     subprocess.run(["pkill", "-f", str(install_dir / "app" / "dashboard_server.py")], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
@@ -400,6 +583,15 @@ def main(argv=None):
     p.add_argument("--from-version", required=True)
     p.add_argument("--to-version", required=True)
     p.add_argument("--snapshot-id", required=True)
+    p = sub.add_parser("transaction", help=argparse.SUPPRESS)
+    p.add_argument("--snapshot-id", required=True)
+    p.add_argument("--state", required=True, choices=sorted(UPDATE_TRANSACTION_STATES))
+    p = sub.add_parser("complete-update", help=argparse.SUPPRESS)
+    p.add_argument("--snapshot-id", required=True)
+    p = sub.add_parser("recover-pending", help=argparse.SUPPRESS)
+    p = sub.add_parser("verify-install", help=argparse.SUPPRESS)
+    p.add_argument("--expected-version", default="")
+    p.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     install_dir = Path(args.install_dir)
     rollback_root = Path(args.rollback_root)
@@ -417,6 +609,17 @@ def main(argv=None):
             delete_snapshot(args.id, rollback_root)
         elif args.command == "record-update":
             append_history(install_dir, "update", fromVersion=args.from_version, toVersion=args.to_version, snapshotId=safe_id(args.snapshot_id))
+        elif args.command == "transaction":
+            record_update_transaction(install_dir, rollback_root, args.snapshot_id, args.state)
+        elif args.command == "complete-update":
+            clear_update_transaction(install_dir, args.snapshot_id)
+        elif args.command == "recover-pending":
+            result = recover_pending_update(install_dir, rollback_root)
+            if result.get("state") != "none":
+                print(f"LibreDisplay interrupted update recovery: {result.get('state')} · v{result.get('version','unknown')}")
+        elif args.command == "verify-install":
+            result = verify_installed_release(install_dir, args.expected_version)
+            print(json.dumps(result, sort_keys=True) if args.json else f"LibreDisplay installation verified: v{result['version']}")
         return 0
     except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
         print(f"LibreDisplay rollback error: {exc}", file=sys.stderr)

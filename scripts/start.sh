@@ -9,6 +9,17 @@ DATA_DIR="$ROOT_DIR/data"
 mkdir -p "$DATA_DIR"
 umask 077
 
+# Native updates leave a private transaction marker before any live application
+# path is replaced. If power was lost mid-update, recover the verified pre-update
+# snapshot before loading configuration or starting the server.
+if [ -f "$DATA_DIR/update-transaction.json" ]; then
+  printf 'LibreDisplay found an interrupted update; checking recovery state...\n' >&2
+  if ! python3 "$ROOT_DIR/scripts/release-rollback.py" --install-dir "$ROOT_DIR" recover-pending; then
+    printf 'LibreDisplay could not safely recover the interrupted update. Startup stopped.\n' >&2
+    exit 1
+  fi
+fi
+
 if [ -f "$ENV_FILE" ]; then
   set -a
   . "$ENV_FILE"
@@ -24,10 +35,42 @@ fi
 : "${DASHBOARD_KIOSK_WATCHDOG:=1}"
 : "${DASHBOARD_KIOSK_HEARTBEAT_TIMEOUT:=150}"
 export DASHBOARD_HOST DASHBOARD_PORT DASHBOARD_REMOTE_ENABLED DASHBOARD_REMOTE_NETWORKS DASHBOARD_DATA_DIR DASHBOARD_ENDPOINT
+mkdir -p "$DASHBOARD_DATA_DIR"
 KIOSK_HEARTBEAT_FILE="$DASHBOARD_DATA_DIR/kiosk-heartbeat.json"
+WATCHDOG_STATE_FILE="$DASHBOARD_DATA_DIR/watchdog-state.json"
+STARTUP_INTEGRITY_FILE="$DASHBOARD_DATA_DIR/startup-integrity.json"
+
+verify_startup_integrity() {
+  version=$(cat "$ROOT_DIR/VERSION" 2>/dev/null || printf 'unknown')
+  tmp="$STARTUP_INTEGRITY_FILE.tmp.$$"
+  if ! python3 "$ROOT_DIR/scripts/release-rollback.py" --install-dir "$ROOT_DIR" verify-install --expected-version "$version" --json >"$tmp"; then
+    rm -f "$tmp"
+    printf 'LibreDisplay startup integrity verification failed. Startup stopped.\n' >&2
+    exit 1
+  fi
+  chmod 600 "$tmp" 2>/dev/null || true
+  mv -f "$tmp" "$STARTUP_INTEGRITY_FILE"
+}
+verify_startup_integrity
 
 SERVER_PID=""
 BROWSER_PID=""
+SERVER_RECOVERY_COUNT=0
+BROWSER_RECOVERY_COUNT=0
+SERVER_RESTART_DELAY=3
+BROWSER_RESTART_DELAY=2
+SERVER_STARTED_AT=0
+
+write_watchdog_state() {
+  reason=${1:-}
+  now=$(date +%s)
+  tmp="$WATCHDOG_STATE_FILE.tmp.$$"
+  printf '{"serverRestarts":%s,"browserRestarts":%s,"lastReason":"%s","lastRecoveryAt":%s}\n' \
+    "$SERVER_RECOVERY_COUNT" "$BROWSER_RECOVERY_COUNT" "$reason" "$now" >"$tmp"
+  chmod 600 "$tmp" 2>/dev/null || true
+  mv -f "$tmp" "$WATCHDOG_STATE_FILE"
+}
+write_watchdog_state ""
 cleanup() {
   [ -z "$BROWSER_PID" ] || kill "$BROWSER_PID" 2>/dev/null || true
   [ -z "$SERVER_PID" ] || kill "$SERVER_PID" 2>/dev/null || true
@@ -97,17 +140,24 @@ launch_browser() {
 
 while :; do
   if ! start_server; then
-    printf 'LibreDisplay server failed to start; retrying in 3 seconds.\n' >&2
-    sleep 3
+    SERVER_RECOVERY_COUNT=$((SERVER_RECOVERY_COUNT + 1))
+    write_watchdog_state "server-start-failed"
+    printf 'LibreDisplay server failed to start; retrying in %s seconds.\n' "$SERVER_RESTART_DELAY" >&2
+    sleep "$SERVER_RESTART_DELAY"
+    [ "$SERVER_RESTART_DELAY" -ge 30 ] || SERVER_RESTART_DELAY=$((SERVER_RESTART_DELAY * 2))
+    [ "$SERVER_RESTART_DELAY" -le 30 ] || SERVER_RESTART_DELAY=30
     continue
   fi
 
+  SERVER_STARTED_AT=$(date +%s)
   launch_browser
   SERVER_HEALTH_FAILURES=0
   while kill -0 "$SERVER_PID" 2>/dev/null; do
     if ! curl -fsS --max-time 2 "http://127.0.0.1:${DASHBOARD_PORT}/healthz" >/dev/null 2>&1; then
       SERVER_HEALTH_FAILURES=$((SERVER_HEALTH_FAILURES + 1))
       if [ "$SERVER_HEALTH_FAILURES" -ge 3 ]; then
+        SERVER_RECOVERY_COUNT=$((SERVER_RECOVERY_COUNT + 1))
+        write_watchdog_state "server-health-failed"
         printf 'LibreDisplay server health check failed repeatedly; restarting server and kiosk.\n' >&2
         kill "$SERVER_PID" 2>/dev/null || true
         break
@@ -119,7 +169,11 @@ while :; do
     if ! kill -0 "$BROWSER_PID" 2>/dev/null; then
       wait "$BROWSER_PID" 2>/dev/null || true
       BROWSER_PID=""
-      sleep 2
+      BROWSER_RECOVERY_COUNT=$((BROWSER_RECOVERY_COUNT + 1))
+      write_watchdog_state "browser-exited"
+      sleep "$BROWSER_RESTART_DELAY"
+      [ "$BROWSER_RESTART_DELAY" -ge 30 ] || BROWSER_RESTART_DELAY=$((BROWSER_RESTART_DELAY * 2))
+      [ "$BROWSER_RESTART_DELAY" -le 30 ] || BROWSER_RESTART_DELAY=30
       launch_browser
     elif [ "$DASHBOARD_KIOSK_WATCHDOG" = "1" ]; then
       NOW=$(date +%s)
@@ -134,12 +188,18 @@ while :; do
         STALE=1
       fi
       if [ "$STALE" = "1" ]; then
+        BROWSER_RECOVERY_COUNT=$((BROWSER_RECOVERY_COUNT + 1))
+        write_watchdog_state "browser-heartbeat-stale"
         printf 'LibreDisplay kiosk heartbeat became stale; restarting Chromium.\n' >&2
         kill "$BROWSER_PID" 2>/dev/null || true
         wait "$BROWSER_PID" 2>/dev/null || true
         BROWSER_PID=""
-        sleep 2
+        sleep "$BROWSER_RESTART_DELAY"
+        [ "$BROWSER_RESTART_DELAY" -ge 30 ] || BROWSER_RESTART_DELAY=$((BROWSER_RESTART_DELAY * 2))
+        [ "$BROWSER_RESTART_DELAY" -le 30 ] || BROWSER_RESTART_DELAY=30
         launch_browser
+      else
+        BROWSER_RESTART_DELAY=2
       fi
     fi
     sleep 5
@@ -152,6 +212,13 @@ while :; do
   fi
   wait "$SERVER_PID" 2>/dev/null || true
   SERVER_PID=""
-  printf 'LibreDisplay server stopped; restarting in 3 seconds.\n' >&2
-  sleep 3
+  NOW=$(date +%s)
+  if [ "$SERVER_STARTED_AT" -gt 0 ] && [ $((NOW - SERVER_STARTED_AT)) -ge 300 ]; then
+    SERVER_RESTART_DELAY=3
+  else
+    [ "$SERVER_RESTART_DELAY" -ge 30 ] || SERVER_RESTART_DELAY=$((SERVER_RESTART_DELAY * 2))
+    [ "$SERVER_RESTART_DELAY" -le 30 ] || SERVER_RESTART_DELAY=30
+  fi
+  printf 'LibreDisplay server stopped; restarting in %s seconds.\n' "$SERVER_RESTART_DELAY" >&2
+  sleep "$SERVER_RESTART_DELAY"
 done

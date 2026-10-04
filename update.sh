@@ -61,6 +61,7 @@ done
 printf 'Creating a safety backup and rollback snapshot...\n'
 SNAPSHOT_ID=$(python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" snapshot --to-version "$NEW_VERSION" --quiet)
 printf 'Rollback snapshot: %s\n' "$SNAPSHOT_ID"
+python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" transaction --snapshot-id "$SNAPSHOT_ID" --state prepared
 
 printf 'Staging application files before replacing the live release...\n'
 STAGE_DIR=$(mktemp -d "$INSTALL_DIR/.libredisplay-update-stage.XXXXXX")
@@ -105,6 +106,11 @@ cleanup_update_swap() {
   if [ "$UPDATE_COMMITTED" -ne 1 ]; then
     printf 'Update did not complete; restoring the previous application files...\n' >&2
     restore_previous_release
+    if python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" verify-install --expected-version "$OLD_VERSION" >/dev/null 2>&1; then
+      python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" complete-update --snapshot-id "$SNAPSHOT_ID" >/dev/null 2>&1 || true
+    else
+      printf 'Previous files could not be fully verified; the startup recovery marker was preserved.\n' >&2
+    fi
   fi
   rm -rf "$STAGE_DIR" "$OLD_DIR"
   exit "$code"
@@ -123,7 +129,8 @@ done
 printf '%s\n' "$OLD_VERSION" > "$OLD_DIR/installed-version"
 
 # Verify the staged tree itself before the first live path is replaced.
-python3 "$STAGE_DIR/scripts/verify-frontend.py" "$STAGE_DIR"
+python3 "$STAGE_DIR/scripts/release-rollback.py" --install-dir "$STAGE_DIR" verify-install --expected-version "$NEW_VERSION"
+python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" transaction --snapshot-id "$SNAPSHOT_ID" --state replacing
 
 printf 'Replacing application files...\n'
 for name in app scripts assets; do
@@ -181,7 +188,11 @@ else
 fi
 chmod 644 "$INSTALL_DIR/README.md" "$INSTALL_DIR/LICENSE" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.yml"
 
+printf 'Validating the installed release before committing the update...\n'
+python3 "$INSTALL_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" verify-install --expected-version "$NEW_VERSION"
+python3 "$INSTALL_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" transaction --snapshot-id "$SNAPSHOT_ID" --state validated
 python3 "$INSTALL_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" record-update --from-version "$OLD_VERSION" --to-version "$NEW_VERSION" --snapshot-id "$SNAPSHOT_ID" || true
+python3 "$INSTALL_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" complete-update --snapshot-id "$SNAPSHOT_ID"
 
 UPDATE_COMMITTED=1
 rm -rf "$STAGE_DIR" "$OLD_DIR"

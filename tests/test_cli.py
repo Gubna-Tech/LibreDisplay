@@ -149,6 +149,40 @@ class CliTests(unittest.TestCase):
             self.assertIn("pi3-test", command)
 
 
+    def test_field_check_forwards_release_gate_resume_flags(self):
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            home = td / "home"
+            installed = home / "libredisplay"
+            script = installed / "scripts" / "field-readiness.py"
+            script.parent.mkdir(parents=True)
+            script.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+            with mock.patch.dict("os.environ", {"HOME": str(home)}), mock.patch.object(cli.subprocess, "run") as run:
+                run.return_value.returncode = 2
+                rc = cli.run_field_check(release_gate=True, resume=True, interval_seconds=20, label="final-gate")
+            self.assertEqual(rc, 2)
+            command = run.call_args.args[0]
+            self.assertIn("--release-gate", command)
+            self.assertIn("--resume", command)
+            self.assertNotIn("--duration-minutes", command)
+            self.assertIn("final-gate", command)
+
+    def test_field_check_resume_does_not_override_original_interval_by_default(self):
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            home = td / "home"
+            installed = home / "libredisplay"
+            script = installed / "scripts" / "field-readiness.py"
+            script.parent.mkdir(parents=True)
+            script.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+            with mock.patch.dict("os.environ", {"HOME": str(home)}), mock.patch.object(cli.subprocess, "run") as run:
+                run.return_value.returncode = 2
+                rc = cli.run_field_check(release_gate=True, resume=True)
+            self.assertEqual(rc, 2)
+            command = run.call_args.args[0]
+            self.assertIn("--resume", command)
+            self.assertNotIn("--interval-seconds", command)
+
 
 if __name__ == "__main__":
     unittest.main()

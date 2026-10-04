@@ -118,7 +118,7 @@ class HardeningTests(unittest.TestCase):
             def request(self, method, path, body=None, headers=None): sent.append((method, path, dict(headers or {})))
             def getresponse(self): return responses.pop(0)
             def close(self): pass
-        def validate(url):
+        def validate(url, deadline=None):
             parsed = urlparse(url)
             return parsed, 80, ["93.184.216.34"]
         with mock.patch.object(server, "validate_outbound_url", side_effect=validate), mock.patch.object(server, "PinnedHTTPConnection", FakeConnection):
