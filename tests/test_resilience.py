@@ -169,13 +169,13 @@ class ResilienceContractTests(unittest.TestCase):
 
     def test_system_health_reports_startup_integrity_state(self):
         server.atomic_write_json_file(server.STARTUP_INTEGRITY_PATH, {
-            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.5",
+            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.6",
             "coreFiles": 11, "pythonFiles": 3, "frontendVerified": True,
         })
         payload = server.system_health_payload()
         self.assertTrue(payload["startupIntegrity"]["ok"])
         self.assertTrue(payload["startupIntegrity"]["frontendVerified"])
-        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.5")
+        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.6")
 
     def test_stale_broker_returns_cached_data_while_refresh_runs(self):
         key = "resilience-stale-while-revalidate"
@@ -725,6 +725,41 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn("read_display_mode()", start)
         self.assertIn("--new-window", start)
         self.assertIn("--kiosk", start)
+
+    def test_v186_weather_realism_search_layout_remote_and_windowed_mode(self):
+        effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
+        config = (ROOT / "app" / "js" / "core" / "config.js").read_text(encoding="utf-8")
+        appearance = (ROOT / "app" / "js" / "appearance" / "index.js").read_text(encoding="utf-8")
+        layout = (ROOT / "app" / "js" / "layout" / "index.js").read_text(encoding="utf-8")
+        navigation = (ROOT / "app" / "js" / "settings" / "navigation.js").read_text(encoding="utf-8")
+        css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
+        server = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
+        start = (ROOT / "scripts" / "start.sh").read_text(encoding="utf-8")
+        for marker in ("weatherRainDensity:100", "weatherSnowDensity:100", "weatherFogDensity:115", "weatherSeasonLeavesIntensity:100", "weatherSeasonBugs:true", "weatherColdFrost:true"):
+            self.assertIn(marker, config)
+        for control in ('id="s-weather-rain-density"', 'id="s-weather-snow-drift"', 'id="s-weather-fog-density"', 'id="s-weather-leaves-intensity"', 'id="s-weather-grass-intensity"', 'id="s-weather-season-bugs"', 'id="s-weather-cold-frost"'):
+            self.assertIn(control, HTML)
+        self.assertIn("Number(document.getElementById('s-weather-rain-density')?.value??100)", appearance)
+        self.assertIn("{key:'locationLabel',label:'Location / display label'}", layout)
+        self.assertIn(".wx-location{font-size:", appearance)
+        self.assertIn("ps('current','locationLabel')", appearance)
+        self.assertIn("weather-fx-lightning-bolt", effects)
+        self.assertIn("weather-fx-edge-frost", effects)
+        self.assertIn("weather-fx-summer-bug", effects)
+        self.assertIn("--weather-fog-strength", effects)
+        self.assertIn(".weather-fx-lightning-bolt", css)
+        self.assertIn("#weather-effects-overlay.weather-fx-fog.show", css)
+        self.assertIn('id="settings-search-results"', HTML)
+        self.assertIn("function openSettingsSearchResult", navigation)
+        self.assertIn("settingsSearchControlText", navigation)
+        self.assertIn("settings-weather-precipitation", navigation)
+        self.assertIn('blocked_prefixes = ("docker", "br-", "veth", "virbr", "podman", "cni", "flannel")', server)
+        self.assertIn('mdns = hostname + ".local"', server)
+        self.assertIn("def remote_management_urls(token):", server)
+        windowed = start.split('if [ "$CURRENT_BROWSER_MODE" = "windowed" ]; then', 1)[1].split("  else", 1)[0]
+        self.assertIn('--window-size="$WINDOW_W,$WINDOW_H"', windowed)
+        self.assertIn('--window-position="$WINDOW_X,$WINDOW_Y"', windowed)
+        self.assertNotIn("--start-maximized", windowed)
 
     def test_v180_screen_care_controls_are_independent(self):
         config = (ROOT / "app" / "js" / "core" / "config.js").read_text(encoding="utf-8")

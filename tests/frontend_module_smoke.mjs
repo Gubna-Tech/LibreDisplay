@@ -174,6 +174,15 @@ try{
   const fallSource={...restartSource,weatherSeasonalEffects:true,weatherSeasonMode:'fall',weatherSeasonalIntensity:80};
   modules.weatherEffects.applyWeatherEffects(restartRain,fallSource);
   if(!overlayHost.classList.contains('weather-season-fall')||!overlayHost.children.some(child=>child.classList.contains('weather-fx-leaf')))throw new Error('fall seasonal overlay did not render leaf particles');
+  const fogSource={...restartSource,weatherEffectFog:true,weatherFogDensity:140,weatherFogSpeed:70,weatherSeasonalEffects:false};
+  modules.weatherEffects.applyWeatherEffects({current:{weather_code:45,cloud_cover:100,wind_speed_10m:3,wind_direction_10m:90}},fogSource);
+  if(!overlayHost.classList.contains('weather-fx-fog')||!overlayHost.children.some(child=>String(child.className||'').includes('weather-fx-primary')))throw new Error('fog overlay did not render visible mist particles');
+  const stormSource={...restartSource,weatherEffectLightning:true,weatherSeasonalEffects:false};
+  modules.weatherEffects.applyWeatherEffects({current:{weather_code:95,precipitation:8,cloud_cover:100,wind_speed_10m:25,wind_direction_10m:240}},stormSource);
+  if(!overlayHost.classList.contains('weather-fx-lightning')||!overlayHost.children.some(child=>String(child.className||'').includes('weather-fx-lightning-bolt')))throw new Error('storm overlay did not render realistic lightning bolts');
+  const coldSource={...restartSource,weatherSeasonalEffects:true,weatherSeasonMode:'winter',weatherColdFrost:true,weatherColdFrostIntensity:70};
+  modules.weatherEffects.applyWeatherEffects({current:{weather_code:3,temperature_2m:-18,cloud_cover:90,wind_speed_10m:6}},coldSource);
+  if(!overlayHost.children.some(child=>String(child.className||'').includes('weather-fx-edge-frost')))throw new Error('extreme-cold winter overlay did not render edge frost');
 }finally{document.createElement=originalCreateElement;document.createDocumentFragment=originalCreateDocumentFragment;document.getElementById=originalOverlayGet;}
 if(modules.weatherEffects.weatherPauseClassSignature('ld-weather-widget-motion ld-weather-fullscreen-motion')!=='000')throw new Error('weather effect self classes incorrectly trigger pause-state refreshes');
 if(modules.weatherEffects.weatherPauseClassSignature('ld-burnin-dim')!=='100'||modules.weatherEffects.weatherPauseClassSignature('layout-editing')!=='010'||modules.weatherEffects.weatherPauseClassSignature('remote-layout-proxy')!=='001')throw new Error('weather pause-state class signature failed');

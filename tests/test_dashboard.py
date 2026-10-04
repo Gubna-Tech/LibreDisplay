@@ -369,5 +369,20 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertEqual(manifests["fitbit"]["kind"], "status")
 
 
+class NetworkLinkTests(unittest.TestCase):
+    def test_local_ipv4_prefers_default_route_and_skips_container_bridges(self):
+        route = mock.Mock(returncode=0, stdout="1.1.1.1 via 192.168.1.1 dev eth0 src 192.168.1.44 uid 1000\n")
+        addrs = mock.Mock(returncode=0, stdout="2: eth0 inet 192.168.1.44/24 brd 192.168.1.255 scope global eth0\n3: docker0 inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0\n4: tailscale0 inet 100.95.1.2/32 scope global tailscale0\n")
+        with mock.patch.object(server.subprocess, "run", side_effect=[route, addrs]), mock.patch.object(server.socket, "socket", side_effect=OSError), mock.patch.object(server.socket, "getaddrinfo", return_value=[]):
+            addresses = server.local_ipv4_addresses()
+        self.assertEqual(addresses[0], "192.168.1.44")
+        self.assertNotIn("172.17.0.1", addresses)
+        self.assertIn("100.95.1.2", addresses)
+
+    def test_remote_hosts_include_mdns_fallback_after_numeric_lan_address(self):
+        with mock.patch.object(server, "local_ipv4_addresses", return_value=["192.168.1.44"]), mock.patch.object(server.socket, "gethostname", return_value="libredisplay"):
+            hosts = server.remote_link_hosts()
+        self.assertEqual(hosts, ["192.168.1.44", "libredisplay.local"])
+
 if __name__ == "__main__":
     unittest.main()

@@ -138,9 +138,18 @@ launch_browser() {
   BROWSER_STARTED_AT=$(date +%s)
   CURRENT_BROWSER_MODE=$(read_display_mode)
   if [ "$CURRENT_BROWSER_MODE" = "windowed" ]; then
+    SCREEN_RES=$(xrandr --current 2>/dev/null | awk '/\*/{print $1; exit}' || true)
+    case "$SCREEN_RES" in
+      *x*) SCREEN_W=${SCREEN_RES%x*}; SCREEN_H=${SCREEN_RES#*x} ;;
+      *) SCREEN_W=1280; SCREEN_H=800 ;;
+    esac
+    case "$SCREEN_W:$SCREEN_H" in *[!0-9:]*|:) SCREEN_W=1280; SCREEN_H=800 ;; esac
+    WINDOW_W=$((SCREEN_W * 82 / 100)); WINDOW_H=$((SCREEN_H * 82 / 100))
+    WINDOW_X=$(( (SCREEN_W - WINDOW_W) / 2 )); WINDOW_Y=$(( (SCREEN_H - WINDOW_H) / 2 ))
     "$BROWSER" \
-      --start-maximized \
       --new-window \
+      --window-size="$WINDOW_W,$WINDOW_H" \
+      --window-position="$WINDOW_X,$WINDOW_Y" \
       --noerrdialogs \
       --disable-session-crashed-bubble \
       --disable-background-timer-throttling \
