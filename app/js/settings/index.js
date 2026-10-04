@@ -183,14 +183,19 @@ function applySettings(){
   performance.runExclusiveTask('weather-refresh',weather.fetchWeather);
   performance.runExclusiveTask('alert-refresh',weather.fetchWeatherAlerts);
   performance.runExclusiveTask('calendar-refresh',calendar.loadCalendars);
-  if(cfg.backgroundSource!=='none')void backgrounds.restoreLastBackground();
   const loadBackgroundSource=()=>{
     if(cfg.backgroundSource==='stock')backgrounds.loadStockBackground();
     else if(cfg.backgroundSource==='folders'&&cfg.mediaFolders?.length)backgrounds.loadFolderBackgrounds(cfg.mediaFolders,cfg.mediaRecursive);
     else if(cfg.backgroundSource==='google'&&cfg.photosUrl)backgrounds.loadPhotos(cfg.photosUrl);
     else backgrounds.disableBackgroundSource();
   };
-  if(cfg.backgroundStartupPriority!==false)setTimeout(loadBackgroundSource,Math.max(0,Number(cfg.backgroundStartupDelayMs)||0));else loadBackgroundSource();
+  if(cfg.backgroundSource!=='none'&&cfg.backgroundStartupPriority!==false){
+    const backgroundStartAt=Date.now()+Math.max(0,Number(cfg.backgroundStartupDelayMs)||0);
+    void (async()=>{try{await backgrounds.restoreLastBackground(true);}catch(_e){}setTimeout(loadBackgroundSource,Math.max(0,backgroundStartAt-Date.now()));})();
+  }else{
+    if(cfg.backgroundSource!=='none')void backgrounds.restoreLastBackground(true);
+    loadBackgroundSource();
+  }
   const details=cfg.weatherDetailsEnabled||{},hasAirBlock=(cfg.customBlocks||[]).some(b=>b?.type==='airquality');
   if(hasAirBlock||details.airquality||details.uvindex)setTimeout(()=>LibreDisplayRuntime.getModule('blocks').getAirQualityData().catch(()=>{}),0);
   configApi.weatherTimer=performance.startManagedInterval('weather-refresh',weather.fetchWeather,cfg.weatherRefreshMin*60*1000,{skipWhenHidden:true,resumeOnVisible:true});

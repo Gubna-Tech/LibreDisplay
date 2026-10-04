@@ -163,8 +163,9 @@ function applyAccessibilityPreferences(source=cfg){
   document.documentElement.lang=String(locale).split('-')[0]||'en';
   const systemReduced=!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const constrained=LibreDisplayRuntime.getModule('performance').frontendCapabilities().constrained;
-  const reduced=source.motionPreference==='reduced'||(source.motionPreference==='auto'&&(systemReduced||constrained));
+  const reduced=source.motionPreference==='reduced'||(source.motionPreference==='auto'&&systemReduced);
   document.documentElement.classList.toggle('ld-reduce-motion',reduced);
+  document.documentElement.classList.toggle('ld-performance-constrained',constrained);
   document.documentElement.classList.toggle('ld-high-contrast',!!source.highContrast);
   document.documentElement.classList.toggle('ld-focus-outline',!!source.focusOutline);
   const setup=document.getElementById('setup');
@@ -377,6 +378,11 @@ function appearanceFromForm(){
     weatherEffectIntensity:Number(document.getElementById('s-weather-effect-intensity')?.value)||50,
     weatherEffectOpacity:Number(document.getElementById('s-weather-effect-opacity')?.value)||34,
     weatherEffectSpeed:Number(document.getElementById('s-weather-effect-speed')?.value)||100,
+    weatherEffectPrecipitation:document.getElementById('s-weather-effect-precipitation')?.checked!==false,
+    weatherEffectClouds:document.getElementById('s-weather-effect-clouds')?.checked!==false,
+    weatherEffectFog:document.getElementById('s-weather-effect-fog')?.checked!==false,
+    weatherEffectSun:document.getElementById('s-weather-effect-sun')?.checked!==false,
+    weatherEffectWind:document.getElementById('s-weather-effect-wind')?.checked!==false,
     weatherEffectLightning:document.getElementById('s-weather-effect-lightning')?.checked!==false,
     weatherEffectRespectReducedMotion:document.getElementById('s-weather-effect-reduced-motion')?.checked!==false,
     weatherEffectPauseWhenDimmed:document.getElementById('s-weather-effect-pause-dimmed')?.checked!==false,
@@ -420,7 +426,7 @@ const APPEARANCE_DEFAULTS={
   uiCalendarPct:100,uiCurrentPct:100,uiClockPct:100,uiForecastPct:100,uiDetailsPct:100,uiAlertPct:100,
   calendarBandHeight:150,bottomPanelHeight:330,leftPanelWidth:470,sidePaddingPx:28,forecastGapPx:5,forecastRowGapPx:18,forecastColumns:12,hourlyForecastHours:12,dailyForecastDays:12,calendarDays:7,calendarColumns:7,calendarCellHeight:150,calendarScrollMode:'off',calendarScrollSpeed:12,layoutGridPx:20,layoutSnap:true,calendarMaxEvents:4,
   showNoEvents:true,showEventTimes:true,showDailyForecast:true,showHourlyForecast:true,showPrecip:true,timeFormat:'12',dateFormat:'long',showSeconds:true,showAmPm:true,showDate:true,showCurrentIcon:true,showSunset:true,showWind:true,showHumidity:true,weatherDetailsOrder:['sunset','wind','humidity','sunrise','airquality','uvindex','feelslike','pressure','cloudcover','dewpoint','precipitation'],weatherDetailsEnabled:{sunset:true,wind:true,humidity:true,sunrise:false,airquality:false,uvindex:false,feelslike:false,pressure:false,cloudcover:false,dewpoint:false,precipitation:false},
-  bgShadeTop:52,bgShadeBottom:55,bgBlurPx:0,bgTransitionSec:1.5,bgFit:'cover',bgPosition:'center',alertOpacityPct:100,alertMinSeverity:'all',alertShowExpiry:true,alertShowMeta:true,locale:'auto',motionPreference:'auto',highContrast:false,focusOutline:false,settingsUiSize:'standard',burnInCareEnabled:false,burnInIdleDimmingEnabled:false,burnInQuietHoursEnabled:false,burnInQuietWakeEnabled:true,burnInPauseAnimationsDimmed:true,burnInDimMode:'activity',burnInQuietStart:'22:00',burnInQuietEnd:'07:00',burnInQuietWakeMin:5,burnInProtection:false,burnInPixelShift:false,burnInIdleMin:30,burnInBrightnessPct:40,burnInDeepProtection:false,burnInDeepTrigger:'idle',burnInDeepIdleMin:180,burnInDeepBrightnessPct:5,burnInShiftMode:'always',burnInShiftMin:5,burnInShiftPx:2,burnInShiftTransitionSec:1.2,weatherAnimationsEnabled:false,weatherWidgetAnimations:true,weatherFullscreenEffects:false,weatherEffectMode:'auto',weatherEffectIntensity:50,weatherEffectOpacity:34,weatherEffectSpeed:100,weatherEffectLightning:true,weatherEffectRespectReducedMotion:true,weatherEffectPauseWhenDimmed:true,settingsCogPosition:'bottom-right',settingsCogOpacity:42,settingsCogSize:46,settingsCogLabel:true
+  bgShadeTop:52,bgShadeBottom:55,bgBlurPx:0,bgTransitionSec:1.5,bgFit:'cover',bgPosition:'center',alertOpacityPct:100,alertMinSeverity:'all',alertShowExpiry:true,alertShowMeta:true,locale:'auto',motionPreference:'auto',highContrast:false,focusOutline:false,settingsUiSize:'standard',burnInCareEnabled:false,burnInIdleDimmingEnabled:false,burnInQuietHoursEnabled:false,burnInQuietWakeEnabled:true,burnInPauseAnimationsDimmed:true,burnInDimMode:'activity',burnInQuietStart:'22:00',burnInQuietEnd:'07:00',burnInQuietWakeMin:5,burnInProtection:false,burnInPixelShift:false,burnInIdleMin:30,burnInBrightnessPct:40,burnInDeepProtection:false,burnInDeepTrigger:'idle',burnInDeepIdleMin:180,burnInDeepBrightnessPct:5,burnInShiftMode:'always',burnInShiftMin:5,burnInShiftPx:2,burnInShiftTransitionSec:1.2,weatherAnimationsEnabled:false,weatherWidgetAnimations:true,weatherFullscreenEffects:false,weatherEffectMode:'auto',weatherEffectIntensity:50,weatherEffectOpacity:34,weatherEffectSpeed:100,weatherEffectPrecipitation:true,weatherEffectClouds:true,weatherEffectFog:true,weatherEffectSun:true,weatherEffectWind:true,weatherEffectLightning:true,weatherEffectRespectReducedMotion:true,weatherEffectPauseWhenDimmed:true,settingsCogPosition:'bottom-right',settingsCogOpacity:42,settingsCogSize:46,settingsCogLabel:true
 };
 
 
@@ -454,6 +460,7 @@ function setAppearanceForm(v){
   const weatherFullscreenEffects=document.getElementById('s-weather-fullscreen-effects');if(weatherFullscreenEffects)weatherFullscreenEffects.checked=!!v.weatherFullscreenEffects;
   const weatherEffectMode=document.getElementById('s-weather-effect-mode');if(weatherEffectMode)weatherEffectMode.value=v.weatherEffectMode||'auto';
   for(const [id,val] of [['s-weather-effect-intensity',v.weatherEffectIntensity??50],['s-weather-effect-opacity',v.weatherEffectOpacity??34],['s-weather-effect-speed',v.weatherEffectSpeed??100]]){const el=document.getElementById(id);if(el)el.value=String(val);}
+  for(const [id,key] of [['s-weather-effect-precipitation','weatherEffectPrecipitation'],['s-weather-effect-clouds','weatherEffectClouds'],['s-weather-effect-fog','weatherEffectFog'],['s-weather-effect-sun','weatherEffectSun'],['s-weather-effect-wind','weatherEffectWind']]){const el=document.getElementById(id);if(el)el.checked=v[key]!==false;}
   const weatherLightning=document.getElementById('s-weather-effect-lightning');if(weatherLightning)weatherLightning.checked=v.weatherEffectLightning!==false;
   const weatherReduced=document.getElementById('s-weather-effect-reduced-motion');if(weatherReduced)weatherReduced.checked=v.weatherEffectRespectReducedMotion!==false;
   const weatherPauseDimmed=document.getElementById('s-weather-effect-pause-dimmed');if(weatherPauseDimmed)weatherPauseDimmed.checked=v.weatherEffectPauseWhenDimmed!==false;
@@ -483,13 +490,26 @@ function setAppearanceForm(v){
   updateFontPreview();
 }
 
-const PRESET_CONTENT_PRESERVE_KEYS=['weatherDetailsOrder','weatherDetailsEnabled','showSunset','showWind','showHumidity','calendarTimeStyle','calendarLegend','calendarShowContinuation','weatherAnimationsEnabled','weatherWidgetAnimations','weatherFullscreenEffects','weatherEffectMode','weatherEffectIntensity','weatherEffectOpacity','weatherEffectSpeed','weatherEffectLightning','weatherEffectRespectReducedMotion','weatherEffectPauseWhenDimmed','burnInCareEnabled','burnInIdleDimmingEnabled','burnInQuietHoursEnabled','burnInQuietWakeEnabled','burnInPauseAnimationsDimmed','burnInDimMode','burnInQuietStart','burnInQuietEnd','burnInQuietWakeMin','burnInProtection','burnInPixelShift','burnInIdleMin','burnInBrightnessPct','burnInDeepProtection','burnInDeepTrigger','burnInDeepIdleMin','burnInDeepBrightnessPct','burnInShiftMode','burnInShiftMin','burnInShiftPx','burnInShiftTransitionSec'];
+const PRESET_CONTENT_PRESERVE_KEYS=['weatherDetailsOrder','weatherDetailsEnabled','showSunset','showWind','showHumidity','calendarTimeStyle','calendarLegend','calendarShowContinuation','weatherAnimationsEnabled','weatherWidgetAnimations','weatherFullscreenEffects','weatherEffectMode','weatherEffectIntensity','weatherEffectOpacity','weatherEffectSpeed','weatherEffectPrecipitation','weatherEffectClouds','weatherEffectFog','weatherEffectSun','weatherEffectWind','weatherEffectLightning','weatherEffectRespectReducedMotion','weatherEffectPauseWhenDimmed','burnInCareEnabled','burnInIdleDimmingEnabled','burnInQuietHoursEnabled','burnInQuietWakeEnabled','burnInPauseAnimationsDimmed','burnInDimMode','burnInQuietStart','burnInQuietEnd','burnInQuietWakeMin','burnInProtection','burnInPixelShift','burnInIdleMin','burnInBrightnessPct','burnInDeepProtection','burnInDeepTrigger','burnInDeepIdleMin','burnInDeepBrightnessPct','burnInShiftMode','burnInShiftMin','burnInShiftPx','burnInShiftTransitionSec'];
 function preservePresetState(target,current){for(const prop of PRESET_CONTENT_PRESERVE_KEYS)target[prop]=JSON.parse(JSON.stringify(current[prop]));return target;}
 
 function resetAppearanceForm(){
   LibreDisplayRuntime.getModule('appearance').settingsLayoutPresetKey='default';
   setAppearanceForm(APPEARANCE_DEFAULTS);
   previewAppearance();renderLayoutPresetGallery();markSettingsDirty();
+}
+
+function resetWeatherAnimationSettings(){
+  const d=APPEARANCE_DEFAULTS,checks={'s-weather-animations':d.weatherAnimationsEnabled,'s-weather-widget-animations':d.weatherWidgetAnimations,'s-weather-fullscreen-effects':d.weatherFullscreenEffects,'s-weather-effect-precipitation':d.weatherEffectPrecipitation,'s-weather-effect-clouds':d.weatherEffectClouds,'s-weather-effect-fog':d.weatherEffectFog,'s-weather-effect-sun':d.weatherEffectSun,'s-weather-effect-wind':d.weatherEffectWind,'s-weather-effect-lightning':d.weatherEffectLightning,'s-weather-effect-reduced-motion':d.weatherEffectRespectReducedMotion,'s-weather-effect-pause-dimmed':d.weatherEffectPauseWhenDimmed};
+  for(const [id,value] of Object.entries(checks)){const el=document.getElementById(id);if(el)el.checked=!!value;}
+  const values={'s-weather-effect-mode':d.weatherEffectMode,'s-weather-effect-intensity':d.weatherEffectIntensity,'s-weather-effect-opacity':d.weatherEffectOpacity,'s-weather-effect-speed':d.weatherEffectSpeed};
+  for(const [id,value] of Object.entries(values)){const el=document.getElementById(id);if(el)el.value=String(value);}const current=appearanceFromForm();updateAppearanceLabels(current);previewAppearance();markSettingsDirty();
+}
+function resetDisplayCareSettings(){
+  const d=APPEARANCE_DEFAULTS,checks={'s-burnin-care-enabled':d.burnInCareEnabled,'s-burnin-idle-dimming':d.burnInIdleDimmingEnabled,'s-burnin-quiet-hours':d.burnInQuietHoursEnabled,'s-burnin-quiet-wake-enabled':d.burnInQuietWakeEnabled,'s-burnin-pause-animations':d.burnInPauseAnimationsDimmed,'s-burnin-pixel-shift':d.burnInPixelShift,'s-burnin-deep-protection':d.burnInDeepProtection};
+  for(const [id,value] of Object.entries(checks)){const el=document.getElementById(id);if(el)el.checked=!!value;}
+  const values={'s-burnin-quiet-start':d.burnInQuietStart,'s-burnin-quiet-end':d.burnInQuietEnd,'s-burnin-quiet-wake':d.burnInQuietWakeMin,'s-burnin-idle':d.burnInIdleMin,'s-burnin-brightness':d.burnInBrightnessPct,'s-burnin-deep-trigger':d.burnInDeepTrigger,'s-burnin-deep-idle':d.burnInDeepIdleMin,'s-burnin-deep-brightness':d.burnInDeepBrightnessPct,'s-burnin-shift-mode':d.burnInShiftMode,'s-burnin-shift-interval':d.burnInShiftMin,'s-burnin-shift-distance':d.burnInShiftPx,'s-burnin-shift-transition':d.burnInShiftTransitionSec};
+  for(const [id,value] of Object.entries(values)){const el=document.getElementById(id);if(el)el.value=String(value);}const current=appearanceFromForm();updateAppearanceLabels(current);previewAppearance();markSettingsDirty();
 }
 
 function bindTextColorControls(){
@@ -507,7 +527,7 @@ function bindTextColorControls(){
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("appearance", {applyProductTheme,renderThemeChoices,selectThemeChoice,renderFontChoices,selectFontChoice,styleFontSelectOptions,updateFontPreview,fontCssValue,measureDashboardFontProbe,formatScreenCareMinutes,updateScreenCareControlState,screenCareClockMinutes,screenCareQuietScheduleState,noteScreenCareActivity,screenCareAvailable,screenCareCanDim,screenCareCanShift,setScreenCareShift,resetScreenCareShift,advanceScreenCareShift,updateScreenCareState,applyScreenCarePreferences,applyAccessibilityPreferences,applyUiCustomization,appearanceFromForm,updateAppearanceLabels,setAppearanceForm,preservePresetState,resetAppearanceForm,bindTextColorControls}, {
+LibreDisplayRuntime.exposeModule("appearance", {applyProductTheme,renderThemeChoices,selectThemeChoice,renderFontChoices,selectFontChoice,styleFontSelectOptions,updateFontPreview,fontCssValue,measureDashboardFontProbe,formatScreenCareMinutes,updateScreenCareControlState,screenCareClockMinutes,screenCareQuietScheduleState,noteScreenCareActivity,screenCareAvailable,screenCareCanDim,screenCareCanShift,setScreenCareShift,resetScreenCareShift,advanceScreenCareShift,updateScreenCareState,applyScreenCarePreferences,applyAccessibilityPreferences,applyUiCustomization,appearanceFromForm,updateAppearanceLabels,setAppearanceForm,preservePresetState,resetAppearanceForm,resetWeatherAnimationSettings,resetDisplayCareSettings,bindTextColorControls}, {
   "LIBREDISPLAY_THEMES": {configurable:true,get:()=>LIBREDISPLAY_THEMES},
   "LIBREDISPLAY_FONTS": {configurable:true,get:()=>LIBREDISPLAY_FONTS},
   "screenCareTimer": {configurable:true,get:()=>screenCareTimer,set:(value)=>{screenCareTimer=value;}},
@@ -515,4 +535,4 @@ LibreDisplayRuntime.exposeModule("appearance", {applyProductTheme,renderThemeCho
   "screenCareDimmed": {configurable:true,get:()=>screenCareDimmed,set:(value)=>{screenCareDimmed=value;}},
   "APPEARANCE_DEFAULTS": {configurable:true,get:()=>APPEARANCE_DEFAULTS},
   "PRESET_CONTENT_PRESERVE_KEYS": {configurable:true,get:()=>PRESET_CONTENT_PRESERVE_KEYS}
-}, {globalFunctions:['applyProductTheme','selectThemeChoice','selectFontChoice','updateFontPreview','fontCssValue','measureDashboardFontProbe','applyUiCustomization','appearanceFromForm','updateAppearanceLabels','setAppearanceForm','preservePresetState','resetAppearanceForm','bindTextColorControls'],globalStates:[]});
+}, {globalFunctions:['applyProductTheme','selectThemeChoice','selectFontChoice','updateFontPreview','fontCssValue','measureDashboardFontProbe','applyUiCustomization','appearanceFromForm','updateAppearanceLabels','setAppearanceForm','preservePresetState','resetAppearanceForm','resetWeatherAnimationSettings','resetDisplayCareSettings','bindTextColorControls'],globalStates:[]});

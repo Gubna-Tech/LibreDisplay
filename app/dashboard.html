@@ -160,7 +160,7 @@
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.0</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.1</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -404,9 +404,18 @@
     <div class="s-row"><label>Effect intensity <span id="s-weather-effect-intensity-value" class="range-value">50%</span></label><input id="s-weather-effect-intensity" type="range" min="10" max="100" step="5" value="50" oninput="previewAppearance()"><div class="range-ends"><span>Subtle</span><span>Dense</span></div></div>
     <div class="s-row"><label>Overlay visibility <span id="s-weather-effect-opacity-value" class="range-value">34%</span></label><input id="s-weather-effect-opacity" type="range" min="5" max="80" step="1" value="34" oninput="previewAppearance()"><div class="range-ends"><span>Soft</span><span>Strong</span></div></div>
     <div class="s-row"><label>Animation speed <span id="s-weather-effect-speed-value" class="range-value">100%</span></label><input id="s-weather-effect-speed" type="range" min="40" max="180" step="5" value="100" oninput="previewAppearance()"><div class="range-ends"><span>Slow</span><span>Fast</span></div></div>
-    <label class="checkline"><input id="s-weather-effect-lightning" type="checkbox" checked onchange="previewAppearance()"> Allow lightning flashes during thunderstorms</label>
+    <div class="s-subhead">Individual effects</div>
+    <label class="checkline"><input id="s-weather-effect-precipitation" type="checkbox" checked onchange="previewAppearance()"> Rain and snow precipitation</label>
+    <label class="checkline"><input id="s-weather-effect-clouds" type="checkbox" checked onchange="previewAppearance()"> Moving cloud layers</label>
+    <label class="checkline"><input id="s-weather-effect-fog" type="checkbox" checked onchange="previewAppearance()"> Fog and mist layers</label>
+    <label class="checkline"><input id="s-weather-effect-sun" type="checkbox" checked onchange="previewAppearance()"> Sun glow and animated rays</label>
+    <label class="checkline"><input id="s-weather-effect-wind" type="checkbox" checked onchange="previewAppearance()"> Wind drift and directional movement</label>
+    <label class="checkline"><input id="s-weather-effect-lightning" type="checkbox" checked onchange="previewAppearance()"> Lightning flashes during thunderstorms</label>
     <label class="checkline"><input id="s-weather-effect-reduced-motion" type="checkbox" checked onchange="previewAppearance()"> Respect reduced-motion preferences</label>
     <label class="checkline"><input id="s-weather-effect-pause-dimmed" type="checkbox" checked onchange="previewAppearance()"> Pause full-screen effects while OLED protection is dimming the display</label>
+   </div>
+   <div class="utility-actions" style="margin-top:8px;">
+    <button class="btn-util" type="button" onclick="resetWeatherAnimationSettings()">Reset weather animation settings</button>
    </div>
    <div class="settings-note">Animations are decorative only and never affect weather data refresh. Full-screen effects are rendered behind dashboard content and are automatically suppressed during Arrange/layout preview.</div>
   </div>
@@ -499,6 +508,9 @@
     <div class="s-row"><label>Deep protection after <span id="s-burnin-deep-idle-value" class="range-value">3 hr</span></label><input id="s-burnin-deep-idle" type="range" min="15" max="720" step="5" value="180" oninput="previewAppearance()"><div class="range-ends"><span>15 min</span><span>12 hr</span></div></div>
     <div class="s-row"><label>Deep brightness <span id="s-burnin-deep-brightness-value" class="range-value">5%</span></label><input id="s-burnin-deep-brightness" type="range" min="0" max="25" step="1" value="5" oninput="previewAppearance()"><div class="range-ends"><span>0% black</span><span>25%</span></div></div>
     <label class="checkline"><input id="s-burnin-pause-animations" type="checkbox" checked onchange="previewAppearance()"> Pause decorative animations while dimmed</label>
+   </div>
+   <div class="utility-actions" style="margin-top:8px;">
+    <button class="btn-util" type="button" onclick="resetDisplayCareSettings()">Reset display care settings</button>
    </div>
    <div class="settings-note">Pixel shift does not require Quiet hours or dimming. All display-care effects are suppressed during Arrange and layout preview and never rewrite saved layout geometry.</div>
   </div>
@@ -668,7 +680,7 @@
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.0</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.1</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>

@@ -60,32 +60,43 @@ async function init(){
 
   appearance.applyProductTheme('libre-night');
   await settings.loadSessionInfo();
-  if(bootstrapApi.SESSION_ROLE==='owner')await settings.loadLocalAccounts();
-  await integrations.loadIntegrations();
-  await blocks.loadHousehold(false);
+  // Saved display configuration is the only network-backed prerequisite for the
+  // first useful frame. Start weather/AQI/background work before accounts,
+  // integrations, household data, profiles, and scenes finish hydrating.
   await config.loadCfg();
-  await config.loadProfiles();
-  if(!bootstrapApi.READ_ONLY_DISPLAY_MODE)await system.loadScenes();
   onboarding.bindCalendarColorControls();
   appearance.bindTextColorControls();
   weather.previewAlertSize(cfg.alertCardPct);
   weather.previewAlertMotionSpeed(cfg.alertMotionPx);
   appearance.applyUiCustomization(cfg);
   calendar.renderCalendar([]);
-  if(cfg.onboardingComplete&&cfg.lat&&cfg.lon){
+  const dashboardReady=(cfg.onboardingComplete&&cfg.lat&&cfg.lon)||bootstrapApi.READ_ONLY_DISPLAY_MODE;
+  if(dashboardReady){
     document.getElementById('setup').classList.add('hidden');
     settings.applySettings();
-    if((bootstrapApi.REMOTE_SETTINGS_MODE||bootstrapApi.OPEN_SETTINGS_MODE)&&!bootstrapApi.READ_ONLY_DISPLAY_MODE)settings.openSetup(false);
-    else setTimeout(settings.revealSettingsCog,800);
-  }else if(bootstrapApi.READ_ONLY_DISPLAY_MODE){
-    document.getElementById('setup').classList.add('hidden');
-    settings.applySettings();
-  }else{
-    configApi.wizardStepIndex=0;
-    settings.openSetup(true);
   }
   remote.startLiveDisplayConnection();
   remote.startRemoteConfigPolling();
+
+  const finishSecondaryHydration=async()=>{
+    const jobs=[];
+    if(bootstrapApi.SESSION_ROLE==='owner')jobs.push(Promise.resolve(settings.loadLocalAccounts()));
+    jobs.push(Promise.resolve(integrations.loadIntegrations()).then(()=>{try{blocks.refreshCustomDataBlocks(['integration']);}catch(_e){}}));
+    jobs.push(Promise.resolve(blocks.loadHousehold(false)).then(()=>{try{blocks.refreshFamilyBlocks();}catch(_e){}}));
+    jobs.push(Promise.resolve(config.loadProfiles()));
+    if(!bootstrapApi.READ_ONLY_DISPLAY_MODE)jobs.push(Promise.resolve(system.loadScenes()));
+    await Promise.allSettled(jobs);
+  };
+
+  if(dashboardReady){
+    void finishSecondaryHydration();
+    if((bootstrapApi.REMOTE_SETTINGS_MODE||bootstrapApi.OPEN_SETTINGS_MODE)&&!bootstrapApi.READ_ONLY_DISPLAY_MODE)settings.openSetup(false);
+    else setTimeout(settings.revealSettingsCog,800);
+  }else{
+    await finishSecondaryHydration();
+    configApi.wizardStepIndex=0;
+    settings.openSetup(true);
+  }
   if(!bootstrapApi.READ_ONLY_DISPLAY_MODE)setTimeout(()=>{remote.loadRemoteInfo();remote.loadCacheStatus();remote.loadDisplayEndpoints();},300);
 }
 function autoStartLayoutPreviewWhenReady(attempt=0){

@@ -28,6 +28,7 @@ let cfg = {
   weatherEffectOpacity:34,
   weatherEffectSpeed:100,
   weatherEffectMode:'auto',
+  weatherEffectPrecipitation:true,weatherEffectClouds:true,weatherEffectFog:true,weatherEffectSun:true,weatherEffectWind:true,
   weatherEffectLightning:true,
   weatherEffectRespectReducedMotion:true,
   weatherEffectPauseWhenDimmed:true,
@@ -366,7 +367,7 @@ function ensureCfgDefaults(){
   cfg.settingsUiSize=['standard','large','xlarge'].includes(cfg.settingsUiSize)?cfg.settingsUiSize:'standard';
   if(typeof cfg.weatherAnimationsEnabled!=='boolean')cfg.weatherAnimationsEnabled=false;if(typeof cfg.weatherWidgetAnimations!=='boolean')cfg.weatherWidgetAnimations=true;if(typeof cfg.weatherFullscreenEffects!=='boolean')cfg.weatherFullscreenEffects=false;
   cfg.weatherEffectIntensity=Math.round(Math.min(100,Math.max(10,num(cfg.weatherEffectIntensity,50))));cfg.weatherEffectOpacity=Math.round(Math.min(80,Math.max(5,num(cfg.weatherEffectOpacity,34))));cfg.weatherEffectSpeed=Math.round(Math.min(180,Math.max(40,num(cfg.weatherEffectSpeed,100))));cfg.weatherEffectMode=['auto','precipitation','ambient'].includes(cfg.weatherEffectMode)?cfg.weatherEffectMode:'auto';
-  if(typeof cfg.weatherEffectLightning!=='boolean')cfg.weatherEffectLightning=true;if(typeof cfg.weatherEffectRespectReducedMotion!=='boolean')cfg.weatherEffectRespectReducedMotion=true;if(typeof cfg.weatherEffectPauseWhenDimmed!=='boolean')cfg.weatherEffectPauseWhenDimmed=true;
+  if(typeof cfg.weatherEffectPrecipitation!=='boolean')cfg.weatherEffectPrecipitation=true;if(typeof cfg.weatherEffectClouds!=='boolean')cfg.weatherEffectClouds=true;if(typeof cfg.weatherEffectFog!=='boolean')cfg.weatherEffectFog=true;if(typeof cfg.weatherEffectSun!=='boolean')cfg.weatherEffectSun=true;if(typeof cfg.weatherEffectWind!=='boolean')cfg.weatherEffectWind=true;if(typeof cfg.weatherEffectLightning!=='boolean')cfg.weatherEffectLightning=true;if(typeof cfg.weatherEffectRespectReducedMotion!=='boolean')cfg.weatherEffectRespectReducedMotion=true;if(typeof cfg.weatherEffectPauseWhenDimmed!=='boolean')cfg.weatherEffectPauseWhenDimmed=true;
   cfg.burnInDimMode=['activity','schedule'].includes(cfg.burnInDimMode)?cfg.burnInDimMode:'activity';
   if(typeof cfg.burnInIdleDimmingEnabled!=='boolean')cfg.burnInIdleDimmingEnabled=cfg.burnInDimMode!=='schedule'&&!!cfg.burnInProtection;if(typeof cfg.burnInQuietHoursEnabled!=='boolean')cfg.burnInQuietHoursEnabled=cfg.burnInDimMode==='schedule'&&!!cfg.burnInProtection;
   if(typeof cfg.burnInQuietWakeEnabled!=='boolean')cfg.burnInQuietWakeEnabled=true;if(typeof cfg.burnInPauseAnimationsDimmed!=='boolean')cfg.burnInPauseAnimationsDimmed=true;

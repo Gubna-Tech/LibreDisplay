@@ -7,14 +7,56 @@ const {extractAllGooglePhotoUrls,GOOGLE_PHOTOS_MAX_ITEMS}=LibreDisplayRuntime.ge
 
 let bgTimer=null;
 const LAST_BACKGROUND_KEY='libredisplay_last_background_v2';
-function rememberLastBackground(remoteUrl){try{if(remoteUrl)localStorage.setItem(LAST_BACKGROUND_KEY,JSON.stringify({url:remoteUrl,source:cfg.backgroundSource,at:Date.now()}));}catch(_e){}}
-async function restoreLastBackground(){
+const LAST_BACKGROUND_CACHE='libredisplay-last-background-v1';
+let lastBackgroundObjectUrl='';
+function backgroundSourceFingerprint(source=cfg){
+  const kind=String(source?.backgroundSource||'none');
+  if(kind==='stock')return ['stock',String(source?.stockCategory||''),String(source?.stockQuery||''),String(source?.stockResolution||'')].join('|');
+  if(kind==='google')return ['google',String(source?.photosUrl||'').trim()].join('|');
+  if(kind==='folders'){const folders=[...(source?.mediaFolders||[])].map(x=>String(x||'').trim()).filter(Boolean).sort();return ['folders',source?.mediaRecursive===false?'0':'1',...folders].join('|');}
+  return kind;
+}
+function rememberLastBackground(remoteUrl,persistAsset=true){
+  try{if(remoteUrl)localStorage.setItem(LAST_BACKGROUND_KEY,JSON.stringify({url:remoteUrl,source:cfg.backgroundSource,sourceKey:backgroundSourceFingerprint(cfg),at:Date.now()}));}catch(_e){}
+  if(remoteUrl&&persistAsset)void persistLastBackgroundAsset(remoteUrl);
+}
+async function persistLastBackgroundAsset(remoteUrl){
+  if(!remoteUrl||!('caches' in globalThis))return false;
+  try{
+    const assetUrl=backgroundAssetUrl(remoteUrl),res=await resilientFetch(assetUrl,{cache:'force-cache'},{timeoutMs:12000,attempts:1,retry:false});
+    if(!res.ok)return false;
+    const type=String(res.headers.get('Content-Type')||'').toLowerCase();if(type&&!type.startsWith('image/'))return false;
+    const cache=await caches.open(LAST_BACKGROUND_CACHE);
+    const old=await cache.keys();await Promise.all(old.filter(req=>req.url!==new URL(assetUrl,location.href).href).map(req=>cache.delete(req)));
+    await cache.put(assetUrl,res.clone());return true;
+  }catch(_e){return false;}
+}
+async function clearLastBackgroundAsset(){
+  if(!('caches' in globalThis))return false;
+  try{return await caches.delete(LAST_BACKGROUND_CACHE);}catch(_e){return false;}
+}
+async function loadCachedLastBackground(layer,remoteUrl){
+  if(!layer||!remoteUrl||!('caches' in globalThis))return false;
+  try{
+    const assetUrl=backgroundAssetUrl(remoteUrl),cache=await caches.open(LAST_BACKGROUND_CACHE),res=await cache.match(assetUrl);
+    if(!res||!res.ok)return false;
+    const blob=await res.blob();if(!blob.size||!String(blob.type||'image/').startsWith('image/'))return false;
+    const img=backgroundLayerImage(layer);if(!img)return false;
+    if(lastBackgroundObjectUrl){try{URL.revokeObjectURL(lastBackgroundObjectUrl);}catch(_e){}}
+    lastBackgroundObjectUrl=URL.createObjectURL(blob);
+    const ok=await new Promise(resolve=>{let settled=false;const finish=async good=>{if(settled)return;settled=true;img.onload=null;img.onerror=null;if(good&&typeof img.decode==='function'){try{await img.decode();}catch(_e){}}resolve(!!good&&img.naturalWidth>0);};img.onload=()=>finish(true);img.onerror=()=>finish(false);layer.dataset.remoteUrl=remoteUrl;img.src=lastBackgroundObjectUrl;if(img.complete)setTimeout(()=>finish(img.naturalWidth>0),0);});
+    return ok;
+  }catch(_e){return false;}
+}
+async function restoreLastBackground(cacheOnly=false){
   if(cfg.backgroundSource==='none'||configApi.bgLastUrl)return false;
   let saved=null;try{saved=JSON.parse(localStorage.getItem(LAST_BACKGROUND_KEY)||'null');}catch(_e){}
-  if(!saved?.url||Date.now()-Number(saved.at||0)>30*24*60*60*1000)return false;
+  if(!saved?.url||saved.source!==cfg.backgroundSource||Date.now()-Number(saved.at||0)>30*24*60*60*1000)return false;
+  if(saved.sourceKey&&saved.sourceKey!==backgroundSourceFingerprint(cfg))return false;
   const layer=activeBackgroundLayer();if(!layer)return false;
-  const ok=await loadBackgroundIntoLayer(layer,saved.url,'high');
-  if(ok){layer.style.zIndex='0';layer.classList.add('show');configApi.bgActiveLayerId=layer.id;configApi.bgLastUrl=saved.url;rememberLastBackground(saved.url);return true;}
+  let ok=await loadCachedLastBackground(layer,saved.url);
+  if(!ok&&!cacheOnly)ok=await loadBackgroundIntoLayer(layer,saved.url,'high');
+  if(ok){layer.style.zIndex='0';layer.classList.add('show');configApi.bgActiveLayerId=layer.id;configApi.bgLastUrl=saved.url;rememberLastBackground(saved.url,false);return true;}
   return false;
 }
 
@@ -456,7 +498,7 @@ function reloadBackgroundNow(){
   if(source==='none'){
     ++configApi.bgSourceSerial;
     if(bgTimer){clearInterval(bgTimer);bgTimer=null;}
-    configApi.bgImages=[];configApi.bgSourceImages=[];configApi.stockRecentUrls=[];configApi.bgLastUrl='';try{localStorage.removeItem(LAST_BACKGROUND_KEY);}catch(_e){}
+    configApi.bgImages=[];configApi.bgSourceImages=[];configApi.stockRecentUrls=[];configApi.bgLastUrl='';try{localStorage.removeItem(LAST_BACKGROUND_KEY);}catch(_e){}void clearLastBackgroundAsset();
     clearBackgroundLayers();
     setBackgroundStatus('Photo background disabled.');
     return;
@@ -500,7 +542,7 @@ function updateBackgroundSourceUI(){
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("backgrounds", {rememberLastBackground,restoreLastBackground,localProxyUrl,backgroundAssetUrl,mediaFoldersFromText,mediaFoldersFromForm,loadMediaFolderBrowser,openMediaFolderBrowser,browseMediaParent,addCurrentMediaFolder,loadFolderBackgrounds,scanFolderBackgroundsFromForm,setBackgroundStatus,shuffledCopy,prepareBackgroundOrder,chooseNextBackgroundIndex,nextBackgroundIndex,backgroundLayerById,backgroundLayerImage,activeBackgroundLayer,inactiveBackgroundLayer,backgroundTransitionDurationMs,nextAnimationFrame,waitForBackgroundLayerVisible,clearBackgroundPrepared,clearBackgroundLayers,loadBackgroundIntoLayer,preloadBackgroundIndex,prepareUpcomingBackground,revealBackgroundLayer,scheduleBackgroundRotation,stockSearchTerm,loadStockBackground,loadPhotos,formatBackgroundInterval,showBg,nextBackgroundNow,reshuffleBackgroundNow,reloadBackgroundNow,disableBackgroundSource,updateBackgroundSourceUI}, {
+LibreDisplayRuntime.exposeModule("backgrounds", {backgroundSourceFingerprint,rememberLastBackground,persistLastBackgroundAsset,clearLastBackgroundAsset,loadCachedLastBackground,restoreLastBackground,localProxyUrl,backgroundAssetUrl,mediaFoldersFromText,mediaFoldersFromForm,loadMediaFolderBrowser,openMediaFolderBrowser,browseMediaParent,addCurrentMediaFolder,loadFolderBackgrounds,scanFolderBackgroundsFromForm,setBackgroundStatus,shuffledCopy,prepareBackgroundOrder,chooseNextBackgroundIndex,nextBackgroundIndex,backgroundLayerById,backgroundLayerImage,activeBackgroundLayer,inactiveBackgroundLayer,backgroundTransitionDurationMs,nextAnimationFrame,waitForBackgroundLayerVisible,clearBackgroundPrepared,clearBackgroundLayers,loadBackgroundIntoLayer,preloadBackgroundIndex,prepareUpcomingBackground,revealBackgroundLayer,scheduleBackgroundRotation,stockSearchTerm,loadStockBackground,loadPhotos,formatBackgroundInterval,showBg,nextBackgroundNow,reshuffleBackgroundNow,reloadBackgroundNow,disableBackgroundSource,updateBackgroundSourceUI}, {
   "bgTimer": {configurable:true,get:()=>bgTimer,set:(value)=>{bgTimer=value;}},
   "mediaBrowsePath": {configurable:true,get:()=>mediaBrowsePath,set:(value)=>{mediaBrowsePath=value;}}
 }, {globalFunctions:['openMediaFolderBrowser','browseMediaParent','addCurrentMediaFolder','scanFolderBackgroundsFromForm','nextBackgroundNow','reshuffleBackgroundNow','reloadBackgroundNow','updateBackgroundSourceUI'],globalStates:[]});
