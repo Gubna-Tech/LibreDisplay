@@ -66,7 +66,7 @@ const repoRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const jsRoot=path.join(repoRoot,'app','js');
 const sourceOrder=[
   'core/runtime.js','core/bootstrap.js','core/shared.js','integrations/index.js','core/config.js','core/performance.js',
-  'weather/index.js','weather/alerts.js',
+  'weather/effects.js','weather/index.js','weather/alerts.js',
   'calendar/ics-parser.js','calendar/recurrence.js','calendar/index.js',
   'backgrounds/google-photos.js','backgrounds/index.js','blocks/index.js',
   'layout/index.js','layout/remote.js','layout/persistence.js',
@@ -94,14 +94,45 @@ if(typeof globalThis.uiCfg!=='undefined'||typeof globalThis.fetchRemoteText!=='u
 if(typeof modules.calendar.parseICS!=='function'||typeof modules.calendar.expandCalendarFeed!=='function')throw new Error('calendar parser API did not load');
 if(typeof globalThis.parseICS!=='undefined'||typeof globalThis.expandCalendarFeed!=='undefined')throw new Error('calendar parser helpers leaked compatibility globals');
 if(typeof modules.backgrounds.extractAllGooglePhotoUrls!=='function'||modules.backgrounds.GOOGLE_PHOTOS_MAX_ITEMS!==1000)throw new Error('background parser API/state did not load');
+if(typeof modules.backgrounds.backgroundSourceFingerprint!=='function')throw new Error('background source fingerprint helper did not load');
+const bgKey=modules.backgrounds.backgroundSourceFingerprint;
+if(bgKey({backgroundSource:'google',photosUrl:'album-a'})===bgKey({backgroundSource:'google',photosUrl:'album-b'}))throw new Error('Google background fingerprint did not distinguish source changes');
+if(bgKey({backgroundSource:'folders',mediaRecursive:true,mediaFolders:['/b','/a']})!==bgKey({backgroundSource:'folders',mediaRecursive:true,mediaFolders:['/a','/b']}))throw new Error('folder background fingerprint should be order-insensitive');
+if(bgKey({backgroundSource:'stock',stockCategory:'nature',stockQuery:'sunset',stockResolution:'1080p'})===bgKey({backgroundSource:'stock',stockCategory:'nature',stockQuery:'forest',stockResolution:'1080p'}))throw new Error('stock background fingerprint did not distinguish query changes');
 if(typeof globalThis.extractAllGooglePhotoUrls!=='undefined'||typeof globalThis.GOOGLE_PHOTOS_MAX_ITEMS!=='undefined')throw new Error('background parser helpers leaked compatibility globals');
 if(typeof modules.layout.saveLayoutEditor!=='function')throw new Error('split layout module lost saveLayoutEditor');
 if(typeof modules.weather.fetchWeatherAlerts!=='function')throw new Error('split weather module lost fetchWeatherAlerts');
+if(typeof modules.weatherEffects?.weatherGlyphEnabled!=='function')throw new Error('weather effects module did not load');
+const glyph=modules.weatherEffects.weatherGlyphEnabled;
+if(!glyph('clear',{weatherEffectSun:true})||glyph('clear',{weatherEffectSun:false}))throw new Error('clear-weather glyph fallback contract failed');
+if(!glyph('partly',{weatherEffectSun:false,weatherEffectClouds:true})||glyph('partly',{weatherEffectSun:false,weatherEffectClouds:false}))throw new Error('partly-cloudy glyph fallback contract failed');
+if(!glyph('rain',{weatherEffectPrecipitation:true,weatherEffectClouds:false})||!glyph('rain',{weatherEffectPrecipitation:false,weatherEffectClouds:true})||glyph('rain',{weatherEffectPrecipitation:false,weatherEffectClouds:false}))throw new Error('rain glyph fallback contract failed');
+if(!glyph('storm',{weatherEffectPrecipitation:false,weatherEffectClouds:false,weatherEffectLightning:true})||glyph('storm',{weatherEffectPrecipitation:false,weatherEffectClouds:false,weatherEffectLightning:false}))throw new Error('storm glyph fallback contract failed');
+const allowed=modules.weatherEffects.effectAllowed;
+if(!allowed('partly',{weatherEffectMode:'auto',weatherEffectSun:true,weatherEffectClouds:false})||!allowed('partly',{weatherEffectMode:'ambient',weatherEffectSun:false,weatherEffectClouds:true})||allowed('partly',{weatherEffectMode:'auto',weatherEffectSun:false,weatherEffectClouds:false}))throw new Error('partly-cloudy full-screen effect contract failed');
+const animatedClear=modules.weatherEffects.weatherIconMarkup(0,'☀️',{weatherAnimationsEnabled:true,weatherWidgetAnimations:true,weatherEffectSun:true,weatherEffectRespectReducedMotion:false,weatherEffectPauseWhenDimmed:false});
+const fallbackClear=modules.weatherEffects.weatherIconMarkup(0,'☀️',{weatherAnimationsEnabled:true,weatherWidgetAnimations:true,weatherEffectSun:false,weatherEffectRespectReducedMotion:false,weatherEffectPauseWhenDimmed:false});
+if(!animatedClear.includes('ld-weather-glyph-active')||!animatedClear.includes('ld-weather-emoji-hidden')||fallbackClear.includes('ld-weather-glyph-active')||fallbackClear.includes('ld-weather-emoji-hidden'))throw new Error('new weather icon immediate fallback/animation state failed');
 if(typeof modules.settings.loadLocalAccounts!=='function')throw new Error('split settings module lost loadLocalAccounts');
 if(typeof modules.performance.startManagedInterval!=='function')throw new Error('performance module did not load');
 if(typeof globalThis.frontendCapabilities!=='undefined')throw new Error('performance module leaked compatibility globals');
 if(typeof globalThis.retryDisplayHydration!=='undefined')throw new Error('lifecycle module leaked compatibility globals');
 if(typeof modules.appearance.screenCareQuietScheduleState!=='function')throw new Error('OLED quiet-hours schedule helper did not load');
+const originalGetElementById=document.getElementById;
+const resetElements=new Map();
+for(const id of ['s-weather-animations','s-weather-widget-animations','s-weather-fullscreen-effects','s-weather-effect-precipitation','s-weather-effect-clouds','s-weather-effect-fog','s-weather-effect-sun','s-weather-effect-wind','s-weather-effect-lightning','s-weather-effect-reduced-motion','s-weather-effect-pause-dimmed','s-weather-effect-mode','s-weather-effect-intensity','s-weather-effect-opacity','s-weather-effect-speed','s-burnin-care-enabled','s-burnin-idle-dimming','s-burnin-quiet-hours','s-burnin-quiet-wake-enabled','s-burnin-pause-animations','s-burnin-pixel-shift','s-burnin-deep-protection','s-burnin-quiet-start','s-burnin-quiet-end','s-burnin-quiet-wake','s-burnin-idle','s-burnin-brightness','s-burnin-deep-trigger','s-burnin-deep-idle','s-burnin-deep-brightness','s-burnin-shift-mode','s-burnin-shift-interval','s-burnin-shift-distance','s-burnin-shift-transition','s-bg-opacity'])resetElements.set(id,dummyElement());
+resetElements.get('s-bg-opacity').value='73';
+document.getElementById=id=>resetElements.get(id)||originalGetElementById.call(document,id);
+try{
+  modules.appearance.resetWeatherAnimationSettings();
+  if(resetElements.get('s-bg-opacity').value!=='73')throw new Error('weather animation section reset changed an unrelated background setting');
+  const d=modules.appearance.APPEARANCE_DEFAULTS;
+  if(resetElements.get('s-weather-animations').checked!==!!d.weatherAnimationsEnabled||String(resetElements.get('s-weather-effect-mode').value)!==String(d.weatherEffectMode))throw new Error('weather animation section reset did not restore defaults');
+  resetElements.get('s-bg-opacity').value='61';
+  modules.appearance.resetDisplayCareSettings();
+  if(resetElements.get('s-bg-opacity').value!=='61')throw new Error('display-care section reset changed an unrelated background setting');
+  if(resetElements.get('s-burnin-pixel-shift').checked!==!!d.burnInPixelShift||String(resetElements.get('s-burnin-shift-mode').value)!==String(d.burnInShiftMode))throw new Error('display-care section reset did not restore defaults');
+}finally{document.getElementById=originalGetElementById;}
 const quietLate=modules.appearance.screenCareQuietScheduleState({burnInQuietStart:'22:00',burnInQuietEnd:'07:00'},new Date(2026,0,1,23,0));
 const quietEarly=modules.appearance.screenCareQuietScheduleState({burnInQuietStart:'22:00',burnInQuietEnd:'07:00'},new Date(2026,0,2,6,0));
 const quietDay=modules.appearance.screenCareQuietScheduleState({burnInQuietStart:'22:00',burnInQuietEnd:'07:00'},new Date(2026,0,2,12,0));

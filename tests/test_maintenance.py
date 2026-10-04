@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import shutil
 import os
 import tempfile
 import unittest
@@ -40,6 +41,34 @@ class ReleaseRollbackTests(unittest.TestCase):
 
     def tearDown(self):
         self.tmp.cleanup()
+
+
+    def test_legacy_install_without_assets_can_create_snapshot(self):
+        shutil.rmtree(self.install / "assets")
+        snap_id = self.mod.create_snapshot(self.install, self.rollbacks, "1.8.1", quiet=True)
+        snap = self.rollbacks / snap_id
+        raw = self.mod.verify_snapshot(snap)
+        self.assertEqual(raw["fromVersion"], "1.5.0")
+        self.assertFalse((snap / "release" / "assets").exists())
+        self.assertTrue((snap / "release" / "app").is_dir())
+        self.assertTrue((snap / "release" / "scripts").is_dir())
+
+    def test_restoring_legacy_snapshot_removes_newer_assets_directory(self):
+        shutil.rmtree(self.install / "assets")
+        snap_id = self.mod.create_snapshot(self.install, self.rollbacks, "1.8.1", quiet=True)
+        (self.install / "assets").mkdir()
+        (self.install / "assets" / "newer.txt").write_text("newer asset\n", encoding="utf-8")
+        self.mod.replace_release_code(self.rollbacks / snap_id, self.install)
+        self.assertFalse((self.install / "assets").exists())
+
+    def test_legacy_install_can_omit_newer_optional_top_files(self):
+        for name in self.mod.OPTIONAL_TOP_FILES:
+            (self.install / name).unlink(missing_ok=True)
+        snap_id = self.mod.create_snapshot(self.install, self.rollbacks, "1.8.1", quiet=True)
+        snap = self.rollbacks / snap_id
+        self.mod.verify_snapshot(snap)
+        for name in self.mod.OPTIONAL_TOP_FILES:
+            self.assertFalse((snap / "release" / name).exists())
 
     def test_snapshot_is_private_verifiable_and_records_versions(self):
         snap_id = self.mod.create_snapshot(self.install, self.rollbacks, "1.5.1", quiet=True)
@@ -85,6 +114,16 @@ class ReleaseRollbackTests(unittest.TestCase):
         self.assertEqual(oct(path.stat().st_mode & 0o777), "0o600")
         self.assertEqual(raw["items"][0]["event"], "update")
 
+    def test_legacy_snapshot_integrity_check_does_not_require_modern_runtime_files(self):
+        shutil.rmtree(self.install / "assets")
+        for name in self.mod.OPTIONAL_TOP_FILES:
+            (self.install / name).unlink(missing_ok=True)
+        snap_id = self.mod.create_snapshot(self.install, self.rollbacks, "1.8.1", quiet=True)
+        snap = self.rollbacks / snap_id
+        self.assertTrue(self.mod.installed_matches_snapshot(snap, self.install))
+        (self.install / "scripts" / "sample.txt").write_text("changed\n", encoding="utf-8")
+        self.assertFalse(self.mod.installed_matches_snapshot(snap, self.install))
+
     def test_prepared_update_transaction_clears_when_live_tree_never_changed(self):
         snap_id = self.mod.create_snapshot(self.install, self.rollbacks, "1.5.1", quiet=True)
         tx = self.mod.record_update_transaction(self.install, self.rollbacks, snap_id, "prepared")
@@ -121,10 +160,10 @@ class ReleaseRollbackTests(unittest.TestCase):
 
     def test_current_release_passes_runtime_install_verification(self):
         root = Path(__file__).resolve().parents[1]
-        result = self.mod.verify_installed_release(root, "1.8.0")
+        result = self.mod.verify_installed_release(root, "1.8.1")
         self.assertTrue(result["ok"])
         self.assertTrue(result["frontendVerified"])
-        self.assertEqual(result["version"], "1.8.0")
+        self.assertEqual(result["version"], "1.8.1")
         self.assertEqual(result["coreFiles"], 12)
         self.assertEqual(result["pythonFiles"], 5)
         self.assertEqual(result["shellFiles"], 11)

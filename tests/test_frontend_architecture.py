@@ -70,7 +70,7 @@ class FrontendArchitectureTests(unittest.TestCase):
             "backgrounds", "blocks", "layout", "appearance", "remote",
             "system", "onboarding", "settings", "lifecycle",
         ])
-        self.assertEqual(sum(row["functions"] for row in manifest), 695)
+        self.assertEqual(sum(row["functions"] for row in manifest), 698)
         self.assertGreaterEqual(len(manifest), 28)
         split_modules = {name: sum(row["module"] == name for row in manifest) for name in logical}
         for name in ("weather", "calendar", "backgrounds", "layout", "appearance", "system", "settings"):

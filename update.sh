@@ -76,6 +76,11 @@ restore_previous_release() {
     rm -rf "$INSTALL_DIR/$name"
     mv "$old" "$INSTALL_DIR/$name"
   done
+  for marker in "$OLD_DIR/new-code-dirs"/*; do
+    [ -e "$marker" ] || continue
+    name=$(basename "$marker")
+    rm -rf "$INSTALL_DIR/$name"
+  done
   mkdir -p "$INSTALL_DIR/plugins"
   for old in "$OLD_DIR/plugins"/*; do
     [ -e "$old" ] || continue
@@ -106,10 +111,10 @@ cleanup_update_swap() {
   if [ "$UPDATE_COMMITTED" -ne 1 ]; then
     printf 'Update did not complete; restoring the previous application files...\n' >&2
     restore_previous_release
-    if python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" verify-install --expected-version "$OLD_VERSION" >/dev/null 2>&1; then
+    if python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" verify-snapshot-install --snapshot-id "$SNAPSHOT_ID" >/dev/null 2>&1; then
       python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" complete-update --snapshot-id "$SNAPSHOT_ID" >/dev/null 2>&1 || true
     else
-      printf 'Previous files could not be fully verified; the startup recovery marker was preserved.\n' >&2
+      printf 'Previous files could not be fully verified against the rollback snapshot; the startup recovery marker was preserved.\n' >&2
     fi
   fi
   rm -rf "$STAGE_DIR" "$OLD_DIR"
@@ -117,7 +122,7 @@ cleanup_update_swap() {
 }
 trap cleanup_update_swap EXIT HUP INT TERM
 
-mkdir -p "$STAGE_DIR/plugins" "$OLD_DIR/plugins" "$OLD_DIR/new-plugins" "$OLD_DIR/files"
+mkdir -p "$STAGE_DIR/plugins" "$OLD_DIR/plugins" "$OLD_DIR/new-plugins" "$OLD_DIR/new-code-dirs" "$OLD_DIR/files"
 cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/assets" "$STAGE_DIR/"
 for src in "$SRC_DIR/plugins"/*; do
   [ -e "$src" ] || continue
@@ -134,7 +139,11 @@ python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" tran
 
 printf 'Replacing application files...\n'
 for name in app scripts assets; do
-  [ -e "$INSTALL_DIR/$name" ] && mv "$INSTALL_DIR/$name" "$OLD_DIR/$name"
+  if [ -e "$INSTALL_DIR/$name" ]; then
+    mv "$INSTALL_DIR/$name" "$OLD_DIR/$name"
+  else
+    : > "$OLD_DIR/new-code-dirs/$name"
+  fi
   mv "$STAGE_DIR/$name" "$INSTALL_DIR/$name"
 done
 

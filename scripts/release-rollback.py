@@ -16,11 +16,12 @@ from pathlib import Path
 
 FORMAT_VERSION = 1
 ROLLBACK_KEEP = 5
-CODE_DIRS = ("app", "scripts", "assets")
-TOP_FILES = (
-    "Dockerfile", "LICENSE", "README.md", "VERSION", "docker-compose.yml",
-    "install.sh", "update.sh", "uninstall.sh",
-)
+REQUIRED_CODE_DIRS = ("app", "scripts")
+OPTIONAL_CODE_DIRS = ("assets",)
+CODE_DIRS = REQUIRED_CODE_DIRS + OPTIONAL_CODE_DIRS
+REQUIRED_TOP_FILES = ("VERSION", "install.sh", "update.sh", "uninstall.sh")
+OPTIONAL_TOP_FILES = ("Dockerfile", "LICENSE", "README.md", "docker-compose.yml")
+TOP_FILES = OPTIONAL_TOP_FILES + REQUIRED_TOP_FILES
 CHUNK = 1024 * 1024
 PRIVILEGED_HELPER = Path("/usr/local/libexec/libredisplay-privileged")
 UPDATE_TRANSACTION_NAME = "update-transaction.json"
@@ -107,13 +108,15 @@ def copy_release_code(install_dir: Path, destination: Path):
     for name in CODE_DIRS:
         src = install_dir / name
         if not src.is_dir():
+            if name in OPTIONAL_CODE_DIRS:
+                continue
             raise RuntimeError(f"Installed LibreDisplay is missing {name}/")
         ensure_regular_tree(src)
         shutil.copytree(src, release / name, symlinks=False)
     for name in TOP_FILES:
         src = install_dir / name
         if not src.exists():
-            if name.startswith("."):
+            if name in OPTIONAL_TOP_FILES:
                 continue
             raise RuntimeError(f"Installed LibreDisplay is missing {name}")
         if src.is_symlink() or not src.is_file():
@@ -410,6 +413,12 @@ def installed_matches_snapshot(snapshot_dir: Path, install_dir: Path):
             return False
         if sha256_file(path) != str(row.get("sha256") or ""):
             return False
+    for name in OPTIONAL_CODE_DIRS:
+        if not any(rel == name or rel.startswith(name + "/") for rel in expected_map) and (install_dir / name).exists():
+            return False
+    for name in OPTIONAL_TOP_FILES:
+        if name not in expected_map and (install_dir / name).exists():
+            return False
     return True
 
 
@@ -449,7 +458,8 @@ def recover_pending_update(install_dir: Path, rollback_root: Path):
     # pre-update snapshot was captured while LibreDisplay was stopped, so restoring
     # it is safer than trying to continue an incomplete swap.
     apply_snapshot_payload(snapshot_dir, install_dir)
-    verify_installed_release(install_dir, from_version)
+    if not installed_matches_snapshot(snapshot_dir, install_dir):
+        raise RuntimeError("Restored pre-update application files failed snapshot verification")
     clear_update_transaction(install_dir)
     append_history(install_dir, "update-auto-recovered", fromVersion=to_version or "interrupted", toVersion=from_version, snapshotId=snapshot_id)
     if PRIVILEGED_HELPER.is_file() and shutil.which("sudo"):
@@ -474,12 +484,19 @@ def replace_release_code(snapshot_dir: Path, install_dir: Path):
         dst = install_dir / name
         if dst.exists():
             shutil.rmtree(dst)
-        shutil.copytree(src, dst, symlinks=False)
+        if src.is_dir():
+            shutil.copytree(src, dst, symlinks=False)
+        elif name not in OPTIONAL_CODE_DIRS:
+            raise RuntimeError(f"Rollback snapshot is missing required {name}/")
     for name in TOP_FILES:
         src = release / name
         dst = install_dir / name
         if src.is_file():
             shutil.copy2(src, dst)
+        elif name in OPTIONAL_TOP_FILES:
+            dst.unlink(missing_ok=True)
+        else:
+            raise RuntimeError(f"Rollback snapshot is missing required {name}")
 
 
 def apply_snapshot_payload(snapshot_dir: Path, install_dir: Path):
@@ -592,6 +609,8 @@ def main(argv=None):
     p = sub.add_parser("verify-install", help=argparse.SUPPRESS)
     p.add_argument("--expected-version", default="")
     p.add_argument("--json", action="store_true")
+    p = sub.add_parser("verify-snapshot-install", help=argparse.SUPPRESS)
+    p.add_argument("--snapshot-id", required=True)
     args = parser.parse_args(argv)
     install_dir = Path(args.install_dir)
     rollback_root = Path(args.rollback_root)
@@ -620,6 +639,11 @@ def main(argv=None):
         elif args.command == "verify-install":
             result = verify_installed_release(install_dir, args.expected_version)
             print(json.dumps(result, sort_keys=True) if args.json else f"LibreDisplay installation verified: v{result['version']}")
+        elif args.command == "verify-snapshot-install":
+            snapshot_id = safe_id(args.snapshot_id)
+            if not installed_matches_snapshot(rollback_root / snapshot_id, install_dir):
+                raise RuntimeError("Installed LibreDisplay does not match the rollback snapshot")
+            print(f"LibreDisplay rollback snapshot matches installed files: {snapshot_id}")
         return 0
     except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
         print(f"LibreDisplay rollback error: {exc}", file=sys.stderr)

@@ -67,7 +67,7 @@ class ReleaseContractTests(unittest.TestCase):
             workspace = Path(td) / "repo"
             workspace.mkdir()
             for name in module.TOP_FILES:
-                (workspace / name).write_text("1.8.0\n" if name == "VERSION" else f"{name}\n", encoding="utf-8")
+                (workspace / name).write_text("1.8.1\n" if name == "VERSION" else f"{name}\n", encoding="utf-8")
             for dirname in module.TOP_DIRS:
                 (workspace / dirname).mkdir()
                 (workspace / dirname / "project.txt").write_text("project\n", encoding="utf-8")
@@ -80,7 +80,7 @@ class ReleaseContractTests(unittest.TestCase):
                 d.mkdir()
                 (d / "private.txt").write_text("secret\n", encoding="utf-8")
             (workspace / "private.ldbackup").write_text("secret\n", encoding="utf-8")
-            output = Path(td) / "LibreDisplay-v1.8.0.zip"
+            output = Path(td) / "LibreDisplay-v1.8.1.zip"
             old_root = module.ROOT
             try:
                 module.ROOT = workspace
@@ -89,7 +89,7 @@ class ReleaseContractTests(unittest.TestCase):
                 module.ROOT = old_root
             with zipfile.ZipFile(output) as archive:
                 names = set(archive.namelist())
-            prefix = "LibreDisplay-1.8.0/"
+            prefix = "LibreDisplay-1.8.1/"
             self.assertIn(prefix + "README.md", names)
             for dirname in module.TOP_DIRS:
                 self.assertIn(prefix + dirname + "/project.txt", names)
@@ -262,9 +262,9 @@ class ReleaseContractTests(unittest.TestCase):
 
             (install / "README.md").write_text("new readme", encoding="utf-8")
             (old / "files" / "README.md").write_text("old readme", encoding="utf-8")
-            (install / "VERSION").write_text("1.8.0\n", encoding="utf-8")
+            (install / "VERSION").write_text("1.8.1\n", encoding="utf-8")
             (old / "installed-version").write_text("1.6.1\n", encoding="utf-8")
-            (data / ".installed").write_text("1.8.0\n", encoding="utf-8")
+            (data / ".installed").write_text("1.8.1\n", encoding="utf-8")
 
             result = subprocess.run(
                 ["sh", "-c", restore_block + "\nrestore_previous_release\n"],
@@ -281,7 +281,7 @@ class ReleaseContractTests(unittest.TestCase):
             self.assertFalse((install / "plugins" / "new-plugin").exists())
             self.assertEqual((install / "plugins" / "custom-local" / "plugin.py").read_text(), "custom")
             self.assertEqual((install / "README.md").read_text(), "old readme")
-            self.assertEqual((install / "VERSION").read_text(), "1.8.0\n")
+            self.assertEqual((install / "VERSION").read_text(), "1.8.1\n")
             self.assertEqual((data / ".installed").read_text(), "1.6.1\n")
 
     def test_release_tree_matches_v158_minimal_surface(self):
@@ -421,6 +421,31 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertEqual(html.count("</script>"), 1)
         self.assertIn("text.indexOf(');</scr'+'ipt>'", html)
 
+    def test_v181_weather_controls_and_fast_start_paths_are_present(self):
+        html = frontend_source(ROOT)
+        for marker in (
+            'id="s-weather-effect-precipitation"', 'id="s-weather-effect-clouds"',
+            'id="s-weather-effect-fog"', 'id="s-weather-effect-sun"',
+            'id="s-weather-effect-wind"', 'resetWeatherAnimationSettings()',
+            'resetDisplayCareSettings()', 'libredisplay-last-background-v1',
+            'libredisplay_air_quality_v1_', 'finishSecondaryHydration',
+        ):
+            self.assertIn(marker, html)
+        effects = (ROOT / 'app/js/weather/effects.js').read_text(encoding='utf-8')
+        self.assertIn("weatherEffectPrecipitation", effects)
+        self.assertIn("weatherEffectWind", effects)
+        self.assertNotIn("constrained)return true", effects)
+
+    def test_v181_update_supports_legacy_install_missing_assets(self):
+        rollback = (ROOT / 'scripts/release-rollback.py').read_text(encoding='utf-8')
+        updater = (ROOT / 'update.sh').read_text(encoding='utf-8')
+        self.assertIn('OPTIONAL_CODE_DIRS = ("assets",)', rollback)
+        self.assertIn('if name in OPTIONAL_CODE_DIRS:', rollback)
+        self.assertIn('new-code-dirs', updater)
+        self.assertIn(': > "$OLD_DIR/new-code-dirs/$name"', updater)
+        self.assertIn('verify-snapshot-install --snapshot-id "$SNAPSHOT_ID"', updater)
+        self.assertIn('OPTIONAL_TOP_FILES', rollback)
+
     def test_v125_restores_v121_known_good_dashboard_hydration_path(self):
         html = frontend_source(ROOT)
         self.assertIn('<div id="setup" class="hidden" aria-hidden="true">', html)
@@ -434,23 +459,22 @@ class ReleaseContractTests(unittest.TestCase):
         start = html.index('async function init(){')
         end = html.index('\n}\nconst dashboardInitPromise=init();', start)
         init = html[start:end]
-        expected_order = [
+        first_frame_order = [
             "await settings.loadSessionInfo();",
-            "if(bootstrapApi.SESSION_ROLE==='owner')await settings.loadLocalAccounts();",
-            "await integrations.loadIntegrations();",
-            "await blocks.loadHousehold(false);",
             "await config.loadCfg();",
-            "await config.loadProfiles();",
-            "if(!bootstrapApi.READ_ONLY_DISPLAY_MODE)await system.loadScenes();",
             "appearance.applyUiCustomization(cfg);",
             "calendar.renderCalendar([]);",
             "settings.applySettings();",
             "remote.startLiveDisplayConnection();",
             "remote.startRemoteConfigPolling();",
         ]
-        positions = [init.index(marker) for marker in expected_order]
+        positions = [init.index(marker) for marker in first_frame_order]
         self.assertEqual(positions, sorted(positions))
-        self.assertNotIn('Promise.allSettled', init)
+        self.assertIn('const finishSecondaryHydration=async()=>', init)
+        self.assertIn('await Promise.allSettled(jobs);', init)
+        self.assertGreater(init.index("if(bootstrapApi.SESSION_ROLE==='owner')jobs.push(Promise.resolve(settings.loadLocalAccounts()));"), init.index('settings.applySettings();'))
+        self.assertGreater(init.index('jobs.push(Promise.resolve(integrations.loadIntegrations())'), init.index('settings.applySettings();'))
+        self.assertGreater(init.index('jobs.push(Promise.resolve(blocks.loadHousehold(false))'), init.index('settings.applySettings();'))
         self.assertIn('\nconst dashboardInitPromise=init();', html)
         self.assertNotIn('init().catch(', html)
 

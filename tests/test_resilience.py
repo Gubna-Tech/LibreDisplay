@@ -169,13 +169,13 @@ class ResilienceContractTests(unittest.TestCase):
 
     def test_system_health_reports_startup_integrity_state(self):
         server.atomic_write_json_file(server.STARTUP_INTEGRITY_PATH, {
-            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.0",
+            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.1",
             "coreFiles": 11, "pythonFiles": 3, "frontendVerified": True,
         })
         payload = server.system_health_payload()
         self.assertTrue(payload["startupIntegrity"]["ok"])
         self.assertTrue(payload["startupIntegrity"]["frontendVerified"])
-        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.0")
+        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.1")
 
     def test_stale_broker_returns_cached_data_while_refresh_runs(self):
         key = "resilience-stale-while-revalidate"
@@ -593,7 +593,12 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn("backgroundStartupDelayMs:700", config)
         self.assertIn("restoreLastBackground", backgrounds)
         self.assertIn("LAST_BACKGROUND_KEY='libredisplay_last_background_v2'", backgrounds)
-        self.assertIn("if(cfg.backgroundSource!=='none')void backgrounds.restoreLastBackground();", settings)
+        self.assertIn("restoreLastBackground(cacheOnly=false)", backgrounds)
+        self.assertIn("backgroundSourceFingerprint", backgrounds)
+        self.assertIn("sourceKey:backgroundSourceFingerprint(cfg)", backgrounds)
+        self.assertIn("saved.sourceKey&&saved.sourceKey!==backgroundSourceFingerprint(cfg)", backgrounds)
+        self.assertIn("backgrounds.restoreLastBackground(true)", settings)
+        self.assertIn("backgroundStartAt=Date.now()+", settings)
         self.assertIn("setTimeout(loadBackgroundSource", settings)
         self.assertIn("getAirQualityData().catch", settings)
 
@@ -616,6 +621,15 @@ class ResilienceContractTests(unittest.TestCase):
             self.assertIn(control, HTML)
         self.assertIn("document.documentElement.classList.contains('ld-reduce-motion')", effects)
         self.assertIn("document.body.classList.contains('ld-burnin-dim')", effects)
+        self.assertIn("weatherGlyphEnabled", effects)
+        self.assertIn("syncWeatherGlyphVisibility(source,widgetOn)", effects)
+        self.assertIn(".ld-weather-glyph.ld-weather-glyph-active{display:inline-block}", css)
+        self.assertIn(".ld-weather-emoji-fallback.ld-weather-emoji-hidden{display:none}", css)
+        self.assertNotIn("body.ld-weather-widget-motion .ld-weather-emoji-fallback{display:none}", css)
+        self.assertIn(".weather-fx-partly::before", css)
+        self.assertIn(".weather-fx-rain.weather-fx-no-clouds::before", css)
+        self.assertIn("host.classList.toggle('weather-fx-no-clouds'", effects)
+        self.assertIn("host.classList.toggle('weather-fx-no-sun'", effects)
         self.assertIn("#weather-effects-overlay{position:fixed;inset:0;z-index:1", css)
         self.assertIn("#app {", css)
 
