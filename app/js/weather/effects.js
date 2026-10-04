@@ -1,6 +1,7 @@
 // Optional vector weather motion and full-screen atmosphere effects.
 const configApi=LibreDisplayRuntime.getModule('config');
 const performanceApi=LibreDisplayRuntime.getModule('performance');
+const {uiCfg}=LibreDisplayRuntime.getModule('shared');
 
 let lastSignature='';
 
@@ -16,6 +17,7 @@ function weatherVisualCondition(code){
   return 'none';
 }
 function weatherEffectCondition(code){return weatherVisualCondition(code);}
+function weatherEffectSource(source){return source&&typeof source==='object'?source:uiCfg();}
 function effectAllowed(condition,source){
   const mode=source.weatherEffectMode||'auto';
   const precipitation=source.weatherEffectPrecipitation!==false,clouds=source.weatherEffectClouds!==false,fog=source.weatherEffectFog!==false,sun=source.weatherEffectSun!==false,lightning=source.weatherEffectLightning!==false;
@@ -74,7 +76,8 @@ function precipitationMarkup(kind,count){
   const cls=kind==='snow'?'ld-wx-flake':'ld-wx-drop';
   return Array.from({length:count},(_,i)=>`<i class="${cls}" style="--i:${i}"></i>`).join('');
 }
-function weatherIconMarkup(code,fallback='',source=configApi.cfg){ 
+function weatherIconMarkup(code,fallback='',source=null){ 
+  source=weatherEffectSource(source);
   const condition=weatherVisualCondition(code),safeFallback=String(fallback||'');
   const widgetOn=!!source?.weatherAnimationsEnabled&&!!source?.weatherWidgetAnimations&&!effectPaused(source);
   const glyphActive=widgetOn&&weatherGlyphEnabled(condition,source||{});
@@ -89,13 +92,13 @@ function weatherIconMarkup(code,fallback='',source=configApi.cfg){
   const unknown=condition==='none'?'<span class="ld-wx-unknown">•</span>':'';
   return `<span class="${fallbackClass}">${safeFallback}</span><span class="${glyphClass}" data-weather-visual="${condition}" aria-hidden="true">${sun}${cloud}${rain}${snow}${bolt}${fog}${unknown}</span>`;
 }
-function decorateWeatherIcon(el,code,fallback=''){
+function decorateWeatherIcon(el,code,fallback='',source=null){
   if(!el)return;
   const signature=`${Number(code)}|${String(fallback||'')}`;
   if(el.dataset.weatherGlyphSignature===signature)return;
   el.dataset.weatherCode=String(Number(code));
   el.dataset.weatherGlyphSignature=signature;
-  el.innerHTML=weatherIconMarkup(code,fallback);
+  el.innerHTML=weatherIconMarkup(code,fallback,source);
 }
 function buildParticles(host,condition,count,source){
   const speed=Math.max(40,Math.min(180,Number(source.weatherEffectSpeed)||100))/100;
@@ -114,13 +117,24 @@ function buildParticles(host,condition,count,source){
   }
   host.replaceChildren(frag);
 }
-function applyWeatherEffects(data=configApi.wxData,source=cfg){
-  const host=document.getElementById('weather-effects-overlay');if(!host)return;
+function weatherEffectRuntimeState(data=configApi.wxData,source=null){
+  source=weatherEffectSource(source);
   const condition=weatherEffectCondition(data?.current?.weather_code);
-  const constrained=performanceApi.frontendCapabilities().constrained;
   const paused=effectPaused(source);
-  const widgetOn=!!source.weatherAnimationsEnabled&&!!source.weatherWidgetAnimations&&!paused;
-  const fullOn=!!source.weatherAnimationsEnabled&&!!source.weatherFullscreenEffects&&!paused&&effectAllowed(condition,source);
+  return {
+    source,condition,paused,
+    widgetOn:!!source.weatherAnimationsEnabled&&!!source.weatherWidgetAnimations&&!paused,
+    fullOn:!!source.weatherAnimationsEnabled&&!!source.weatherFullscreenEffects&&!paused&&effectAllowed(condition,source)
+  };
+}
+function applyWeatherEffects(data=configApi.wxData,source=null){
+  const host=document.getElementById('weather-effects-overlay');if(!host)return;
+  const state=weatherEffectRuntimeState(data,source);source=state.source;
+  const condition=state.condition;
+  const constrained=performanceApi.frontendCapabilities().constrained;
+  const paused=state.paused;
+  const widgetOn=state.widgetOn;
+  const fullOn=state.fullOn;
   document.body.classList.toggle('ld-weather-widget-motion',widgetOn);
   document.body.classList.toggle('ld-weather-fullscreen-motion',fullOn);
   document.body.classList.toggle('ld-weather-no-precip',source.weatherEffectPrecipitation===false);
@@ -148,10 +162,18 @@ function applyWeatherEffects(data=configApi.wxData,source=cfg){
   host.classList.toggle('weather-fx-lightning',condition==='storm'&&source.weatherEffectLightning!==false);
   host.classList.toggle('weather-fx-no-wind',source.weatherEffectWind===false);
 }
-function refreshWeatherEffects(){applyWeatherEffects(configApi.wxData,cfg);}
+function refreshWeatherEffects(){applyWeatherEffects(configApi.wxData);}
 
-const observer=new MutationObserver(()=>{if(configApi.wxData)refreshWeatherEffects();});
-observer.observe(document.body,{attributes:true,attributeFilter:['class']});
+function weatherPauseClassSignature(value=document.body.className){
+  const names=new Set(String(value||'').split(/\s+/).filter(Boolean));
+  return ['ld-burnin-dim','layout-editing','remote-layout-proxy'].map(name=>names.has(name)?'1':'0').join('');
+}
+const observer=new MutationObserver(records=>{
+  if(!configApi.wxData)return;
+  const current=weatherPauseClassSignature();
+  if(records.some(record=>weatherPauseClassSignature(record.oldValue)!==current))refreshWeatherEffects();
+});
+observer.observe(document.body,{attributes:true,attributeFilter:['class'],attributeOldValue:true});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshWeatherEffects();});
 
-LibreDisplayRuntime.exposeModule('weatherEffects',{weatherVisualCondition,weatherEffectCondition,effectAllowed,weatherGlyphEnabled,syncWeatherGlyphVisibility,weatherIconMarkup,decorateWeatherIcon,applyWeatherEffects,refreshWeatherEffects},{},{globals:false});
+LibreDisplayRuntime.exposeModule('weatherEffects',{weatherVisualCondition,weatherEffectCondition,weatherEffectSource,effectAllowed,weatherGlyphEnabled,syncWeatherGlyphVisibility,weatherIconMarkup,decorateWeatherIcon,weatherEffectRuntimeState,applyWeatherEffects,refreshWeatherEffects,weatherPauseClassSignature},{},{globals:false});

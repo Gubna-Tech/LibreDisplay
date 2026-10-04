@@ -126,7 +126,7 @@ function renderWeather(d){
   if(locationEl){locationEl.textContent=locationLabel;locationEl.classList.toggle('show',!!locationLabel);}
   document.getElementById('wx-temp').textContent=C(c.temperature_2m)+'°';
   const effects=LibreDisplayRuntime.getModule('weatherEffects'),currentIcon=document.getElementById('wx-icon');
-  effects.decorateWeatherIcon(currentIcon,c.weather_code,wi(c.weather_code));
+  effects.decorateWeatherIcon(currentIcon,c.weather_code,wi(c.weather_code),ui);
   currentIcon.style.display=ui.showCurrentIcon?'':'none';
   document.getElementById('wx-feels').textContent='Feels like '+C(c.apparent_temperature)+'°';
   document.getElementById('wx-cond').textContent=wd(c.weather_code);
@@ -141,7 +141,7 @@ function renderWeather(d){
     const el=document.createElement('div');
     el.className='fc-col';
     el.innerHTML=`<div class="fc-day-name">${i===0?'Today':DNS[dt.getDay()]}</div>
-      <div class="fc-icon" data-weather-code="${dl.weather_code[i]}">${effects.weatherIconMarkup(dl.weather_code[i],wi(dl.weather_code[i]))}</div>
+      <div class="fc-icon" data-weather-code="${dl.weather_code[i]}">${effects.weatherIconMarkup(dl.weather_code[i],wi(dl.weather_code[i]),ui)}</div>
       ${ui.showPrecip?`<div class="fc-rain">💧${pp}%</div>`:''}
       <div class="fc-temps"><span class="fc-hi">${C(dl.temperature_2m_max[i])}°</span> <span class="fc-lo">${C(dl.temperature_2m_min[i])}°</span></div>`;
     fc.appendChild(el);
@@ -162,7 +162,7 @@ function renderWeather(d){
     const el=document.createElement('div');
     el.className='hr-col';
     el.innerHTML=`<div class="hr-time">${h12}${ampm}</div>
-      <div class="hr-icon" data-weather-code="${hr.weather_code[i]}">${effects.weatherIconMarkup(hr.weather_code[i],wi(hr.weather_code[i]))}</div>
+      <div class="hr-icon" data-weather-code="${hr.weather_code[i]}">${effects.weatherIconMarkup(hr.weather_code[i],wi(hr.weather_code[i]),ui)}</div>
       ${ui.showPrecip?`<div class="hr-rain">💧${pp}%</div>`:''}
       <div class="hr-temp">${C(hr.temperature_2m[i])}°</div>`;
     hrDiv.appendChild(el);
