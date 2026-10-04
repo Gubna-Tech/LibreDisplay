@@ -362,6 +362,8 @@ async function saveSetup(options={}){
   cfg.photoOrder=document.getElementById('s-photo-order').value;
   cfg.photoRandomStart=!!document.getElementById('s-photo-random-start').checked;
   cfg.photoPreload=!!document.getElementById('s-photo-preload').checked;
+  cfg.backgroundStartupPriority=document.getElementById('s-bg-startup-priority')?.checked!==false;
+  cfg.backgroundStartupDelayMs=Math.max(0,Math.min(3000,Number(document.getElementById('s-bg-startup-delay')?.value)||0));
   cfg.weatherRefreshMin=Math.max(1,Number(document.getElementById('s-weather-refresh').value)||10);
   cfg.calendarRefreshMin=Math.max(1,Number(document.getElementById('s-calendar-refresh').value)||15);
   cfg.calendarTimeStyle=document.getElementById('s-calendar-time-style')?.value||'start';

@@ -1780,3 +1780,28 @@ html:not(.cursor-active) * {
   #setup .s-actions .settings-dirty { display:none; }
   #setup .settings-preview-button { display:none; }
 }
+
+/* v1.8 weather atmosphere. Decorative only; content remains above it. */
+#weather-effects-overlay{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden;opacity:0;transition:opacity .6s ease;contain:strict}
+#weather-effects-overlay.show{opacity:var(--weather-fx-opacity,.34)}
+.weather-fx-particle{position:absolute;left:var(--fx-x,50vw);top:-12vh;display:block;pointer-events:none;will-change:transform,opacity;transform:scale(var(--fx-scale,1))}
+.weather-fx-rain .weather-fx-particle,.weather-fx-storm .weather-fx-particle{width:1.5px;height:11vh;border-radius:999px;background:linear-gradient(to bottom,rgba(220,240,255,0),rgba(220,240,255,.95));animation:ldWeatherRain var(--fx-duration,1.2s) linear var(--fx-delay,0s) infinite}
+.weather-fx-snow .weather-fx-particle{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.9);box-shadow:0 0 8px rgba(255,255,255,.4);animation:ldWeatherSnow var(--fx-duration,8s) linear var(--fx-delay,0s) infinite}
+.weather-fx-cloud .weather-fx-particle{width:28vw;height:13vh;border-radius:50%;background:radial-gradient(ellipse at center,rgba(220,226,230,.42),rgba(220,226,230,0) 72%);animation:ldWeatherCloud var(--fx-duration,20s) ease-in-out var(--fx-delay,0s) infinite alternate}
+.weather-fx-fog .weather-fx-particle{width:55vw;height:8vh;border-radius:50%;background:linear-gradient(90deg,transparent,rgba(235,240,240,.35),transparent);animation:ldWeatherFog var(--fx-duration,18s) linear var(--fx-delay,0s) infinite}
+.weather-fx-clear .weather-fx-particle{width:22vw;height:22vw;max-width:420px;max-height:420px;border-radius:50%;background:radial-gradient(circle,rgba(255,224,140,.18),rgba(255,224,140,0) 68%);animation:ldWeatherGlow var(--fx-duration,18s) ease-in-out var(--fx-delay,0s) infinite alternate}
+.weather-fx-lightning::after{content:'';position:absolute;inset:0;background:#eef7ff;opacity:0;animation:ldWeatherLightning 11s steps(1,end) infinite}
+@keyframes ldWeatherRain{from{transform:translate3d(0,-12vh,0) rotate(8deg) scale(var(--fx-scale,1));opacity:0}12%{opacity:1}to{transform:translate3d(var(--fx-drift,5vw),118vh,0) rotate(8deg) scale(var(--fx-scale,1));opacity:.25}}
+@keyframes ldWeatherSnow{from{transform:translate3d(0,-8vh,0) scale(var(--fx-scale,1));opacity:0}10%{opacity:.95}to{transform:translate3d(var(--fx-drift,8vw),112vh,0) rotate(240deg) scale(var(--fx-scale,1));opacity:.2}}
+@keyframes ldWeatherCloud{from{transform:translate3d(-35vw,calc(var(--fx-scale,1)*8vh),0) scale(var(--fx-scale,1));opacity:.25}to{transform:translate3d(110vw,calc(var(--fx-scale,1)*12vh),0) scale(var(--fx-scale,1));opacity:.55}}
+@keyframes ldWeatherFog{from{transform:translate3d(-65vw,calc(var(--fx-scale,1)*10vh),0);opacity:.15}50%{opacity:.55}to{transform:translate3d(115vw,calc(var(--fx-scale,1)*14vh),0);opacity:.15}}
+@keyframes ldWeatherGlow{from{transform:translate3d(-8vw,3vh,0) scale(.85);opacity:.25}to{transform:translate3d(76vw,18vh,0) scale(1.15);opacity:.55}}
+@keyframes ldWeatherLightning{0%,88%,91%,100%{opacity:0}89%{opacity:.42}90%{opacity:.08}90.5%{opacity:.28}}
+body.ld-weather-widget-motion #wx-icon{animation:ldWeatherIconFloat 5s ease-in-out infinite;transform-origin:center}
+body.ld-weather-widget-motion .fc-icon,body.ld-weather-widget-motion .hr-icon{animation:ldWeatherIconFloat 6.5s ease-in-out infinite;transform-origin:center}
+body.ld-weather-widget-motion[data-weather-condition="rain"] .wx-icon-big,body.ld-weather-widget-motion[data-weather-condition="storm"] .wx-icon-big{animation-duration:3.2s}
+@keyframes ldWeatherIconFloat{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-4px,0)}}
+html.ld-reduce-motion #weather-effects-overlay,html.ld-reduce-motion body.ld-weather-widget-motion #wx-icon,html.ld-reduce-motion body.ld-weather-widget-motion .fc-icon,html.ld-reduce-motion body.ld-weather-widget-motion .hr-icon{animation:none!important}
+body.layout-editing #weather-effects-overlay,body.remote-layout-proxy #weather-effects-overlay{display:none!important}
+body.ld-burnin-dim.ld-pause-decorative-motion #weather-effects-overlay{display:none!important}
+body.ld-burnin-dim.ld-pause-decorative-motion #wx-icon,body.ld-burnin-dim.ld-pause-decorative-motion .fc-icon,body.ld-burnin-dim.ld-pause-decorative-motion .hr-icon{animation-play-state:paused!important}

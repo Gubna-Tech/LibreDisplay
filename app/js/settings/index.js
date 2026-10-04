@@ -124,6 +124,8 @@ function openSetup(startWizard=false){
     document.getElementById('s-photo-order').value=cfg.photoOrder;
     document.getElementById('s-photo-random-start').checked=cfg.photoRandomStart;
     document.getElementById('s-photo-preload').checked=cfg.photoPreload;
+    document.getElementById('s-bg-startup-priority').checked=cfg.backgroundStartupPriority!==false;
+    document.getElementById('s-bg-startup-delay').value=String(cfg.backgroundStartupDelayMs??700);const startupDelayLabel=document.getElementById('s-bg-startup-delay-value');if(startupDelayLabel)startupDelayLabel.textContent=(Number(cfg.backgroundStartupDelayMs??700)/1000).toFixed(1)+'s';
     setBackgroundStatus(configApi.lastBackgroundStatus.text,configApi.lastBackgroundStatus.error);
     document.getElementById('s-weather-refresh').value=String(cfg.weatherRefreshMin);
     document.getElementById('s-calendar-refresh').value=String(cfg.calendarRefreshMin);
@@ -181,15 +183,16 @@ function applySettings(){
   performance.runExclusiveTask('weather-refresh',weather.fetchWeather);
   performance.runExclusiveTask('alert-refresh',weather.fetchWeatherAlerts);
   performance.runExclusiveTask('calendar-refresh',calendar.loadCalendars);
-  if(cfg.backgroundSource==='stock'){
-    backgrounds.loadStockBackground();
-  }else if(cfg.backgroundSource==='folders'&&cfg.mediaFolders?.length){
-    backgrounds.loadFolderBackgrounds(cfg.mediaFolders,cfg.mediaRecursive);
-  }else if(cfg.backgroundSource==='google'&&cfg.photosUrl){
-    backgrounds.loadPhotos(cfg.photosUrl);
-  }else{
-    backgrounds.disableBackgroundSource();
-  }
+  if(cfg.backgroundSource!=='none')void backgrounds.restoreLastBackground();
+  const loadBackgroundSource=()=>{
+    if(cfg.backgroundSource==='stock')backgrounds.loadStockBackground();
+    else if(cfg.backgroundSource==='folders'&&cfg.mediaFolders?.length)backgrounds.loadFolderBackgrounds(cfg.mediaFolders,cfg.mediaRecursive);
+    else if(cfg.backgroundSource==='google'&&cfg.photosUrl)backgrounds.loadPhotos(cfg.photosUrl);
+    else backgrounds.disableBackgroundSource();
+  };
+  if(cfg.backgroundStartupPriority!==false)setTimeout(loadBackgroundSource,Math.max(0,Number(cfg.backgroundStartupDelayMs)||0));else loadBackgroundSource();
+  const details=cfg.weatherDetailsEnabled||{},hasAirBlock=(cfg.customBlocks||[]).some(b=>b?.type==='airquality');
+  if(hasAirBlock||details.airquality||details.uvindex)setTimeout(()=>LibreDisplayRuntime.getModule('blocks').getAirQualityData().catch(()=>{}),0);
   configApi.weatherTimer=performance.startManagedInterval('weather-refresh',weather.fetchWeather,cfg.weatherRefreshMin*60*1000,{skipWhenHidden:true,resumeOnVisible:true});
   configApi.calendarTimer=performance.startManagedInterval('calendar-refresh',calendar.loadCalendars,cfg.calendarRefreshMin*60*1000,{skipWhenHidden:true,resumeOnVisible:true});
   configApi.alertTimer=performance.startManagedInterval('alert-refresh',weather.fetchWeatherAlerts,cfg.alertRefreshMin*60*1000,{skipWhenHidden:true,resumeOnVisible:true});

@@ -12,6 +12,7 @@
 <link rel="modulepreload" href="/js/core/config.js">
 <link rel="modulepreload" href="/js/core/performance.js">
 <link rel="modulepreload" href="/js/weather/index.js">
+<link rel="modulepreload" href="/js/weather/effects.js">
 <link rel="modulepreload" href="/js/weather/alerts.js">
 <link rel="modulepreload" href="/js/calendar/ics-parser.js">
 <link rel="modulepreload" href="/js/calendar/recurrence.js">
@@ -40,6 +41,7 @@
 
 <div id="bg" class="bg-layer" aria-hidden="true"><img id="bg-image-a" alt="" decoding="async"></div>
 <div id="bg-next" class="bg-layer" aria-hidden="true"><img id="bg-image-b" alt="" decoding="async"></div>
+<div id="weather-effects-overlay" aria-hidden="true"></div>
 
 
 <div id="setup" class="hidden" aria-hidden="true">
@@ -158,7 +160,7 @@
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.7.2</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.0</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -375,6 +377,11 @@
     </div>
     <div class="settings-note">Shuffle cycle shows every available image once before reshuffling. Random chooses a new image each change and avoids showing the same image twice in a row.</div>
    </div>
+   <div class="settings-inline-group">
+    <div class="s-subhead">Startup loading</div>
+    <label class="checkline"><input id="s-bg-startup-priority" type="checkbox" checked> Prioritize dashboard data before background discovery <button class="help-tip" type="button" aria-label="Startup loading help" data-help="Lets weather, air quality, calendars, and the dashboard shell start first. LibreDisplay can immediately reuse the last displayed background while the photo source refreshes in the background.">?</button></label>
+    <div class="s-row"><label>Background discovery delay <span id="s-bg-startup-delay-value" class="range-value">0.7s</span></label><input id="s-bg-startup-delay" type="range" min="0" max="3000" step="100" value="700" oninput="document.getElementById('s-bg-startup-delay-value').textContent=(Number(this.value)/1000).toFixed(1)+'s'"><div class="range-ends"><span>Immediate</span><span>3 sec</span></div></div>
+   </div>
    <div id="background-status" class="howto" style="display:none;margin-top:10px;"></div>
   </div>
 
@@ -384,6 +391,24 @@
     <div class="s-row"><label>Weather units</label><select id="s-unit"><option value="F">Imperial — °F, mph, inches</option><option value="C">Metric — °C, km/h, mm</option></select></div>
     <div class="s-row"><label>Weather refresh</label><select id="s-weather-refresh"><option value="5">Every 5 minutes</option><option value="10">Every 10 minutes</option><option value="15">Every 15 minutes</option><option value="30">Every 30 minutes</option></select></div>
    </div>
+  </div>
+
+  <div class="s-section" id="settings-weather-motion" data-settings-tab="weather">
+   <h3>Weather animation</h3>
+   <div class="howto">Optional weather motion can animate the weather areas and add a full-screen atmosphere that follows the current conditions outside. Every effect can be disabled independently.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-animations" type="checkbox" onchange="previewAppearance()"> Enable weather animations</label>
+    <label class="checkline"><input id="s-weather-widget-animations" type="checkbox" checked onchange="previewAppearance()"> Animate weather icons and forecast areas</label>
+    <label class="checkline"><input id="s-weather-fullscreen-effects" type="checkbox" onchange="previewAppearance()"> Full-screen weather atmosphere <button class="help-tip" type="button" aria-label="Full-screen weather effects help" data-help="Adds lightweight rain, snow, cloud, fog, clear-sky glow, or storm effects over the background while keeping dashboard content readable.">?</button></label>
+    <div class="s-row"><label>Full-screen effect behavior</label><select id="s-weather-effect-mode" onchange="previewAppearance()"><option value="auto">Automatic — match current weather</option><option value="precipitation">Precipitation only — rain, snow, storms</option><option value="ambient">Ambient only — clouds, fog, clear sky</option></select></div>
+    <div class="s-row"><label>Effect intensity <span id="s-weather-effect-intensity-value" class="range-value">50%</span></label><input id="s-weather-effect-intensity" type="range" min="10" max="100" step="5" value="50" oninput="previewAppearance()"><div class="range-ends"><span>Subtle</span><span>Dense</span></div></div>
+    <div class="s-row"><label>Overlay visibility <span id="s-weather-effect-opacity-value" class="range-value">34%</span></label><input id="s-weather-effect-opacity" type="range" min="5" max="80" step="1" value="34" oninput="previewAppearance()"><div class="range-ends"><span>Soft</span><span>Strong</span></div></div>
+    <div class="s-row"><label>Animation speed <span id="s-weather-effect-speed-value" class="range-value">100%</span></label><input id="s-weather-effect-speed" type="range" min="40" max="180" step="5" value="100" oninput="previewAppearance()"><div class="range-ends"><span>Slow</span><span>Fast</span></div></div>
+    <label class="checkline"><input id="s-weather-effect-lightning" type="checkbox" checked onchange="previewAppearance()"> Allow lightning flashes during thunderstorms</label>
+    <label class="checkline"><input id="s-weather-effect-reduced-motion" type="checkbox" checked onchange="previewAppearance()"> Respect reduced-motion preferences</label>
+    <label class="checkline"><input id="s-weather-effect-pause-dimmed" type="checkbox" checked onchange="previewAppearance()"> Pause full-screen effects while OLED protection is dimming the display</label>
+   </div>
+   <div class="settings-note">Animations are decorative only and never affect weather data refresh. Full-screen effects are rendered behind dashboard content and are automatically suppressed during Arrange/layout preview.</div>
   </div>
 
   <div class="s-section" id="settings-weather-details" data-settings-level="advanced" data-settings-tab="weather">
@@ -450,26 +475,32 @@
     <label class="checkline"><input id="s-focus-outline" type="checkbox" onchange="previewAppearance()"> Always show strong keyboard focus <button class="help-tip" type="button" aria-label="Keyboard focus help" data-help="Makes the currently focused control easier to see when navigating Settings with Tab, Shift+Tab, Enter, or Space.">?</button></label>
    </div>
    <div class="s-subhead">OLED / always-on display care</div>
-   <div class="howto">Fine-tune optional screen care for the exact panel and room you use. The master switch can disable protection without erasing tuned values. Screen care reduces static-pixel wear risk but cannot guarantee prevention of OLED burn-in.</div>
+   <div class="howto">Each protection is independent. Use only pixel shifting, only idle dimming, scheduled quiet hours, deep-black protection, or any combination that fits the display.</div>
    <div class="settings-grid">
-    <label class="checkline"><input id="s-burnin-care-enabled" type="checkbox" onchange="previewAppearance()"> Enable OLED protection <button class="help-tip" type="button" aria-label="OLED protection help" data-help="Master switch for LibreDisplay screen care. Turning it off temporarily disables every screen-care action while preserving all tuned values below.">?</button></label>
-    <div class="s-row"><label>Dimming trigger <button class="help-tip" type="button" aria-label="Dimming trigger help" data-help="Local inactivity is intended for touch or regularly-operated displays. Quiet hours are intended for unattended wall dashboards and automatically return to full brightness when the quiet period ends.">?</button></label><select id="s-burnin-dim-mode" onchange="previewAppearance()"><option value="activity">Local inactivity — interactive display</option><option value="schedule">Quiet hours — unattended kiosk</option></select></div>
-    <div class="s-row"><label>Quiet hours start</label><input id="s-burnin-quiet-start" type="time" value="22:00" onchange="previewAppearance()"></div>
-    <div class="s-row"><label>Quiet hours end</label><input id="s-burnin-quiet-end" type="time" value="07:00" onchange="previewAppearance()"></div>
-    <div class="s-row"><label>Temporary wake after local input <span id="s-burnin-quiet-wake-value" class="range-value">5 min</span></label><input id="s-burnin-quiet-wake" type="range" min="1" max="30" step="1" value="5" oninput="previewAppearance()"><div class="range-ends"><span>1 min</span><span>30 min</span></div></div>
-    <label class="checkline"><input id="s-burnin-protection" type="checkbox" onchange="previewAppearance()"> Dim display <button class="help-tip" type="button" aria-label="Always-on dimming help" data-help="With Local inactivity, dimming begins after the selected idle time. With Quiet hours, dimming begins automatically at the quiet-hours start time and returns to full brightness at the end time.">?</button></label>
-    <div class="s-row"><label>Dim after <span id="s-burnin-idle-value" class="range-value">30 min</span></label><input id="s-burnin-idle" type="range" min="1" max="240" step="1" value="30" oninput="previewAppearance()"><div class="range-ends"><span>1 min</span><span>4 hr</span></div></div>
-    <div class="s-row"><label>Dim brightness <span id="s-burnin-brightness-value" class="range-value">40%</span></label><input id="s-burnin-brightness" type="range" min="5" max="90" step="1" value="40" oninput="previewAppearance()"><div class="range-ends"><span>Darker</span><span>Lighter</span></div></div>
-    <label class="checkline"><input id="s-burnin-deep-protection" type="checkbox" onchange="previewAppearance()"> Deep idle protection <button class="help-tip" type="button" aria-label="Deep idle protection help" data-help="After a longer idle period, applies a second stronger dim level. Set Deep brightness to 0% for a fully black screen that wakes on local interaction.">?</button></label>
-    <div class="s-row"><label>Deep protection after <span id="s-burnin-deep-idle-value" class="range-value">3 hr</span></label><input id="s-burnin-deep-idle" type="range" min="15" max="720" step="5" value="180" oninput="previewAppearance()"><div class="range-ends"><span>15 min</span><span>12 hr</span></div></div>
-    <div class="s-row"><label>Deep brightness <span id="s-burnin-deep-brightness-value" class="range-value">5%</span></label><input id="s-burnin-deep-brightness" type="range" min="0" max="25" step="1" value="5" oninput="previewAppearance()"><div class="range-ends"><span>0% black</span><span>25%</span></div></div>
-    <label class="checkline"><input id="s-burnin-pixel-shift" type="checkbox" onchange="previewAppearance()"> Pixel shift <button class="help-tip" type="button" aria-label="Pixel shift help" data-help="Moves the rendered dashboard and background on a slow cycle to distribute static OLED wear. Saved positions and sizes are never changed.">?</button></label>
-    <div class="s-row"><label>Pixel shift timing</label><select id="s-burnin-shift-mode" onchange="previewAppearance()"><option value="always">Always while protection is enabled</option><option value="idle">Only while the screen is dimmed</option></select></div>
+    <label class="checkline"><input id="s-burnin-care-enabled" type="checkbox" onchange="previewAppearance()"> Enable display protection <button class="help-tip" type="button" aria-label="Display protection help" data-help="Master switch. Turning it off pauses every screen-care action without erasing the individual settings below.">?</button></label>
+    <label class="checkline"><input id="s-burnin-pixel-shift" type="checkbox" onchange="previewAppearance()"> Pixel shift <button class="help-tip" type="button" aria-label="Pixel shift help" data-help="Moves the rendered dashboard and background on a slow cycle without changing saved layout coordinates. Pixel shift can run even when every dimming option is disabled.">?</button></label>
+    <div class="s-row"><label>Pixel shift timing</label><select id="s-burnin-shift-mode" onchange="previewAppearance()"><option value="always">Always while display protection is enabled</option><option value="idle">Only while the display is dimmed</option></select></div>
     <div class="s-row"><label>Pixel-shift interval <span id="s-burnin-shift-interval-value" class="range-value">5 min</span></label><input id="s-burnin-shift-interval" type="range" min="0.5" max="30" step="0.5" value="5" oninput="previewAppearance()"><div class="range-ends"><span>30 sec</span><span>30 min</span></div></div>
     <div class="s-row"><label>Pixel-shift distance <span id="s-burnin-shift-distance-value" class="range-value">2 px</span></label><input id="s-burnin-shift-distance" type="range" min="1" max="8" step="1" value="2" oninput="previewAppearance()"><div class="range-ends"><span>1 px</span><span>8 px</span></div></div>
     <div class="s-row"><label>Shift transition <span id="s-burnin-shift-transition-value" class="range-value">1.2s</span></label><input id="s-burnin-shift-transition" type="range" min="0" max="3" step="0.1" value="1.2" oninput="previewAppearance()"><div class="range-ends"><span>Instant</span><span>3 sec</span></div></div>
+
+    <label class="checkline"><input id="s-burnin-idle-dimming" type="checkbox" onchange="previewAppearance()"> Idle dimming</label>
+    <div class="s-row"><label>Dim after <span id="s-burnin-idle-value" class="range-value">30 min</span></label><input id="s-burnin-idle" type="range" min="1" max="240" step="1" value="30" oninput="previewAppearance()"><div class="range-ends"><span>1 min</span><span>4 hr</span></div></div>
+    <div class="s-row"><label>Dim brightness <span id="s-burnin-brightness-value" class="range-value">40%</span></label><input id="s-burnin-brightness" type="range" min="5" max="90" step="1" value="40" oninput="previewAppearance()"><div class="range-ends"><span>Darker</span><span>Lighter</span></div></div>
+
+    <label class="checkline"><input id="s-burnin-quiet-hours" type="checkbox" onchange="previewAppearance()"> Quiet hours schedule</label>
+    <div class="s-row"><label>Quiet hours start</label><input id="s-burnin-quiet-start" type="time" value="22:00" onchange="previewAppearance()"></div>
+    <div class="s-row"><label>Quiet hours end</label><input id="s-burnin-quiet-end" type="time" value="07:00" onchange="previewAppearance()"></div>
+    <label class="checkline"><input id="s-burnin-quiet-wake-enabled" type="checkbox" checked onchange="previewAppearance()"> Temporarily wake on local input during quiet hours</label>
+    <div class="s-row"><label>Temporary wake duration <span id="s-burnin-quiet-wake-value" class="range-value">5 min</span></label><input id="s-burnin-quiet-wake" type="range" min="1" max="30" step="1" value="5" oninput="previewAppearance()"><div class="range-ends"><span>1 min</span><span>30 min</span></div></div>
+
+    <label class="checkline"><input id="s-burnin-deep-protection" type="checkbox" onchange="previewAppearance()"> Deep idle / black-screen protection <button class="help-tip" type="button" aria-label="Deep protection help" data-help="After a longer period without local input, applies a stronger dim level regardless of whether quiet hours are enabled. Set Deep brightness to 0% for a fully black screen.">?</button></label>
+    <div class="s-row"><label>Deep protection trigger</label><select id="s-burnin-deep-trigger" onchange="previewAppearance()"><option value="idle">Extended inactivity</option><option value="quiet">Time spent in Quiet Hours</option></select></div>
+    <div class="s-row"><label>Deep protection after <span id="s-burnin-deep-idle-value" class="range-value">3 hr</span></label><input id="s-burnin-deep-idle" type="range" min="15" max="720" step="5" value="180" oninput="previewAppearance()"><div class="range-ends"><span>15 min</span><span>12 hr</span></div></div>
+    <div class="s-row"><label>Deep brightness <span id="s-burnin-deep-brightness-value" class="range-value">5%</span></label><input id="s-burnin-deep-brightness" type="range" min="0" max="25" step="1" value="5" oninput="previewAppearance()"><div class="range-ends"><span>0% black</span><span>25%</span></div></div>
+    <label class="checkline"><input id="s-burnin-pause-animations" type="checkbox" checked onchange="previewAppearance()"> Pause decorative animations while dimmed</label>
    </div>
-   <div class="settings-note">For unattended wall dashboards, use Quiet hours so screen care follows a schedule instead of waiting for touch or mouse activity. The display automatically returns to full brightness when quiet hours end. Balanced starting point: 40% during quiet hours, deep protection after 3 hours to 5%, and a 2 px shift every 5 minutes. For maximum overnight protection, set Deep brightness to 0%. Pixel shift is suppressed during Arrange and layout preview, and no screen-care setting rewrites saved layout geometry.</div>
+   <div class="settings-note">Pixel shift does not require Quiet hours or dimming. All display-care effects are suppressed during Arrange and layout preview and never rewrite saved layout geometry.</div>
   </div>
 
   <div class="s-section" id="settings-settings-button" data-settings-tab="look">
@@ -637,7 +668,7 @@
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.7.2</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.0</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>

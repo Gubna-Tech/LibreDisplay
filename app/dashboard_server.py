@@ -3367,11 +3367,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
         try:
             ttl = max(5, min(86400, int(qs.get("ttl", ["300"])[0] or 300)))
             data, content_type, state, age = broker_remote_url(target, ttl)
-            return self.bytes_response(200, data, content_type, {
+            headers = {
                 "X-LibreDisplay-Broker": state,
                 "X-LibreDisplay-Broker-Age": str(age),
                 "X-LibreDisplay-Cache": "stale" if state == "stale" else ("refreshing" if state == "refreshing" else "fresh"),
-            })
+            }
+            if str(content_type or "").lower().startswith("image/"):
+                headers["Cache-Control"] = "private, max-age=900"
+            return self.bytes_response(200, data, content_type, headers)
         except OverflowError:
             return self.text_response(413, "Remote response is too large")
         except ValueError as exc:

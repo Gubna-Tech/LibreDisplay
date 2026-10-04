@@ -18,7 +18,19 @@ let cfg = {
   photoOrder:'sequential',
   photoRandomStart:false,
   photoPreload:true,
+  backgroundStartupPriority:true,
+  backgroundStartupDelayMs:700,
   weatherRefreshMin:10,
+  weatherAnimationsEnabled:false,
+  weatherWidgetAnimations:true,
+  weatherFullscreenEffects:false,
+  weatherEffectIntensity:50,
+  weatherEffectOpacity:34,
+  weatherEffectSpeed:100,
+  weatherEffectMode:'auto',
+  weatherEffectLightning:true,
+  weatherEffectRespectReducedMotion:true,
+  weatherEffectPauseWhenDimmed:true,
   calendarRefreshMin:15,
   calendarTimeStyle:'start',
   calendarLegend:false,
@@ -101,6 +113,10 @@ let cfg = {
   focusOutline:false,
   settingsUiSize:'standard',
   burnInCareEnabled:null,
+  burnInIdleDimmingEnabled:null,
+  burnInQuietHoursEnabled:null,
+  burnInQuietWakeEnabled:true,
+  burnInPauseAnimationsDimmed:true,
   burnInDimMode:'activity',
   burnInQuietStart:'22:00',
   burnInQuietEnd:'07:00',
@@ -110,6 +126,7 @@ let cfg = {
   burnInIdleMin:30,
   burnInBrightnessPct:40,
   burnInDeepProtection:false,
+  burnInDeepTrigger:null,
   burnInDeepIdleMin:180,
   burnInDeepBrightnessPct:5,
   burnInShiftMode:'always',
@@ -195,6 +212,7 @@ function ensureCfgDefaults(){
     cfg.photoIntervalSec=Number.isFinite(Number(cfg.photoIntervalMin))?Math.max(0,Number(cfg.photoIntervalMin)*60):300;
   }
   cfg.photoIntervalSec=Math.min(3600,Math.max(0,Number(cfg.photoIntervalSec)||0));
+  if(typeof cfg.backgroundStartupPriority!=='boolean')cfg.backgroundStartupPriority=true;const startupDelay=Number.isFinite(Number(cfg.backgroundStartupDelayMs))?Number(cfg.backgroundStartupDelayMs):700;cfg.backgroundStartupDelayMs=Math.round(Math.min(3000,Math.max(0,startupDelay))/100)*100;
   cfg.backgroundSource=['google','folders','stock','none'].includes(cfg.backgroundSource)?cfg.backgroundSource:'google';
   if(!Array.isArray(cfg.mediaFolders))cfg.mediaFolders=[];
   cfg.mediaFolders=[...new Set(cfg.mediaFolders.map(x=>String(x||'').trim()).filter(Boolean))].slice(0,32);
@@ -346,18 +364,25 @@ function ensureCfgDefaults(){
   if(typeof cfg.highContrast!=='boolean')cfg.highContrast=false;
   if(typeof cfg.focusOutline!=='boolean')cfg.focusOutline=false;
   cfg.settingsUiSize=['standard','large','xlarge'].includes(cfg.settingsUiSize)?cfg.settingsUiSize:'standard';
+  if(typeof cfg.weatherAnimationsEnabled!=='boolean')cfg.weatherAnimationsEnabled=false;if(typeof cfg.weatherWidgetAnimations!=='boolean')cfg.weatherWidgetAnimations=true;if(typeof cfg.weatherFullscreenEffects!=='boolean')cfg.weatherFullscreenEffects=false;
+  cfg.weatherEffectIntensity=Math.round(Math.min(100,Math.max(10,num(cfg.weatherEffectIntensity,50))));cfg.weatherEffectOpacity=Math.round(Math.min(80,Math.max(5,num(cfg.weatherEffectOpacity,34))));cfg.weatherEffectSpeed=Math.round(Math.min(180,Math.max(40,num(cfg.weatherEffectSpeed,100))));cfg.weatherEffectMode=['auto','precipitation','ambient'].includes(cfg.weatherEffectMode)?cfg.weatherEffectMode:'auto';
+  if(typeof cfg.weatherEffectLightning!=='boolean')cfg.weatherEffectLightning=true;if(typeof cfg.weatherEffectRespectReducedMotion!=='boolean')cfg.weatherEffectRespectReducedMotion=true;if(typeof cfg.weatherEffectPauseWhenDimmed!=='boolean')cfg.weatherEffectPauseWhenDimmed=true;
   cfg.burnInDimMode=['activity','schedule'].includes(cfg.burnInDimMode)?cfg.burnInDimMode:'activity';
+  if(typeof cfg.burnInIdleDimmingEnabled!=='boolean')cfg.burnInIdleDimmingEnabled=cfg.burnInDimMode!=='schedule'&&!!cfg.burnInProtection;if(typeof cfg.burnInQuietHoursEnabled!=='boolean')cfg.burnInQuietHoursEnabled=cfg.burnInDimMode==='schedule'&&!!cfg.burnInProtection;
+  if(typeof cfg.burnInQuietWakeEnabled!=='boolean')cfg.burnInQuietWakeEnabled=true;if(typeof cfg.burnInPauseAnimationsDimmed!=='boolean')cfg.burnInPauseAnimationsDimmed=true;
   const normalizeClock=(value,fallback)=>{const match=String(value||'').match(/^([01]\d|2[0-3]):([0-5]\d)$/);return match?`${match[1]}:${match[2]}`:fallback;};
   cfg.burnInQuietStart=normalizeClock(cfg.burnInQuietStart,'22:00');
   cfg.burnInQuietEnd=normalizeClock(cfg.burnInQuietEnd,'07:00');
   cfg.burnInQuietWakeMin=Math.round(Math.min(30,Math.max(1,num(cfg.burnInQuietWakeMin,5))));
   if(typeof cfg.burnInProtection!=='boolean')cfg.burnInProtection=false;
   if(typeof cfg.burnInPixelShift!=='boolean')cfg.burnInPixelShift=false;
-  if(typeof cfg.burnInCareEnabled!=='boolean')cfg.burnInCareEnabled=!!(cfg.burnInProtection||cfg.burnInPixelShift);
+  if(typeof cfg.burnInCareEnabled!=='boolean')cfg.burnInCareEnabled=!!(cfg.burnInIdleDimmingEnabled||cfg.burnInQuietHoursEnabled||cfg.burnInDeepProtection||cfg.burnInPixelShift);
+  cfg.burnInProtection=!!(cfg.burnInIdleDimmingEnabled||cfg.burnInQuietHoursEnabled); // legacy compatibility
   cfg.burnInIdleMin=Math.round(Math.min(240,Math.max(1,num(cfg.burnInIdleMin,30))));
   cfg.burnInBrightnessPct=Math.round(Math.min(90,Math.max(5,num(cfg.burnInBrightnessPct,40))));
   if(typeof cfg.burnInDeepProtection!=='boolean')cfg.burnInDeepProtection=false;
-  const burnInDeepFloor=cfg.burnInDimMode==='activity'&&cfg.burnInProtection?cfg.burnInIdleMin:15;
+  cfg.burnInDeepTrigger=['idle','quiet'].includes(cfg.burnInDeepTrigger)?cfg.burnInDeepTrigger:(cfg.burnInDimMode==='schedule'?'quiet':'idle');
+  const burnInDeepFloor=cfg.burnInIdleDimmingEnabled?cfg.burnInIdleMin:15;
   cfg.burnInDeepIdleMin=Math.round(Math.min(720,Math.max(burnInDeepFloor,Math.max(15,num(cfg.burnInDeepIdleMin,180))))/5)*5;
   cfg.burnInDeepBrightnessPct=Math.round(Math.min(cfg.burnInProtection?cfg.burnInBrightnessPct:25,Math.max(0,num(cfg.burnInDeepBrightnessPct,5))));
   cfg.burnInShiftMode=['always','idle'].includes(cfg.burnInShiftMode)?cfg.burnInShiftMode:'always';

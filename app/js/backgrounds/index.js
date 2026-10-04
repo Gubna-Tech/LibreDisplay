@@ -6,6 +6,17 @@ const {fetchRemoteText,escHtml,scaledClamp,resilientFetch}=LibreDisplayRuntime.g
 const {extractAllGooglePhotoUrls,GOOGLE_PHOTOS_MAX_ITEMS}=LibreDisplayRuntime.getModule('backgrounds');
 
 let bgTimer=null;
+const LAST_BACKGROUND_KEY='libredisplay_last_background_v2';
+function rememberLastBackground(remoteUrl){try{if(remoteUrl)localStorage.setItem(LAST_BACKGROUND_KEY,JSON.stringify({url:remoteUrl,source:cfg.backgroundSource,at:Date.now()}));}catch(_e){}}
+async function restoreLastBackground(){
+  if(cfg.backgroundSource==='none'||configApi.bgLastUrl)return false;
+  let saved=null;try{saved=JSON.parse(localStorage.getItem(LAST_BACKGROUND_KEY)||'null');}catch(_e){}
+  if(!saved?.url||Date.now()-Number(saved.at||0)>30*24*60*60*1000)return false;
+  const layer=activeBackgroundLayer();if(!layer)return false;
+  const ok=await loadBackgroundIntoLayer(layer,saved.url,'high');
+  if(ok){layer.style.zIndex='0';layer.classList.add('show');configApi.bgActiveLayerId=layer.id;configApi.bgLastUrl=saved.url;rememberLastBackground(saved.url);return true;}
+  return false;
+}
 
 function localProxyUrl(remoteUrl){
   return serverPath('/proxy?url='+encodeURIComponent(remoteUrl));
@@ -277,6 +288,7 @@ async function revealBackgroundLayer(layer,remoteUrl){
   layer.style.zIndex='0';
   configApi.bgActiveLayerId=layer.id;
   configApi.bgLastUrl=remoteUrl;
+  rememberLastBackground(remoteUrl);
 }
 
 function scheduleBackgroundRotation(){
@@ -444,7 +456,7 @@ function reloadBackgroundNow(){
   if(source==='none'){
     ++configApi.bgSourceSerial;
     if(bgTimer){clearInterval(bgTimer);bgTimer=null;}
-    configApi.bgImages=[];configApi.bgSourceImages=[];configApi.stockRecentUrls=[];configApi.bgLastUrl='';
+    configApi.bgImages=[];configApi.bgSourceImages=[];configApi.stockRecentUrls=[];configApi.bgLastUrl='';try{localStorage.removeItem(LAST_BACKGROUND_KEY);}catch(_e){}
     clearBackgroundLayers();
     setBackgroundStatus('Photo background disabled.');
     return;
@@ -488,7 +500,7 @@ function updateBackgroundSourceUI(){
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("backgrounds", {localProxyUrl,backgroundAssetUrl,mediaFoldersFromText,mediaFoldersFromForm,loadMediaFolderBrowser,openMediaFolderBrowser,browseMediaParent,addCurrentMediaFolder,loadFolderBackgrounds,scanFolderBackgroundsFromForm,setBackgroundStatus,shuffledCopy,prepareBackgroundOrder,chooseNextBackgroundIndex,nextBackgroundIndex,backgroundLayerById,backgroundLayerImage,activeBackgroundLayer,inactiveBackgroundLayer,backgroundTransitionDurationMs,nextAnimationFrame,waitForBackgroundLayerVisible,clearBackgroundPrepared,clearBackgroundLayers,loadBackgroundIntoLayer,preloadBackgroundIndex,prepareUpcomingBackground,revealBackgroundLayer,scheduleBackgroundRotation,stockSearchTerm,loadStockBackground,loadPhotos,formatBackgroundInterval,showBg,nextBackgroundNow,reshuffleBackgroundNow,reloadBackgroundNow,disableBackgroundSource,updateBackgroundSourceUI}, {
+LibreDisplayRuntime.exposeModule("backgrounds", {rememberLastBackground,restoreLastBackground,localProxyUrl,backgroundAssetUrl,mediaFoldersFromText,mediaFoldersFromForm,loadMediaFolderBrowser,openMediaFolderBrowser,browseMediaParent,addCurrentMediaFolder,loadFolderBackgrounds,scanFolderBackgroundsFromForm,setBackgroundStatus,shuffledCopy,prepareBackgroundOrder,chooseNextBackgroundIndex,nextBackgroundIndex,backgroundLayerById,backgroundLayerImage,activeBackgroundLayer,inactiveBackgroundLayer,backgroundTransitionDurationMs,nextAnimationFrame,waitForBackgroundLayerVisible,clearBackgroundPrepared,clearBackgroundLayers,loadBackgroundIntoLayer,preloadBackgroundIndex,prepareUpcomingBackground,revealBackgroundLayer,scheduleBackgroundRotation,stockSearchTerm,loadStockBackground,loadPhotos,formatBackgroundInterval,showBg,nextBackgroundNow,reshuffleBackgroundNow,reloadBackgroundNow,disableBackgroundSource,updateBackgroundSourceUI}, {
   "bgTimer": {configurable:true,get:()=>bgTimer,set:(value)=>{bgTimer=value;}},
   "mediaBrowsePath": {configurable:true,get:()=>mediaBrowsePath,set:(value)=>{mediaBrowsePath=value;}}
 }, {globalFunctions:['openMediaFolderBrowser','browseMediaParent','addCurrentMediaFolder','scanFolderBackgroundsFromForm','nextBackgroundNow','reshuffleBackgroundNow','reloadBackgroundNow','updateBackgroundSourceUI'],globalStates:[]});

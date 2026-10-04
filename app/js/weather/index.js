@@ -167,6 +167,7 @@ function renderWeather(d){
     hrDiv.appendChild(el);
   }
   refreshCustomDataBlocks(['weatherview','suntimes']);
+  try{LibreDisplayRuntime.getModule('weatherEffects').applyWeatherEffects(d,ui);}catch(_e){}
 }
 
 
