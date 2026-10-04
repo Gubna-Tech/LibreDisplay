@@ -57,13 +57,16 @@ class ResilienceContractTests(unittest.TestCase):
         ):
             self.assertIn(marker, HTML)
         self.assertIn('id="s-burnin-care-enabled"', HTML)
-        self.assertIn('id="s-burnin-dim-mode"', HTML)
+        self.assertIn('id="s-burnin-idle-dimming"', HTML)
+        self.assertIn('id="s-burnin-quiet-hours"', HTML)
+        self.assertIn('id="s-burnin-quiet-wake-enabled"', HTML)
+        self.assertIn('id="s-burnin-pause-animations"', HTML)
         self.assertIn('id="s-burnin-quiet-start" type="time"', HTML)
         self.assertIn('id="s-burnin-quiet-end" type="time"', HTML)
         self.assertIn('id="s-burnin-quiet-wake" type="range" min="1" max="30" step="1"', HTML)
-        self.assertIn('id="s-burnin-protection"', HTML)
         self.assertIn('id="s-burnin-pixel-shift"', HTML)
         self.assertIn('id="s-burnin-deep-protection"', HTML)
+        self.assertIn('id="s-burnin-deep-trigger"', HTML)
         self.assertIn('id="s-burnin-deep-idle"', HTML)
         self.assertIn('id="s-burnin-deep-brightness"', HTML)
         self.assertIn('id="s-burnin-shift-mode"', HTML)
@@ -73,7 +76,7 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn('id="s-burnin-shift-interval"', HTML)
         self.assertIn('id="s-burnin-shift-distance" type="range" min="1" max="8" step="1"', HTML)
         self.assertIn('id="s-burnin-shift-interval" type="range" min="0.5" max="30" step="0.5"', HTML)
-        self.assertIn("if(typeof cfg.burnInCareEnabled!=='boolean')cfg.burnInCareEnabled=!!(cfg.burnInProtection||cfg.burnInPixelShift);", HTML)
+        self.assertIn("if(typeof cfg.burnInCareEnabled!=='boolean')cfg.burnInCareEnabled=!!(cfg.burnInIdleDimmingEnabled||cfg.burnInQuietHoursEnabled||cfg.burnInDeepProtection||cfg.burnInPixelShift);", HTML)
 
     def test_display_readiness_reports_without_mutating_layout(self):
         for marker in (
@@ -166,13 +169,13 @@ class ResilienceContractTests(unittest.TestCase):
 
     def test_system_health_reports_startup_integrity_state(self):
         server.atomic_write_json_file(server.STARTUP_INTEGRITY_PATH, {
-            "ok": True, "checkedAt": 2_000_000_000, "version": "1.7.2",
+            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.0",
             "coreFiles": 11, "pythonFiles": 3, "frontendVerified": True,
         })
         payload = server.system_health_payload()
         self.assertTrue(payload["startupIntegrity"]["ok"])
         self.assertTrue(payload["startupIntegrity"]["frontendVerified"])
-        self.assertEqual(payload["startupIntegrity"]["version"], "1.7.2")
+        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.0")
 
     def test_stale_broker_returns_cached_data_while_refresh_runs(self):
         key = "resilience-stale-while-revalidate"
@@ -581,6 +584,60 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertEqual(kiosk["frontendPerformance"]["connectivity"]["retries"], 3)
         self.assertNotIn("userAgent", kiosk)
         self.assertNotIn("token", json.dumps(kiosk).lower())
+
+    def test_v180_data_first_startup_and_background_reuse_are_present(self):
+        settings = (ROOT / "app" / "js" / "settings" / "index.js").read_text(encoding="utf-8")
+        backgrounds = (ROOT / "app" / "js" / "backgrounds" / "index.js").read_text(encoding="utf-8")
+        config = (ROOT / "app" / "js" / "core" / "config.js").read_text(encoding="utf-8")
+        self.assertIn("backgroundStartupPriority:true", config)
+        self.assertIn("backgroundStartupDelayMs:700", config)
+        self.assertIn("restoreLastBackground", backgrounds)
+        self.assertIn("LAST_BACKGROUND_KEY='libredisplay_last_background_v2'", backgrounds)
+        self.assertIn("if(cfg.backgroundSource!=='none')void backgrounds.restoreLastBackground();", settings)
+        self.assertIn("setTimeout(loadBackgroundSource", settings)
+        self.assertIn("getAirQualityData().catch", settings)
+
+    def test_v180_weather_effects_are_fully_configurable_and_accessibility_safe(self):
+        effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
+        config = (ROOT / "app" / "js" / "core" / "config.js").read_text(encoding="utf-8")
+        css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
+        for marker in (
+            "weatherAnimationsEnabled:false", "weatherWidgetAnimations:true", "weatherFullscreenEffects:false",
+            "weatherEffectIntensity:50", "weatherEffectOpacity:34", "weatherEffectSpeed:100",
+            "weatherEffectRespectReducedMotion:true", "weatherEffectPauseWhenDimmed:true",
+        ):
+            self.assertIn(marker, config)
+        for control in (
+            'id="s-weather-animations"', 'id="s-weather-widget-animations"', 'id="s-weather-fullscreen-effects"',
+            'id="s-weather-effect-mode"', 'id="s-weather-effect-intensity"', 'id="s-weather-effect-opacity"',
+            'id="s-weather-effect-speed"', 'id="s-weather-effect-lightning"', 'id="s-weather-effect-reduced-motion"',
+            'id="s-weather-effect-pause-dimmed"',
+        ):
+            self.assertIn(control, HTML)
+        self.assertIn("document.documentElement.classList.contains('ld-reduce-motion')", effects)
+        self.assertIn("document.body.classList.contains('ld-burnin-dim')", effects)
+        self.assertIn("#weather-effects-overlay{position:fixed;inset:0;z-index:1", css)
+        self.assertIn("#app {", css)
+
+    def test_v180_screen_care_controls_are_independent(self):
+        config = (ROOT / "app" / "js" / "core" / "config.js").read_text(encoding="utf-8")
+        appearance = (ROOT / "app" / "js" / "appearance" / "index.js").read_text(encoding="utf-8")
+        for marker in (
+            "burnInIdleDimmingEnabled:null", "burnInQuietHoursEnabled:null", "burnInQuietWakeEnabled:true",
+            "burnInPauseAnimationsDimmed:true",
+        ):
+            self.assertIn(marker, config)
+        self.assertIn("source?.burnInIdleDimmingEnabled||source?.burnInQuietHoursEnabled||source?.burnInDeepProtection", appearance)
+        self.assertIn("source?.burnInCareEnabled&&!!source?.burnInPixelShift", appearance)
+        self.assertIn('id="s-burnin-pixel-shift"', HTML)
+        self.assertIn('id="s-burnin-idle-dimming"', HTML)
+        self.assertIn('id="s-burnin-quiet-hours"', HTML)
+        self.assertIn('id="s-burnin-deep-protection"', HTML)
+
+    def test_image_broker_allows_short_private_browser_cache(self):
+        source = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
+        self.assertIn('str(content_type or "").lower().startswith("image/")', source)
+        self.assertIn('headers["Cache-Control"] = "private, max-age=900"', source)
 
 
 if __name__ == "__main__":
