@@ -152,7 +152,7 @@
     <button class="btn-util" type="button" onclick="refreshDataNow();setTimeout(updateSettingsOverview,500)">Refresh all data</button>
     <button class="btn-util" type="button" onclick="testCalendarInputs();setTimeout(updateSettingsOverview,800)">Test calendars</button>
     <button class="btn-util" type="button" onclick="reloadBackgroundNow();setTimeout(updateSettingsOverview,800)">Reload background</button>
-    <button class="btn-util" type="button" onclick="enterFullscreen();setTimeout(updateSettingsOverview,300)">Enter fullscreen</button>
+    <button class="btn-util" type="button" onclick="requestDeviceDisplayMode('windowed')">Use device / exit kiosk</button><button class="btn-util" type="button" onclick="requestDeviceDisplayMode('kiosk')">Return to fullscreen</button>
     <button class="btn-util" type="button" onclick="startWizardFromSettings()">Run setup wizard</button>
    </div>
    <div class="shortcut-note">Keyboard shortcuts: Ctrl/Cmd+S = Save &amp; Apply · Esc = Cancel · Ctrl/Cmd+K = Search settings</div>
@@ -160,7 +160,7 @@
 
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.4</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.5</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -407,6 +407,11 @@
      <button class="btn-util" type="button" onclick="applyWeatherEffectPreset('immersive')">Immersive</button>
      <button class="btn-util" type="button" onclick="previewCurrentWeatherOverlay()">Show current overlay</button>
     </div>
+    <div class="s-subhead">Weather effect lab</div>
+    <label class="checkline"><input id="s-weather-effect-test-mode" type="checkbox" onchange="handleWeatherEffectTestModeChange(this)"> Test mode — force a weather type <button class="help-tip" type="button" aria-label="Weather effect test mode help" data-help="Preview simulated weather without changing the real forecast. Test mode is temporary and is never saved as weather data.">?</button></label>
+    <div class="s-row"><label>Test weather</label><select id="s-weather-effect-test-condition" onchange="weatherEffectTestProfileChanged(this)"><option value="drizzle">Light drizzle</option><option value="rain" selected>Rain</option><option value="heavy-rain">Heavy rain</option><option value="storm">Thunderstorm</option><option value="snow">Snow</option><option value="heavy-snow">Heavy snow</option><option value="fog">Fog</option><option value="cloud">Cloudy</option><option value="windy">Windy clouds</option><option value="partly">Partly cloudy</option><option value="clear">Clear day</option><option value="night">Clear night</option></select></div>
+    <div class="utility-actions weather-effect-presets"><button class="btn-util" type="button" onclick="previewWeatherTestFullScreen()">Preview test full screen</button><button class="btn-util" type="button" onclick="stopWeatherEffectTest()">Stop test</button></div>
+    <div class="settings-note">Use test mode while adjusting the controls below. The simulated condition follows your unsaved sliders and toggles immediately; leaving test mode returns to live weather.</div>
     <div class="s-row"><label>Full-screen effect behavior</label><select id="s-weather-effect-mode" onchange="previewAppearance()"><option value="auto">Automatic — match current weather</option><option value="precipitation">Precipitation only — rain, snow, storms</option><option value="ambient">Ambient only — clouds, fog, clear sky</option></select></div>
     <label class="checkline"><input id="s-weather-effect-auto-intensity" type="checkbox" checked onchange="previewAppearance()"> Auto-match effect intensity to live weather <button class="help-tip" type="button" aria-label="Automatic weather intensity help" data-help="Uses the current weather code plus live precipitation, cloud cover, and wind to strengthen or soften the overlay while keeping your selected intensity as the baseline.">?</button></label>
     <div class="s-row"><label>Effect intensity <span id="s-weather-effect-intensity-value" class="range-value">50%</span></label><input id="s-weather-effect-intensity" type="range" min="10" max="100" step="5" value="50" oninput="previewAppearance()"><div class="range-ends"><span>Subtle</span><span>Dense</span></div></div>
@@ -415,6 +420,10 @@
     <div class="s-row"><label>Particle size <span id="s-weather-effect-particle-scale-value" class="range-value">100%</span></label><input id="s-weather-effect-particle-scale" type="range" min="60" max="160" step="5" value="100" oninput="previewAppearance()"><div class="range-ends"><span>Fine</span><span>Large</span></div></div>
     <div class="s-row"><label>Animation speed <span id="s-weather-effect-speed-value" class="range-value">100%</span></label><input id="s-weather-effect-speed" type="range" min="40" max="180" step="5" value="100" oninput="previewAppearance()"><div class="range-ends"><span>Slow</span><span>Fast</span></div></div>
     <div class="s-row"><label>Wind influence <span id="s-weather-effect-wind-strength-value" class="range-value">100%</span></label><input id="s-weather-effect-wind-strength" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"><div class="range-ends"><span>Vertical</span><span>Strong drift</span></div></div>
+    <div class="s-subhead">Seasonal atmosphere</div>
+    <label class="checkline"><input id="s-weather-seasonal-effects" type="checkbox" checked onchange="previewAppearance()"> Add seasonal atmosphere <button class="help-tip" type="button" aria-label="Seasonal atmosphere help" data-help="Adds location-aware seasonal details. Automatic mode uses the weather location latitude, hemisphere, month, climate band, and current temperature: Northern and Southern Hemisphere seasons are inverted correctly, tropical locations avoid inappropriate temperate leaves/frost, and mild subtropical winters avoid icy effects.">?</button></label>
+    <div class="s-row"><label>Season</label><select id="s-weather-season-mode" onchange="previewAppearance()"><option value="auto" selected>Automatic — region + season</option><option value="off">Off</option><option value="spring">Spring</option><option value="summer">Summer</option><option value="fall">Fall</option><option value="winter">Winter</option></select></div>
+    <div class="s-row"><label>Seasonal intensity <span id="s-weather-seasonal-intensity-value" class="range-value">45%</span></label><input id="s-weather-seasonal-intensity" type="range" min="0" max="100" step="5" value="45" oninput="previewAppearance()"><div class="range-ends"><span>Subtle</span><span>Rich</span></div></div>
     <div class="s-subhead">Thunderstorms</div>
     <div class="s-row"><label>Lightning frequency</label><select id="s-weather-effect-lightning-frequency" onchange="previewAppearance()"><option value="rare">Rare</option><option value="normal" selected>Normal</option><option value="frequent">Frequent</option></select></div>
     <div class="s-row"><label>Lightning brightness <span id="s-weather-effect-lightning-brightness-value" class="range-value">65%</span></label><input id="s-weather-effect-lightning-brightness" type="range" min="20" max="100" step="5" value="65" oninput="previewAppearance()"><div class="range-ends"><span>Soft</span><span>Bright</span></div></div>
@@ -694,7 +703,7 @@
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.4</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.5</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -829,7 +838,7 @@
   <button class="quick-access-action" type="button" role="menuitem" onclick="quickAccessIntegrations()"><strong>Integrations</strong><span>Edit providers and configured blocks.</span></button>
   <button class="quick-access-action" type="button" role="menuitem" onclick="quickAccessSettings()"><strong>Settings</strong><span>Open all dashboard settings.</span></button>
  </div>
- <div class="quick-access-foot"><button type="button" onclick="quickAccessRefresh()">Refresh data</button><button type="button" onclick="quickAccessFullscreen()">Fullscreen</button></div>
+ <div class="quick-access-foot"><button type="button" onclick="quickAccessRefresh()">Refresh data</button><button type="button" onclick="quickAccessUseDevice()">Use device</button><button type="button" onclick="quickAccessFullscreen()">Fullscreen</button></div>
 </div>
 <button id="settings-preview-return" type="button" onclick="returnToSettingsPreview()" aria-hidden="true"><span>← Return to Settings</span><small>Previewing unsaved changes</small></button>
 

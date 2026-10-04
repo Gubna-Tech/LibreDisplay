@@ -30,6 +30,7 @@ let cfg = {
   weatherEffectLightning:true,
   weatherEffectRespectReducedMotion:true,
   weatherEffectPauseWhenDimmed:true,
+  weatherSeasonalEffects:true,weatherSeasonMode:'auto',weatherSeasonalIntensity:45,
   calendarRefreshMin:15,
   calendarTimeStyle:'start',
   calendarLegend:false,
@@ -192,7 +193,6 @@ const BLOCK_TYPE_INFO={
   icon:{name:'Icon',icon:'★',desc:'Add a simple emoji or symbol as a movable visual element.'},
   integration:{name:'Integration',icon:'◇',desc:'Add a server-side integration plugin.'}
 };
-
 function ensureCfgDefaults(){
   if(!cfg||typeof cfg!=='object')cfg={};
   if(!Array.isArray(cfg.calendars))cfg.calendars=[];
@@ -367,6 +367,7 @@ function ensureCfgDefaults(){
   cfg.weatherEffectIntensity=Math.round(Math.min(100,Math.max(10,num(cfg.weatherEffectIntensity,50))));cfg.weatherEffectOpacity=Math.round(Math.min(80,Math.max(5,num(cfg.weatherEffectOpacity,34))));cfg.weatherEffectSpeed=Math.round(Math.min(180,Math.max(40,num(cfg.weatherEffectSpeed,100))));
   if(typeof cfg.weatherEffectAutoIntensity!=='boolean')cfg.weatherEffectAutoIntensity=true;cfg.weatherEffectAtmosphere=Math.round(Math.min(100,Math.max(0,num(cfg.weatherEffectAtmosphere,55))));cfg.weatherEffectParticleScale=Math.round(Math.min(160,Math.max(60,num(cfg.weatherEffectParticleScale,100))));cfg.weatherEffectWindStrength=Math.round(Math.min(180,Math.max(0,num(cfg.weatherEffectWindStrength,100))));cfg.weatherEffectLightningFrequency=['rare','normal','frequent'].includes(cfg.weatherEffectLightningFrequency)?cfg.weatherEffectLightningFrequency:'normal';cfg.weatherEffectLightningBrightness=Math.round(Math.min(100,Math.max(20,num(cfg.weatherEffectLightningBrightness,65))));cfg.weatherEffectMode=['auto','precipitation','ambient'].includes(cfg.weatherEffectMode)?cfg.weatherEffectMode:'auto';
   if(typeof cfg.weatherEffectPrecipitation!=='boolean')cfg.weatherEffectPrecipitation=true;if(typeof cfg.weatherEffectClouds!=='boolean')cfg.weatherEffectClouds=true;if(typeof cfg.weatherEffectFog!=='boolean')cfg.weatherEffectFog=true;if(typeof cfg.weatherEffectSun!=='boolean')cfg.weatherEffectSun=true;if(typeof cfg.weatherEffectWind!=='boolean')cfg.weatherEffectWind=true;if(typeof cfg.weatherEffectLightning!=='boolean')cfg.weatherEffectLightning=true;if(typeof cfg.weatherEffectRespectReducedMotion!=='boolean')cfg.weatherEffectRespectReducedMotion=true;if(typeof cfg.weatherEffectPauseWhenDimmed!=='boolean')cfg.weatherEffectPauseWhenDimmed=true;
+  if(typeof cfg.weatherSeasonalEffects!=='boolean')cfg.weatherSeasonalEffects=true;cfg.weatherSeasonMode=['auto','off','spring','summer','fall','winter'].includes(cfg.weatherSeasonMode)?cfg.weatherSeasonMode:'auto';cfg.weatherSeasonalIntensity=Math.round(Math.min(100,Math.max(0,num(cfg.weatherSeasonalIntensity,45))));
   cfg.burnInDimMode=['activity','schedule'].includes(cfg.burnInDimMode)?cfg.burnInDimMode:'activity';
   if(typeof cfg.burnInIdleDimmingEnabled!=='boolean')cfg.burnInIdleDimmingEnabled=cfg.burnInDimMode!=='schedule'&&!!cfg.burnInProtection;if(typeof cfg.burnInQuietHoursEnabled!=='boolean')cfg.burnInQuietHoursEnabled=cfg.burnInDimMode==='schedule'&&!!cfg.burnInProtection;
   if(typeof cfg.burnInQuietWakeEnabled!=='boolean')cfg.burnInQuietWakeEnabled=true;if(typeof cfg.burnInPauseAnimationsDimmed!=='boolean')cfg.burnInPauseAnimationsDimmed=true;

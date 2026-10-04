@@ -1816,6 +1816,35 @@ html:not(.cursor-active) * {
 .weather-effect-status{margin:8px 0 10px;padding:9px 11px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.035)}
 .weather-effect-presets{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:7px;margin:2px 0 4px}
 
+/* v1.8.5 weather realism and seasonal atmosphere. */
+.weather-fx-rain .weather-fx-primary,.weather-fx-storm .weather-fx-primary{width:var(--fx-width,1.5px);height:var(--fx-length,8vh);opacity:var(--fx-alpha,.8);background:linear-gradient(to bottom,rgba(225,244,255,0),rgba(225,244,255,.96) 36%,rgba(147,204,244,.64));filter:blur(var(--fx-blur,0));box-shadow:0 0 3px rgba(188,225,255,.22)}
+@keyframes ldWeatherRain{from{transform:translate3d(0,-15vh,0) rotate(var(--fx-angle,8deg)) scale(var(--fx-scale,1));opacity:0}8%{opacity:var(--fx-alpha,.9)}to{transform:translate3d(var(--fx-drift,5vw),122vh,0) rotate(var(--fx-angle,8deg)) scale(var(--fx-scale,1));opacity:.12}}
+.weather-fx-splash{position:absolute;left:var(--fx-x,50vw);bottom:0;width:22px;height:7px;border:1px solid rgba(190,225,250,.7);border-top-color:transparent;border-radius:50%;opacity:0;transform:scale(var(--fx-scale,1));animation:ldWeatherSplash var(--fx-duration,1s) ease-out var(--fx-delay,0s) infinite}
+@keyframes ldWeatherSplash{0%,55%{transform:scale(.15);opacity:0}66%{opacity:.65}100%{transform:scale(1.45);opacity:0}}
+.weather-fx-snow .weather-fx-primary{opacity:var(--fx-alpha,.88);background:radial-gradient(circle at 35% 30%,#fff 0 22%,rgba(247,252,255,.92) 42%,rgba(218,236,247,.52) 70%,transparent 75%)}
+.weather-fx-cloud .weather-fx-primary{opacity:calc(.18 + var(--fx-depth,.5)*.36)}
+.weather-fx-fog .weather-fx-primary{opacity:calc(.12 + var(--fx-depth,.5)*.34)}
+.weather-fx-seasonal{position:absolute;display:block;pointer-events:none;will-change:transform,opacity;left:var(--season-x,50vw);top:var(--season-y,30vh);transform:scale(var(--season-scale,1))}
+.weather-fx-petal{width:10px;height:6px;border-radius:80% 20% 75% 25%;background:hsl(var(--petal-hue,338) 74% 83% / .88);box-shadow:0 0 5px hsl(var(--petal-hue,338) 70% 82% / .22);animation:ldSeasonFloat var(--season-duration,12s) ease-in-out var(--season-delay,0s) infinite}
+.weather-fx-grass{top:auto;bottom:-1vh;width:3px;height:var(--grass-h,5vh);border-radius:100% 0 0 0;background:linear-gradient(to top,rgba(42,112,46,.72),rgba(104,180,88,.88));transform-origin:50% 100%;animation:ldSeasonGrass calc(2.8s/var(--weather-fx-speed,1)) ease-in-out var(--season-delay,0s) infinite alternate}
+.weather-fx-firefly{width:5px;height:5px;border-radius:50%;background:rgba(255,239,129,.96);box-shadow:0 0 7px 3px rgba(235,224,94,.45);animation:ldSeasonFirefly var(--season-duration,8s) ease-in-out var(--season-delay,0s) infinite}
+.weather-fx-summer-mote{width:4px;height:4px;border-radius:50%;background:rgba(255,232,170,.56);box-shadow:0 0 8px rgba(255,205,115,.28);animation:ldSeasonFloat var(--season-duration,10s) ease-in-out var(--season-delay,0s) infinite}
+.weather-fx-summer-grass{background:linear-gradient(to top,rgba(43,118,43,.78),rgba(118,193,84,.92))}
+.weather-fx-winter-mote{width:4px;height:4px;border-radius:50%;background:rgba(218,235,242,.48);box-shadow:0 0 7px rgba(184,219,230,.20);animation:ldSeasonFloat var(--season-duration,12s) ease-in-out var(--season-delay,0s) infinite}
+.weather-fx-leaf{width:16px;height:10px;border-radius:95% 10% 90% 15%;background:hsl(var(--leaf-hue,34) 75% 48% / .90);box-shadow:inset -3px -2px 4px rgba(88,38,8,.28),0 2px 4px rgba(0,0,0,.18);animation:ldSeasonLeaf var(--season-duration,9s) linear var(--season-delay,0s) infinite}
+.weather-fx-crystal{width:8px;height:8px;background:rgba(225,244,255,.82);clip-path:polygon(50% 0,61% 37%,100% 50%,61% 63%,50% 100%,39% 63%,0 50%,39% 37%);filter:drop-shadow(0 0 4px rgba(190,230,255,.42));animation:ldSeasonCrystal var(--season-duration,11s) linear var(--season-delay,0s) infinite}
+.weather-season-spring.show{box-shadow:inset 0 -9vh 10vh -8vh rgba(76,145,65,calc(var(--weather-season-intensity,.45)*.26))}
+.weather-season-summer.show{box-shadow:inset 0 0 18vh rgba(255,190,80,calc(var(--weather-season-intensity,.45)*.05))}
+.weather-season-fall.show{box-shadow:inset 0 -10vh 12vh -9vh rgba(146,74,20,calc(var(--weather-season-intensity,.45)*.20))}
+.weather-season-winter.show{box-shadow:inset 0 0 9vh rgba(202,232,249,calc(var(--weather-season-intensity,.45)*.10))}
+@keyframes ldSeasonFloat{0%{transform:translate3d(-2vw,-6vh,0) rotate(0) scale(var(--season-scale,1));opacity:0}12%{opacity:.75}50%{transform:translate3d(calc(var(--season-drift,10vw)*.45),35vh,0) rotate(150deg) scale(var(--season-scale,1))}100%{transform:translate3d(var(--season-drift,20vw),82vh,0) rotate(340deg) scale(var(--season-scale,1));opacity:.08}}
+@keyframes ldSeasonGrass{from{transform:rotate(-5deg) scale(var(--season-scale,1))}to{transform:rotate(8deg) scale(var(--season-scale,1))}}
+@keyframes ldSeasonFirefly{0%,100%{transform:translate3d(-2vw,1vh,0) scale(.65);opacity:.18}35%{transform:translate3d(calc(var(--season-drift,8vw)*.35),-5vh,0) scale(1.1);opacity:.98}70%{transform:translate3d(var(--season-drift,14vw),4vh,0) scale(.82);opacity:.38}}
+@keyframes ldSeasonLeaf{0%{transform:translate3d(-8vw,-16vh,0) rotateX(0) rotateZ(0) scale(var(--season-scale,1));opacity:0}10%{opacity:.9}45%{transform:translate3d(calc(var(--season-drift,15vw)*.5),42vh,0) rotateX(180deg) rotateZ(230deg) scale(var(--season-scale,1))}100%{transform:translate3d(var(--season-drift,28vw),110vh,0) rotateX(390deg) rotateZ(620deg) scale(var(--season-scale,1));opacity:.12}}
+@keyframes ldSeasonCrystal{0%{transform:translate3d(0,-8vh,0) rotate(0) scale(var(--season-scale,1));opacity:0}15%{opacity:.72}100%{transform:translate3d(var(--season-drift,8vw),90vh,0) rotate(260deg) scale(var(--season-scale,1));opacity:.08}}
+body.ld-weather-test-mode #weather-effect-live-status{border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.07)}
+html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-overlay .weather-fx-seasonal{animation:none!important;opacity:.52!important}
+
 /* Animated vector weather glyphs. Emoji remain as a no-motion/fallback representation. */
 .ld-weather-glyph{display:none;position:relative;width:1.18em;height:.92em;vertical-align:-.12em;overflow:visible;filter:drop-shadow(0 .06em .09em rgba(0,0,0,.28))}
 .ld-weather-emoji-fallback{display:inline}

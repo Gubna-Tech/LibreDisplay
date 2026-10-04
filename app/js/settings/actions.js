@@ -1,5 +1,6 @@
 const configApi=LibreDisplayRuntime.getModule('config');
 const settingsApi=()=>LibreDisplayRuntime.getModule("settings");
+const {resilientFetch}=LibreDisplayRuntime.getModule('shared');
 // Settings test actions, quick access, refresh, and fullscreen controls.
 
 const {readCalendarInputs,syncCalendarEditorRows}=LibreDisplayRuntime.getModule('onboarding');
@@ -38,7 +39,8 @@ function quickAccessAddBlock(){closeQuickAccessMenu();startLayoutEditor();setTim
 function quickAccessSettings(tab='overview'){closeQuickAccessMenu();openSetup();setTimeout(()=>switchSettingsTab(tab),20);}
 function quickAccessIntegrations(){quickAccessSettings('integrations');}
 function quickAccessRefresh(){closeQuickAccessMenu();refreshDataNow();}
-function quickAccessFullscreen(){closeQuickAccessMenu();enterFullscreen();}
+function quickAccessUseDevice(){closeQuickAccessMenu();requestDeviceDisplayMode('windowed');}
+function quickAccessFullscreen(){closeQuickAccessMenu();requestDeviceDisplayMode('kiosk');}
 function toggleLayoutShortcuts(force){const panel=document.getElementById('layout-shortcuts-panel');if(!panel)return;const show=typeof force==='boolean'?force:!panel.classList.contains('show');panel.classList.toggle('show',show);panel.setAttribute('aria-hidden',show?'false':'true');}
 document.addEventListener('pointerdown',e=>{const menu=document.getElementById('quick-access-menu');if(quickAccessMenuOpen&&!menu?.contains(e.target)&&e.target!==document.getElementById('cog'))closeQuickAccessMenu();});
 window.addEventListener('resize',()=>{if(quickAccessMenuOpen)positionQuickAccessMenu();});
@@ -52,6 +54,21 @@ function refreshDataNow(){
   else if(cfg.backgroundSource==='google'&&cfg.photosUrl)loadPhotos(cfg.photosUrl);
 }
 
+async function requestDeviceDisplayMode(mode){
+  const target=mode==='windowed'?'windowed':'kiosk';
+  try{
+    const response=await resilientFetch('/api/display-mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:target})},{retry:false,timeoutMs:5000});
+    const payload=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(payload.error||`HTTP ${response.status}`);
+    return true;
+  }catch(error){
+    console.warn('device display mode request failed',error);
+    if(target==='kiosk'){await enterFullscreen();return false;}
+    if(document.fullscreenElement&&document.exitFullscreen){try{await document.exitFullscreen();return false;}catch(_e){}}
+    alert('Windowed device mode can only be requested from the local LibreDisplay screen.');
+    return false;
+  }
+}
 async function enterFullscreen(){
   try{
     if(!document.fullscreenElement&&document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();
@@ -107,6 +124,6 @@ document.addEventListener('keydown',e=>{
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("settings", {testCalendarInputs,testSingleCalendarSource,positionQuickAccessMenu,closeQuickAccessMenu,toggleQuickAccessMenu,quickAccessArrange,quickAccessAddBlock,quickAccessSettings,quickAccessIntegrations,quickAccessRefresh,quickAccessFullscreen,toggleLayoutShortcuts,refreshDataNow,enterFullscreen}, {
+LibreDisplayRuntime.exposeModule("settings", {testCalendarInputs,testSingleCalendarSource,positionQuickAccessMenu,closeQuickAccessMenu,toggleQuickAccessMenu,quickAccessArrange,quickAccessAddBlock,quickAccessSettings,quickAccessIntegrations,quickAccessRefresh,quickAccessUseDevice,quickAccessFullscreen,toggleLayoutShortcuts,refreshDataNow,requestDeviceDisplayMode,enterFullscreen}, {
   "quickAccessMenuOpen": {configurable:true,get:()=>quickAccessMenuOpen,set:(value)=>{quickAccessMenuOpen=value;}}
-}, {globalFunctions:['testCalendarInputs','testSingleCalendarSource','closeQuickAccessMenu','toggleQuickAccessMenu','quickAccessArrange','quickAccessAddBlock','quickAccessSettings','quickAccessIntegrations','quickAccessRefresh','quickAccessFullscreen','toggleLayoutShortcuts','refreshDataNow','enterFullscreen'],globalStates:[]});
+}, {globalFunctions:['testCalendarInputs','testSingleCalendarSource','closeQuickAccessMenu','toggleQuickAccessMenu','quickAccessArrange','quickAccessAddBlock','quickAccessSettings','quickAccessIntegrations','quickAccessRefresh','quickAccessUseDevice','quickAccessFullscreen','toggleLayoutShortcuts','refreshDataNow','requestDeviceDisplayMode','enterFullscreen'],globalStates:[]});

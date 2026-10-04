@@ -128,6 +128,7 @@ ROLLBACK_LOG_PATH = DATA_ROOT / "rollback.log"
 ROLLBACK_ROOT = Path.home() / "libredisplay-rollbacks"
 MAINTENANCE_HISTORY_PATH = DATA_ROOT / "maintenance_history.json"
 KIOSK_HEARTBEAT_PATH = DATA_ROOT / "kiosk-heartbeat.json"
+DISPLAY_MODE_PATH = DATA_ROOT / "display-mode.json"
 WATCHDOG_STATE_PATH = DATA_ROOT / "watchdog-state.json"
 STARTUP_INTEGRITY_PATH = DATA_ROOT / "startup-integrity.json"
 CONFIG_RECOVERY_STATE_PATH = DATA_ROOT / "config-recovery-state.json"
@@ -3735,6 +3736,20 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 return self.json_response(400, {"ok": False, "error": public_integration_error(exc)})
             except Exception as exc:
                 return self.json_response(502, {"ok": False, "error": "Integration action failed: " + public_integration_error(exc)})
+        if parsed.path == "/api/display-mode":
+            if not self.client_is_loopback():
+                return self.json_response(403, {"ok": False, "error": "Display mode can only be changed from the local LibreDisplay screen."})
+            try:
+                body = self.read_json_body() or {}
+                mode = str(body.get("mode") or "").strip().lower()
+                if mode not in {"kiosk", "windowed"}:
+                    raise ValueError("Display mode must be kiosk or windowed")
+                atomic_write_json_file(DISPLAY_MODE_PATH, {"mode": mode, "requestedAt": int(time.time())})
+                return self.json_response(200, {"ok": True, "mode": mode})
+            except ValueError as exc:
+                return self.json_response(400, {"ok": False, "error": str(exc)})
+            except Exception:
+                return self.json_response(500, {"ok": False, "error": "Could not change the local display mode."})
         if parsed.path == "/api/device-heartbeat":
             if not self.require_display_authorized(parsed):
                 return
