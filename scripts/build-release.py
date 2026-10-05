@@ -28,7 +28,7 @@ EXCLUDED_DIRS = {
 EXCLUDED_NAMES = {".coverage", ".DS_Store", ".env", ".gitkeep"}
 EXCLUDED_SUFFIXES = {
     ".pyc", ".pyo", ".bak", ".orig", ".tmp", ".swp", ".swo", ".log",
-    ".ldbackup", ".zip", ".tar", ".gz", ".tgz", ".7z",
+    ".ldbackup", ".backup", ".opacity-backup", ".rej", ".zip", ".tar", ".gz", ".tgz", ".7z",
 }
 EXCLUDED_NAME_FRAGMENTS = ("release-readiness-audit", "checkpoint", "scratch", "field-readiness-")
 
@@ -45,7 +45,7 @@ def include_path(path: Path, output: Path) -> bool:
         return False
     if path.name in EXCLUDED_NAMES or path.suffix.lower() in EXCLUDED_SUFFIXES:
         return False
-    if path.name.startswith(".env"):
+    if path.name.startswith(".env") or path.name.endswith("~"):
         return False
     if any(fragment in path.name.lower() for fragment in EXCLUDED_NAME_FRAGMENTS):
         return False

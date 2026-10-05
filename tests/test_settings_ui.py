@@ -356,6 +356,7 @@ def test_naturescape_has_its_own_settings_bucket_and_focused_sections():
         "settings-naturescape-flora",
         "settings-naturescape-insects",
         "settings-naturescape-birds",
+        "settings-naturescape-owls",
         "settings-naturescape-winter",
     ):
         assert f'id="{section}" data-settings-tab="naturescape"' in dashboard
@@ -388,7 +389,9 @@ def test_naturescape_opacity_controls_use_real_percentages_and_birds_apply_them(
     opacity_ids = (
         "s-weather-leaves-opacity", "s-weather-grass-opacity", "s-weather-petal-opacity",
         "s-weather-bee-opacity", "s-weather-butterfly-opacity", "s-weather-firefly-opacity",
-        "s-weather-bird-opacity", "s-weather-crystal-opacity", "s-weather-cold-frost-opacity",
+        "s-weather-dragonfly-opacity", "s-weather-ladybug-opacity", "s-weather-moth-opacity",
+        "s-weather-bird-opacity", "s-weather-owl-opacity", "s-weather-crystal-opacity",
+        "s-weather-cold-frost-opacity",
     )
     for control_id in opacity_ids:
         match = re.search(rf'id="{re.escape(control_id)}"[^>]*min="([^"]+)"[^>]*max="([^"]+)"', dashboard)
@@ -398,9 +401,157 @@ def test_naturescape_opacity_controls_use_real_percentages_and_birds_apply_them(
     for key in (
         "weatherSeasonLeavesOpacity", "weatherSeasonGrassOpacity", "weatherSeasonPetalOpacity",
         "weatherSeasonBeeOpacity", "weatherSeasonButterflyOpacity", "weatherSeasonFireflyOpacity",
-        "weatherSeasonBirdOpacity", "weatherSeasonCrystalOpacity",
+        "weatherSeasonDragonflyOpacity", "weatherSeasonLadybugOpacity", "weatherSeasonMothOpacity",
+        "weatherSeasonBirdOpacity", "weatherSeasonOwlOpacity", "weatherSeasonCrystalOpacity",
     ):
         assert f"source.{key},0,100,100" in effects
     bird_rule = re.search(r"\.weather-fx-bird\{[^}]+\}", css)
     assert bird_rule
-    assert "filter:opacity(var(--season-opacity,1))" in bird_rule.group(0)
+    assert "filter:drop-shadow" in bird_rule.group(0)
+    assert "filter:opacity(var(--season-opacity,1))" not in bird_rule.group(0)
+
+    # Naturescape opacity is a single authoritative percentage. Movement keyframes may
+    # animate transforms, but they cannot override the user's requested visibility.
+    assert ".weather-fx-seasonal{opacity:var(--season-opacity,1)!important}" in css
+    assert ".weather-fx-seasonal{filter:opacity(var(--season-opacity,1))}" not in css
+    assert "#weather-effects-overlay .weather-fx-seasonal{animation:none!important;opacity:1!important}" not in css
+    assert "filter:opacity(var(--season-opacity,1))" not in css
+    isolation = css.split("/* v1.8.12 opacity isolation:", 1)[1]
+    assert "#weather-effects-overlay.show{opacity:1}" in isolation
+    assert "#weather-effects-overlay.show::before{opacity:calc(var(--weather-fx-atmosphere,.55)*var(--weather-fx-opacity,.34))}" in isolation
+    assert ".weather-fx-particle{filter:blur(var(--fx-blur,0px)) opacity(var(--weather-fx-opacity,.34))}" in isolation
+
+
+def test_secondary_background_cache_is_bounded_lazy_and_exposed_in_settings():
+    dashboard = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+    config = (ROOT / "app" / "js" / "core" / "config.js").read_text(encoding="utf-8")
+    backgrounds = (ROOT / "app" / "js" / "backgrounds" / "index.js").read_text(encoding="utf-8")
+    navigation = (ROOT / "app" / "js" / "settings" / "navigation.js").read_text(encoding="utf-8")
+    for control_id in ("s-bg-offline-cache", "s-bg-offline-cache-count", "s-bg-offline-cache-max-mb"):
+        assert f'id="{control_id}"' in dashboard
+        assert f"'{control_id}'" in navigation
+    assert "backgroundOfflineCacheEnabled:true" in config
+    assert "backgroundOfflineCacheCount:30" in config
+    assert "backgroundOfflineCacheMaxMb:192" in config
+    assert "const HOT_BACKGROUND_LIMIT=10" in backgrounds
+    assert "setTimeout(()=>{backgroundCacheFillTimer=null;void fillBackgroundCaches(list);},4500)" in backgrounds
+    assert "navigator.storage?.estimate?.()" in backgrounds
+    assert "enforceBackgroundCacheBudget" in backgrounds
+    assert "backgroundMediaKind(url)==='image'&&!backgroundMediaIsMotion(url)" in backgrounds
+    assert "Math.min(60" in backgrounds
+
+
+def test_bird_habitat_setting_is_exposed_and_auto_is_inland_safe():
+    dashboard = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+    effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
+    navigation = (ROOT / "app" / "js" / "settings" / "navigation.js").read_text(encoding="utf-8")
+    assert 'id="s-weather-bird-habitat"' in dashboard
+    for value in ("auto", "urban", "woodland", "grassland", "wetland", "coastal"):
+        assert f'value="{value}"' in dashboard
+    assert "Auto — inland-safe mix" in dashboard
+    assert "'s-weather-bird-habitat'" in navigation
+    assert "BIRD_WATER_SPECIES" in effects
+    assert "weatherBirdHabitat" in effects
+
+
+
+def test_immersive_weather_severity_controls_and_renderers_are_exposed():
+    dashboard = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
+    effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
+    css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
+    config = (ROOT / "app" / "js" / "core" / "config.js").read_text(encoding="utf-8")
+    for control_id in ("s-weather-fog-rolling-banks", "s-weather-snow-blowing", "s-weather-lightning-streaks", "s-weather-storm-cloud-deck", "s-weather-storm-rain-sheets"):
+        assert f'id="{control_id}"' in dashboard
+    for key in ("weatherFogRollingBanks", "weatherSnowBlowing", "weatherLightningStreaks", "weatherStormCloudDeck", "weatherStormRainSheets"):
+        assert key in config
+        assert key in effects
+    assert "function weatherPhenomenonProfile" in effects
+    for marker in ("weather-fx-fog-bank", "weather-fx-storm-cloud", "weather-fx-rain-sheet", "weather-fx-blowing-snow"):
+        assert marker in effects
+        assert marker in css
+    for severity in ("drizzle", "light-rain", "heavy-rain", "flurries", "heavy-snow", "severe-storm"):
+        assert severity in effects
+
+
+def test_bird_repeat_avoidance_uses_rolling_history_and_auto_habitat_is_strictly_inland_safe():
+    effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
+    css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
+    assert "recentBirdSpecies=[...recentBirdSpecies,...currentBirdSceneSpecies]" in effects
+    assert ".slice(-24)" in effects
+    assert "wildlifeSceneBuiltAt" in effects
+    assert "Date.now()-wildlifeSceneBuiltAt>120000" in effects
+    assert "if(habitat==='auto'||!['wetland','coastal'].includes(habitat))" in effects
+    assert "weather-fx-bird-species-song-sparrow" in css
+    assert "weather-fx-bird-species-baltimore-oriole" in css
+    assert "weather-fx-bird-species-indigo-bunting" in css
+    assert "@keyframes ldBirdTailFlex" in css
+    assert "@keyframes ldBirdHeadBob" in css
+
+def test_update_attention_cue_is_subtle_and_respects_reduced_motion():
+    css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
+    assert "ldUpdateBadgeAttention" in css
+    assert "ldUpdateButtonAttention" in css
+    assert "html.ld-reduce-motion #setup .settings-update-badge.show" in css
+    assert "html.ld-reduce-motion #setup .update-now-btn{animation:none!important}" in css
+
+
+def test_css_has_no_escaped_newline_patch_residue_or_duplicate_keyframes():
+    import re
+    css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
+    assert "\\n/*" not in css
+    names = re.findall(r"@keyframes\s+([A-Za-z0-9_-]+)", css)
+    duplicates = sorted({name for name in names if names.count(name) > 1})
+    assert duplicates == []
+
+
+def test_background_cache_budget_never_invents_free_space():
+    backgrounds = (ROOT / "app" / "js" / "backgrounds" / "index.js").read_text(encoding="utf-8")
+    assert "return Math.max(0,Math.min(selected,quotaShare,freeShare))" in backgrounds
+    assert "Math.max(16*1024*1024,Math.min(selected,quotaShare,freeShare))" not in backgrounds
+
+
+def test_all_configured_bird_and_owl_species_have_visual_styles():
+    import re
+    effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
+    css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
+
+    bird_ids = set()
+    for const_name in ("BIRD_SPECIES_POOLS", "BIRD_HABITAT_EXTRAS"):
+        match = re.search(rf"const {const_name}=\{{(.*?)\n\}};", effects, re.S)
+        assert match, const_name
+        bird_ids.update(re.findall(r"\['([a-z0-9-]+)'\s*,\s*[0-9.]", match.group(1)))
+    bird_ids.update(("nighthawk", "tawny-frogmouth"))
+
+    owl_match = re.search(r"const OWL_SPECIES_POOLS=\{(.*?)\n\};", effects, re.S)
+    assert owl_match
+    owl_ids = set(re.findall(r"\['([a-z0-9-]+)'\s*,\s*[0-9.]", owl_match.group(1)))
+
+    styled = set(re.findall(r"weather-fx-bird-species-([a-z0-9-]+)", css))
+    assert sorted(bird_ids - styled) == []
+    assert sorted(owl_ids - styled) == []
+
+
+def test_periodic_wildlife_rebuild_changes_owl_and_butterfly_species_seed():
+    effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
+    owl_line = next(line for line in effects.splitlines() if line.startswith("function owlSpeciesForIndex"))
+    butterfly_line = next(line for line in effects.splitlines() if line.startswith("function butterflySpeciesForIndex"))
+    assert "wildlifeSceneSerial" in owl_line
+    assert "wildlifeSceneSerial" in butterfly_line
+
+
+def test_every_weather_and_naturescape_tuning_control_participates_in_overlay_signature():
+    import re
+    appearance = (ROOT / "app" / "js" / "appearance" / "weather.js").read_text(encoding="utf-8")
+    effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
+    fields_block = appearance.split("const WEATHER_TUNING_FIELDS=",1)[1].split("];",1)[0]
+    checks_block = appearance.split("const WEATHER_TUNING_CHECKS=",1)[1].split("];",1)[0]
+    field_keys = {key for _, key in re.findall(r"\['([^']+)','([^']+)'\]", fields_block)}
+    check_keys = {key for _, key in re.findall(r"\['([^']+)','([^']+)'\]", checks_block)}
+    effect_block = effects.split("const EFFECT_TUNING_KEYS=[",1)[1].split("];",1)[0]
+    effect_keys = set(re.findall(r"'([^']+)'", effect_block))
+    signature_line = next(line for line in effects.splitlines() if line.lstrip().startswith("const signature=["))
+    explicit_keys = set(re.findall(r"source\.([A-Za-z0-9_]+)", signature_line))
+    all_ui_keys = field_keys | check_keys
+    covered = effect_keys | explicit_keys
+    assert len(all_ui_keys) >= 90
+    assert sorted(all_ui_keys - covered) == []

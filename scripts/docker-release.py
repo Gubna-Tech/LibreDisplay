@@ -19,6 +19,7 @@ import stat
 import sys
 import urllib.error
 import urllib.request
+import urllib.parse
 import zipfile
 from pathlib import Path, PurePosixPath
 
@@ -113,7 +114,9 @@ def github_json(url: str, user_agent: str):
 
 
 def release_download(payload: dict, latest: str):
-    return f"https://github.com/{REPOSITORY}/archive/refs/tags/v{latest}.zip", "", 0
+    release_tag = str(payload.get("tag_name") or "").strip()
+    version_tuple(release_tag)
+    return f"https://github.com/{REPOSITORY}/archive/refs/tags/{urllib.parse.quote(release_tag, safe='')}.zip", "", 0
 
 
 def download(url: str, destination: Path, user_agent: str, expected_digest="", expected_size=0):
@@ -205,9 +208,16 @@ def prepare(args) -> int:
     extracted = stage / "extracted"
     extracted.mkdir()
     url, digest, expected_size = release_download(payload, latest)
+    release_tag = str(payload.get("tag_name") or "").strip()
+    alternate_tag = release_tag[1:] if release_tag.lower().startswith("v") else "v" + release_tag
+    alternate_url = f"https://github.com/{REPOSITORY}/archive/refs/tags/{urllib.parse.quote(alternate_tag, safe='')}.zip"
     print(f"Downloading LibreDisplay Docker v{latest}...")
     try:
-        download(url, archive, f"LibreDisplay-Docker/{current} updater", digest, expected_size)
+        try:
+            download(url, archive, f"LibreDisplay-Docker/{current} updater", digest, expected_size)
+        except (OSError, urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
+            archive.unlink(missing_ok=True)
+            download(alternate_url, archive, f"LibreDisplay-Docker/{current} updater", digest, expected_size)
         safe_extract(archive, extracted)
         release_root = locate_release_root(extracted)
         verify_release(release_root, latest)

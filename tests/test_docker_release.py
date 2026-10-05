@@ -15,7 +15,7 @@ SPEC.loader.exec_module(docker_release)
 
 class DockerReleaseTests(unittest.TestCase):
     def test_release_download_uses_historical_github_tag_archive_scheme(self):
-        payload = {"assets": [{
+        payload = {"tag_name": "v1.2.0", "assets": [{
             "name": "LibreDisplay-v1.2.0.zip",
             "browser_download_url": "https://github.com/Gubna-Tech/LibreDisplay/releases/download/v1.2.0/LibreDisplay-v1.2.0.zip",
             "digest": "sha256:" + "b" * 64,
@@ -23,6 +23,13 @@ class DockerReleaseTests(unittest.TestCase):
         }]}
         url, found_digest, size = docker_release.release_download(payload, "1.2.0")
         self.assertEqual(url, "https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.2.0.zip")
+        self.assertEqual(found_digest, "")
+        self.assertEqual(size, 0)
+
+    def test_release_download_accepts_tag_without_v_prefix(self):
+        payload = {"tag_name": "1.8.12", "assets": []}
+        url, found_digest, size = docker_release.release_download(payload, "1.8.12")
+        self.assertEqual(url, "https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/1.8.12.zip")
         self.assertEqual(found_digest, "")
         self.assertEqual(size, 0)
 

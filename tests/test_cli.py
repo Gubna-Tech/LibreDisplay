@@ -32,8 +32,21 @@ class CliTests(unittest.TestCase):
             release["url"],
             "https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.0.1.zip",
         )
+        self.assertEqual(release["alternate_url"], "https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/1.0.1.zip")
         self.assertEqual(release["size"], 0)
         self.assertEqual(release["digest"], "")
+
+    def test_latest_release_accepts_tag_without_v_prefix(self):
+        payload = {"tag_name": "1.8.12", "assets": []}
+        with mock.patch.object(cli, "github_request", return_value=json.dumps(payload).encode("utf-8")):
+            release = cli.latest_release()
+        self.assertEqual(release["version"], "1.8.12")
+        self.assertEqual(release["tag"], "1.8.12")
+        self.assertEqual(
+            release["url"],
+            "https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/1.8.12.zip",
+        )
+        self.assertEqual(release["alternate_url"], "https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.8.12.zip")
 
     def test_latest_release_always_uses_historical_github_tag_archive_scheme(self):
         payload = {"tag_name": "v1.0.1", "assets": [{

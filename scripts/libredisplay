@@ -11,6 +11,7 @@ import sys
 import tempfile
 import urllib.error
 import urllib.request
+import urllib.parse
 import zipfile
 from pathlib import Path, PurePosixPath
 
@@ -67,15 +68,19 @@ def latest_release():
     except (OSError, urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError) as exc:
         fail(f"Could not check GitHub for LibreDisplay updates: {exc}")
 
-    latest = str(payload.get("tag_name") or "").strip().lstrip("v")
+    release_tag = str(payload.get("tag_name") or "").strip()
     try:
-        version_tuple(latest)
+        parts = version_tuple(release_tag)
     except ValueError:
         fail("GitHub returned an invalid LibreDisplay release version.")
+    latest = ".".join(str(part) for part in parts)
 
+    alternate_tag = release_tag[1:] if release_tag.lower().startswith("v") else "v" + release_tag
     return {
         "version": latest,
-        "url": f"https://github.com/{REPOSITORY}/archive/refs/tags/v{latest}.zip",
+        "tag": release_tag,
+        "url": f"https://github.com/{REPOSITORY}/archive/refs/tags/{urllib.parse.quote(release_tag, safe='')}.zip",
+        "alternate_url": f"https://github.com/{REPOSITORY}/archive/refs/tags/{urllib.parse.quote(alternate_tag, safe='')}.zip",
         "digest": "",
         "size": 0,
     }
@@ -97,25 +102,30 @@ def print_check():
 
 
 def download_release(release, destination):
-    request = urllib.request.Request(
-        release["url"],
-        headers={"User-Agent": f"LibreDisplay/{current_version()} updater"},
-    )
+    urls = [release["url"]]
+    if release.get("alternate_url") and release["alternate_url"] not in urls:
+        urls.append(release["alternate_url"])
+    last_exc = None
     hasher = hashlib.sha256()
     total = 0
-    try:
-        with urllib.request.urlopen(request, timeout=45) as response, destination.open("wb") as output:
-            while True:
-                chunk = response.read(1024 * 1024)
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > MAX_ARCHIVE_BYTES:
-                    fail("Downloaded release archive exceeded the safety size limit.")
-                hasher.update(chunk)
-                output.write(chunk)
-    except (OSError, urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
-        fail(f"Could not download the LibreDisplay release: {exc}")
+    for attempt_url in urls:
+        request = urllib.request.Request(attempt_url, headers={"User-Agent": f"LibreDisplay/{current_version()} updater"})
+        hasher = hashlib.sha256(); total = 0
+        try:
+            with urllib.request.urlopen(request, timeout=45) as response, destination.open("wb") as output:
+                while True:
+                    chunk = response.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > MAX_ARCHIVE_BYTES:
+                        fail("Downloaded release archive exceeded the safety size limit.")
+                    hasher.update(chunk); output.write(chunk)
+            last_exc = None; break
+        except (OSError, urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
+            last_exc = exc; destination.unlink(missing_ok=True)
+    if last_exc is not None:
+        fail(f"Could not download the LibreDisplay release using either supported tag style: {last_exc}")
 
     if release["size"] and total != release["size"]:
         fail("The downloaded release size does not match GitHub's asset metadata.")

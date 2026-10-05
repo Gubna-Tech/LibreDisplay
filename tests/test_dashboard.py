@@ -190,10 +190,25 @@ class UpdateStatusTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertTrue(result["updateAvailable"])
         self.assertEqual(result["latestVersion"], "9.9.9")
+        self.assertEqual(result["releaseTag"], "v9.9.9")
         self.assertEqual(result["releaseUrl"], "https://github.com/Gubna-Tech/LibreDisplay/releases/tag/v9.9.9")
         self.assertNotIn("token", json.dumps(result).lower())
         self.assertNotIn("assets_url", result)
         self.assertIn(result["deployment"], {"native", "docker", "source"})
+
+    def test_github_update_status_accepts_release_tag_without_v_prefix(self):
+        payload = json.dumps({
+            "tag_name": "9.9.9",
+            "name": "LibreDisplay 9.9.9",
+            "html_url": "https://github.com/Gubna-Tech/LibreDisplay/releases/tag/9.9.9",
+            "published_at": "2026-10-01T12:00:00Z",
+        }).encode("utf-8")
+        with mock.patch.object(server, "safe_fetch", return_value=(200, {"Content-Type": "application/json"}, payload, server.GITHUB_RELEASE_API)):
+            result = server.github_update_status(force=True)
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["latestVersion"], "9.9.9")
+        self.assertEqual(result["releaseTag"], "9.9.9")
+        self.assertTrue(result["updateAvailable"])
 
     def test_in_app_update_capability_is_disabled_outside_native_install(self):
         with mock.patch.object(server, "update_deployment_mode", return_value="docker"):
