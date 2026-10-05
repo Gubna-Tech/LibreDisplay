@@ -2213,7 +2213,7 @@ body.ld-lightweight-mode.layout-surface-glass :is(#top-strip,.wx-main,#clock-blo
 .preset-hero-mirror{background:radial-gradient(circle at 50% 55%,#0c1012,#020304 64%);text-shadow:none}.hero-mirror-time{position:absolute;left:6%;top:8%;font-size:18px;font-weight:250;letter-spacing:-.8px}.hero-mirror-time small{display:block;margin-top:3px;font-size:4.4px;letter-spacing:0;color:rgba(255,255,255,.48)}.hero-mirror-weather{position:absolute;right:6%;top:9%;font-size:11px;font-weight:300;text-align:right}.hero-mirror-weather i{font-style:normal}.hero-mirror-weather small{display:block;font-size:3.8px;color:rgba(255,255,255,.48)}.hero-mirror-agenda{position:absolute;left:6%;bottom:16%;width:30%}.hero-mirror-agenda b{display:block;font-size:4px;color:rgba(255,255,255,.46);text-transform:uppercase;letter-spacing:.5px}.hero-mirror-agenda span{display:block;margin-top:4px;font-size:4px}.hero-mirror-forecast{position:absolute;right:6%;bottom:9%;font-size:4px;color:rgba(255,255,255,.58)}
 
 /* Preset-specific full-screen presentation. These classes are saved with the preset so preview and applied layouts match. */
-body.layout-preset-photocalendar #app::before{content:"";position:fixed;z-index:1;top:0;right:0;bottom:0;width:60%;background:rgba(0,0,0,.88);pointer-events:none}
+body.layout-preset-photocalendar::before{content:"";position:fixed;z-index:1;top:0;right:0;bottom:0;width:60%;background:rgba(0,0,0,.88);pointer-events:none}
 body.layout-preset-photocalendar #top-strip{background:transparent!important;border:0!important;border-radius:0!important;padding:1.4vh 1.25vw!important;text-shadow:none!important}
 body.layout-preset-photocalendar #top-strip .day-col{border-right-color:rgba(255,255,255,.08)}
 body.layout-preset-photocalendar #top-strip .day-heading{font-weight:350;letter-spacing:.01em}
@@ -2221,19 +2221,19 @@ body.layout-preset-photocalendar #top-strip .event{border-radius:2px;background:
 body.layout-preset-photocalendar :is(#clock-block,.wx-main,.wx-details){background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;text-shadow:0 2px 10px rgba(0,0,0,.88)!important}
 body.layout-preset-photocalendar #clock-block .clock-time{font-weight:260;letter-spacing:-.045em}
 
-body.layout-preset-glassboard #app::before{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,8,12,.04),rgba(5,8,12,.26))}
+body.layout-preset-glassboard::before{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,8,12,.04),rgba(5,8,12,.26))}
 body.layout-preset-glassboard :is(#clock-block,.wx-main,.wx-details,#top-strip,#wx-forecast,.layout-showcase-placeholder){border:1px solid rgba(255,255,255,.12)!important;background:linear-gradient(145deg,rgba(19,24,31,.58),rgba(8,12,17,.38))!important;box-shadow:0 14px 36px rgba(0,0,0,.20),inset 0 1px rgba(255,255,255,.04)!important;backdrop-filter:blur(16px) saturate(1.12)!important;-webkit-backdrop-filter:blur(16px) saturate(1.12)!important}
 body.layout-preset-glassboard #clock-block{background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 body.layout-preset-glassboard #clock-block .clock-time{font-weight:250;letter-spacing:-.045em}
 body.layout-preset-glassboard .layout-showcase-placeholder{padding:clamp(12px,1.25vw,20px);border-radius:clamp(14px,1.2vw,20px)}
 
-body.layout-preset-portraitwall #app::before{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.04),rgba(0,0,0,.08) 38%,rgba(0,0,0,.58) 82%,rgba(0,0,0,.72))}
+body.layout-preset-portraitwall::before{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.04),rgba(0,0,0,.08) 38%,rgba(0,0,0,.58) 82%,rgba(0,0,0,.72))}
 body.layout-preset-portraitwall :is(#clock-block,.wx-main,.wx-details,#wx-forecast){background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 body.layout-preset-portraitwall #top-strip{border:1px solid rgba(255,255,255,.10)!important;border-radius:18px!important;background:rgba(9,13,17,.46)!important;box-shadow:0 16px 38px rgba(0,0,0,.18)!important;backdrop-filter:blur(12px)!important;-webkit-backdrop-filter:blur(12px)!important}
 body.layout-preset-portraitwall #clock-block .clock-time{font-weight:260;letter-spacing:-.045em}
 
 body.layout-preset-weekcolumns{background:#3f4048}
-body.layout-preset-weekcolumns #app::before{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(135deg,rgba(255,255,255,.035),transparent 42%),rgba(31,32,38,.28)}
+body.layout-preset-weekcolumns::before{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(135deg,rgba(255,255,255,.035),transparent 42%),rgba(31,32,38,.28)}
 body.layout-preset-weekcolumns #top-strip{background:transparent!important;border:0!important;padding:0!important;text-shadow:none!important;gap:0!important}
 body.layout-preset-weekcolumns #top-strip .day-col{padding:1.1vh .75vw!important;border-right:1px solid rgba(255,255,255,.13)!important}
 body.layout-preset-weekcolumns #top-strip .day-heading{padding-bottom:.65vh;border-bottom:1px solid rgba(255,255,255,.22);font-weight:350}
@@ -2241,14 +2241,14 @@ body.layout-preset-weekcolumns #top-strip .event{background:transparent!importan
 body.layout-preset-weekcolumns :is(#clock-block,.wx-main,.wx-details){background:transparent!important;border:0!important;box-shadow:none!important;text-shadow:none!important;padding:0!important}
 body.layout-preset-weekcolumns #clock-block .clock-time{font-weight:320}
 
-body.layout-preset-photostory #app::before{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.10),transparent 34%,transparent 48%,rgba(0,0,0,.58) 84%,rgba(0,0,0,.72))}
+body.layout-preset-photostory::before{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.10),transparent 34%,transparent 48%,rgba(0,0,0,.58) 84%,rgba(0,0,0,.72))}
 body.layout-preset-photostory :is(#clock-block,.wx-main,.wx-details,#top-strip,#wx-forecast){background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 body.layout-preset-photostory #clock-block .clock-time{font-weight:250;letter-spacing:-.05em}
 body.layout-preset-photostory .layout-showcase-story{border:0!important;background:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;text-align:center!important;align-items:center!important;justify-content:center!important;padding:0 6vw!important}
 body.layout-preset-photostory .layout-showcase-story .layout-showcase-head{justify-content:center}.layout-showcase-story .layout-showcase-chip,.layout-showcase-story .layout-showcase-icon{display:none}.layout-showcase-story .layout-showcase-title{opacity:.55;letter-spacing:.14em;text-transform:uppercase}.layout-showcase-story .layout-showcase-value{font-weight:350;letter-spacing:-.02em}.layout-showcase-story .layout-showcase-sub{max-width:46em;margin:.5em auto 0}
 
 body.layout-preset-mirrorminimal #bg-a,body.layout-preset-mirrorminimal #bg-b{filter:grayscale(1) brightness(.20) contrast(1.08)}
-body.layout-preset-mirrorminimal #app::before{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;background:rgba(0,0,0,.56)}
+body.layout-preset-mirrorminimal::before{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;background:rgba(0,0,0,.56)}
 body.layout-preset-mirrorminimal :is(#clock-block,.wx-main,.wx-details,#top-strip,#wx-forecast,.layout-showcase-placeholder){background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;padding:0!important;text-shadow:0 2px 12px rgba(0,0,0,.9)!important}
 body.layout-preset-mirrorminimal #clock-block .clock-time{font-weight:220;letter-spacing:-.05em}
 body.layout-preset-mirrorminimal #top-strip .event{background:transparent!important;border-radius:0!important;padding-left:0!important}
@@ -2257,3 +2257,21 @@ body.layout-preset-mirrorminimal .layout-showcase-note{text-align:center!importa
 
 @media(max-width:1040px){.layout-preset-grid{grid-template-columns:1fr 1fr}.layout-preset-card{grid-template-columns:1fr}.layout-preset-stage{width:100%}}
 @media(max-width:720px){.layout-preset-grid{grid-template-columns:1fr}.layout-preset-copy{padding:13px 14px 15px}.layout-preset-stage[data-layout-preset-style="portraitwall"]{width:100%}}
+
+
+/* v1.8.17 stabilization: cloudy definition, NatureScape visibility, and preset-overlay stacking. */
+/* Keep preset shading behind the weather/NatureScape layer so scenery remains visible after applying a signature preset. */
+body[class*="layout-preset-"]::before{pointer-events:none}
+
+/* NatureScape is foreground scenery within the atmospheric layer: above cloud/fog masses, below dangerous-weather overlays. */
+#weather-effects-overlay .weather-fx-seasonal{z-index:2}
+#weather-effects-overlay .weather-fx-edge-frost{z-index:2}
+
+/* Cloudy must read as cloud cover, not fog. Remove the broad blurred veil and use defined upper-sky cloud structures. */
+#weather-effects-overlay.weather-fx-cloud.show{background:linear-gradient(180deg,rgba(94,112,126,calc(.10*var(--weather-fx-opacity,.34))) 0%,rgba(132,149,160,calc(.055*var(--weather-fx-opacity,.34))) 30%,transparent 56%)}
+#weather-effects-overlay.weather-fx-cloud.show::before{inset:0;background:linear-gradient(180deg,rgba(212,221,227,calc(.10*var(--weather-fx-atmosphere,.55)*var(--weather-fx-opacity,.34))) 0%,rgba(173,187,197,calc(.06*var(--weather-fx-atmosphere,.55)*var(--weather-fx-opacity,.34))) 32%,transparent 58%);filter:none!important;animation:ldWeatherSkyDrift 34s ease-in-out infinite alternate}
+.weather-fx-cloud .weather-fx-cloud-mass{filter:opacity(var(--weather-cloud-opacity,1));border:1px solid rgba(236,242,245,.12);box-shadow:inset 0 -1.25vh 1.8vh rgba(72,88,101,.18),0 1.2vh 2.4vh rgba(7,14,22,.08)}
+.weather-fx-cloud .weather-fx-cloud-mass::before,.weather-fx-cloud .weather-fx-cloud-mass::after{filter:none}
+.weather-fx-cloud .weather-fx-cloud-mass-overcast{background:linear-gradient(180deg,rgba(226,233,237,.94),rgba(183,196,205,.86) 58%,rgba(137,154,167,.67));box-shadow:inset 0 -1.5vh 2.1vh rgba(66,82,95,.22),0 1.35vh 2.6vh rgba(7,14,22,.09)}
+.weather-fx-cloud .weather-fx-overcast-deck{height:32vh;top:-3vh;filter:none;background:radial-gradient(ellipse at 8% 35%,rgba(211,221,227,var(--overcast-alpha,.28)) 0 20%,transparent 43%),radial-gradient(ellipse at 31% 19%,rgba(191,204,213,calc(var(--overcast-alpha,.28)*.95)) 0 24%,transparent 47%),radial-gradient(ellipse at 58% 31%,rgba(208,218,224,calc(var(--overcast-alpha,.28)*.92)) 0 25%,transparent 49%),radial-gradient(ellipse at 83% 17%,rgba(179,194,204,calc(var(--overcast-alpha,.28)*.88)) 0 23%,transparent 47%),linear-gradient(180deg,rgba(139,156,168,calc(var(--overcast-alpha,.28)*.68)),rgba(180,193,201,calc(var(--overcast-alpha,.28)*.34)) 64%,transparent 100%);animation:ldOvercastCloudShift 26s ease-in-out infinite alternate}
+@keyframes ldOvercastCloudShift{from{transform:translate3d(-1vw,0,0) scale(1.01);opacity:.88}to{transform:translate3d(1.8vw,.45vh,0) scale(1.025);opacity:1}}

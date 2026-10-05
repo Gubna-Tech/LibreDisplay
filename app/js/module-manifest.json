@@ -58,7 +58,7 @@
     "module": "weather",
     "part": "effects",
     "path": "/js/weather/effects.js",
-    "lines": 430,
+    "lines": 431,
     "functions": 27,
     "bindings": 0
   },
