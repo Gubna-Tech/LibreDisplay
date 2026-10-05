@@ -56,14 +56,23 @@
   {
     "order": 7,
     "module": "weather",
-    "part": "effects",
-    "path": "/js/weather/effects.js",
-    "lines": 441,
-    "functions": 28,
+    "part": "scenery",
+    "path": "/js/weather/scenery.js",
+    "lines": 60,
+    "functions": 25,
     "bindings": 0
   },
   {
     "order": 8,
+    "module": "weather",
+    "part": "effects",
+    "path": "/js/weather/effects.js",
+    "lines": 443,
+    "functions": 28,
+    "bindings": 0
+  },
+  {
+    "order": 9,
     "module": "weather",
     "part": "alerts",
     "path": "/js/weather/alerts.js",
@@ -72,7 +81,7 @@
     "bindings": 1
   },
   {
-    "order": 9,
+    "order": 10,
     "module": "calendar",
     "part": "ics-parser",
     "path": "/js/calendar/ics-parser.js",
@@ -81,7 +90,7 @@
     "bindings": 1
   },
   {
-    "order": 10,
+    "order": 11,
     "module": "calendar",
     "part": "recurrence",
     "path": "/js/calendar/recurrence.js",
@@ -90,7 +99,7 @@
     "bindings": 0
   },
   {
-    "order": 11,
+    "order": 12,
     "module": "calendar",
     "part": "index",
     "path": "/js/calendar/index.js",
@@ -99,7 +108,7 @@
     "bindings": 1
   },
   {
-    "order": 12,
+    "order": 13,
     "module": "backgrounds",
     "part": "google-photos",
     "path": "/js/backgrounds/google-photos.js",
@@ -114,10 +123,10 @@
     "lines": 23,
     "functions": 9,
     "bindings": 0,
-    "order": 13
+    "order": 14
   },
   {
-    "order": 14,
+    "order": 15,
     "module": "backgrounds",
     "part": "index",
     "path": "/js/backgrounds/index.js",
@@ -126,7 +135,7 @@
     "bindings": 2
   },
   {
-    "order": 15,
+    "order": 16,
     "module": "blocks",
     "part": "index",
     "path": "/js/blocks/index.js",
@@ -135,7 +144,7 @@
     "bindings": 10
   },
   {
-    "order": 16,
+    "order": 17,
     "module": "layout",
     "part": "index",
     "path": "/js/layout/index.js",
@@ -144,7 +153,7 @@
     "bindings": 27
   },
   {
-    "order": 17,
+    "order": 18,
     "module": "layout",
     "part": "remote",
     "path": "/js/layout/remote.js",
@@ -153,7 +162,7 @@
     "bindings": 4
   },
   {
-    "order": 18,
+    "order": 19,
     "module": "layout",
     "part": "persistence",
     "path": "/js/layout/persistence.js",
@@ -165,13 +174,13 @@
     "module": "appearance",
     "part": "weather",
     "path": "/js/appearance/weather.js",
-    "lines": 66,
+    "lines": 68,
     "functions": 4,
     "bindings": 0,
-    "order": 19
+    "order": 20
   },
   {
-    "order": 20,
+    "order": 21,
     "module": "appearance",
     "part": "index",
     "path": "/js/appearance/index.js",
@@ -180,7 +189,7 @@
     "bindings": 7
   },
   {
-    "order": 21,
+    "order": 22,
     "module": "appearance",
     "part": "presets",
     "path": "/js/appearance/presets.js",
@@ -189,7 +198,7 @@
     "bindings": 5
   },
   {
-    "order": 22,
+    "order": 23,
     "module": "appearance",
     "part": "backup",
     "path": "/js/appearance/backup.js",
@@ -198,7 +207,7 @@
     "bindings": 0
   },
   {
-    "order": 23,
+    "order": 24,
     "module": "remote",
     "part": "index",
     "path": "/js/remote/index.js",
@@ -207,7 +216,7 @@
     "bindings": 10
   },
   {
-    "order": 24,
+    "order": 25,
     "module": "system",
     "part": "index",
     "path": "/js/system/index.js",
@@ -216,7 +225,7 @@
     "bindings": 16
   },
   {
-    "order": 25,
+    "order": 26,
     "module": "system",
     "part": "profiles",
     "path": "/js/system/profiles.js",
@@ -225,7 +234,7 @@
     "bindings": 0
   },
   {
-    "order": 26,
+    "order": 27,
     "module": "onboarding",
     "part": "index",
     "path": "/js/onboarding/index.js",
@@ -234,7 +243,7 @@
     "bindings": 4
   },
   {
-    "order": 27,
+    "order": 28,
     "module": "settings",
     "part": "index",
     "path": "/js/settings/index.js",
@@ -243,16 +252,16 @@
     "bindings": 1
   },
   {
-    "order": 28,
+    "order": 29,
     "module": "settings",
     "part": "navigation",
     "path": "/js/settings/navigation.js",
-    "lines": 457,
+    "lines": 460,
     "functions": 22,
     "bindings": 9
   },
   {
-    "order": 29,
+    "order": 30,
     "module": "settings",
     "part": "actions",
     "path": "/js/settings/actions.js",
@@ -261,7 +270,7 @@
     "bindings": 1
   },
   {
-    "order": 30,
+    "order": 31,
     "module": "settings",
     "part": "interactions",
     "path": "/js/settings/interactions.js",
@@ -270,7 +279,7 @@
     "bindings": 5
   },
   {
-    "order": 31,
+    "order": 32,
     "module": "settings",
     "part": "accounts",
     "path": "/js/settings/accounts.js",
@@ -279,7 +288,7 @@
     "bindings": 0
   },
   {
-    "order": 32,
+    "order": 33,
     "module": "lifecycle",
     "part": "index",
     "path": "/js/lifecycle/index.js",

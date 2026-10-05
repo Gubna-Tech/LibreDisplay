@@ -1,4 +1,4 @@
-// LibreDisplay v1.8.19 frontend bootstrap.
+// LibreDisplay v1.8.20 frontend bootstrap.
 // Source files load sequentially so split feature modules can extend one logical module safely.
 const modulePaths = [
   "/js/core/runtime.js",
@@ -8,6 +8,7 @@ const modulePaths = [
   "/js/core/config.js",
   "/js/core/performance.js",
   "/js/weather/index.js",
+  "/js/weather/scenery.js",
   "/js/weather/effects.js",
   "/js/weather/alerts.js",
   "/js/calendar/ics-parser.js",
