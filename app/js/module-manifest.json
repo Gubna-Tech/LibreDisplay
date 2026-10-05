@@ -58,7 +58,7 @@
     "module": "weather",
     "part": "effects",
     "path": "/js/weather/effects.js",
-    "lines": 352,
+    "lines": 409,
     "functions": 21,
     "bindings": 0
   },
@@ -67,7 +67,7 @@
     "module": "weather",
     "part": "alerts",
     "path": "/js/weather/alerts.js",
-    "lines": 346,
+    "lines": 347,
     "functions": 24,
     "bindings": 1
   },
@@ -247,7 +247,7 @@
     "module": "settings",
     "part": "navigation",
     "path": "/js/settings/navigation.js",
-    "lines": 452,
+    "lines": 454,
     "functions": 22,
     "bindings": 9
   },

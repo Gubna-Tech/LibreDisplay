@@ -260,6 +260,7 @@ function restartAlertScroller(){
 
 function renderWeatherAlerts(alerts){
   configApi.activeWeatherAlerts=(Array.isArray(alerts)?alerts:[]).slice(0,10);
+  try{LibreDisplayRuntime.getModule('weatherEffects').refreshWeatherEffects();}catch(_e){}
   setTimeout(updateSettingsOverview,0);
   const zone=document.getElementById('alert-zone');
   const track=document.getElementById('alert-track');
