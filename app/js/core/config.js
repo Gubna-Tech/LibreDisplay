@@ -79,7 +79,7 @@ let cfg = {
   calendarCellHeight:150,
   calendarScrollMode:'off',
   calendarScrollSpeed:12,
-  layoutMode:'default',layoutSurfaceStyle:'clean',
+  layoutMode:'default',layoutSurfaceStyle:'clean',layoutPresetStyle:'',
   layoutGridPx:20,
   layoutSnap:true,
   layoutBlocks:{},
@@ -275,7 +275,7 @@ function ensureCfgDefaults(){
   cfg.calendarCellHeight=Math.min(240,Math.max(90,num(cfg.calendarCellHeight,150)));
   cfg.calendarScrollMode=['off','auto'].includes(cfg.calendarScrollMode)?cfg.calendarScrollMode:'off';
   cfg.calendarScrollSpeed=Math.min(60,Math.max(2,num(cfg.calendarScrollSpeed,12)));
-  cfg.layoutMode=cfg.layoutMode==='custom'?'custom':'default';
+  cfg.layoutMode=cfg.layoutMode==='custom'?'custom':'default';cfg.layoutPresetStyle=/^[a-z0-9-]{1,40}$/.test(String(cfg.layoutPresetStyle||''))?String(cfg.layoutPresetStyle):'';
   cfg.layoutGridPx=[8,12,16,20,24,32].includes(Number(cfg.layoutGridPx))?Number(cfg.layoutGridPx):20;
   if(typeof cfg.layoutSnap!=='boolean')cfg.layoutSnap=true;
   if(!cfg.layoutBlocks||typeof cfg.layoutBlocks!=='object'||Array.isArray(cfg.layoutBlocks))cfg.layoutBlocks={};

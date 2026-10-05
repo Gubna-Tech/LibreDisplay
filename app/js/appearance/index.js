@@ -173,7 +173,7 @@ function applyAccessibilityPreferences(source=cfg){
 }
 
 function applyUiCustomization(source=cfg){
-  applyAccessibilityPreferences(source);const surface=['clean','glass','minimal','photo'].includes(source?.layoutSurfaceStyle)?source.layoutSurfaceStyle:'clean';for(const name of ['clean','glass','minimal','photo'])document.body.classList.toggle('layout-surface-'+name,name===surface);document.body.classList.toggle('ld-lightweight-mode',source?.lightweightModeEnabled===true);
+  applyAccessibilityPreferences(source);const surface=['clean','glass','minimal','photo'].includes(source?.layoutSurfaceStyle)?source.layoutSurfaceStyle:'clean';for(const name of ['clean','glass','minimal','photo'])document.body.classList.toggle('layout-surface-'+name,name===surface);const presetStyle=/^[a-z0-9-]{1,40}$/.test(String(source?.layoutPresetStyle||''))?String(source.layoutPresetStyle):'';for(const name of ['photocalendar','glassboard','portraitwall','weekcolumns','photostory','mirrorminimal','family','split','gallery','calendar','agenda','weather','morning','smarthub','familyops','office','insights','travel','large','compact','minimal','portrait','portraitphoto','default'])document.body.classList.toggle('layout-preset-'+name,name===presetStyle);document.body.classList.toggle('ld-lightweight-mode',source?.lightweightModeEnabled===true);
   try{LibreDisplayRuntime.getModule('weatherEffects').applyWeatherEffects(LibreDisplayRuntime.getModule('config').wxData,source);}catch(_e){}
   applyProductTheme(source.uiTheme||'libre-night');
   const q=(v,lo,hi,def)=>{const n=Number(v);return Math.min(hi,Math.max(lo,Number.isFinite(n)?n:def));};

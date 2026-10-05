@@ -60,7 +60,12 @@ const WD={0:'Clear',1:'Mainly clear',2:'Partly cloudy',3:'Cloudy',
   75:'Heavy snow',77:'Snow grains',80:'Showers',81:'Rain showers',82:'Violent showers',
   85:'Snow showers',86:'Heavy snow',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
 const WIN={0:'🌙',1:'🌙☁️',2:'🌙☁️',51:'🌧️',53:'🌧️',80:'🌧️'};
-function wi(c,isDay=true){return isDay===false?(WIN[c]||WI[c]||'🌡️'):(WI[c]||'🌡️');}
+const MOON_PHASE_NORTH=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
+const MOON_PHASE_SOUTH=['🌑','🌘','🌗','🌖','🌕','🌔','🌓','🌒'];
+function weatherLocalDateParts(time){const m=String(time||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/);return m?{year:Number(m[1]),month:Number(m[2]),day:Number(m[3]),hour:Number(m[4]||12),minute:Number(m[5]||0)}:null;}
+function lunarPhaseIndex(time,utcOffsetSeconds=0){const p=weatherLocalDateParts(time),offset=Number(utcOffsetSeconds)||0,date=p?new Date(Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute)-offset*1000):new Date(),synodic=29.530588853,knownNewMoon=Date.UTC(2000,0,6,18,14),age=((date.getTime()-knownNewMoon)/86400000%synodic+synodic)%synodic;return Math.floor((age/synodic*8)+.5)%8;}
+function moonPhaseEmoji(time,latitude=cfg.lat,utcOffsetSeconds=0){const lat=Number(latitude),south=Number.isFinite(lat)&&lat<0;return (south?MOON_PHASE_SOUTH:MOON_PHASE_NORTH)[lunarPhaseIndex(time,utcOffsetSeconds)]||'🌙';}
+function wi(c,isDay=true,time='',latitude=cfg.lat,utcOffsetSeconds=0){if(isDay!==false)return WI[c]||'🌡️';const moon=moonPhaseEmoji(time,latitude,utcOffsetSeconds);if(Number(c)===0)return moon;if([1,2].includes(Number(c)))return moon+'☁️';return WIN[c]||WI[c]||'🌡️';}
 function wd(c){return WD[c]||'';}
 function weatherTimeIsDay(time,daily){
   const raw=String(time||''),dayKey=raw.slice(0,10),idx=(daily?.time||[]).indexOf(dayKey),hour=Number(raw.slice(11,13));
@@ -169,7 +174,7 @@ function renderWeather(d){
   document.getElementById('wx-temp').textContent=C(c.temperature_2m)+'°';
   const effects=LibreDisplayRuntime.getModule('weatherEffects'),currentIcon=document.getElementById('wx-icon');
   const currentIsDay=Number(c.is_day)!==0;
-  effects.decorateWeatherIcon(currentIcon,c.weather_code,wi(c.weather_code,currentIsDay),ui,currentIsDay);
+  effects.decorateWeatherIcon(currentIcon,c.weather_code,wi(c.weather_code,currentIsDay,c.time,d.latitude??ui.lat,d.utc_offset_seconds??0),ui,currentIsDay);
   currentIcon.style.display=ui.showCurrentIcon?'':'none';
   document.getElementById('wx-feels').textContent='Feels like '+C(c.apparent_temperature)+'°';
   document.getElementById('wx-cond').textContent=wd(c.weather_code);
@@ -205,7 +210,7 @@ function renderWeather(d){
     const el=document.createElement('div');
     el.className='hr-col';
     el.innerHTML=`<div class="hr-time">${h12}${ampm}</div>
-      <div class="hr-icon" data-weather-code="${hr.weather_code[i]}">${effects.weatherIconMarkup(hr.weather_code[i],wi(hr.weather_code[i],weatherTimeIsDay(hr.time[i],dl)),ui,weatherTimeIsDay(hr.time[i],dl))}</div>
+      <div class="hr-icon" data-weather-code="${hr.weather_code[i]}">${effects.weatherIconMarkup(hr.weather_code[i],wi(hr.weather_code[i],weatherTimeIsDay(hr.time[i],dl),hr.time[i],d.latitude??ui.lat,d.utc_offset_seconds??0),ui,weatherTimeIsDay(hr.time[i],dl))}</div>
       ${ui.showPrecip?`<div class="hr-rain">💧${pp}%</div>`:''}
       <div class="hr-temp">${C(hr.temperature_2m[i])}°</div>`;
     hrDiv.appendChild(el);

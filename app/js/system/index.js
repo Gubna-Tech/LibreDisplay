@@ -64,7 +64,7 @@ function renderSoftwareUpdateStatus(){
     autoStatus.textContent=checked?`Automatic update detection is on · last checked ${when}${d?.stale?' · showing last successful result':''}.`:'Automatic update detection is on · checking when Settings opens and every 15 minutes while open.';
   }
   const updateAvailable=bootstrapApi.SESSION_ROLE==='owner'&&!!d?.ok&&!!d.updateAvailable;
-  if(badge)badge.classList.remove('show');
+  if(badge){badge.classList.toggle('show',updateAvailable);badge.setAttribute('aria-hidden',updateAvailable?'false':'true');}
   if(systemTab)systemTab.classList.toggle('update-available',updateAvailable);
   if(releaseLink){
     const href=d?.releaseUrl&&safeHttpUrl(d.releaseUrl)?safeHttpUrl(d.releaseUrl):'';
