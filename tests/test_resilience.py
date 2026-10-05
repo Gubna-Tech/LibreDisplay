@@ -169,13 +169,13 @@ class ResilienceContractTests(unittest.TestCase):
 
     def test_system_health_reports_startup_integrity_state(self):
         server.atomic_write_json_file(server.STARTUP_INTEGRITY_PATH, {
-            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.10",
+            "ok": True, "checkedAt": 2_000_000_000, "version": "1.8.11",
             "coreFiles": 11, "pythonFiles": 3, "frontendVerified": True,
         })
         payload = server.system_health_payload()
         self.assertTrue(payload["startupIntegrity"]["ok"])
         self.assertTrue(payload["startupIntegrity"]["frontendVerified"])
-        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.10")
+        self.assertEqual(payload["startupIntegrity"]["version"], "1.8.11")
 
     def test_stale_broker_returns_cached_data_while_refresh_runs(self):
         key = "resilience-stale-while-revalidate"
@@ -769,7 +769,7 @@ class ResilienceContractTests(unittest.TestCase):
         css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
         self.assertIn("function weatherWildlifeWeatherFactors", effects)
         self.assertIn("function visibleWildlifeCount", effects)
-        self.assertIn("wildlifeSignature=['bees','butterflies','fireflies','birds']", effects)
+        self.assertIn("wildlifeSignature=['bees','butterflies','fireflies','dragonflies','ladybugs','moths','birds','owls']", effects)
         self.assertIn("weatherIsDay(data)?'day':'night'", effects)
         self.assertIn("if(typeof cfg.weatherSeasonBirds!=='boolean')cfg.weatherSeasonBirds=true", config)
         self.assertIn(".weather-fx-static .weather-fx-bird{left:var(--season-x,50vw)", css)
