@@ -2,7 +2,7 @@
 set -eu
 umask 077
 
-VERSION="1.8.20"
+VERSION="1.8.21"
 REPOSITORY="Gubna-Tech/LibreDisplay"
 INSTALL_DIR="$HOME/libredisplay"
 TMP_ROOT=""
