@@ -160,10 +160,10 @@ class ReleaseRollbackTests(unittest.TestCase):
 
     def test_current_release_passes_runtime_install_verification(self):
         root = Path(__file__).resolve().parents[1]
-        result = self.mod.verify_installed_release(root, "1.8.12")
+        result = self.mod.verify_installed_release(root, "1.8.13")
         self.assertTrue(result["ok"])
         self.assertTrue(result["frontendVerified"])
-        self.assertEqual(result["version"], "1.8.12")
+        self.assertEqual(result["version"], "1.8.13")
         self.assertEqual(result["coreFiles"], 12)
         self.assertEqual(result["pythonFiles"], 5)
         self.assertEqual(result["shellFiles"], 11)

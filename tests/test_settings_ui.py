@@ -487,6 +487,27 @@ def test_bird_repeat_avoidance_uses_rolling_history_and_auto_habitat_is_strictly
     assert "@keyframes ldBirdTailFlex" in css
     assert "@keyframes ldBirdHeadBob" in css
 
+def test_v1813_naturescape_creature_anatomy_preserves_bilateral_wings_and_true_form_profiles():
+    effects = (ROOT / "app" / "js" / "weather" / "effects.js").read_text(encoding="utf-8")
+    css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
+    assert "['wing-far','wing-near','head','tail','beak','neck','legs','mark']" in effects
+    assert effects.count("['wing-far','wing-near','head','tail','beak','neck','legs','mark']") == 2
+    assert "/* v1.8.13 Naturescape creature anatomy and animation fidelity. */" in css
+    for marker in (
+        ".weather-fx-bird-wing-far", ".weather-fx-bird-wing-near",
+        "@keyframes ldBirdWingNearV1813", "@keyframes ldBirdWingSoarV1813",
+        "@keyframes ldBirdWingHoverV1813", "@keyframes ldBirdWingOwlV1813",
+        "@keyframes ldButterflyWingLeftV1813", "@keyframes ldButterflyWingRightV1813",
+        "@keyframes ldMothWingLeftV1813", "@keyframes ldMothWingRightV1813",
+        "@keyframes ldDragonflyWingV1813",
+    ):
+        assert marker in css
+    assert ".weather-fx-bird-species-crane .weather-fx-bird-neck{display:block" in css
+    assert ".weather-fx-bird-species-egret .weather-fx-bird-neck,.weather-fx-bird-species-heron .weather-fx-bird-neck{display:block" in css
+    assert ".weather-fx-bird-species-pelican .weather-fx-bird-beak::after" in css
+    assert "html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-overlay .weather-fx-bird-wing-far" in css
+
+
 def test_update_attention_cue_is_subtle_and_respects_reduced_motion():
     css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
     assert "ldUpdateBadgeAttention" in css
