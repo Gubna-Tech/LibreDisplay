@@ -10,10 +10,10 @@ CONFIG=(ROOT/'app/js/core/config.js').read_text()
 
 
 def test_current_release_version_is_v1816_and_readme_uses_pinned_bootstrap():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.21'
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.22'
     readme=(ROOT/'README.md').read_text()
-    assert 'Gubna-Tech/LibreDisplay/v1.8.21/scripts/install-one-line.sh' in readme
-    assert 'pinned **v1.8.21** release' in readme
+    assert 'Gubna-Tech/LibreDisplay/v1.8.22/scripts/install-one-line.sh' in readme
+    assert 'pinned **v1.8.22** release' in readme
 
 
 def test_offline_reserve_explains_photo_count_perspective_and_yields_when_caching():

@@ -5,14 +5,15 @@ CFG=(ROOT/'app/js/core/config.js').read_text(encoding='utf-8')
 SETTINGS=(ROOT/'app/js/settings/index.js').read_text(encoding='utf-8')
 BG=(ROOT/'app/js/backgrounds/index.js').read_text(encoding='utf-8')
 FX=(ROOT/'app/js/weather/effects.js').read_text(encoding='utf-8')
+SCENERY=(ROOT/'app/js/weather/scenery.js').read_text(encoding='utf-8')
 CSS=(ROOT/'app/css/dashboard.css').read_text(encoding='utf-8')
 PRESETS=(ROOT/'app/js/appearance/presets.js').read_text(encoding='utf-8')
 README=(ROOT/'README.md').read_text(encoding='utf-8')
 
 def test_v1818_version_and_readme_scope():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.21'
-    assert 'v1.8.21/scripts/install-one-line.sh' in README
-    assert 'VERSION="1.8.21"' in (ROOT/'scripts/install-one-line.sh').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.22'
+    assert 'v1.8.22/scripts/install-one-line.sh' in README
+    assert 'VERSION="1.8.22"' in (ROOT/'scripts/install-one-line.sh').read_text()
 
 def test_offline_background_reserve_is_one_user_setting():
     assert 'id="s-bg-offline-reserve"' in HTML
@@ -30,9 +31,9 @@ def test_dog_companion_is_optional_breed_aware_and_animated():
         assert f'value="{breed}"' in HTML
         assert f'.weather-fx-dog-{breed}' in CSS
     assert 'weatherDogCompanion:false' in CFG
-    assert 'function appendDogCompanion' in FX
-    assert 'dog-ball' in FX and 'dog-sleep' in FX and 'weather-fx-dog-bird-curious' in FX
-    assert '@keyframes ldDogLife' in CSS and '@keyframes ldDogBall' in CSS and '@keyframes ldDogSleep' in CSS
+    assert 'function appendDogCompanion' in SCENERY
+    assert 'dogv2-ball' in SCENERY and 'dogv2-sleep' in SCENERY and 'dogBreedSignature' in SCENERY
+    assert '@keyframes ld1822Stride' in CSS and '@keyframes ld1822DogBall' in CSS and '@keyframes ld1822SleepZ' in CSS
 
 def test_alert_scenes_have_visible_family_specific_renderers():
     for cls in ('hazard-tornado-vapor','hazard-hurricane-band','hazard-tropical-rain','hazard-storm-rain','hazard-storm-bolt','hazard-blizzard-gust','hazard-blizzard-ground','hazard-fire-ember','hazard-flood-depth'):

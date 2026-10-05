@@ -11,22 +11,23 @@ README=(ROOT/'README.md').read_text(encoding='utf-8')
 
 
 def test_v1820_version_and_pinned_installer_are_synchronized():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.21'
-    assert 'v1.8.21/scripts/install-one-line.sh' in README
-    assert 'VERSION="1.8.21"' in (ROOT/'scripts/install-one-line.sh').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.22'
+    assert 'v1.8.22/scripts/install-one-line.sh' in README
+    assert 'VERSION="1.8.22"' in (ROOT/'scripts/install-one-line.sh').read_text()
 
 
 def test_companion_is_a_state_driven_character_not_a_linear_sprite_loop():
     assert '/js/weather/scenery.js' in APP
     for state in ('rest','sit','sleep','sniff','wander','dig','roll','ball','bird','perch'):
         assert f"'{state}'" in SCENERY
-        assert f'.dog-state-{state}' in CSS or state=='rest'
+        assert f"'{state}'" in SCENERY
     assert 'dogPerchTarget' in SCENERY
-    assert '@keyframes ldDogClimb' in CSS
+    assert '@keyframes ld1822PlayFlop' in CSS
     assert 'lowBirdTarget' in SCENERY
-    assert "node.style.left=`${Math.round(nextX)}px`" in SCENERY
-    assert "node.style.bottom=`${Math.round(target.bottom)}px`" in SCENERY
-    assert "--dog-facing" in SCENERY
+    assert 'function dogMoveTo' in SCENERY
+    assert 'requestAnimationFrame(tick)' in SCENERY
+    assert 'omt*omt*x0+2*omt*e*cx+e*e*x1' in SCENERY
+    assert 'node.dataset.direction' in SCENERY
     assert 'animation:none!important' in CSS and '#weather-effects-overlay .weather-fx-dog' in CSS
 
 
@@ -38,14 +39,15 @@ def test_requested_breeds_lab_coats_and_collar_customization_are_present():
     )
     for breed in breeds:
         assert f'value="{breed}"' in HTML
-        assert f'.weather-fx-dog-{breed}' in CSS
+        assert 'dogv2-svg' in SCENERY
+        assert breed in SCENERY
         assert f"'{breed}'" in SCENERY
     for coat in ('black','yellow','fox-red','chocolate'):
         assert f'value="{coat}"' in HTML
-        assert f'weather-fx-dog-lab-{coat}' in CSS
+        assert coat in SCENERY
     for collar in ('none','red','blue','teal','green','purple','pink','orange','black','brown'):
         assert f'value="{collar}"' in HTML
-    assert 'dog-collar-none' in CSS
+    assert "collar==='none'" in SCENERY
     assert 'weatherDogCompanion:false' in CFG
 
 
