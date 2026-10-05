@@ -8,8 +8,8 @@ CONFIG=(ROOT/'app/js/core/config.js').read_text(encoding='utf-8')
 
 
 def test_layout_overhaul_stays_on_v1816_and_does_not_touch_readme_contract():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.16'
-    assert 'v1.8.16/scripts/install-one-line.sh' in (ROOT/'README.md').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.17'
+    assert 'v1.8.17/scripts/install-one-line.sh' in (ROOT/'README.md').read_text()
 
 
 def test_signature_presets_have_distinct_finished_dashboard_compositions():
@@ -32,7 +32,8 @@ def test_preset_identity_is_saved_and_applied_to_fullscreen_preview():
 def test_each_signature_preset_has_fullscreen_visual_treatment():
     for key in ('photocalendar','glassboard','portraitwall','weekcolumns','photostory','mirrorminimal'):
         assert f'body.layout-preset-{key}' in CSS
-    assert 'body.layout-preset-photocalendar #app::before' in CSS
+    assert 'body.layout-preset-photocalendar::before' in CSS
+    assert 'body.layout-preset-photocalendar #app::before' not in CSS
     assert 'body.layout-preset-weekcolumns #top-strip .event' in CSS
     assert 'body.layout-preset-photostory .layout-showcase-story' in CSS
     assert 'body.layout-preset-mirrorminimal #bg-a' in CSS

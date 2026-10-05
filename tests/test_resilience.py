@@ -669,7 +669,7 @@ class ResilienceContractTests(unittest.TestCase):
         css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
         self.assertIn("if(cfg.weatherFullscreenEffects)cfg.weatherAnimationsEnabled=true", config)
         self.assertIn("ensureCfgDefaults();\n  cfg._savedAt=Date.now();", config)
-        self.assertIn("fullOn:!!source.weatherFullscreenEffects&&!pauseReason&&(allowed||hazardOn)", effects)
+        self.assertIn("fullOn:!!source.weatherFullscreenEffects&&!pauseReason&&(allowed||hazardOn||seasonalOn)", effects)
         self.assertNotIn("fullOn:!!source.weatherAnimationsEnabled&&!!source.weatherFullscreenEffects", effects)
         self.assertIn("function fullscreenPauseReason(source)", effects)
         self.assertIn("function weatherOverlayNeedsRepair", effects)

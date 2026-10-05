@@ -297,20 +297,40 @@ class FrontendArchitectureTests(unittest.TestCase):
             return "".join(out)
 
         bridged = set()
-        sources = {}
         masked = {}
+        local_declarations = {}
+        destructured_bindings = {}
+        bare_references = {}
+        declaration_pattern = re.compile(r"\b(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)\b")
+        destructure_pattern = re.compile(r"\b(?:const|let|var)\s*\{([^}]*)\}\s*=", re.S)
+        identifier_pattern = re.compile(r"(?<![A-Za-z0-9_$])([A-Za-z_$][\w$]*)\b")
+
         for path in js_files:
             source = path.read_text(encoding="utf-8")
-            sources[path] = source
-            masked[path] = mask_strings_and_comments(source)
+            clean = mask_strings_and_comments(source)
+            masked[path] = clean
             for key in ("globalFunctions", "globalStates"):
                 for match in re.finditer(rf"{key}\s*:\s*\[([^\]]*)\]", source, re.S):
                     bridged.update(re.findall(r"['\"]([A-Za-z_$][\w$]*)['\"]", match.group(1)))
+            local_declarations[path] = {match.group(1) for match in declaration_pattern.finditer(clean)}
+            destructured = set()
+            for match in destructure_pattern.finditer(clean):
+                destructured.update(re.findall(r"\b([A-Za-z_$][\w$]*)\b", match.group(1)))
+            destructured_bindings[path] = destructured
+            refs = {}
+            for match in identifier_pattern.finditer(clean):
+                name = match.group(1)
+                index = match.start(1)
+                if index > 0 and clean[index - 1] == "." and not (index >= 3 and clean[index - 3:index] == "..."):
+                    continue
+                refs.setdefault(name, clean.count("\n", 0, index) + 1)
+            bare_references[path] = refs
 
         definitions = []
+        top_level_pattern = re.compile(r"^(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)\b")
         for path, source in masked.items():
             for line_no, line in enumerate(source.splitlines(), 1):
-                match = re.match(r"^(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)\b", line)
+                match = top_level_pattern.match(line)
                 if match:
                     definitions.append((match.group(1), path, line_no))
 
@@ -318,24 +338,16 @@ class FrontendArchitectureTests(unittest.TestCase):
         for name, defining_path, line_no in definitions:
             if name in bridged or len(name) < 3:
                 continue
-            token = re.compile(rf"(?<![A-Za-z0-9_$]){re.escape(name)}\b")
-            for path, source in masked.items():
-                if path == defining_path:
+            for path in js_files:
+                if path == defining_path or name in local_declarations[path] or name in destructured_bindings[path]:
                     continue
-                if re.search(rf"\b(?:const|let|var|function|class)\s+{re.escape(name)}\b", source):
+                target_line = bare_references[path].get(name)
+                if target_line is None:
                     continue
-                if re.search(rf"\b(?:const|let|var)\s*\{{[^}}]*\b{re.escape(name)}\b[^}}]*\}}\s*=", source, re.S):
-                    continue
-                for match in token.finditer(source):
-                    index = match.start()
-                    if index > 0 and source[index - 1] == "." and not (index >= 3 and source[index - 3:index] == "..."):
-                        continue
-                    target_line = source.count("\n", 0, index) + 1
-                    failures.append(
-                        f"{name} defined in {defining_path.relative_to(ROOT)}:{line_no} "
-                        f"is referenced bare from {path.relative_to(ROOT)}:{target_line}"
-                    )
-                    break
+                failures.append(
+                    f"{name} defined in {defining_path.relative_to(ROOT)}:{line_no} "
+                    f"is referenced bare from {path.relative_to(ROOT)}:{target_line}"
+                )
         self.assertEqual(failures, [], "\n".join(failures))
 
     def test_custom_block_periodic_work_uses_managed_scheduler_and_has_no_detached_photo_timer(self):
