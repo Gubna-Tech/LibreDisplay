@@ -9,10 +9,11 @@ SYSTEM=(ROOT/'app/js/system/index.js').read_text()
 CONFIG=(ROOT/'app/js/core/config.js').read_text()
 
 
-def test_v1814_version_and_readme_install_refs():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.14'
+def test_current_release_version_is_v1815_and_readme_uses_pinned_bootstrap():
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.15'
     readme=(ROOT/'README.md').read_text()
-    assert 'v1.8.14.zip' in readme and 'LibreDisplay-1.8.14' in readme
+    assert 'Gubna-Tech/LibreDisplay/v1.8.15/scripts/install-one-line.sh' in readme
+    assert 'pinned **v1.8.15** release' in readme
 
 
 def test_offline_reserve_explains_photo_count_perspective_and_yields_when_caching():

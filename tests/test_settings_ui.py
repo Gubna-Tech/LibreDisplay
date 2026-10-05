@@ -91,7 +91,7 @@ class SettingsUiTests(unittest.TestCase):
     def test_layout_preset_gallery_stages_without_mutating_saved_config(self):
         self.assertIn('id="layout-preset-gallery"', HTML)
         self.assertIn('id="layout-preset-preview-button"', HTML)
-        self.assertIn("const LAYOUT_PRESET_ORDER=['current','family','split','gallery','calendar','agenda','weather','morning','smarthub','familyops','office','insights','travel','large','compact','minimal','portrait','portraitphoto','default'];", HTML)
+        self.assertIn("const LAYOUT_PRESET_ORDER=['current','photocalendar','glassboard','portraitwall','weekcolumns','photostory','mirrorminimal','family','split','gallery','calendar','agenda','weather','morning','smarthub','familyops','office','insights','travel','large','compact','minimal','portrait','portraitphoto','default'];", HTML)
         self.assertIn('function renderLayoutPresetGallery()', HTML)
         self.assertIn('function selectLayoutPreset(key)', HTML)
         self.assertIn('function previewSelectedLayoutFromSettings()', HTML)

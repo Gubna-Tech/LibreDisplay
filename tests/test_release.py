@@ -17,7 +17,10 @@ class ReleaseContractTests(unittest.TestCase):
         cli = (ROOT / "scripts" / "libredisplay").read_text(encoding="utf-8")
         server = (ROOT / "app" / "dashboard_server.py").read_text(encoding="utf-8")
         self.assertRegex(version, r"^\d+\.\d+\.\d+$")
-        self.assertIn(f"/archive/refs/tags/v{version}.zip", readme)
+        bootstrap = (ROOT / "scripts" / "install-one-line.sh").read_text(encoding="utf-8")
+        self.assertIn(f"Gubna-Tech/LibreDisplay/v{version}/scripts/install-one-line.sh", readme)
+        self.assertIn('archive/refs/tags/v$VERSION.zip', bootstrap)
+        self.assertIn(f'VERSION="{version}"', bootstrap)
         self.assertIn("Gubna-Tech/LibreDisplay", readme)
         self.assertIn('REPOSITORY = "Gubna-Tech/LibreDisplay"', cli)
         self.assertIn("repos/Gubna-Tech/LibreDisplay/releases/latest", server)
@@ -99,11 +102,17 @@ class ReleaseContractTests(unittest.TestCase):
             for forbidden in ("CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md", ".env.example", ".env", ".gitignore", ".dockerignore", ".github/ci.yml", "data/private.txt", "media/private.txt", "backups/private.txt", ".venv/private.txt", ".libredisplay-update/private.txt", "private.ldbackup", "app/dashboard.css.opacity-backup", "app/temporary.backup", "app/merge.rej"):
                 self.assertNotIn(prefix + forbidden, names)
 
-    def test_public_quickstart_matches_github_tag_zip_layout(self):
+    def test_public_quickstart_matches_pinned_safe_bootstrap(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-        self.assertIn("unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup", readme)
-        self.assertIn(f"cd ~/LibreDisplay-Setup/LibreDisplay-{version}", readme)
+        bootstrap = (ROOT / "scripts" / "install-one-line.sh").read_text(encoding="utf-8")
+        self.assertIn(f"Gubna-Tech/LibreDisplay/v{version}/scripts/install-one-line.sh", readme)
+        self.assertIn(f'VERSION="{version}"', bootstrap)
+        self.assertIn('archive/refs/tags/v$VERSION.zip', bootstrap)
+        self.assertIn('INSTALL_DIR="$HOME/libredisplay"', bootstrap)
+        self.assertIn('libredisplay update', bootstrap)
+        self.assertIn("if path.is_absolute() or '..' in path.parts:", bootstrap)
+        self.assertIn('sh ./install.sh "$@"', bootstrap)
         self.assertIn("## Remote access and privacy", readme)
 
     def test_readme_commands_are_copy_friendly_and_license_is_linked(self):

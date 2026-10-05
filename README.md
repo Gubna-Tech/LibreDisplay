@@ -13,55 +13,13 @@ LibreDisplay brings calendars, weather, photos, family information, tasks, media
 
 Use a current Raspberry Pi OS **with Desktop**.
 
-Run these commands **one at a time** in Terminal.
-
-**1. Update package information:**
+For a new installation, paste this single command into Terminal:
 
 ```bash
-sudo apt update
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.8.15/scripts/install-one-line.sh)"
 ```
 
-**2. Install the setup tools:**
-
-```bash
-sudo apt install -y curl unzip
-```
-
-**3. Create a clean setup folder:**
-
-```bash
-rm -rf ~/LibreDisplay-Setup && mkdir -p ~/LibreDisplay-Setup
-```
-
-**4. Download LibreDisplay:**
-
-```bash
-curl -fL https://github.com/Gubna-Tech/LibreDisplay/archive/refs/tags/v1.8.14.zip -o /tmp/LibreDisplay.zip
-```
-
-**5. Extract it:**
-
-```bash
-unzip -q /tmp/LibreDisplay.zip -d ~/LibreDisplay-Setup
-```
-
-**6. Open the extracted folder:**
-
-```bash
-cd ~/LibreDisplay-Setup/LibreDisplay-1.8.14
-```
-
-**7. Allow the installer to run:**
-
-```bash
-chmod +x install.sh
-```
-
-**8. Install LibreDisplay:**
-
-```bash
-./install.sh
-```
+The bootstrap downloads the pinned **v1.8.15** release, validates the archive, then hands off to LibreDisplay's normal installer. It refuses to overwrite an existing `~/libredisplay` installation; existing users should update with `libredisplay update` instead.
 
 Reboot when prompted. LibreDisplay will open automatically.
 
