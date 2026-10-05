@@ -638,7 +638,7 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn("function refreshWeatherEffects(){applyWeatherEffects(configApi.wxData);}", effects)
         self.assertIn("attributeOldValue:true", effects)
         self.assertIn("weatherPauseClassSignature", effects)
-        self.assertIn("effects.decorateWeatherIcon(currentIcon,c.weather_code,wi(c.weather_code,currentIsDay),ui,currentIsDay)", (ROOT / "app" / "js" / "weather" / "index.js").read_text(encoding="utf-8"))
+        self.assertIn("effects.decorateWeatherIcon(currentIcon,c.weather_code,wi(c.weather_code,currentIsDay,c.time,d.latitude??ui.lat,d.utc_offset_seconds??0),ui,currentIsDay)", (ROOT / "app" / "js" / "weather" / "index.js").read_text(encoding="utf-8"))
         self.assertIn("#weather-effects-overlay{position:fixed;inset:0;z-index:1", css)
         self.assertIn("#app {", css)
 
@@ -669,7 +669,7 @@ class ResilienceContractTests(unittest.TestCase):
         css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
         self.assertIn("if(cfg.weatherFullscreenEffects)cfg.weatherAnimationsEnabled=true", config)
         self.assertIn("ensureCfgDefaults();\n  cfg._savedAt=Date.now();", config)
-        self.assertIn("fullOn:!!source.weatherFullscreenEffects&&!pauseReason&&allowed", effects)
+        self.assertIn("fullOn:!!source.weatherFullscreenEffects&&!pauseReason&&(allowed||hazardOn)", effects)
         self.assertNotIn("fullOn:!!source.weatherAnimationsEnabled&&!!source.weatherFullscreenEffects", effects)
         self.assertIn("function fullscreenPauseReason(source)", effects)
         self.assertIn("function weatherOverlayNeedsRepair", effects)

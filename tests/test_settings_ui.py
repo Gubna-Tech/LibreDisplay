@@ -508,12 +508,13 @@ def test_v1813_naturescape_creature_anatomy_preserves_bilateral_wings_and_true_f
     assert "html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-overlay .weather-fx-bird-wing-far" in css
 
 
-def test_update_attention_cue_is_subtle_and_respects_reduced_motion():
+def test_update_attention_cue_is_static_and_discoverable():
     css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
-    assert "ldUpdateTabAttention" in css
-    assert "ldUpdateButtonAttention" in css
-    assert '.settings-tab-btn[data-tab="system"].update-available' in css
-    assert 'html.ld-reduce-motion #setup .settings-tab-btn[data-tab="system"].update-available' in css
+    assert '.settings-update-badge::before{content:"!"}' in css
+    assert '.settings-update-badge.show{display:grid}' in css
+    rule=css[css.find('#setup .settings-update-badge'):css.find('.software-update-actions')]
+    assert 'animation:' not in rule
+    assert 'ldUpdateTabAttention' not in css
     assert "html.ld-reduce-motion #setup .update-now-btn{animation:none!important}" in css
 
 

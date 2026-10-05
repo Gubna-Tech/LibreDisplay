@@ -9,11 +9,11 @@ SYSTEM=(ROOT/'app/js/system/index.js').read_text()
 CONFIG=(ROOT/'app/js/core/config.js').read_text()
 
 
-def test_current_release_version_is_v1815_and_readme_uses_pinned_bootstrap():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.15'
+def test_current_release_version_is_v1816_and_readme_uses_pinned_bootstrap():
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.16'
     readme=(ROOT/'README.md').read_text()
-    assert 'Gubna-Tech/LibreDisplay/v1.8.15/scripts/install-one-line.sh' in readme
-    assert 'pinned **v1.8.15** release' in readme
+    assert 'Gubna-Tech/LibreDisplay/v1.8.16/scripts/install-one-line.sh' in readme
+    assert 'pinned **v1.8.16** release' in readme
 
 
 def test_offline_reserve_explains_photo_count_perspective_and_yields_when_caching():
@@ -24,21 +24,27 @@ def test_offline_reserve_explains_photo_count_perspective_and_yields_when_cachin
     assert 'requestIdleCallback' in BG
 
 
-def test_update_available_uses_glow_pulse_not_exclamation_badge():
-    assert 'aria-hidden="true"></span>' in HTML
-    assert 'settings-tab-btn[data-tab="system"].update-available' in CSS
-    assert 'ldUpdateTabAttention' in CSS
+def test_update_available_uses_static_exclamation_badge_without_tab_pulse():
+    assert 'id="settings-update-badge"' in HTML
+    assert '.settings-update-badge::before{content:"!"}' in CSS
+    assert '.settings-update-badge.show{display:grid}' in CSS
+    assert "badge.classList.toggle('show',updateAvailable)" in SYSTEM
     assert "systemTab.classList.toggle('update-available',updateAvailable)" in SYSTEM
-    assert 'background:var(--ld-warning)' not in CSS[CSS.find('.settings-update-badge'):CSS.find('.software-update-actions')]
+    system_css=CSS[CSS.find('#setup .settings-update-badge'):CSS.find('.software-update-actions')]
+    assert 'ldUpdateTabAttention' not in system_css
+    assert 'animation:' not in system_css
 
 
-def test_current_and_hourly_weather_are_day_night_aware_but_daily_stays_default():
-    assert "const WIN={0:'🌙'" in WEATHER
+def test_current_and_hourly_weather_are_phase_and_day_night_aware_but_daily_stays_default():
+    assert 'MOON_PHASE_NORTH' in WEATHER and 'MOON_PHASE_SOUTH' in WEATHER
+    assert 'function lunarPhaseIndex(' in WEATHER
+    assert 'function moonPhaseEmoji(' in WEATHER
     assert 'function weatherTimeIsDay(' in WEATHER
-    assert 'decorateWeatherIcon(currentIcon,c.weather_code,wi(c.weather_code,currentIsDay),ui,currentIsDay)' in WEATHER
+    assert 'wi(c.weather_code,currentIsDay,c.time,d.latitude??ui.lat,d.utc_offset_seconds??0)' in WEATHER
     assert 'weatherTimeIsDay(hr.time[i],dl)' in WEATHER
+    assert 'hr.time[i],d.latitude??ui.lat,d.utc_offset_seconds??0' in WEATHER
     assert "weatherIconMarkup(dl.weather_code[i],wi(dl.weather_code[i]),ui)" in WEATHER
-    assert 'ld-wx-moon' in CSS and "isDay=true" in FX
+    assert 'ld-wx-moon-phase' in CSS and 'phaseMoon' in FX
 
 
 def test_heavy_snow_uses_discrete_gust_flakes_not_repeating_dot_array():
@@ -64,4 +70,4 @@ def test_alert_animation_is_weather_scoped_testable_and_granular():
 def test_hazard_rendering_limits_dom_on_constrained_devices():
     assert 'appendHazardScenery(frag,source,wind,constrained)' in FX
     assert 'constrained?5:10' in FX
-    assert 'constrained?4:5' in FX
+    assert 'constrained?3:5' in FX
