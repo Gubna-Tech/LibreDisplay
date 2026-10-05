@@ -8,8 +8,8 @@ def _read(rel):
 
 
 def test_version_bumped_to_1825():
-    assert (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "1.8.25"
-    assert "1.8.25" in _read("app/js/core/bootstrap.js")
+    assert (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "1.8.26"
+    assert "1.8.26" in _read("app/js/core/bootstrap.js")
 
 
 def test_holiday_overlays_gained_new_scene_helpers():

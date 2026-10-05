@@ -70,7 +70,7 @@ class FrontendArchitectureTests(unittest.TestCase):
             "backgrounds", "blocks", "layout", "appearance", "remote",
             "system", "onboarding", "settings", "lifecycle",
         ])
-        self.assertEqual(sum(row["functions"] for row in manifest), 790)
+        self.assertEqual(sum(row["functions"] for row in manifest), 798)
         self.assertGreaterEqual(len(manifest), 28)
         split_modules = {name: sum(row["module"] == name for row in manifest) for name in logical}
         for name in ("weather", "calendar", "backgrounds", "layout", "appearance", "system", "settings"):
@@ -101,7 +101,9 @@ class FrontendArchitectureTests(unittest.TestCase):
         self.assertIn("function runExclusiveTask", source)
         self.assertIn("function startManagedInterval", source)
         self.assertIn("function frontendCapabilities", source)
-        self.assertIn("memoryGB<=2", source)
+        self.assertIn("memoryGB<=4", source)
+        self.assertIn("piClass", source)
+        self.assertIn("visualPerformanceBudget", source)
         self.assertIn("hardwareConcurrency", source)
         self.assertIn("pageUptimeMs", source)
         self.assertIn("longTaskObserverActive", source)

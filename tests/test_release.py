@@ -816,7 +816,7 @@ class ReleaseContractTests(unittest.TestCase):
 
     def test_chart_controls_and_versioned_import(self):
         html = frontend_source(ROOT)
-        for marker in ("bc-chart-area", "bc-chart-points", "bc-chart-grid", "function analyzeImportedSettings", "product:'LibreDisplay',format:2"):
+        for marker in ("bc-chart-area", "bc-chart-points", "bc-chart-grid", "function analyzeImportedSettings", "product:'LibreDisplay',format:3"):
             self.assertIn(marker, html)
 
     def test_native_renderers_and_accounts_ui_are_present(self):

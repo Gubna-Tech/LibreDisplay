@@ -7,9 +7,9 @@ README=(ROOT/'README.md').read_text(encoding='utf-8')
 
 
 def test_release_version_and_bootstrap_are_1824():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.25'
-    assert 'v1.8.25/scripts/install-one-line.sh' in README
-    assert 'VERSION="1.8.25"' in (ROOT/'scripts/install-one-line.sh').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.26'
+    assert 'v1.8.26/scripts/install-one-line.sh' in README
+    assert 'VERSION="1.8.26"' in (ROOT/'scripts/install-one-line.sh').read_text()
 
 
 def test_dog_anatomy_is_articulated_and_collar_is_neck_anchored():

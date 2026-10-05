@@ -7,9 +7,9 @@ CFG=(ROOT/'app/js/core/config.js').read_text(encoding='utf-8')
 README=(ROOT/'README.md').read_text(encoding='utf-8')
 
 def test_v1819_release_and_readme_scope():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.25'
-    assert 'v1.8.25/scripts/install-one-line.sh' in README
-    assert 'VERSION="1.8.25"' in (ROOT/'scripts/install-one-line.sh').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.26'
+    assert 'v1.8.26/scripts/install-one-line.sh' in README
+    assert 'VERSION="1.8.26"' in (ROOT/'scripts/install-one-line.sh').read_text()
 
 def test_weather_and_severe_preview_have_different_semantics():
     assert 'Normal weather preview' in HTML
