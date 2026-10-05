@@ -2373,10 +2373,10 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 .hazard-fire-flame{bottom:4.5vh;width:1.25vw;min-width:7px;height:5.4vh;max-height:52px;filter:drop-shadow(0 0 5px rgba(241,92,29,.28));opacity:.82}.hazard-fire-smoke{bottom:4vh;height:58vh;background:radial-gradient(ellipse at 50% 84%,rgba(67,61,57,.46),rgba(43,43,43,.24) 46%,transparent 71%)}
 @keyframes ld1821BrushFire{from{transform:translateY(1vh) scaleY(.82);opacity:.70}to{transform:translateY(-.5vh) scaleY(1.10);opacity:1}}
 
-/* v1.8.22 — replacement Dog Companion renderer. The old universal CSS dog is no longer instantiated. */
+/* v1.8.23 — replacement Dog Companion renderer. The old universal CSS dog is no longer instantiated. */
 #weather-effects-overlay .weather-fx-dog.weather-fx-dog-v2{
   position:absolute!important;left:0!important;bottom:0!important;width:240px!important;height:140px!important;z-index:18;
-  opacity:var(--dog-opacity,1);transform:translate3d(var(--dog-x,5vw),calc(-1 * var(--dog-y,28px)),0);transform-origin:0 100%;
+  opacity:var(--dog-opacity,1);transform:translate3d(var(--dog-x,5vw),var(--dog-y-shift,-28px),0);transform-origin:0 100%;
   transition:none!important;animation:none!important;will-change:transform;filter:drop-shadow(0 5px 5px rgba(0,0,0,.24));pointer-events:none;
 }
 .weather-fx-dog-v2 .dogv2-svg{position:absolute;left:0;bottom:0;width:240px;height:140px;overflow:visible;transform:scale(var(--dog-size,1));transform-origin:0 100%}
@@ -2385,13 +2385,13 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 .weather-fx-dog-v2.dog-facing-left .dogv2-facing-stage{transform:scaleX(-1)}
 .weather-fx-dog-v2 .dogv2-pose-stage,.weather-fx-dog-v2 .dogv2-body-group,.weather-fx-dog-v2 .dogv2-head-group,.weather-fx-dog-v2 .dogv2-leg,.weather-fx-dog-v2 .dogv2-tail{transform-box:fill-box;transform-origin:center;}
 .weather-fx-dog-v2 .dogv2-shadow{fill:rgba(0,0,0,.21);filter:blur(2px)}
-.weather-fx-dog-v2 .dogv2-body,.weather-fx-dog-v2 .dogv2-chest,.weather-fx-dog-v2 .dogv2-head,.weather-fx-dog-v2 .dogv2-muzzle{filter:drop-shadow(0 1px 0 rgba(255,255,255,.07))}
+.weather-fx-dog-v2 .dogv2-body,.weather-fx-dog-v2 .dogv2-chest,.weather-fx-dog-v2 .dogv2-head,.weather-fx-dog-v2 .dogv2-muzzle{filter:drop-shadow(0 1px 0 rgba(255,255,255,.07))}.weather-fx-dog-v2 .dogv2-muzzle-group{transform-box:fill-box;transform-origin:0 50%}.weather-fx-dog-v2 .dogv2-nose{filter:drop-shadow(0 1px 1px rgba(0,0,0,.22))}.weather-fx-dog-v2 .dogv2-neck{filter:drop-shadow(0 1px 0 rgba(255,255,255,.04))}
 .weather-fx-dog-v2 .dogv2-leg-far{opacity:.80}
 .weather-fx-dog-v2 .dogv2-ball{position:absolute;display:block;width:16px;height:16px;border-radius:50%;bottom:5px;right:-2px;background:radial-gradient(circle at 32% 28%,#ff9188,#d24543 65%,#8f2929);box-shadow:inset -3px -3px 4px rgba(0,0,0,.22),0 2px 3px rgba(0,0,0,.18);opacity:0;z-index:25}
 .weather-fx-dog-v2.dog-facing-left .dogv2-ball{right:auto;left:-2px}.weather-fx-dog-v2.dog-state-ball .dogv2-ball{opacity:1;animation:ld1822DogBall .64s cubic-bezier(.3,.05,.35,1) infinite alternate}
 .weather-fx-dog-v2 .dogv2-sleep{position:absolute;right:12px;top:-2px;font-style:normal;font-weight:800;font-size:18px;color:rgba(255,255,255,.84);text-shadow:0 1px 3px rgba(0,0,0,.3);opacity:0}.weather-fx-dog-v2.dog-state-sleep .dogv2-sleep{opacity:.9;animation:ld1822SleepZ 3.3s ease-out infinite}
 .weather-fx-dog-v2 .dogv2-dirt{position:absolute;left:62px;bottom:0;width:46px;height:16px;opacity:0;background:radial-gradient(circle at 15% 65%,#7c5c3f 0 2px,transparent 3px),radial-gradient(circle at 45% 35%,#8a6746 0 2px,transparent 3px),radial-gradient(circle at 75% 72%,#694c34 0 2px,transparent 3px)}.weather-fx-dog-v2.dog-state-dig .dogv2-dirt{opacity:1;animation:ld1822Dirt .72s ease-out infinite}
-.weather-fx-dog-v2.dog-moving .dogv2-leg-front-near,.weather-fx-dog-v2.dog-moving .dogv2-leg-rear-far{animation:ld1822Stride var(--dog-step-duration,.48s) ease-in-out infinite alternate}.weather-fx-dog-v2.dog-moving .dogv2-leg-front-far,.weather-fx-dog-v2.dog-moving .dogv2-leg-rear-near{animation:ld1822Stride var(--dog-step-duration,.48s) ease-in-out calc(var(--dog-step-duration,.48s)*-.5) infinite alternate}.weather-fx-dog-v2.dog-moving .dogv2-pose-stage{animation:ld1822WalkBob var(--dog-step-duration,.48s) ease-in-out infinite alternate}
+.weather-fx-dog-v2.dog-moving .dogv2-leg-front-near,.weather-fx-dog-v2.dog-moving .dogv2-leg-rear-far{animation:ld1822Stride var(--dog-step-duration,.48s) ease-in-out infinite alternate}.weather-fx-dog-v2.dog-moving .dogv2-leg-front-far,.weather-fx-dog-v2.dog-moving .dogv2-leg-rear-near{animation:ld1822Stride var(--dog-step-duration,.48s) ease-in-out var(--dog-step-delay,-.24s) infinite alternate}.weather-fx-dog-v2.dog-moving .dogv2-pose-stage{animation:ld1822WalkBob var(--dog-step-duration,.48s) ease-in-out infinite alternate}
 .weather-fx-dog-v2.dog-state-sniff .dogv2-head-group{transform:translate(6px,10px) rotate(15deg)}
 .weather-fx-dog-v2.dog-state-sit .dogv2-body-group,.weather-fx-dog-v2.dog-state-perch .dogv2-body-group{transform:translateY(9px) rotate(4deg)}.weather-fx-dog-v2.dog-state-sit .dogv2-leg-rear-near,.weather-fx-dog-v2.dog-state-sit .dogv2-leg-rear-far,.weather-fx-dog-v2.dog-state-perch .dogv2-leg-rear-near,.weather-fx-dog-v2.dog-state-perch .dogv2-leg-rear-far{transform:translate(-8px,8px) rotate(46deg)}.weather-fx-dog-v2.dog-state-sit .dogv2-head-group,.weather-fx-dog-v2.dog-state-perch .dogv2-head-group{transform:translateY(-2px) rotate(-3deg)}
 .weather-fx-dog-v2.dog-state-rest .dogv2-pose-stage{transform:translateY(14px) scaleY(.86)}.weather-fx-dog-v2.dog-state-rest .dogv2-leg{transform:rotate(74deg) translate(8px,4px)}.weather-fx-dog-v2.dog-state-rest .dogv2-head-group{transform:translate(2px,7px) rotate(8deg)}
@@ -2403,10 +2403,27 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 @keyframes ld1822Stride{from{transform:rotate(15deg)}to{transform:rotate(-15deg)}}
 @keyframes ld1822WalkBob{from{transform:translateY(0)}to{transform:translateY(-2.4px)}}
 @keyframes ld1822Tail{from{transform:rotate(-5deg)}to{transform:rotate(8deg)}}
-@keyframes ld1822DogBall{from{transform:translateX(0) translateY(0) rotate(0)}to{transform:translateX(calc(var(--dog-ball-dir,1)*24px)) translateY(-18px) rotate(105deg)}}
+@keyframes ld1822DogBall{from{transform:translateX(0) translateY(0) rotate(0)}to{transform:translateX(var(--dog-ball-x,24px)) translateY(-18px) rotate(105deg)}}
 @keyframes ld1822SleepZ{0%{transform:translate(0,5px) scale(.7);opacity:0}32%{opacity:.9}100%{transform:translate(20px,-30px) scale(1.25);opacity:0}}
 @keyframes ld1822Dirt{from{transform:translate(0,0) scale(.7);opacity:.9}to{transform:translate(-17px,-14px) scale(1.15);opacity:0}}
 @keyframes ld1822Dig{from{transform:rotate(24deg) translateY(0)}to{transform:rotate(70deg) translateY(4px)}}
 @keyframes ld1822Breath{0%,100%{transform:translateY(18px) scaleY(.78)}50%{transform:translateY(19px) scaleY(.80)}}
 @keyframes ld1822PlayFlop{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(10px) rotate(7deg) scaleY(.9)}60%{transform:translateY(13px) rotate(-9deg) scaleY(.86)}80%{transform:translateY(7px) rotate(5deg) scaleY(.94)}}
 html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-overlay .weather-fx-dog-v2 *, .weather-fx-static .weather-fx-dog-v2 *{animation:none!important}
+
+
+/* v1.8.23 — unified weather / NatureScape / overlay ecosystem coordination. */
+#weather-effects-overlay.weather-world-shelter .weather-fx-hazard{z-index:16}
+#weather-effects-overlay.weather-world-cautious .weather-fx-hazard{z-index:14}
+#weather-effects-overlay.weather-world-shelter .holiday-overlay{opacity:.28;filter:saturate(.72) brightness(.82)}
+#weather-effects-overlay.weather-world-cautious .holiday-overlay{opacity:.62;filter:saturate(.88)}
+#weather-effects-overlay .holiday-overlay-world-subdued{opacity:.28}
+#weather-effects-overlay .holiday-overlay-world-weather-aware{opacity:.62}
+#weather-effects-overlay.weather-world-surface-wet .weather-fx-grass{filter:saturate(.82) brightness(.84)}
+#weather-effects-overlay.weather-world-surface-snowy .weather-fx-grass,
+#weather-effects-overlay.weather-world-surface-snowy .weather-fx-petal{display:none}
+#weather-effects-overlay.weather-world-surface-flooded .weather-fx-seasonal:not(.weather-fx-bird),
+#weather-effects-overlay.weather-world-surface-fire-risk .weather-fx-seasonal{display:none}
+#weather-effects-overlay.weather-world-shelter .weather-fx-dog-v2{filter:drop-shadow(0 5px 5px rgba(0,0,0,.28)) saturate(.86)}
+#weather-effects-overlay.weather-world-night .holiday-light,
+#weather-effects-overlay.weather-world-night .holiday-candle{filter:brightness(1.12) drop-shadow(0 0 5px currentColor)}
