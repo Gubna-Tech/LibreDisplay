@@ -20,7 +20,7 @@ const LAYOUT_PRESETS={
     contentScale:{calendar:102,current:118,clock:142,details:90,daily:86,hourly:86,alerts:82},
     partStyle:{calendar:{dayLabel:{scale:94,fontWeight:400},eventTime:{scale:82}},clock:{seconds:{scale:70}},current:{condition:{scale:88}}},
     elementStyle:{clock:{hAlign:'right',vAlign:'top'},current:{hAlign:'right',vAlign:'bottom'},details:{hAlign:'right',vAlign:'bottom'},calendar:{hAlign:'left',vAlign:'top'},alerts:{hAlign:'center',vAlign:'middle'}},
-    blocks:{clock:{x:.055,y:.045,w:.30,h:.15},current:{x:.19,y:.705,w:.165,h:.17},details:{x:.055,y:.855,w:.30,h:.075},calendar:{x:.405,y:.025,w:.57,h:.95},alerts:{x:.55,y:.91,w:.28,h:.045}}
+    blocks:{clock:{x:.045,y:.050,w:.30,h:.14},current:{x:.205,y:.700,w:.14,h:.15},details:{x:.045,y:.855,w:.30,h:.065},calendar:{x:.425,y:.045,w:.535,h:.89},alerts:{x:.545,y:.945,w:.295,h:.035}}
   },
   glassboard:{name:'Glass Home Board',category:'Signature',bestFor:'Landscape · home overview',featured:true,
     description:'A composed home dashboard with an airy clock hero, distinct information zones, and soft glass surfaces over photography. It feels intentional even before optional integrations are added.',
@@ -30,7 +30,7 @@ const LAYOUT_PRESETS={
     contentScale:{calendar:96,current:116,clock:146,details:88,daily:96,hourly:86,alerts:82},
     partStyle:{clock:{seconds:{scale:68}},calendar:{dayLabel:{scale:90},eventTime:{scale:84}},current:{condition:{scale:90}}},
     elementStyle:{clock:{hAlign:'center',vAlign:'middle'},current:{hAlign:'left',vAlign:'middle'},details:{hAlign:'left',vAlign:'middle'},calendar:{hAlign:'left',vAlign:'top'},daily:{hAlign:'center',vAlign:'middle'}},
-    blocks:{clock:{x:.30,y:.045,w:.40,h:.155},current:{x:.045,y:.245,w:.27,h:.17},details:{x:.045,y:.43,w:.27,h:.085},calendar:{x:.685,y:.245,w:.27,h:.31},daily:{x:.685,y:.82,w:.27,h:.10},alerts:{x:.36,y:.845,w:.28,h:.045}},
+    blocks:{clock:{x:.33,y:.045,w:.34,h:.14},current:{x:.045,y:.245,w:.265,h:.16},details:{x:.045,y:.425,w:.265,h:.075},calendar:{x:.69,y:.245,w:.265,h:.30},daily:{x:.69,y:.835,w:.265,h:.085},alerts:{x:.38,y:.905,w:.24,h:.035}},
     showcaseSlots:[
       {id:'home',label:'Home',icon:'⌂',value:'Living room · 72°',sub:'Comfortable · lights on',hint:'Connected home',plugins:['home-assistant'],variant:'home',rect:{x:.045,y:.55,w:.27,h:.23}},
       {id:'today',label:'Today',icon:'✓',value:'3 priorities',sub:'Groceries · pickup · call Mom',hint:'Tasks',kinds:['tasks'],types:['todo'],variant:'tasks',rect:{x:.345,y:.245,w:.31,h:.27}},
@@ -46,7 +46,7 @@ const LAYOUT_PRESETS={
     contentScale:{calendar:104,current:114,clock:148,details:88,daily:92,hourly:86,alerts:82},
     partStyle:{calendar:{dayLabel:{scale:90},eventTime:{scale:84}},clock:{seconds:{scale:68}},current:{condition:{scale:88}}},
     elementStyle:{clock:{hAlign:'center',vAlign:'top'},calendar:{hAlign:'left',vAlign:'top'},current:{hAlign:'left',vAlign:'middle'},details:{hAlign:'right',vAlign:'middle'},daily:{hAlign:'center',vAlign:'middle'}},
-    blocks:{clock:{x:.12,y:.055,w:.76,h:.13},current:{x:.09,y:.26,w:.31,h:.13},details:{x:.60,y:.27,w:.31,h:.10},calendar:{x:.09,y:.44,w:.82,h:.31},daily:{x:.09,y:.82,w:.82,h:.10},alerts:{x:.24,y:.765,w:.52,h:.04}}
+    blocks:{clock:{x:.16,y:.055,w:.68,h:.12},current:{x:.10,y:.255,w:.30,h:.12},details:{x:.60,y:.255,w:.30,h:.12},calendar:{x:.10,y:.43,w:.80,h:.32},daily:{x:.10,y:.82,w:.80,h:.09},alerts:{x:.28,y:.775,w:.44,h:.035}}
   },
   weekcolumns:{name:'Week Columns',category:'Signature',bestFor:'Landscape · weekly planner',featured:true,
     description:'A disciplined five-day planner with oversized dates, thin event rails, restrained chrome, and just enough time/weather context to keep the schedule dominant.',
@@ -56,7 +56,7 @@ const LAYOUT_PRESETS={
     contentScale:{calendar:118,current:94,clock:100,details:82,daily:84,hourly:84,alerts:80},
     partStyle:{calendar:{dayLabel:{scale:104,fontWeight:400},eventTime:{scale:90}},clock:{seconds:{scale:65}}},
     elementStyle:{calendar:{hAlign:'left',vAlign:'top'},clock:{hAlign:'left',vAlign:'middle'},current:{hAlign:'right',vAlign:'middle'},details:{hAlign:'left',vAlign:'middle'}},
-    blocks:{clock:{x:.018,y:.018,w:.25,h:.06},current:{x:.785,y:.018,w:.197,h:.06},calendar:{x:.018,y:.115,w:.964,h:.745},details:{x:.018,y:.905,w:.28,h:.045},alerts:{x:.36,y:.905,w:.28,h:.045}}
+    blocks:{clock:{x:.025,y:.025,w:.22,h:.055},current:{x:.755,y:.025,w:.22,h:.055},calendar:{x:.025,y:.125,w:.95,h:.72},details:{x:.025,y:.89,w:.25,h:.045},alerts:{x:.385,y:.89,w:.23,h:.04}}
   },
   photostory:{name:'Photo Story Board',category:'Signature',bestFor:'Landscape · photo + editorial',featured:true,
     description:'A cinematic photo canvas with the center left intentionally open. Time, a short agenda, one editorial story, weather, and forecast sit around the edges like a finished information poster.',
@@ -66,7 +66,7 @@ const LAYOUT_PRESETS={
     contentScale:{calendar:92,current:116,clock:142,details:88,daily:96,hourly:86,alerts:82},
     partStyle:{calendar:{dayLabel:{scale:88},eventTime:{scale:82}},clock:{seconds:{scale:68}},current:{condition:{scale:88}}},
     elementStyle:{clock:{hAlign:'left',vAlign:'top'},calendar:{hAlign:'right',vAlign:'top'},current:{hAlign:'left',vAlign:'bottom'},details:{hAlign:'left',vAlign:'bottom'},daily:{hAlign:'right',vAlign:'bottom'}},
-    blocks:{clock:{x:.045,y:.045,w:.30,h:.14},calendar:{x:.60,y:.05,w:.355,h:.20},current:{x:.045,y:.75,w:.19,h:.15},details:{x:.25,y:.82,w:.18,h:.07},daily:{x:.585,y:.80,w:.37,h:.11},alerts:{x:.38,y:.70,w:.24,h:.045}},
+    blocks:{clock:{x:.045,y:.045,w:.28,h:.125},calendar:{x:.635,y:.055,w:.32,h:.19},current:{x:.045,y:.775,w:.18,h:.13},details:{x:.245,y:.825,w:.17,h:.065},daily:{x:.615,y:.815,w:.34,h:.095},alerts:{x:.39,y:.715,w:.22,h:.04}},
     showcaseSlots:[{id:'story',label:'Featured',icon:'“',value:'Olympics add five new sports for 2028',sub:'A single story, quote, photo caption, or daily message can become the visual anchor.',hint:'Your content',types:['rss','text','json'],plugins:['web-api'],variant:'story',rect:{x:.20,y:.47,w:.60,h:.16}}]
   },
   mirrorminimal:{name:'Minimal Mirror',category:'Signature',bestFor:'Dark canvas · essentials',featured:true,
@@ -77,7 +77,7 @@ const LAYOUT_PRESETS={
     contentScale:{calendar:98,current:108,clock:150,details:86,daily:88,hourly:84,alerts:78},
     partStyle:{calendar:{dayLabel:{scale:88},eventTime:{scale:84}},clock:{seconds:{scale:62}},current:{condition:{scale:86}}},
     elementStyle:{clock:{hAlign:'left',vAlign:'top'},calendar:{hAlign:'left',vAlign:'top'},current:{hAlign:'right',vAlign:'top'},details:{hAlign:'right',vAlign:'top'},daily:{hAlign:'right',vAlign:'bottom'}},
-    blocks:{clock:{x:.045,y:.045,w:.34,h:.15},calendar:{x:.045,y:.25,w:.30,h:.29},current:{x:.72,y:.05,w:.235,h:.14},details:{x:.745,y:.205,w:.21,h:.075},daily:{x:.63,y:.82,w:.325,h:.095},alerts:{x:.37,y:.90,w:.26,h:.035}},
+    blocks:{clock:{x:.055,y:.055,w:.31,h:.135},calendar:{x:.055,y:.255,w:.285,h:.27},current:{x:.735,y:.06,w:.21,h:.125},details:{x:.755,y:.205,w:.19,h:.065},daily:{x:.655,y:.835,w:.29,h:.08},alerts:{x:.39,y:.91,w:.22,h:.03}},
     showcaseSlots:[{id:'bottom',label:'Daily note',icon:'—',value:'Make today count.',sub:'One calm message or reminder',hint:'Text / feed',types:['rss','text'],variant:'note',rect:{x:.34,y:.86,w:.28,h:.055}}]
   },
   family:{name:'Family Command Center',category:'Family',bestFor:'Landscape · busy households',featured:true,description:'A structured family dashboard with a generous week planner, a calm time/weather rail, and balanced forecasts along the footer.',mode:'custom',view:{calendarDays:7,calendarColumns:4,calendarMaxEvents:3,calendarCellHeight:160,dailyForecastDays:7,hourlyForecastHours:9},contentScale:{calendar:112,current:110,clock:112,details:100,daily:104,hourly:104,alerts:96},partStyle:{calendar:{dayLabel:{scale:94},eventTime:{scale:94}},current:{condition:{scale:96}},clock:{seconds:{scale:90}}},elementStyle:{calendar:{hAlign:'left',vAlign:'top'},clock:{hAlign:'right',vAlign:'middle'},current:{hAlign:'right',vAlign:'middle'},details:{hAlign:'right',vAlign:'middle'},daily:{hAlign:'center',vAlign:'middle'},hourly:{hAlign:'center',vAlign:'middle'}},blocks:{calendar:{x:.035,y:.055,w:.615,h:.39},clock:{x:.69,y:.055,w:.275,h:.19},current:{x:.69,y:.265,w:.275,h:.27},details:{x:.69,y:.565,w:.275,h:.12},alerts:{x:.12,y:.50,w:.50,h:.10},daily:{x:.035,y:.735,w:.445,h:.16},hourly:{x:.52,y:.735,w:.445,h:.16}}},

@@ -125,9 +125,7 @@ function openSetup(startWizard=false){
     document.getElementById('s-photo-order').value=cfg.photoOrder;
     document.getElementById('s-photo-random-start').checked=cfg.photoRandomStart;
     document.getElementById('s-photo-preload').checked=cfg.photoPreload;
-    const offlineCache=document.getElementById('s-bg-offline-cache');if(offlineCache)offlineCache.checked=cfg.backgroundOfflineCacheEnabled!==false;
-    const offlineCount=document.getElementById('s-bg-offline-cache-count');if(offlineCount)offlineCount.value=String(cfg.backgroundOfflineCacheCount??30);const offlineCountLabel=document.getElementById('s-bg-offline-cache-count-value');if(offlineCountLabel)offlineCountLabel.textContent=String(cfg.backgroundOfflineCacheCount??30);
-    const offlineMax=document.getElementById('s-bg-offline-cache-max-mb');if(offlineMax)offlineMax.value=String(cfg.backgroundOfflineCacheMaxMb??192);updateBackgroundReserveEstimate();
+    const offlineReserve=document.getElementById('s-bg-offline-reserve');if(offlineReserve)offlineReserve.value=String(cfg.backgroundOfflineCacheEnabled===false?0:(cfg.backgroundOfflineCacheMaxMb??192));updateBackgroundReserveEstimate();
     document.getElementById('s-bg-startup-priority').checked=cfg.backgroundStartupPriority!==false;
     document.getElementById('s-bg-startup-delay').value=String(cfg.backgroundStartupDelayMs??700);const startupDelayLabel=document.getElementById('s-bg-startup-delay-value');if(startupDelayLabel)startupDelayLabel.textContent=(Number(cfg.backgroundStartupDelayMs??700)/1000).toFixed(1)+'s';
     setBackgroundStatus(configApi.lastBackgroundStatus.text,configApi.lastBackgroundStatus.error);
@@ -168,10 +166,10 @@ function openSetup(startWizard=false){
 }
 
 function updateBackgroundReserveEstimate(){
-  const cap=Math.max(32,Number(document.getElementById('s-bg-offline-cache-max-mb')?.value)||192),limit=Math.max(0,Number(document.getElementById('s-bg-offline-cache-count')?.value)||0),out=document.getElementById('s-bg-offline-cache-estimate');
-  if(!out)return;
-  const count=size=>Math.max(0,Math.floor(cap/size)),fmt=n=>`${n.toLocaleString()} photo${n===1?'':'s'}`;
-  out.textContent=`For perspective, ${cap} MB is roughly ${fmt(count(1.5))} at 1.5 MB each, ${fmt(count(4))} at 4 MB each, or ${fmt(count(8))} at 8 MB each. Your Reserve images setting currently caps the reserve at ${limit} image${limit===1?'':'s'}; the 10-image hot cache and browser quota headroom can make the practical total lower.`;
+  const select=document.getElementById('s-bg-offline-reserve'),cap=Math.max(0,Number(select?.value)||0),out=document.getElementById('s-bg-offline-cache-estimate');
+  if(!out)return;if(cap<=0){out.textContent='Offline reserve is off. The normal 10-image recovery cache remains available.';return;}
+  const typical=Math.max(1,Math.floor(cap/4)),small=Math.max(1,Math.floor(cap/1.5)),large=Math.max(1,Math.floor(cap/8));
+  out.textContent=`${cap} MB is roughly ${typical} typical 4 MB photos (${small} optimized 1.5 MB photos or ${large} high-resolution 8 MB photos). LibreDisplay keeps storage headroom and may stop early if the browser quota is tight.`;
 }
 
 function applySettings(){
