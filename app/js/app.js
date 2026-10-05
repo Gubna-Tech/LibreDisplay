@@ -1,4 +1,4 @@
-// LibreDisplay v1.8.11 frontend bootstrap.
+// LibreDisplay v1.8.12 frontend bootstrap.
 // Source files load sequentially so split feature modules can extend one logical module safely.
 const modulePaths = [
   "/js/core/runtime.js",

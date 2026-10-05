@@ -2007,9 +2007,10 @@ def github_update_status(force=False):
         if status != 200:
             raise RuntimeError(f"GitHub returned HTTP {status}")
         payload = json.loads(data.decode("utf-8"))
-        latest = str(payload.get("tag_name") or "").strip().lstrip("v")
+        release_tag = str(payload.get("tag_name") or "").strip()
+        latest_tuple = semantic_version_tuple(release_tag)
+        latest = ".".join(str(part) for part in latest_tuple) if latest_tuple is not None else ""
         current_tuple = semantic_version_tuple(APP_VERSION)
-        latest_tuple = semantic_version_tuple(latest)
         if current_tuple is None or latest_tuple is None:
             raise ValueError("Invalid release version returned by GitHub")
         release_url = str(payload.get("html_url") or "").strip()
@@ -2020,6 +2021,7 @@ def github_update_status(force=False):
             "ok": True,
             "currentVersion": APP_VERSION,
             "latestVersion": latest,
+            "releaseTag": release_tag,
             "updateAvailable": latest_tuple > current_tuple,
             "checkedAt": now,
             "source": "github",

@@ -125,6 +125,9 @@ function openSetup(startWizard=false){
     document.getElementById('s-photo-order').value=cfg.photoOrder;
     document.getElementById('s-photo-random-start').checked=cfg.photoRandomStart;
     document.getElementById('s-photo-preload').checked=cfg.photoPreload;
+    const offlineCache=document.getElementById('s-bg-offline-cache');if(offlineCache)offlineCache.checked=cfg.backgroundOfflineCacheEnabled!==false;
+    const offlineCount=document.getElementById('s-bg-offline-cache-count');if(offlineCount)offlineCount.value=String(cfg.backgroundOfflineCacheCount??30);const offlineCountLabel=document.getElementById('s-bg-offline-cache-count-value');if(offlineCountLabel)offlineCountLabel.textContent=String(cfg.backgroundOfflineCacheCount??30);
+    const offlineMax=document.getElementById('s-bg-offline-cache-max-mb');if(offlineMax)offlineMax.value=String(cfg.backgroundOfflineCacheMaxMb??192);
     document.getElementById('s-bg-startup-priority').checked=cfg.backgroundStartupPriority!==false;
     document.getElementById('s-bg-startup-delay').value=String(cfg.backgroundStartupDelayMs??700);const startupDelayLabel=document.getElementById('s-bg-startup-delay-value');if(startupDelayLabel)startupDelayLabel.textContent=(Number(cfg.backgroundStartupDelayMs??700)/1000).toFixed(1)+'s';
     setBackgroundStatus(configApi.lastBackgroundStatus.text,configApi.lastBackgroundStatus.error);

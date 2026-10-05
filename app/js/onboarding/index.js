@@ -382,6 +382,9 @@ async function saveSetup(options={}){
   cfg.photoOrder=document.getElementById('s-photo-order').value;
   cfg.photoRandomStart=!!document.getElementById('s-photo-random-start').checked;
   cfg.photoPreload=!!document.getElementById('s-photo-preload').checked;
+  cfg.backgroundOfflineCacheEnabled=document.getElementById('s-bg-offline-cache')?.checked!==false;
+  cfg.backgroundOfflineCacheCount=Math.max(0,Math.min(60,Number(document.getElementById('s-bg-offline-cache-count')?.value)||0));
+  cfg.backgroundOfflineCacheMaxMb=Math.max(32,Math.min(384,Number(document.getElementById('s-bg-offline-cache-max-mb')?.value)||192));
   cfg.backgroundStartupPriority=document.getElementById('s-bg-startup-priority')?.checked!==false;
   cfg.backgroundStartupDelayMs=Math.max(0,Math.min(3000,Number(document.getElementById('s-bg-startup-delay')?.value)||0));
   cfg.weatherRefreshMin=Math.max(1,Number(document.getElementById('s-weather-refresh').value)||10);

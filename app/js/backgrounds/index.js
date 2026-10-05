@@ -8,7 +8,12 @@ const {extractAllGooglePhotoUrls,GOOGLE_PHOTOS_MAX_ITEMS,backgroundMediaKind,bac
 let bgTimer=null;
 const LAST_BACKGROUND_KEY='libredisplay_last_background_v2';
 const LAST_BACKGROUND_CACHE='libredisplay-last-background-v1';
+const HOT_BACKGROUND_CACHE='libredisplay-background-hot-v1';
+const RESERVE_BACKGROUND_CACHE='libredisplay-background-reserve-v1';
+const BACKGROUND_CACHE_INDEX_KEY='libredisplay_background_cache_index_v1';
+const HOT_BACKGROUND_LIMIT=10;
 let lastBackgroundObjectUrl='';
+let backgroundCacheFillTimer=null;
 function backgroundSourceFingerprint(source=cfg){
   const kind=String(source?.backgroundSource||'none');
   if(kind==='stock')return ['stock',String(source?.stockCategory||''),String(source?.stockQuery||''),String(source?.stockResolution||'')].join('|');
@@ -66,6 +71,28 @@ function localProxyUrl(remoteUrl){
 function backgroundAssetUrl(value){
   const raw=String(value||'');
   return raw.startsWith('/media?')?serverPath(raw):localProxyUrl(raw);
+}
+function backgroundCacheIndex(){try{const row=JSON.parse(localStorage.getItem(BACKGROUND_CACHE_INDEX_KEY)||'null');return row&&row.sourceKey===backgroundSourceFingerprint(cfg)?row:null;}catch(_e){return null;}}
+function saveBackgroundCacheIndex(hot,reserve){try{localStorage.setItem(BACKGROUND_CACHE_INDEX_KEY,JSON.stringify({sourceKey:backgroundSourceFingerprint(cfg),hot:[...hot],reserve:[...reserve],at:Date.now()}));}catch(_e){}}
+function cacheableStillBackground(url){return !!url&&backgroundMediaKind(url)==='image'&&!backgroundMediaIsMotion(url);}
+async function backgroundCacheBudgetBytes(){const selected=Math.max(32,Math.min(384,Number(cfg.backgroundOfflineCacheMaxMb)||192))*1024*1024;try{const estimate=await navigator.storage?.estimate?.(),quota=Number(estimate?.quota),usage=Math.max(0,Number(estimate?.usage)||0);if(Number.isFinite(quota)&&quota>0){const free=Math.max(0,quota-usage),quotaShare=quota*.18,freeShare=free*.55;return Math.max(0,Math.min(selected,quotaShare,freeShare));}}catch(_e){}return Math.min(selected,192*1024*1024);}
+async function cachedResponseBytes(cache){let total=0;try{for(const req of await cache.keys()){const res=await cache.match(req),size=Number(res?.headers?.get('content-length'))||0;if(size>0)total+=size;}}catch(_e){}return total;}
+async function enforceBackgroundCacheBudget(hotUrls,reserveUrls,budget){const hot=[...hotUrls],reserve=[...reserveUrls];if(!('caches' in globalThis))return {hot,reserve,used:0};try{const hotCache=await caches.open(HOT_BACKGROUND_CACHE),reserveCache=await caches.open(RESERVE_BACKGROUND_CACHE);let used=(await cachedResponseBytes(hotCache))+(await cachedResponseBytes(reserveCache));for(const [cache,list] of [[reserveCache,reserve],[hotCache,hot]])while(used>budget&&list.length){const url=list.pop(),asset=backgroundAssetUrl(url),res=await cache.match(asset),size=Number(res?.headers?.get('content-length'))||0;await cache.delete(asset);used=Math.max(0,used-size);}return {hot,reserve,used};}catch(_e){return {hot,reserve,used:0};}}
+async function trimBackgroundCache(cacheName,keepUrls){if(!('caches' in globalThis))return;try{const cache=await caches.open(cacheName),keep=new Set(keepUrls.map(backgroundAssetUrl).map(url=>new URL(url,location.href).href));for(const req of await cache.keys())if(!keep.has(req.url))await cache.delete(req);}catch(_e){}}
+async function cacheBackgroundAsset(cacheName,remoteUrl,remainingBytes){if(!cacheableStillBackground(remoteUrl)||!('caches' in globalThis)||remainingBytes<=0)return {ok:false,size:0};const assetUrl=backgroundAssetUrl(remoteUrl);try{const cache=await caches.open(cacheName),existing=await cache.match(assetUrl);if(existing)return {ok:true,size:Number(existing.headers.get('content-length'))||0,added:false};const res=await resilientFetch(assetUrl,{cache:'force-cache'},{timeoutMs:15000,attempts:1,retry:false});if(!res.ok)return {ok:false,size:0};const type=String(res.headers.get('content-type')||'').toLowerCase(),size=Number(res.headers.get('content-length'))||0;if(type&&!type.startsWith('image/'))return {ok:false,size:0};if(!size||size>32*1024*1024||size>remainingBytes)return {ok:false,size:0};await cache.put(assetUrl,res.clone());return {ok:true,size,added:true};}catch(_e){return {ok:false,size:0};}}
+async function fillBackgroundCaches(urls){
+  if(!('caches' in globalThis))return false;const still=[...new Set((urls||[]).filter(cacheableStillBackground))],hot=still.slice(0,HOT_BACKGROUND_LIMIT),reserve=cfg.backgroundOfflineCacheEnabled===false?[]:still.slice(HOT_BACKGROUND_LIMIT,HOT_BACKGROUND_LIMIT+Math.max(0,Math.min(60,Number(cfg.backgroundOfflineCacheCount)||0)));
+  await trimBackgroundCache(HOT_BACKGROUND_CACHE,hot);await trimBackgroundCache(RESERVE_BACKGROUND_CACHE,reserve);let budget=await backgroundCacheBudgetBytes(),hotCache=await caches.open(HOT_BACKGROUND_CACHE),reserveCache=await caches.open(RESERVE_BACKGROUND_CACHE),used=(await cachedResponseBytes(hotCache))+(await cachedResponseBytes(reserveCache));
+  for(const [name,list] of [[HOT_BACKGROUND_CACHE,hot],[RESERVE_BACKGROUND_CACHE,reserve]])for(const url of list){if(used>=budget)break;const row=await cacheBackgroundAsset(name,url,budget-used);if(row.ok&&row.added)used+=row.size;await new Promise(resolve=>setTimeout(resolve,120));}
+  const actualHot=[],actualReserve=[];for(const [name,list,out] of [[HOT_BACKGROUND_CACHE,hot,actualHot],[RESERVE_BACKGROUND_CACHE,reserve,actualReserve]]){const cache=await caches.open(name);for(const url of list)if(await cache.match(backgroundAssetUrl(url)))out.push(url);}
+  const bounded=await enforceBackgroundCacheBudget(actualHot,actualReserve,budget);saveBackgroundCacheIndex(bounded.hot,bounded.reserve);return true;
+}
+function scheduleBackgroundCacheFill(urls=configApi.bgImages){if(backgroundCacheFillTimer)clearTimeout(backgroundCacheFillTimer);const list=[...(urls||[])];backgroundCacheFillTimer=setTimeout(()=>{backgroundCacheFillTimer=null;void fillBackgroundCaches(list);},4500);}
+async function loadBackgroundFromCache(layer,remoteUrl){
+  if(!layer||!cacheableStillBackground(remoteUrl)||!('caches' in globalThis))return false;try{const assetUrl=backgroundAssetUrl(remoteUrl);let res=null;for(const name of [HOT_BACKGROUND_CACHE,RESERVE_BACKGROUND_CACHE]){const cache=await caches.open(name);res=await cache.match(assetUrl);if(res?.ok)break;}if(!res?.ok)return false;const blob=await res.blob();if(!blob.size||!String(blob.type||'image/').startsWith('image/'))return false;const img=backgroundLayerImage(layer),video=layer.querySelector('video');if(!img)return false;if(layer._ldCacheObjectUrl){try{URL.revokeObjectURL(layer._ldCacheObjectUrl);}catch(_e){}}layer._ldCacheObjectUrl=URL.createObjectURL(blob);if(video){try{video.pause();}catch(_e){}video.removeAttribute('src');video.style.display='none';}layer.dataset.remoteUrl=remoteUrl;layer.dataset.mediaKind='image';img.style.display='block';const ok=await new Promise(resolve=>{let settled=false;const done=async good=>{if(settled)return;settled=true;img.onload=img.onerror=null;if(good&&typeof img.decode==='function'){try{await img.decode();}catch(_e){}}resolve(!!good&&img.naturalWidth>0);};img.onload=()=>done(true);img.onerror=()=>done(false);img.src=layer._ldCacheObjectUrl;if(img.complete)setTimeout(()=>done(img.naturalWidth>0),0);});return ok;}catch(_e){return false;}
+}
+async function restoreBackgroundsFromOfflineCache(){
+  const row=backgroundCacheIndex(),candidates=[...(row?.hot||[]),...(row?.reserve||[])].filter(cacheableStillBackground);if(!candidates.length)return false;configApi.bgSourceImages=[...new Set(candidates)];prepareBackgroundOrder(configApi.bgSourceImages,false);setBackgroundStatus(`${configApi.bgSourceImages.length} cached still backgrounds available · offline reserve mode`);const ok=await showBg(configApi.bgIdx,0,configApi.bgSourceSerial);if(ok)scheduleBackgroundRotation();return ok;
 }
 function mediaFoldersFromText(value){
   return [...new Set(String(value||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean))].slice(0,32);
@@ -137,8 +164,9 @@ async function loadFolderBackgrounds(paths=cfg.mediaFolders,recursive=cfg.mediaR
     const limit=data.limitReached?' · scan limit reached':'';
     const motionSkipped=allMedia.length-configApi.bgSourceImages.length,motionNote=motionSkipped>0?` · ${motionSkipped} moving item${motionSkipped===1?'':'s'} skipped`:'';setBackgroundStatus(`${configApi.bgSourceImages.length} local/network media items · ${sourceCount} source${sourceCount===1?'':'s'}${motionNote}${limit} · ${cfg.photoIntervalSec?formatBackgroundInterval(cfg.photoIntervalSec):'rotation off'}`);
     await showBg(configApi.bgIdx,0,sourceSerial);
-    if(sourceSerial===configApi.bgSourceSerial)scheduleBackgroundRotation();
+    if(sourceSerial===configApi.bgSourceSerial){scheduleBackgroundRotation();scheduleBackgroundCacheFill(configApi.bgImages);}
   }catch(e){
+    if(await restoreBackgroundsFromOfflineCache())return;
     console.warn('folder background error',e);
     setBackgroundStatus('Folder background error: '+(e?.message||String(e)),true);
   }
@@ -249,7 +277,7 @@ function clearBackgroundLayers(){
   }
   configApi.bgActiveLayerId='bg';
 }
-function loadBackgroundIntoLayer(layer,remoteUrl,priority='low'){return loadBackgroundMedia(layer,remoteUrl,priority);}
+async function loadBackgroundIntoLayer(layer,remoteUrl,priority='low'){if(cacheableStillBackground(remoteUrl)&&navigator.onLine===false&&await loadBackgroundFromCache(layer,remoteUrl))return true;const ok=await loadBackgroundMedia(layer,remoteUrl,priority);if(ok)return true;return cacheableStillBackground(remoteUrl)?loadBackgroundFromCache(layer,remoteUrl):false;}
 function preloadBackgroundIndex(idx){
   if(!cfg.photoPreload||!configApi.bgImages.length)return Promise.resolve(false);
   const i=((idx%configApi.bgImages.length)+configApi.bgImages.length)%configApi.bgImages.length;
@@ -383,8 +411,9 @@ async function loadPhotos(albumUrl){
     const albumNote=album.limitReached?` · ${GOOGLE_PHOTOS_MAX_ITEMS}-photo limit reached`:(album.paginated?` · ${album.pages} Google pages loaded`:'');
     setBackgroundStatus(`${configApi.bgSourceImages.length} photos found${albumNote} · ${cfg.photoOrder==='shuffle'?'shuffle cycle':cfg.photoOrder==='random'?'random no-repeat':'album order'} · ${cfg.photoIntervalSec?formatBackgroundInterval(cfg.photoIntervalSec):'rotation off'}`);
     await showBg(configApi.bgIdx,0,sourceSerial);
-    if(sourceSerial===configApi.bgSourceSerial)scheduleBackgroundRotation();
+    if(sourceSerial===configApi.bgSourceSerial){scheduleBackgroundRotation();scheduleBackgroundCacheFill(configApi.bgImages);}
   }catch(e){
+    if(await restoreBackgroundsFromOfflineCache())return;
     console.warn('photos err',e);
     setBackgroundStatus('Background error: '+(e?.message||String(e)),true);
   }
@@ -510,7 +539,7 @@ function updateBackgroundSourceUI(){
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("backgrounds", {backgroundSourceFingerprint,rememberLastBackground,persistLastBackgroundAsset,clearLastBackgroundAsset,loadCachedLastBackground,restoreLastBackground,localProxyUrl,backgroundAssetUrl,mediaFoldersFromText,mediaFoldersFromForm,loadMediaFolderBrowser,openMediaFolderBrowser,browseMediaParent,addCurrentMediaFolder,loadFolderBackgrounds,scanFolderBackgroundsFromForm,setBackgroundStatus,shuffledCopy,prepareBackgroundOrder,chooseNextBackgroundIndex,nextBackgroundIndex,backgroundLayerById,backgroundLayerImage,activeBackgroundLayer,inactiveBackgroundLayer,backgroundTransitionDurationMs,nextAnimationFrame,waitForBackgroundLayerVisible,clearBackgroundPrepared,clearBackgroundLayers,loadBackgroundIntoLayer,preloadBackgroundIndex,prepareUpcomingBackground,revealBackgroundLayer,scheduleBackgroundRotation,stockSearchTerm,loadStockBackground,loadPhotos,formatBackgroundInterval,showBg,nextBackgroundNow,reshuffleBackgroundNow,reloadBackgroundNow,disableBackgroundSource,updateBackgroundSourceUI}, {
+LibreDisplayRuntime.exposeModule("backgrounds", {backgroundSourceFingerprint,rememberLastBackground,persistLastBackgroundAsset,clearLastBackgroundAsset,loadCachedLastBackground,restoreLastBackground,localProxyUrl,backgroundAssetUrl,backgroundCacheIndex,saveBackgroundCacheIndex,cacheableStillBackground,backgroundCacheBudgetBytes,cachedResponseBytes,enforceBackgroundCacheBudget,trimBackgroundCache,cacheBackgroundAsset,fillBackgroundCaches,scheduleBackgroundCacheFill,loadBackgroundFromCache,restoreBackgroundsFromOfflineCache,mediaFoldersFromText,mediaFoldersFromForm,loadMediaFolderBrowser,openMediaFolderBrowser,browseMediaParent,addCurrentMediaFolder,loadFolderBackgrounds,scanFolderBackgroundsFromForm,setBackgroundStatus,shuffledCopy,prepareBackgroundOrder,chooseNextBackgroundIndex,nextBackgroundIndex,backgroundLayerById,backgroundLayerImage,activeBackgroundLayer,inactiveBackgroundLayer,backgroundTransitionDurationMs,nextAnimationFrame,waitForBackgroundLayerVisible,clearBackgroundPrepared,clearBackgroundLayers,loadBackgroundIntoLayer,preloadBackgroundIndex,prepareUpcomingBackground,revealBackgroundLayer,scheduleBackgroundRotation,stockSearchTerm,loadStockBackground,loadPhotos,formatBackgroundInterval,showBg,nextBackgroundNow,reshuffleBackgroundNow,reloadBackgroundNow,disableBackgroundSource,updateBackgroundSourceUI}, {
   "bgTimer": {configurable:true,get:()=>bgTimer,set:(value)=>{bgTimer=value;}},
   "mediaBrowsePath": {configurable:true,get:()=>mediaBrowsePath,set:(value)=>{mediaBrowsePath=value;}}
 }, {globalFunctions:['openMediaFolderBrowser','browseMediaParent','addCurrentMediaFolder','scanFolderBackgroundsFromForm','nextBackgroundNow','reshuffleBackgroundNow','reloadBackgroundNow','updateBackgroundSourceUI'],globalStates:[]});
