@@ -10,9 +10,9 @@ PRESETS=(ROOT/'app/js/appearance/presets.js').read_text(encoding='utf-8')
 README=(ROOT/'README.md').read_text(encoding='utf-8')
 
 def test_v1818_version_and_readme_scope():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.18'
-    assert 'v1.8.18/scripts/install-one-line.sh' in README
-    assert 'VERSION="1.8.18"' in (ROOT/'scripts/install-one-line.sh').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.19'
+    assert 'v1.8.19/scripts/install-one-line.sh' in README
+    assert 'VERSION="1.8.19"' in (ROOT/'scripts/install-one-line.sh').read_text()
 
 def test_offline_background_reserve_is_one_user_setting():
     assert 'id="s-bg-offline-reserve"' in HTML
@@ -35,13 +35,13 @@ def test_dog_companion_is_optional_breed_aware_and_animated():
     assert '@keyframes ldDogLife' in CSS and '@keyframes ldDogBall' in CSS and '@keyframes ldDogSleep' in CSS
 
 def test_alert_scenes_have_visible_family_specific_renderers():
-    for cls in ('hazard-tornado-slice','hazard-tropical-cloud','hazard-tropical-rain','hazard-storm-rain','hazard-storm-bolt','hazard-blizzard-gust','hazard-blizzard-ground','hazard-fire-ember','hazard-flood-depth'):
+    for cls in ('hazard-tornado-vapor','hazard-hurricane-band','hazard-tropical-rain','hazard-storm-rain','hazard-storm-bolt','hazard-blizzard-gust','hazard-blizzard-ground','hazard-fire-ember','hazard-flood-depth'):
         assert cls in FX
         assert f'.{cls}' in CSS
     assert 'weather-fx-hazard-heat-fire-fire' in CSS
     assert "?'fire':'heat'" in FX
-    assert 'slices=constrained?8:13' in FX
-    assert 'constrained?18:42' in FX
+    assert 'vaporCount=constrained?11:19' in FX
+    assert 'constrained?28:68' in FX
 
 def test_signature_layouts_receive_balance_refinement_without_replacing_arrange():
     assert 'Signature preset balance pass' in CSS
