@@ -2545,3 +2545,99 @@ html.ld-constrained-device #weather-effects-overlay .weather-fx-fog-bank{filter:
 #setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] :is(.s-row input,.s-row select,.btn-util,.wizard-performance-card){font-size:19px;min-height:58px;padding-top:14px;padding-bottom:14px}
 #setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .wizard-performance-card b,#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .wizard-summary-card b{font-size:18px}
 #setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .wizard-performance-presets{gap:14px}
+
+/* v1.8.27 — dog anatomy, engagement, shelter, and realistic ball behavior */
+.weather-fx-dog-v2 .dogv2-rest-limbs{display:none;transform-box:fill-box;transform-origin:center}
+.weather-fx-dog-v2.dog-state-rest .dogv2-leg,.weather-fx-dog-v2.dog-state-sleep .dogv2-leg{display:none}
+.weather-fx-dog-v2.dog-state-rest .dogv2-rest-limbs,.weather-fx-dog-v2.dog-state-sleep .dogv2-rest-limbs{display:block}
+.weather-fx-dog-v2.dog-state-rest .dogv2-pose-stage{transform:translateY(7px) scaleY(.96)}
+.weather-fx-dog-v2.dog-state-rest .dogv2-body-group{transform:translateY(4px) rotate(-.6deg)}
+.weather-fx-dog-v2.dog-state-rest .dogv2-rest-limbs-far{transform:translateY(2px)}
+.weather-fx-dog-v2.dog-state-rest .dogv2-head-group{transform:translate(0,7px) rotate(6deg)}
+.weather-fx-dog-v2.dog-state-sleep .dogv2-pose-stage{transform:translateY(12px) scaleY(.90);animation:ld1827DogBreath 5.8s ease-in-out infinite}
+.weather-fx-dog-v2.dog-state-sleep .dogv2-body-group{transform:translateY(6px) rotate(-1deg)}
+.weather-fx-dog-v2.dog-state-sleep .dogv2-rest-limbs{transform:translate(3px,4px) rotate(2deg)}
+.weather-fx-dog-v2.dog-state-sleep .dogv2-rest-limbs-far{transform:translate(0,6px) rotate(-2deg)}
+.weather-fx-dog-v2.dog-state-sleep .dogv2-head-group{transform:translate(-7px,11px) rotate(11deg)}
+.weather-fx-dog-v2 .dogv2-leg-root{filter:none}
+.weather-fx-dog-v2.dog-state-watch .dogv2-head-group{animation:ld1827HeadTilt 3.8s ease-in-out infinite}
+.weather-fx-dog-v2.dog-state-inspect .dogv2-head-group{animation:ld1827Inspect 2.8s ease-in-out infinite}
+.weather-fx-dog-v2.dog-state-inspect .dogv2-tail{animation-duration:3.4s}
+.weather-fx-dog-v2.dog-state-ball .dogv2-ball{animation:ld1827DogBall .72s cubic-bezier(.28,.02,.5,1) infinite}
+@keyframes ld1827DogBall{0%{transform:translateX(0) translateY(0) rotate(0)}44%{transform:translateX(var(--dog-ball-mid-x,12px)) translateY(-8px) rotate(92deg)}56%{transform:translateX(var(--dog-ball-mid-x,12px)) translateY(-8px) rotate(108deg)}100%{transform:translateX(var(--dog-ball-x,24px)) translateY(0) rotate(190deg)}}
+@keyframes ld1827HeadTilt{0%,24%,100%{transform:translateY(-2px) rotate(-2deg)}42%,58%{transform:translateY(-4px) rotate(-11deg)}76%{transform:translateY(-3px) rotate(7deg)}}
+@keyframes ld1827Inspect{0%,100%{transform:translate(4px,6px) rotate(10deg)}42%{transform:translate(7px,10px) rotate(17deg)}68%{transform:translate(2px,3px) rotate(3deg)}}
+@keyframes ld1827DogBreath{0%,100%{transform:translateY(12px) scaleY(.90)}50%{transform:translateY(13px) scaleY(.92)}}
+
+.weather-fx-dog-v2 .dogv2-doghouse,.weather-fx-dog-v2 .dogv2-floaty{display:none;position:absolute;pointer-events:none}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse{display:block;left:20px;bottom:0;width:185px;height:126px;z-index:1}
+.weather-fx-dog-v2 .dogv2-doghouse-back{position:absolute;left:25px;bottom:0;width:142px;height:82px;border-radius:5px 5px 2px 2px;background:linear-gradient(90deg,#8e5b35,#a66a3c 42%,#8a552f);box-shadow:inset 0 0 0 3px rgba(70,38,20,.28),0 4px 7px rgba(0,0,0,.22)}
+.weather-fx-dog-v2 .dogv2-doghouse-back::before{content:"";position:absolute;left:-16px;top:-47px;width:0;height:0;border-left:87px solid transparent;border-right:87px solid transparent;border-bottom:58px solid #6f3528;filter:drop-shadow(0 3px 2px rgba(0,0,0,.2))}
+.weather-fx-dog-v2 .dogv2-doghouse-back::after{content:"";position:absolute;left:42px;bottom:0;width:60px;height:65px;border-radius:32px 32px 3px 3px;background:linear-gradient(180deg,#251b18,#100d0c);box-shadow:inset 0 0 12px rgba(0,0,0,.65)}
+.weather-fx-dog-v2 .dogv2-doghouse-front{position:absolute;left:22px;bottom:-1px;width:150px;height:29px;z-index:4;border-radius:3px;background:linear-gradient(180deg,#9f6539,#7d4a29);box-shadow:inset 0 2px 0 rgba(255,255,255,.08)}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-svg{z-index:2}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-pose-stage{transform:translate(-1px,27px) scale(.82)}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-leg,.weather-fx-dog-v2.dog-shelter-house .dogv2-rest-limbs,.weather-fx-dog-v2.dog-shelter-house .dogv2-tail{opacity:.16}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-head-group{transform:translate(-8px,-1px) rotate(2deg);animation:ld1827ShelterLook 5.4s ease-in-out infinite}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-shadow{opacity:0}
+@keyframes ld1827ShelterLook{0%,30%,100%{transform:translate(-8px,-1px) rotate(2deg)}52%{transform:translate(-5px,-4px) rotate(-6deg)}72%{transform:translate(-8px,-2px) rotate(5deg)}}
+
+.weather-fx-dog-v2.dog-shelter-flood .dogv2-floaty{display:block;left:33px;bottom:5px;width:145px;height:42px;z-index:5;border:12px solid #f4b64d;border-radius:50%;box-sizing:border-box;background:rgba(116,190,211,.10);box-shadow:inset 0 0 0 4px rgba(255,255,255,.28),0 4px 8px rgba(0,0,0,.18);animation:ld1827Floaty 3.4s ease-in-out infinite}
+.weather-fx-dog-v2.dog-shelter-flood .dogv2-floaty::before{content:"";position:absolute;inset:-9px;border-radius:50%;border:3px solid rgba(255,224,151,.65)}
+.weather-fx-dog-v2.dog-shelter-flood .dogv2-pose-stage{transform:translate(0,12px) scale(.88)}
+.weather-fx-dog-v2.dog-shelter-flood .dogv2-leg,.weather-fx-dog-v2.dog-shelter-flood .dogv2-rest-limbs{opacity:.12}
+.weather-fx-dog-v2.dog-shelter-flood .dogv2-head-group{transform:translateY(1px) rotate(-2deg);animation:ld1827FloatLook 5s ease-in-out infinite}
+.weather-fx-dog-v2.dog-shelter-flood .dogv2-tail{animation:none;transform:rotate(3deg)}
+@keyframes ld1827Floaty{0%,100%{transform:translateY(1px) rotate(-1deg)}50%{transform:translateY(-4px) rotate(1.4deg)}}
+@keyframes ld1827FloatLook{0%,100%{transform:translateY(1px) rotate(-2deg)}45%{transform:translateY(-2px) rotate(-8deg)}72%{transform:translateY(0) rotate(5deg)}}
+
+/* v1.8.27 — surface-view tropical storm, red-flag fire, heavy-snow clouds, and flood realism */
+.weather-fx-hazard-tropical{overflow:hidden;background:linear-gradient(180deg,rgba(5,15,25,.78),rgba(12,29,40,.46) 45%,rgba(15,42,55,.20) 72%,transparent 88%)}
+.weather-fx-hazard-tropical::before{content:"";position:absolute;inset:0;background:linear-gradient(108deg,transparent 0 28%,rgba(218,236,240,.07) 36%,transparent 43% 58%,rgba(196,221,229,.06) 66%,transparent 73%);animation:ld1827TropicalCurtain 3.4s linear infinite}
+.weather-fx-hazard-tropical::after{content:"";position:absolute;left:-8vw;right:-8vw;bottom:-2vh;height:var(--hazard-surge-height,16vh);background:linear-gradient(180deg,transparent 0 5%,rgba(200,231,237,.15) 9%,rgba(92,159,181,.42) 24%,rgba(37,98,128,.72) 54%,rgba(15,55,82,.94));border-top:2px solid rgba(226,244,247,.42);box-shadow:inset 0 7px 18px rgba(218,242,247,.08);animation:ld1827TropicalSurge 4.8s ease-in-out infinite alternate}
+.hazard-tropical-sky{position:absolute;z-index:1;left:-8vw;right:-8vw;top:-5vh;height:42vh;background:radial-gradient(ellipse at 18% 70%,rgba(72,89,100,.76),transparent 36%),radial-gradient(ellipse at 46% 55%,rgba(45,62,74,.92),transparent 48%),radial-gradient(ellipse at 76% 62%,rgba(63,79,91,.78),transparent 40%),linear-gradient(180deg,rgba(24,39,50,.96),rgba(49,66,77,.64) 62%,transparent);filter:blur(2px);animation:ld1827TropicalSky 8s ease-in-out infinite alternate}
+.hazard-tropical-shelf{position:absolute;z-index:3;left:-10vw;right:-10vw;top:17vh;height:14vh;border-radius:0 0 50% 50%;background:radial-gradient(ellipse at 48% 0,rgba(19,31,40,.94),rgba(49,65,74,.82) 42%,rgba(87,103,111,.36) 71%,transparent 78%);box-shadow:0 2vh 3vh rgba(0,0,0,.20);animation:ld1827TropicalShelf 5.2s ease-in-out infinite alternate}
+.hazard-tropical-scud{position:absolute;z-index:4;left:var(--tropical-scud-x);top:var(--tropical-scud-y);width:var(--tropical-scud-w);height:10vh;border-radius:58% 42% 54% 46%;background:radial-gradient(ellipse at 50% 65%,rgba(96,112,122,var(--tropical-scud-alpha,.4)),rgba(39,55,67,.24) 58%,transparent 72%);animation:ld1827Scud 4.4s linear var(--tropical-scud-delay,0s) infinite}
+.hazard-tropical-squall{position:absolute;z-index:2;left:-12vw;top:var(--tropical-squall-y);width:126vw;height:12vh;background:linear-gradient(110deg,transparent 0 14%,rgba(205,228,235,var(--tropical-squall-alpha,.2)) 21%,rgba(121,164,181,.12) 29%,transparent 38% 64%,rgba(184,214,224,.10) 72%,transparent 82%);transform:skewX(-10deg);animation:ld1827Squall 4.8s linear var(--tropical-squall-delay,0s) infinite}
+.hazard-tropical-rain{position:absolute;z-index:5;left:var(--tropical-rain-x);top:var(--tropical-rain-y);width:2px;height:var(--tropical-rain-length,28vh);background:linear-gradient(180deg,transparent,rgba(223,241,245,.72) 18%,rgba(166,207,219,.31) 76%,transparent);transform:rotate(-20deg);animation:ld1827TropicalRain .92s linear var(--tropical-rain-delay,0s) infinite}
+.hazard-tropical-spray{position:absolute;z-index:6;left:-10vw;right:-10vw;bottom:7vh;height:14vh;background:repeating-linear-gradient(105deg,transparent 0 30px,rgba(206,235,241,.12) 32px 35px,transparent 37px 66px);filter:blur(1px);animation:ld1827Spray 2.6s linear infinite}
+@keyframes ld1827TropicalCurtain{from{transform:translateX(-5vw)}to{transform:translateX(5vw)}}
+@keyframes ld1827TropicalSky{from{transform:translateX(-2vw) scaleY(.97);opacity:.90}to{transform:translateX(2vw) scaleY(1.04);opacity:1}}
+@keyframes ld1827TropicalShelf{from{transform:translateX(-2vw) scaleY(.94)}to{transform:translateX(2vw) scaleY(1.05)}}
+@keyframes ld1827Scud{from{transform:translateX(-18vw);opacity:.35}20%{opacity:.92}to{transform:translateX(120vw);opacity:.35}}
+@keyframes ld1827Squall{from{transform:translateX(-8vw) skewX(-10deg);opacity:.45}45%{opacity:.95}to{transform:translateX(8vw) skewX(-10deg);opacity:.40}}
+@keyframes ld1827TropicalRain{from{transform:translate3d(-3vw,-9vh,0) rotate(-20deg);opacity:0}14%{opacity:.92}to{transform:translate3d(5vw,25vh,0) rotate(-20deg);opacity:0}}
+@keyframes ld1827Spray{from{background-position:0 0;transform:translateX(-2vw)}to{background-position:160px 0;transform:translateX(4vw)}}
+@keyframes ld1827TropicalSurge{from{transform:translateY(1.8vh) scaleY(.94)}to{transform:translateY(-1vh) scaleY(1.06)}}
+
+.weather-fx-hazard-heat-fire-fire{overflow:hidden;background:linear-gradient(180deg,rgba(65,54,45,.06),rgba(86,66,50,.12) 48%,rgba(98,54,34,.25) 77%,rgba(49,31,24,.45) 100%)}
+.hazard-fire-ground{left:-6vw;right:-6vw;bottom:-2vh;height:17vh;clip-path:none;background:linear-gradient(180deg,transparent 0 30%,rgba(127,100,65,.16) 31% 47%,rgba(75,55,37,.76) 48% 100%),radial-gradient(ellipse at 22% 75%,rgba(165,127,76,.16),transparent 28%),radial-gradient(ellipse at 70% 72%,rgba(147,107,65,.14),transparent 32%)}
+.hazard-fire-distance-glow{position:absolute;z-index:2;left:-8vw;right:-8vw;bottom:5vh;height:16vh;background:radial-gradient(ellipse at 52% 100%,rgba(247,123,47,.30),rgba(161,62,31,.15) 38%,rgba(80,45,31,.05) 66%,transparent 75%);filter:blur(6px);animation:ld1827FireGlow 4.2s ease-in-out infinite alternate}
+.hazard-fire-scrub{position:absolute;z-index:3;left:var(--fire-scrub-x);bottom:4vh;width:var(--fire-scrub-w);height:var(--fire-scrub-h);border-radius:60% 40% 50% 50%/70% 65% 35% 30%;background:radial-gradient(ellipse at 50% 72%,rgba(70,56,39,.96),rgba(105,76,47,.78) 52%,rgba(55,45,34,.24) 72%,transparent 75%)}
+.hazard-fire-smoke-plume{position:absolute;z-index:4;left:var(--fire-smoke-x);bottom:4vh;width:14vw;height:58vh;transform:scale(var(--fire-smoke-scale,1));transform-origin:50% 100%;background:radial-gradient(ellipse at 48% 88%,rgba(73,67,62,.42),rgba(54,53,52,.26) 36%,rgba(39,42,43,.16) 58%,transparent 74%);filter:blur(8px);animation:ld1827FireSmoke 7.5s ease-in-out var(--fire-smoke-delay,0s) infinite alternate}
+.hazard-fire-ground-flame{position:absolute;z-index:5;left:var(--fire-ground-x);bottom:5vh;width:1.6vw;min-width:9px;height:var(--fire-ground-h);max-height:46px;border-radius:58% 42% 54% 46%/76% 70% 30% 24%;background:radial-gradient(ellipse at 50% 88%,#ffe29a 0 12%,#ef9a3c 28%,rgba(199,66,33,.82) 55%,rgba(108,39,28,.10) 74%,transparent 78%);transform-origin:50% 100%;animation:ld1827GroundFire 1.35s ease-in-out var(--fire-ground-delay,0s) infinite alternate}
+.hazard-fire-ember{z-index:6;background:#e49b55;box-shadow:none;opacity:.72;animation-duration:8.5s}
+@keyframes ld1827FireGlow{from{opacity:.62;transform:scaleY(.92)}to{opacity:.88;transform:scaleY(1.07)}}
+@keyframes ld1827FireSmoke{from{transform:translate(-2vw,1vh) scale(var(--fire-smoke-scale,1));opacity:.40}to{transform:translate(4vw,-4vh) scale(var(--fire-smoke-scale,1));opacity:.70}}
+@keyframes ld1827GroundFire{from{transform:skewX(-3deg) scaleY(.72);opacity:.52}to{transform:skewX(4deg) scaleY(1.05);opacity:.90}}
+
+.weather-fx-heavy-snow-cloud{position:absolute;z-index:1;left:var(--heavy-snow-cloud-x);top:var(--heavy-snow-cloud-y);width:var(--heavy-snow-cloud-w);height:14vh;border-radius:55% 45% 50% 50%/62% 58% 42% 38%;background:radial-gradient(ellipse at 24% 65%,rgba(230,237,241,var(--heavy-snow-cloud-alpha,.55)) 0 30%,transparent 57%),radial-gradient(ellipse at 52% 48%,rgba(207,219,226,var(--heavy-snow-cloud-alpha,.55)) 0 38%,transparent 65%),radial-gradient(ellipse at 82% 66%,rgba(176,193,204,var(--heavy-snow-cloud-alpha,.55)) 0 29%,transparent 56%);box-shadow:inset 0 -2vh 2.4vh rgba(78,99,113,.20);animation:ld1827HeavySnowCloud 32s ease-in-out var(--heavy-snow-cloud-delay,0s) infinite alternate}
+@keyframes ld1827HeavySnowCloud{from{transform:translateX(-3vw);opacity:.70}to{transform:translateX(5vw);opacity:1}}
+
+.hazard-flood-plank{width:48px;height:6px;border-radius:2px;background:linear-gradient(90deg,#75533a,#a87b50,#69472f);box-shadow:inset 0 1px rgba(255,255,255,.16)}
+.hazard-flood-bottle{width:17px;height:7px;border-radius:7px 4px 4px 7px;background:rgba(113,174,173,.72);border:1px solid rgba(209,240,236,.35)}
+.hazard-flood-bottle::after{content:"";position:absolute;right:-5px;top:1px;width:6px;height:5px;border-radius:1px;background:rgba(81,135,135,.78)}
+.hazard-flood-can{width:13px;height:8px;border-radius:3px;background:linear-gradient(180deg,#b8a9a0,#80746f);border-left:2px solid rgba(231,224,219,.32)}
+.hazard-flood-foam{position:absolute;left:-12vw;bottom:var(--foam-y);width:124vw;height:2.8vh;background:repeating-radial-gradient(ellipse at 50% 100%,rgba(226,244,247,.33) 0 4px,transparent 5px 18px);animation:ld1827FloodFoam 6.2s linear var(--foam-delay,0s) infinite}
+.weather-fx-hazard-flood::before{content:"";position:absolute;left:-8vw;right:-8vw;bottom:0;height:var(--hazard-flood-height,22vh);background:linear-gradient(180deg,rgba(153,211,226,.08),rgba(61,137,164,.20) 24%,rgba(28,96,130,.32) 58%,rgba(16,68,103,.48));box-shadow:inset 0 5px 14px rgba(228,247,249,.05)}
+@keyframes ld1827FloodFoam{from{transform:translateX(-4vw);opacity:.35}50%{opacity:.68}to{transform:translateX(5vw);opacity:.35}}
+
+/* v1.8.27 — Pi 4 compositor/paint reductions without disabling the feature suite */
+html.ld-constrained-device #weather-effects-overlay.show::before{filter:none!important}
+html.ld-constrained-device #weather-effects-overlay.weather-fx-fog.show::before{filter:none!important}
+html.ld-constrained-device #weather-effects-overlay .weather-fx-fog-bank{filter:blur(2px)!important}
+html.ld-constrained-device #weather-effects-overlay .weather-fx-heavy-snow-cloud{box-shadow:none!important}
+html.ld-constrained-device #weather-effects-overlay :is(.hazard-tropical-sky,.hazard-tropical-shelf,.hazard-tropical-scud,.hazard-tropical-spray,.hazard-fire-distance-glow,.hazard-fire-smoke-plume,.hazard-flood-foam){filter:none!important;box-shadow:none!important}
+html.ld-constrained-device #weather-effects-overlay .weather-fx-hazard{backface-visibility:hidden}
+html.ld-constrained-device #weather-effects-overlay .weather-fx-dog-v2 .dogv2-leg .dogv2-upper-limb,
+html.ld-constrained-device #weather-effects-overlay .weather-fx-dog-v2 .dogv2-leg .dogv2-lower-limb{will-change:auto}

@@ -40,8 +40,8 @@
     "module": "performance",
     "part": "performance",
     "path": "/js/core/performance.js",
-    "lines": 131,
-    "functions": 9,
+    "lines": 140,
+    "functions": 10,
     "bindings": 0
   },
   {
@@ -58,8 +58,8 @@
     "module": "weather",
     "part": "scenery",
     "path": "/js/weather/scenery.js",
-    "lines": 156,
-    "functions": 49,
+    "lines": 158,
+    "functions": 51,
     "bindings": 0
   },
   {

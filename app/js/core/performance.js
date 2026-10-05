@@ -27,11 +27,18 @@ function frontendCapabilities(){
   };
 }
 
+function frontendPixelLoad(){
+  const dpr=Math.max(.5,Number(globalThis.devicePixelRatio)||1),screenW=Math.max(Number(globalThis.innerWidth)||0,Number(globalThis.screen?.width)||0),screenH=Math.max(Number(globalThis.innerHeight)||0,Number(globalThis.screen?.height)||0),physicalWidth=Math.round(screenW*dpr),physicalHeight=Math.round(screenH*dpr),megapixels=physicalWidth*physicalHeight/1e6;
+  return {physicalWidth,physicalHeight,megapixels,tier:megapixels>=7?'4k':megapixels>=3.2?'highres':'standard'};
+}
+
 function visualPerformanceBudget(){
-  const caps=frontendCapabilities();
-  if(caps.piClass)return {tier:'pi4',particleScale:.46,wildlifeScale:.52,holidayScale:.62,targetFrameMs:33,blurScale:.35};
-  if(caps.constrained)return {tier:'constrained',particleScale:.55,wildlifeScale:.62,holidayScale:.70,targetFrameMs:28,blurScale:.50};
-  return {tier:'standard',particleScale:1,wildlifeScale:1,holidayScale:1,targetFrameMs:16,blurScale:1};
+  const caps=frontendCapabilities(),pixels=frontendPixelLoad();
+  if(caps.piClass&&pixels.tier==='4k')return {tier:'pi4',resolutionTier:'4k',particleScale:.28,wildlifeScale:.36,holidayScale:.44,hazardScale:.55,cloudScale:.58,targetFrameMs:45,blurScale:.12};
+  if(caps.piClass&&pixels.tier==='highres')return {tier:'pi4',resolutionTier:'highres',particleScale:.31,wildlifeScale:.39,holidayScale:.47,hazardScale:.58,cloudScale:.63,targetFrameMs:42,blurScale:.15};
+  if(caps.piClass)return {tier:'pi4',resolutionTier:'standard',particleScale:.34,wildlifeScale:.42,holidayScale:.50,hazardScale:.62,cloudScale:.68,targetFrameMs:40,blurScale:.18};
+  if(caps.constrained)return {tier:'constrained',resolutionTier:pixels.tier,particleScale:.50,wildlifeScale:.58,holidayScale:.66,hazardScale:.78,cloudScale:.82,targetFrameMs:30,blurScale:.42};
+  return {tier:'standard',resolutionTier:pixels.tier,particleScale:1,wildlifeScale:1,holidayScale:1,hazardScale:1,cloudScale:1,targetFrameMs:16,blurScale:1};
 }
 
 function effectiveVisualConfig(source){
@@ -99,6 +106,8 @@ function frontendPerformanceSnapshot(){
   }:undefined;
   return {
     ...frontendCapabilities(),
+    pixelLoad:frontendPixelLoad(),
+    visualBudget:visualPerformanceBudget(),
     pageUptimeMs:Math.max(0,Math.round(Number(performance?.now?.())||0)),
     hidden:!!document.hidden,
     reducedMotion:document.documentElement.classList.contains('ld-reduce-motion'),
@@ -128,4 +137,4 @@ function observeFrontendLongTasks(){
 applyFrontendPerformanceClass();
 observeFrontendLongTasks();
 
-LibreDisplayRuntime.exposeModule('performance',{frontendCapabilities,visualPerformanceBudget,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,frontendPerformanceSnapshot,observeFrontendLongTasks},{},{globals:false});
+LibreDisplayRuntime.exposeModule('performance',{frontendCapabilities,frontendPixelLoad,visualPerformanceBudget,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,frontendPerformanceSnapshot,observeFrontendLongTasks},{},{globals:false});
