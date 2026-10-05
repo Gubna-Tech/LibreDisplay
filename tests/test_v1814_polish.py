@@ -10,10 +10,10 @@ CONFIG=(ROOT/'app/js/core/config.js').read_text()
 
 
 def test_current_release_version_is_v1816_and_readme_uses_pinned_bootstrap():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.26'
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.27'
     readme=(ROOT/'README.md').read_text()
-    assert 'Gubna-Tech/LibreDisplay/v1.8.26/scripts/install-one-line.sh' in readme
-    assert 'pinned **v1.8.26** release' in readme
+    assert 'Gubna-Tech/LibreDisplay/v1.8.27/scripts/install-one-line.sh' in readme
+    assert 'pinned **v1.8.27** release' in readme
 
 
 def test_offline_reserve_explains_photo_count_perspective_and_yields_when_caching():
@@ -69,5 +69,7 @@ def test_alert_animation_is_weather_scoped_testable_and_granular():
 
 def test_hazard_rendering_limits_dom_on_constrained_devices():
     assert 'appendHazardScenery(frag,source,wind,constrained)' in FX
-    assert 'constrained?5:10' in FX
+    assert 'constrained?12:34' in FX
+    assert 'constrained?22:68' in FX
+    assert 'constrained?6:15' in FX
     assert 'constrained?5:9' in FX

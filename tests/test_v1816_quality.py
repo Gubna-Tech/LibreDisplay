@@ -9,9 +9,9 @@ SYSTEM=(ROOT/'app/js/system/index.js').read_text(encoding='utf-8')
 
 
 def test_v1816_version_and_pinned_installer():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.26'
-    assert 'v1.8.26/scripts/install-one-line.sh' in (ROOT/'README.md').read_text()
-    assert 'VERSION="1.8.26"' in (ROOT/'scripts/install-one-line.sh').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.27'
+    assert 'v1.8.27/scripts/install-one-line.sh' in (ROOT/'README.md').read_text()
+    assert 'VERSION="1.8.27"' in (ROOT/'scripts/install-one-line.sh').read_text()
 
 
 def test_night_icons_use_eight_phase_lunar_cycle_and_hemisphere_pov():

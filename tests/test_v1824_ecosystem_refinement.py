@@ -7,9 +7,9 @@ README=(ROOT/'README.md').read_text(encoding='utf-8')
 
 
 def test_release_version_and_bootstrap_are_1824():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.26'
-    assert 'v1.8.26/scripts/install-one-line.sh' in README
-    assert 'VERSION="1.8.26"' in (ROOT/'scripts/install-one-line.sh').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.27'
+    assert 'v1.8.27/scripts/install-one-line.sh' in README
+    assert 'VERSION="1.8.27"' in (ROOT/'scripts/install-one-line.sh').read_text()
 
 
 def test_dog_anatomy_is_articulated_and_collar_is_neck_anchored():
@@ -27,12 +27,13 @@ def test_dog_world_interruption_recovery_is_persistent():
 
 
 def test_hurricane_and_fire_renderers_use_new_visual_language():
-    for token in ['hazard-hurricane-core','hazard-hurricane-eyewall','hazard-hurricane-arm','hazard-hurricane-cloud-bank','hazard-hurricane-rainband']:
+    for token in ['hazard-tropical-sky','hazard-tropical-shelf','hazard-tropical-scud','hazard-tropical-squall','hazard-tropical-rain','hazard-tropical-spray']:
         assert token in EFFECTS and token in CSS
-    assert "className='hazard-hurricane-band'" not in EFFECTS
-    for token in ['hazard-fire-shrub','hazard-fire-low-flare','hazard-fire-brushline','hazard-fire-ground']:
+    for token in ['hazard-hurricane-core','hazard-hurricane-eyewall','hazard-hurricane-arm']:
+        assert token not in EFFECTS
+    for token in ['hazard-fire-distance-glow','hazard-fire-scrub','hazard-fire-smoke-plume','hazard-fire-ground-flame','hazard-fire-ground']:
         assert token in EFFECTS and token in CSS
-    assert "className='hazard-fire-flame'" not in EFFECTS
+    assert "className='hazard-fire-low-flare'" not in EFFECTS
 
 
 def test_holiday_overlays_coordinate_with_naturescape_and_have_richer_scenes():

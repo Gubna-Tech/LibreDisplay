@@ -39,6 +39,7 @@ def test_dog_legs_are_jointed_paths_not_vertical_rectangles():
     assert 'dogv2-upper-limb' in SCENERY
     assert 'dogv2-lower-limb' in SCENERY
     assert '<rect x=\"${x-legW/2}' not in SCENERY
-    assert "elbowY=top+legH*(front?.42:.36)" in SCENERY
-    assert "hockY=top+legH*.74" in SCENERY
+    assert "rootY=front?cy-ry*.12:cy-ry*.02" in SCENERY
+    assert "dogv2-leg-root dogv2-leg-root-front" in SCENERY
+    assert "hockY=rootY+span*.73" in SCENERY
     assert "data-limb=\"rear\"" in SCENERY

@@ -11,14 +11,14 @@ README=(ROOT/'README.md').read_text(encoding='utf-8')
 
 
 def test_v1820_version_and_pinned_installer_are_synchronized():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.26'
-    assert 'v1.8.26/scripts/install-one-line.sh' in README
-    assert 'VERSION="1.8.26"' in (ROOT/'scripts/install-one-line.sh').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.27'
+    assert 'v1.8.27/scripts/install-one-line.sh' in README
+    assert 'VERSION="1.8.27"' in (ROOT/'scripts/install-one-line.sh').read_text()
 
 
 def test_companion_is_a_state_driven_character_not_a_linear_sprite_loop():
     assert '/js/weather/scenery.js' in APP
-    for state in ('rest','sit','sleep','sniff','wander','dig','roll','ball','bird','perch'):
+    for state in ('rest','sit','sleep','sniff','watch','wander','inspect','dig','roll','ball','bird','shelter','recover'):
         assert f"'{state}'" in SCENERY
         assert f"'{state}'" in SCENERY
     assert 'dogPerchTarget' in SCENERY

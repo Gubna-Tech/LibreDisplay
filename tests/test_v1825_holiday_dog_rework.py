@@ -8,8 +8,8 @@ def _read(rel):
 
 
 def test_version_bumped_to_1825():
-    assert (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "1.8.26"
-    assert "1.8.26" in _read("app/js/core/bootstrap.js")
+    assert (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "1.8.27"
+    assert "1.8.27" in _read("app/js/core/bootstrap.js")
 
 
 def test_holiday_overlays_gained_new_scene_helpers():
@@ -30,8 +30,9 @@ def test_dog_anatomy_refinement_present():
     for token in [
         "withersX=cx+rx*.37",
         "brisketX=cx+rx*.70",
-        "carpusY=top+legH*(front?.72:.67)",
-        "hockY=top+legH*.74",
+        "rootY=front?cy-ry*.12:cy-ry*.02",
+        "carpusY=rootY+span*(front?.71:.66)",
+        "hockY=rootY+span*.73",
     ]:
         assert token in text
 

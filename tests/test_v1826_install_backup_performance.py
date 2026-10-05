@@ -8,10 +8,10 @@ def read(rel):
 
 
 def test_release_version_is_1826():
-    assert (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "1.8.26"
-    assert 'v1.8.26/scripts/install-one-line.sh' in read("README.md")
-    assert 'VERSION="1.8.26"' in read("scripts/install-one-line.sh")
-    assert "const DASHBOARD_BUILD = '1.8.26';" in read("app/js/core/bootstrap.js")
+    assert (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "1.8.27"
+    assert 'v1.8.27/scripts/install-one-line.sh' in read("README.md")
+    assert 'VERSION="1.8.27"' in read("scripts/install-one-line.sh")
+    assert "const DASHBOARD_BUILD = '1.8.27';" in read("app/js/core/bootstrap.js")
 
 
 def test_first_run_wizard_auto_scales_for_high_resolution_and_4k():
@@ -67,9 +67,9 @@ def test_pi4_class_gets_real_visual_budget_instead_of_full_desktop_path():
         "piClass",
         "cores&&cores<=4",
         "tier:piClass?'pi4'",
-        "particleScale:.46",
-        "wildlifeScale:.52",
-        "targetFrameMs:33",
+        "particleScale:.34",
+        "wildlifeScale:.42",
+        "targetFrameMs:40",
     ]:
         assert token in perf
     assert "performanceApi.visualPerformanceBudget()" in effects
@@ -77,7 +77,7 @@ def test_pi4_class_gets_real_visual_budget_instead_of_full_desktop_path():
     assert "budget.wildlifeScale" in effects
     assert "frameInterval=Math.max(14,Number(budget.targetFrameMs)||16)" in scenery
     assert "holidayBudget.holidayScale" in scenery
-    assert "v1.8.26 Pi-class runtime budget" in css
+    assert "v1.8.27 — Pi 4 compositor/paint reductions without disabling the feature suite" in css
     assert "html.ld-constrained-device #weather-effects-overlay" in css
 
 

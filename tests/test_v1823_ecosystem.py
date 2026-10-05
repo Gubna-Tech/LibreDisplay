@@ -7,10 +7,10 @@ CSS=(ROOT/'app/css/dashboard.css').read_text(encoding='utf-8')
 
 
 def test_v1823_release_and_readme_scope():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.26'
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.27'
     readme=(ROOT/'README.md').read_text(encoding='utf-8')
-    assert 'v1.8.26/scripts/install-one-line.sh' in readme
-    assert 'pinned **v1.8.26** release' in readme
+    assert 'v1.8.27/scripts/install-one-line.sh' in readme
+    assert 'pinned **v1.8.27** release' in readme
 
 
 def test_world_state_is_single_coordination_contract():
@@ -39,7 +39,8 @@ def test_dog_world_behavior_treats_weather_as_context_not_only_alerts():
     assert "keys.has('storm')||keys.has('winter')" in SCENERY
     for token in ["keys.has('rain')","keys.has('snow')","keys.has('fog')","keys.has('heat')","keys.has('cold')","keys.has('fireworks')"]:
         assert token in SCENERY
-    assert "['wander','ball','dig','roll','bird','perch']" in SCENERY
+    assert "['wander','ball','dig','roll','bird','inspect']" in SCENERY
+    assert "['rest','sit','sleep','watch']" in SCENERY
     assert "row[1]*=2.05" in SCENERY
 
 
