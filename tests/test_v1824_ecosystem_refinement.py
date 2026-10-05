@@ -7,9 +7,9 @@ README=(ROOT/'README.md').read_text(encoding='utf-8')
 
 
 def test_release_version_and_bootstrap_are_1824():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.24'
-    assert 'v1.8.24/scripts/install-one-line.sh' in README
-    assert 'VERSION="1.8.24"' in (ROOT/'scripts/install-one-line.sh').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.25'
+    assert 'v1.8.25/scripts/install-one-line.sh' in README
+    assert 'VERSION="1.8.25"' in (ROOT/'scripts/install-one-line.sh').read_text()
 
 
 def test_dog_anatomy_is_articulated_and_collar_is_neck_anchored():
@@ -40,5 +40,5 @@ def test_holiday_overlays_coordinate_with_naturescape_and_have_richer_scenes():
         assert token in SCENERY
     assert 'holidayNature=sceneryApi.holidayNaturePolicy' in EFFECTS
     assert "const hp=world.holidayNature" in EFFECTS
-    for token in ['ld1824RabbitHop','ld1824Spider','ld1824Ghost']:
+    for token in ['ld1825RabbitHop','ld1824Spider','ld1824Ghost','holiday-thanksgiving-turkey','holiday-honor-scene','holiday-christmas-tree']:
         assert token in CSS

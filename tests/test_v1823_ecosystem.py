@@ -7,10 +7,10 @@ CSS=(ROOT/'app/css/dashboard.css').read_text(encoding='utf-8')
 
 
 def test_v1823_release_and_readme_scope():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.24'
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.25'
     readme=(ROOT/'README.md').read_text(encoding='utf-8')
-    assert 'v1.8.24/scripts/install-one-line.sh' in readme
-    assert 'pinned **v1.8.24** release' in readme
+    assert 'v1.8.25/scripts/install-one-line.sh' in readme
+    assert 'pinned **v1.8.25** release' in readme
 
 
 def test_world_state_is_single_coordination_contract():

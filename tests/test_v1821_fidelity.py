@@ -6,9 +6,9 @@ SCENERY=(ROOT/'app/js/weather/scenery.js').read_text()
 README=(ROOT/'README.md').read_text()
 
 def test_v1821_release_contract():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.24'
-    assert 'v1.8.24/scripts/install-one-line.sh' in README
-    assert 'VERSION="1.8.24"' in (ROOT/'scripts/install-one-line.sh').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.25'
+    assert 'v1.8.25/scripts/install-one-line.sh' in README
+    assert 'VERSION="1.8.25"' in (ROOT/'scripts/install-one-line.sh').read_text()
 
 def test_dog_direction_and_hazard_shelter_are_explicit():
     assert 'function dogFace(node,dx)' in SCENERY

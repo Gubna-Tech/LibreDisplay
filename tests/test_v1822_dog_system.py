@@ -6,7 +6,7 @@ HTML=(ROOT/'app/dashboard.html').read_text()
 VERSION=(ROOT/'VERSION').read_text().strip()
 
 def test_version_and_new_dog_renderer_are_present():
-    assert VERSION=='1.8.24'
+    assert VERSION=='1.8.25'
     assert 'weather-fx-dog-v2' in SCENERY
     assert 'dogv2-svg' in SCENERY
     assert 'dogSvgMarkup' in SCENERY
