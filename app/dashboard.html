@@ -40,12 +40,9 @@
 <link rel="modulepreload" href="/js/lifecycle/index.js">
 </head>
 <body>
-
 <div id="bg" class="bg-layer" aria-hidden="true"><img id="bg-image-a" alt="" decoding="async"><video id="bg-video-a" muted loop playsinline preload="auto"></video></div>
 <div id="bg-next" class="bg-layer" aria-hidden="true"><img id="bg-image-b" alt="" decoding="async"><video id="bg-video-b" muted loop playsinline preload="auto"></video></div>
 <div id="weather-effects-overlay" aria-hidden="true"></div>
-
-
 <div id="setup" class="hidden" aria-hidden="true">
  <div class="setup-box">
   <div class="setup-head">
@@ -53,7 +50,6 @@
    <button class="setup-close" type="button" onclick="requestCloseSetup()" aria-label="Close settings">×</button>
   </div>
   <p class="sub">Configure the display locally or from a paired device. Use the categories on the left to focus on one job at a time; settings stay on your LibreDisplay server, with a browser-local fallback for recovery.</p>
-
   <div id="wizard-shell" class="wizard-shell">
    <div class="wizard-brand-row"><div class="wizard-brand-mark">LD</div><div><b>Welcome to LibreDisplay</b><span>Private, local-first, and built to make the display yours.</span></div></div>
    <div class="wizard-progress-row"><span id="wizard-step-label" class="wizard-progress-label">Step 1 of 12</span><span id="wizard-mode-label" class="wizard-progress-label">First-run setup</span></div>
@@ -63,7 +59,6 @@
    <div id="wizard-extra" class="wizard-extra"></div>
    <div id="wizard-summary" class="wizard-summary"></div>
   </div>
-
   <div class="settings-workspace">
    <aside class="settings-sidebar" aria-label="Settings navigation">
     <div class="settings-search">
@@ -75,7 +70,6 @@
      <div id="settings-search-status" class="settings-search-status"></div>
      <div id="settings-search-results" class="settings-search-results" aria-live="polite"></div>
     </div>
-
     <div class="settings-tabs" role="tablist" aria-label="Settings categories">
      <button class="settings-tab-btn active" type="button" role="tab" aria-selected="true" data-tab="overview" onclick="switchSettingsTab('overview')"><span class="settings-nav-icon" aria-hidden="true">⌂</span><span class="settings-nav-copy"><b>Home</b><small>Status, displays &amp; shortcuts</small></span></button>
      <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="weather" onclick="switchSettingsTab('weather')"><span class="settings-nav-icon" aria-hidden="true">☁</span><span class="settings-nav-copy"><b>Weather</b><small>Location, forecast &amp; alerts</small></span></button>
@@ -88,7 +82,6 @@
      <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="integrations" onclick="switchSettingsTab('integrations')"><span class="settings-nav-icon" aria-hidden="true">◇</span><span class="settings-nav-copy"><b>Integrations</b><small>Providers &amp; connections</small></span></button>
      <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="system" onclick="switchSettingsTab('system')"><span class="settings-nav-icon" aria-hidden="true">⚙</span><span class="settings-nav-copy"><b>System</b><small>Accounts, automation &amp; maintenance</small></span><span id="settings-update-badge" class="settings-update-badge" aria-hidden="true"></span></button>
     </div>
-
     <div class="settings-sidebar-tools">
      <div class="settings-mode-wrap">
       <label>Settings shown</label>
@@ -100,7 +93,6 @@
      <div id="settings-view-note" class="settings-view-note">Essentials keeps the common controls visible. Choose All for power-user and troubleshooting options.</div>
     </div>
    </aside>
-
    <main class="settings-content" id="settings-content">
     <div class="settings-page-head">
      <div class="settings-page-heading">
@@ -120,14 +112,12 @@
       </div>
      </div>
     </div>
-
     <div id="settings-empty-state" class="settings-empty-state">No sections are visible in this view. Choose <b>All</b> or use Search to find a power-user option.</div>
     <div id="settings-init-error" class="settings-init-error" role="alert">
      <b>Settings recovered after an initialization problem.</b>
      <span id="settings-init-error-text">LibreDisplay kept the editor available instead of leaving an empty configuration screen.</span>
      <div class="utility-actions"><button class="btn-util" type="button" onclick="location.reload()">Reload page</button><button class="btn-util" type="button" onclick="launchLayoutEditorFromSettings()">Arrange dashboard</button></div>
     </div>
-
   <div class="s-section" id="settings-overview" data-settings-tab="overview">
    <h3>Quick edit</h3>
    <div class="howto">The common editing jobs are one click away. These work from the wall display or from a paired phone/computer.</div>
@@ -162,10 +152,15 @@
    </div>
    <div class="shortcut-note">Keyboard shortcuts: Ctrl/Cmd+S = Save &amp; Apply · Esc = Cancel · Ctrl/Cmd+K = Search settings</div>
   </div>
-
+  <div class="s-section" id="settings-lightweight" data-settings-tab="overview">
+   <h3>Lightweight mode <button class="help-tip" type="button" aria-label="Lightweight mode help" data-help="Temporarily pauses the most expensive visual features without changing the settings you chose for them. Turn it off to restore those saved settings exactly.">?</button></h3>
+   <div class="howto">Use this as a quick performance relief switch if a display starts struggling. It temporarily suppresses fullscreen weather/NatureScape effects, animated weather glyphs, moving backgrounds, photo preloading, background blur, and expensive glass blur. Your normal visual settings remain saved underneath and return when Lightweight mode is turned off.</div>
+   <label class="checkline lightweight-mode-toggle"><input id="s-lightweight-mode" type="checkbox"> Enable Lightweight mode now</label>
+   <div id="lightweight-mode-status" class="settings-note" role="status" aria-live="polite">Lightweight mode is OFF — your saved visual settings run normally.</div>
+  </div>
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.14</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.15</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
 
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
@@ -824,6 +819,7 @@
    <div class="s-subhead">Advanced layout editor <button class="help-tip" type="button" aria-label="Arrange mode help" data-help="Arrange changes presentation only. Select an element to move or resize it, then use the movable inspector to style the whole block or individual titles, values, labels, and event text.">?</button></div>
    <div class="howto">Unlock the dashboard to drag and resize each major element independently. Select any element to open its inspector for content size, font, text color, opacity, horizontal/vertical content alignment, and precise screen placement. Arrow keys nudge a selected block; Shift + arrow resizes it. For added blocks, Delete removes, Ctrl/Cmd+D duplicates, Enter configures, and double-click opens configuration. Press A for Add Block or ? for the shortcut guide. The Add Block catalog supports multiple reusable custom blocks. Positions are stored proportionally so layouts scale across similar screen resolutions.</div>
    <div class="settings-grid">
+    <div class="s-row"><label>Visual finish <button class="help-tip" type="button" aria-label="Layout finish help" data-help="Clean keeps LibreDisplay's normal floating text treatment. Glass adds translucent dashboard cards. Minimal strips decoration for mirror-like simplicity. Photo-first strengthens readability while keeping the background image dominant.">?</button></label><select id="s-layout-surface" onchange="previewAppearance()"><option value="clean">Clean</option><option value="glass">Glass cards</option><option value="minimal">Minimal mirror</option><option value="photo">Photo-first</option></select></div>
     <div class="s-row"><label>Snap grid <button class="help-tip" type="button" aria-label="Snap grid help" data-help="Smaller grid values allow finer movement. Turn Snap off for completely free placement and resizing.">?</button></label><select id="s-layout-grid"><option value="8">8 px — fine</option><option value="12">12 px</option><option value="16">16 px</option><option value="20">20 px — default</option><option value="24">24 px</option><option value="32">32 px — coarse</option></select></div>
     <label class="checkline"><input id="s-layout-snap" type="checkbox" checked> Snap blocks to grid while moving/resizing</label>
    </div>
@@ -942,7 +938,7 @@
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.14</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.15</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -1076,6 +1072,7 @@
   <button class="quick-access-action" type="button" role="menuitem" onclick="quickAccessAddBlock()"><strong>Add block</strong><span>Open the block and integration catalog.</span><kbd>+</kbd></button>
   <button class="quick-access-action" type="button" role="menuitem" onclick="quickAccessIntegrations()"><strong>Integrations</strong><span>Edit providers and configured blocks.</span></button>
   <button class="quick-access-action" type="button" role="menuitem" onclick="quickAccessSettings()"><strong>Settings</strong><span>Open all dashboard settings.</span></button>
+  <button id="quick-lightweight-toggle" class="quick-access-action" type="button" role="menuitem"><strong>Lightweight mode: Off</strong><span>Pause heavy visuals temporarily without changing saved settings.</span></button>
  </div>
  <div class="quick-access-foot"><button type="button" onclick="quickAccessRefresh()">Refresh data</button><button type="button" onclick="quickAccessUseDevice()">Use device</button><button type="button" onclick="quickAccessFullscreen()">Fullscreen</button></div>
 </div>

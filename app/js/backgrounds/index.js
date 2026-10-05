@@ -2,7 +2,7 @@
 const configApi=LibreDisplayRuntime.getModule('config');
 
 const {serverPath}=LibreDisplayRuntime.getModule('bootstrap');
-const {fetchRemoteText,escHtml,scaledClamp,resilientFetch}=LibreDisplayRuntime.getModule('shared');
+const {fetchRemoteText,escHtml,scaledClamp,resilientFetch,uiCfg}=LibreDisplayRuntime.getModule('shared');
 const {extractAllGooglePhotoUrls,GOOGLE_PHOTOS_MAX_ITEMS,backgroundMediaKind,backgroundMediaIsMotion,backgroundMediaHasVisual,resetBackgroundLayerMedia,activateBackgroundLayerMedia,deactivateBackgroundLayerMedia,loadBackgroundMedia}=LibreDisplayRuntime.getModule('backgrounds');
 
 let bgTimer=null;
@@ -280,14 +280,14 @@ function clearBackgroundLayers(){
 }
 async function loadBackgroundIntoLayer(layer,remoteUrl,priority='low'){if(cacheableStillBackground(remoteUrl)&&navigator.onLine===false&&await loadBackgroundFromCache(layer,remoteUrl))return true;const ok=await loadBackgroundMedia(layer,remoteUrl,priority);if(ok)return true;return cacheableStillBackground(remoteUrl)?loadBackgroundFromCache(layer,remoteUrl):false;}
 function preloadBackgroundIndex(idx){
-  if(!cfg.photoPreload||!configApi.bgImages.length)return Promise.resolve(false);
+  if(!uiCfg().photoPreload||!configApi.bgImages.length)return Promise.resolve(false);
   const i=((idx%configApi.bgImages.length)+configApi.bgImages.length)%configApi.bgImages.length;
   const remoteUrl=configApi.bgImages[i];if(!remoteUrl)return Promise.resolve(false);
   const layer=inactiveBackgroundLayer();
   return loadBackgroundIntoLayer(layer,remoteUrl,'low');
 }
 function prepareUpcomingBackground(){
-  if(!cfg.photoPreload||configApi.bgImages.length<=1){clearBackgroundPrepared(false);return;}
+  if(!uiCfg().photoPreload||configApi.bgImages.length<=1){clearBackgroundPrepared(false);return;}
   let idx=null;
   if(cfg.photoOrder==='random'){
     idx=configApi.bgIdx;
@@ -436,6 +436,7 @@ async function showBg(idx,attempt=0,sourceSerial=configApi.bgSourceSerial){
     let tries=Math.max(0,Number(attempt)||0);
     while(tries<configApi.bgImages.length){
       const remoteUrl=configApi.bgImages[cursor];
+      if(uiCfg().backgroundMotionEnabled===false&&backgroundMediaIsMotion(remoteUrl)){cursor=(cursor+1)%configApi.bgImages.length;tries++;continue;}
       const layer=inactiveBackgroundLayer();
       let ready=false;
       if(configApi.bgPreparedUrl===remoteUrl&&configApi.bgPreparePromise){

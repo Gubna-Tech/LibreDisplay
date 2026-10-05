@@ -6,7 +6,7 @@ const CONNECTIVITY_DEFAULT_TIMEOUT_MS=8000;
 const CONNECTIVITY_TRANSIENT_STATUS=new Set([408,425,429,500,502,503,504]);
 const connectivityStats={requests:0,successes:0,failures:0,timeouts:0,retries:0,inFlight:0,lastLatencyMs:0,totalLatencyMs:0,lastSuccessAt:0,lastFailureAt:0};
 
-function uiCfg(){return window.__uiPreviewCfg||LibreDisplayRuntime.getModule('config').cfg;}
+function uiCfg(){const source=window.__uiPreviewCfg||LibreDisplayRuntime.getModule('config').cfg;try{return LibreDisplayRuntime.getModule('performance').effectiveVisualConfig(source);}catch(_e){return source;}}
 function escHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function safeHttpUrl(v){try{const u=new URL(String(v||''),location.href);return ['http:','https:'].includes(u.protocol)?u.href:'';}catch{return '';}}

@@ -40,7 +40,7 @@
     "module": "performance",
     "part": "performance",
     "path": "/js/core/performance.js",
-    "lines": 107,
+    "lines": 116,
     "functions": 8,
     "bindings": 0
   },
@@ -121,7 +121,7 @@
     "module": "backgrounds",
     "part": "index",
     "path": "/js/backgrounds/index.js",
-    "lines": 546,
+    "lines": 547,
     "functions": 43,
     "bindings": 2
   },
@@ -184,7 +184,7 @@
     "module": "appearance",
     "part": "presets",
     "path": "/js/appearance/presets.js",
-    "lines": 145,
+    "lines": 153,
     "functions": 15,
     "bindings": 5
   },
@@ -238,7 +238,7 @@
     "module": "settings",
     "part": "index",
     "path": "/js/settings/index.js",
-    "lines": 253,
+    "lines": 255,
     "functions": 12,
     "bindings": 1
   },
@@ -247,7 +247,7 @@
     "module": "settings",
     "part": "navigation",
     "path": "/js/settings/navigation.js",
-    "lines": 454,
+    "lines": 456,
     "functions": 22,
     "bindings": 9
   },
@@ -256,7 +256,7 @@
     "module": "settings",
     "part": "actions",
     "path": "/js/settings/actions.js",
-    "lines": 129,
+    "lines": 141,
     "functions": 14,
     "bindings": 1
   },

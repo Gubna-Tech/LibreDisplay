@@ -19,6 +19,15 @@ function frontendCapabilities(){
   };
 }
 
+function effectiveVisualConfig(source){
+  if(!source||source.lightweightModeEnabled!==true)return source;
+  return {...source,weatherAnimationsEnabled:false,weatherWidgetAnimations:false,weatherFullscreenEffects:false,weatherSeasonalEffects:false,weatherHazardEffects:false,backgroundMotionEnabled:false,photoPreload:false,bgBlurPx:0,bgTransitionSec:Math.min(.35,Math.max(0,Number(source.bgTransitionSec)||0))};
+}
+
+function lightweightModeSummary(source){
+  return source?.lightweightModeEnabled===true?'Lightweight mode is ON — expensive visuals are paused without changing your saved visual settings.':'Lightweight mode is OFF — your saved visual settings run normally.';
+}
+
 function applyFrontendPerformanceClass(){
   const caps=frontendCapabilities();
   document.documentElement.dataset.performanceTier=caps.tier;
@@ -104,4 +113,4 @@ function observeFrontendLongTasks(){
 applyFrontendPerformanceClass();
 observeFrontendLongTasks();
 
-LibreDisplayRuntime.exposeModule('performance',{frontendCapabilities,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,frontendPerformanceSnapshot,observeFrontendLongTasks},{},{globals:false});
+LibreDisplayRuntime.exposeModule('performance',{frontendCapabilities,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,frontendPerformanceSnapshot,observeFrontendLongTasks},{},{globals:false});

@@ -38,6 +38,18 @@ function quickAccessArrange(){closeQuickAccessMenu();startLayoutEditor();}
 function quickAccessAddBlock(){closeQuickAccessMenu();startLayoutEditor();setTimeout(()=>openBlockCatalog(),60);}
 function quickAccessSettings(tab='overview'){closeQuickAccessMenu();openSetup();setTimeout(()=>switchSettingsTab(tab),20);}
 function quickAccessIntegrations(){quickAccessSettings('integrations');}
+function updateLightweightModeUi(){
+  const enabled=cfg.lightweightModeEnabled===true,status=document.getElementById('lightweight-mode-status'),toggle=document.getElementById('s-lightweight-mode'),quick=document.getElementById('quick-lightweight-toggle');
+  if(toggle)toggle.checked=enabled;if(status)status.textContent=LibreDisplayRuntime.getModule('performance').lightweightModeSummary(cfg);
+  if(quick){quick.classList.toggle('active',enabled);const strong=quick.querySelector('strong'),copy=quick.querySelector('span');if(strong)strong.textContent=`Lightweight mode: ${enabled?'On':'Off'}`;if(copy)copy.textContent=enabled?'Heavy visuals are paused. Tap to restore your saved settings.':'Pause heavy visuals temporarily without changing saved settings.';}
+}
+async function setLightweightMode(enabled){
+  cfg.lightweightModeEnabled=!!enabled;if(cfg.lightweightModeEnabled)for(const video of document.querySelectorAll('.bg-layer video')){try{video.pause();}catch(_e){}}updateLightweightModeUi();const result=await configApi.saveCfg();settingsApi().applySettings();updateLightweightModeUi();return result;
+}
+function toggleLightweightMode(force){return setLightweightMode(typeof force==='boolean'?force:cfg.lightweightModeEnabled!==true);}
+function quickAccessToggleLightweight(){closeQuickAccessMenu();return toggleLightweightMode();}
+document.getElementById('s-lightweight-mode')?.addEventListener('change',event=>toggleLightweightMode(event.currentTarget.checked));
+document.getElementById('quick-lightweight-toggle')?.addEventListener('click',quickAccessToggleLightweight);
 function quickAccessRefresh(){closeQuickAccessMenu();refreshDataNow();}
 function quickAccessUseDevice(){closeQuickAccessMenu();requestDeviceDisplayMode('windowed');}
 function quickAccessFullscreen(){closeQuickAccessMenu();requestDeviceDisplayMode('kiosk');}
@@ -124,6 +136,6 @@ document.addEventListener('keydown',e=>{
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("settings", {testCalendarInputs,testSingleCalendarSource,positionQuickAccessMenu,closeQuickAccessMenu,toggleQuickAccessMenu,quickAccessArrange,quickAccessAddBlock,quickAccessSettings,quickAccessIntegrations,quickAccessRefresh,quickAccessUseDevice,quickAccessFullscreen,toggleLayoutShortcuts,refreshDataNow,requestDeviceDisplayMode,enterFullscreen}, {
+LibreDisplayRuntime.exposeModule("settings", {testCalendarInputs,testSingleCalendarSource,positionQuickAccessMenu,closeQuickAccessMenu,toggleQuickAccessMenu,quickAccessArrange,quickAccessAddBlock,quickAccessSettings,quickAccessIntegrations,updateLightweightModeUi,setLightweightMode,toggleLightweightMode,quickAccessToggleLightweight,quickAccessRefresh,quickAccessUseDevice,quickAccessFullscreen,toggleLayoutShortcuts,refreshDataNow,requestDeviceDisplayMode,enterFullscreen}, {
   "quickAccessMenuOpen": {configurable:true,get:()=>quickAccessMenuOpen,set:(value)=>{quickAccessMenuOpen=value;}}
 }, {globalFunctions:['testCalendarInputs','testSingleCalendarSource','closeQuickAccessMenu','toggleQuickAccessMenu','quickAccessArrange','quickAccessAddBlock','quickAccessSettings','quickAccessIntegrations','quickAccessRefresh','quickAccessUseDevice','quickAccessFullscreen','toggleLayoutShortcuts','refreshDataNow','requestDeviceDisplayMode','enterFullscreen'],globalStates:[]});

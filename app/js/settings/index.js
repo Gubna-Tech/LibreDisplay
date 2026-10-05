@@ -158,7 +158,7 @@ function openSetup(startWizard=false){
     updateCalendarEntryVisibility();
     setWizardMode(!!startWizard);
     markSettingsClean();
-    updateSettingsOverview();
+    updateSettingsOverview();try{LibreDisplayRuntime.getModule('settings').updateLightweightModeUi?.();}catch(_e){}
   }catch(error){
     setWizardMode(false);
     showSettingsInitializationError(error);
@@ -182,6 +182,7 @@ function applySettings(){
   const calendar=LibreDisplayRuntime.getModule('calendar');
   const backgrounds=LibreDisplayRuntime.getModule('backgrounds');
   const appearance=LibreDisplayRuntime.getModule('appearance');
+  const runtimeCfg=performance.effectiveVisualConfig(cfg);
   try{LibreDisplayRuntime.getModule('weatherEffects').setWeatherHazardTestProfile('live');}catch(_e){}
   performance.stopManagedInterval('weather-refresh');
   performance.stopManagedInterval('calendar-refresh');
@@ -190,7 +191,7 @@ function applySettings(){
   weather.stopAlertScroller();
   weather.previewAlertSize(cfg.alertCardPct);
   weather.previewAlertMotionSpeed(cfg.alertMotionPx);
-  appearance.applyUiCustomization(cfg);
+  appearance.applyUiCustomization(runtimeCfg);
   weather.startClock();
   weather.invalidateWeatherIfLocationChanged();
   performance.runExclusiveTask('weather-refresh',weather.fetchWeather);
@@ -198,7 +199,7 @@ function applySettings(){
   performance.runExclusiveTask('calendar-refresh',calendar.loadCalendars);
   const loadBackgroundSource=()=>{
     if(cfg.backgroundSource==='stock')backgrounds.loadStockBackground();
-    else if(cfg.backgroundSource==='folders'&&cfg.mediaFolders?.length)backgrounds.loadFolderBackgrounds(cfg.mediaFolders,cfg.mediaRecursive);
+    else if(cfg.backgroundSource==='folders'&&cfg.mediaFolders?.length)backgrounds.loadFolderBackgrounds(cfg.mediaFolders,cfg.mediaRecursive,runtimeCfg.backgroundMotionEnabled);
     else if(cfg.backgroundSource==='google'&&cfg.photosUrl)backgrounds.loadPhotos(cfg.photosUrl);
     else backgrounds.disableBackgroundSource();
   };
@@ -214,6 +215,7 @@ function applySettings(){
   configApi.weatherTimer=performance.startManagedInterval('weather-refresh',weather.fetchWeather,cfg.weatherRefreshMin*60*1000,{skipWhenHidden:true,resumeOnVisible:true});
   configApi.calendarTimer=performance.startManagedInterval('calendar-refresh',calendar.loadCalendars,cfg.calendarRefreshMin*60*1000,{skipWhenHidden:true,resumeOnVisible:true});
   configApi.alertTimer=performance.startManagedInterval('alert-refresh',weather.fetchWeatherAlerts,cfg.alertRefreshMin*60*1000,{skipWhenHidden:true,resumeOnVisible:true});
+  try{LibreDisplayRuntime.getModule('settings').updateLightweightModeUi?.();}catch(_e){}
 }
 
 

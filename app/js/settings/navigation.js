@@ -40,6 +40,7 @@ function updateSettingsPageHeader(searchQuery=''){
 }
 const SETTINGS_SECTION_SUMMARIES={
   'settings-overview':'Health checks and the most common dashboard actions.',
+  'settings-lightweight':'Temporarily pause expensive visual effects without changing the settings you chose for them.',
   'settings-about':'Version, project identity and local-first behavior.',
   'settings-endpoints':'Create and manage independent screen endpoints from one server.',
   'settings-remote':'Manage LibreDisplay from another device on your trusted network.',
@@ -369,6 +370,7 @@ function switchSettingsTab(tab,scrollTop=true){
 }
 
 const SETTINGS_SEARCH_ALIASES={
+  'settings-lightweight':'lightweight low power performance slow lag animations overlays video backgrounds resource cpu memory restore visuals',
   'settings-calendars':'calendar calendars calander agenda events ics google proton outlook icloud',
   'settings-alerts':'alerts warning warnings severe weather test preview rotate rotation scroll scrolling motion',
   'settings-weather-motion':'weather animation animations preview test lab immersive fullscreen overlay motion effects',
