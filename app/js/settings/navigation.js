@@ -61,6 +61,7 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-naturescape-flora':'Tune leaves, grass, petals, their movement, size, amount, and visibility.',
   'settings-naturescape-insects':'Tune bees, butterflies, fireflies, daylight behavior, glow, diversity, movement, and visibility.',
   'settings-naturescape-birds':'Tune regional birds, flocking, size, flight, visibility, height, species diversity, and rare/large species.',
+  'settings-naturescape-owls':'Optional owl naturescape with region-aware species, ground, glide and swoop behavior, size, visibility and diversity controls.',
   'settings-naturescape-winter':'Tune winter crystals and extreme-cold edge frost independently from snowfall.',
   'settings-weather-sky':'Tune clouds, sun, wind, lightning realism, reduced motion, and OLED dimming behavior.',
   'settings-weather-details':'Choose, enable and reorder Weather Details metrics.',
