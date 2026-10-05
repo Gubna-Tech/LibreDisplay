@@ -1,9 +1,0 @@
-from urllib.parse import quote
-from _shared import request_json, qs
-MANIFEST={"apiVersion":1,"id":"mapbox-travel","name":"Travel Time · Mapbox","description":"Traffic-aware travel time and distance between two coordinates using Mapbox Directions.","version":"1.0","icon":"↗","refreshMin":5,"kind":"status","settings":[{"key":"accessToken","label":"Mapbox access token","type":"password","required":True},{"key":"originLon","label":"Origin longitude","type":"number","required":True},{"key":"originLat","label":"Origin latitude","type":"number","required":True},{"key":"destinationLon","label":"Destination longitude","type":"number","required":True},{"key":"destinationLat","label":"Destination latitude","type":"number","required":True},{"key":"label","label":"Route label","type":"text","default":"Travel time"}]}
-def fetch(s,c):
- coords=f"{float(s.get('originLon'))},{float(s.get('originLat'))};{float(s.get('destinationLon'))},{float(s.get('destinationLat'))}"; url=qs('https://api.mapbox.com/directions/v5/mapbox/driving-traffic/'+coords,{'access_token':s.get('accessToken'),'overview':'false','steps':'false'}); data,_,_=request_json(c,url); route=(data.get('routes') or [None])[0]
- if not route: raise RuntimeError(str(data.get('message') or 'No route returned'))
- mins=round(float(route.get('duration') or 0)/60); km=float(route.get('distance') or 0)/1000; typical=route.get('duration_typical'); details=[{'label':'Distance','value':f'{km:.1f} km'}]
- if typical: details.append({'label':'Typical','value':f'{round(float(typical)/60)} min'})
- return {'kind':'status','provider':'Mapbox','title':str(s.get('label') or 'Travel time'),'value':mins,'suffix':' min','details':details}
