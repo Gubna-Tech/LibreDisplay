@@ -10,9 +10,9 @@ PRESETS=(ROOT/'app/js/appearance/presets.js').read_text(encoding='utf-8')
 README=(ROOT/'README.md').read_text(encoding='utf-8')
 
 def test_v1818_version_and_readme_scope():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.19'
-    assert 'v1.8.19/scripts/install-one-line.sh' in README
-    assert 'VERSION="1.8.19"' in (ROOT/'scripts/install-one-line.sh').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.20'
+    assert 'v1.8.20/scripts/install-one-line.sh' in README
+    assert 'VERSION="1.8.20"' in (ROOT/'scripts/install-one-line.sh').read_text()
 
 def test_offline_background_reserve_is_one_user_setting():
     assert 'id="s-bg-offline-reserve"' in HTML

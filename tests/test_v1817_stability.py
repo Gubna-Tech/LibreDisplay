@@ -7,9 +7,9 @@ README = (ROOT / 'README.md').read_text(encoding='utf-8')
 
 
 def test_v1817_version_and_pinned_fresh_install_reference():
-    assert (ROOT / 'VERSION').read_text(encoding='utf-8').strip() == '1.8.19'
-    assert 'v1.8.19/scripts/install-one-line.sh' in README
-    assert 'VERSION="1.8.19"' in (ROOT / 'scripts/install-one-line.sh').read_text(encoding='utf-8')
+    assert (ROOT / 'VERSION').read_text(encoding='utf-8').strip() == '1.8.20'
+    assert 'v1.8.20/scripts/install-one-line.sh' in README
+    assert 'VERSION="1.8.20"' in (ROOT / 'scripts/install-one-line.sh').read_text(encoding='utf-8')
 
 
 def test_cloudy_weather_uses_defined_clouds_instead_of_fog_blur():
