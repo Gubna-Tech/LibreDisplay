@@ -6,7 +6,7 @@ HTML=(ROOT/'app/dashboard.html').read_text()
 VERSION=(ROOT/'VERSION').read_text().strip()
 
 def test_version_and_new_dog_renderer_are_present():
-    assert VERSION=='1.8.22'
+    assert VERSION=='1.8.23'
     assert 'weather-fx-dog-v2' in SCENERY
     assert 'dogv2-svg' in SCENERY
     assert 'dogSvgMarkup' in SCENERY
@@ -20,6 +20,8 @@ def test_all_breeds_have_material_geometry_profiles():
     for token in ["family:'retriever'","family:'shepherd'","family:'mountain'","family:'corgi'","family:'dachshund'","family:'bulldog'","family:'poodle'","family:'giant'","family:'toy'"]:
         assert token in SCENERY
     assert 'dogBreedSignature' in SCENERY
+    assert 'dogHeadSvg' in SCENERY and 'dogMuzzleSvg' in SCENERY
+    assert '<rect class=\"dogv2-muzzle\"' not in SCENERY
 
 def test_locomotion_is_raf_curved_and_facing_is_instant():
     assert 'function dogMoveTo' in SCENERY
@@ -28,14 +30,15 @@ def test_locomotion_is_raf_curved_and_facing_is_instant():
     assert 'transition:none!important' in CSS
     assert '.dogv2-facing-stage{transform-box:view-box' in CSS
     assert 'transition:transform .2s ease' not in CSS
-    v2=CSS.split('/* v1.8.22 — replacement Dog Companion renderer.')[1]
+    v2=CSS.split('/* v1.8.23 — replacement Dog Companion renderer.')[1]
     assert 'transition:transform' not in v2
     assert '-310deg' not in v2
 
 def test_ball_is_direction_aware_and_states_do_not_spin_whole_dog():
-    v2=CSS.split('/* v1.8.22 — replacement Dog Companion renderer.')[1]
+    v2=CSS.split('/* v1.8.23 — replacement Dog Companion renderer.')[1]
     assert '.dog-facing-left .dogv2-ball' in v2
-    assert 'var(--dog-ball-dir,1)*24px' in v2
+    assert 'var(--dog-ball-x,24px)' in v2
+    assert "--dog-ball-x',`${dir*24}px`" in SCENERY
     assert '@keyframes ld1822PlayFlop' in v2
     assert 'rotate(-310deg)' not in v2
     assert 'dog-state-sleep' in v2 and 'dog-state-sit' in v2 and 'dog-state-sniff' in v2 and 'dog-state-dig' in v2

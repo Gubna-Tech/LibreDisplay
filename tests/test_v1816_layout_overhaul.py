@@ -8,8 +8,8 @@ CONFIG=(ROOT/'app/js/core/config.js').read_text(encoding='utf-8')
 
 
 def test_layout_overhaul_stays_on_v1816_and_does_not_touch_readme_contract():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.22'
-    assert 'v1.8.22/scripts/install-one-line.sh' in (ROOT/'README.md').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.23'
+    assert 'v1.8.23/scripts/install-one-line.sh' in (ROOT/'README.md').read_text()
 
 
 def test_signature_presets_have_distinct_finished_dashboard_compositions():

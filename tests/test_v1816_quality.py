@@ -9,9 +9,9 @@ SYSTEM=(ROOT/'app/js/system/index.js').read_text(encoding='utf-8')
 
 
 def test_v1816_version_and_pinned_installer():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.22'
-    assert 'v1.8.22/scripts/install-one-line.sh' in (ROOT/'README.md').read_text()
-    assert 'VERSION="1.8.22"' in (ROOT/'scripts/install-one-line.sh').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.23'
+    assert 'v1.8.23/scripts/install-one-line.sh' in (ROOT/'README.md').read_text()
+    assert 'VERSION="1.8.23"' in (ROOT/'scripts/install-one-line.sh').read_text()
 
 
 def test_night_icons_use_eight_phase_lunar_cycle_and_hemisphere_pov():
@@ -31,8 +31,9 @@ def test_hazard_test_mode_forces_a_render_without_layout_preview_suppression():
     fn=FX[FX.find('function previewWeatherHazardTestFullScreen'):FX.find('function setWeatherEffectTestProfile')]
     assert 'previewDashboardFromSettings' in fn
     assert 'applyWeatherEffects(configApi.wxData,window.__uiPreviewCfg||null)' in fn
-    assert "const hazardOn=source.weatherHazardEffects!==false&&weatherHazardAlerts(source).length>0" in FX
+    assert "const hazards=source.weatherHazardEffects===false?[]:weatherHazardAlerts(source),hazardOn=hazards.length>0" in FX
     assert '(allowed||hazardOn||seasonalOn)' in FX
+    assert 'world=weatherWorldState(data,source,hazards)' in FX
     assert 'hazardOn&&!data?.current' in FX
 
 

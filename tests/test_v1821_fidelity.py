@@ -6,9 +6,9 @@ SCENERY=(ROOT/'app/js/weather/scenery.js').read_text()
 README=(ROOT/'README.md').read_text()
 
 def test_v1821_release_contract():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.22'
-    assert 'v1.8.22/scripts/install-one-line.sh' in README
-    assert 'VERSION="1.8.22"' in (ROOT/'scripts/install-one-line.sh').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.23'
+    assert 'v1.8.23/scripts/install-one-line.sh' in README
+    assert 'VERSION="1.8.23"' in (ROOT/'scripts/install-one-line.sh').read_text()
 
 def test_dog_direction_and_hazard_shelter_are_explicit():
     assert 'function dogFace(node,dx)' in SCENERY
@@ -20,9 +20,10 @@ def test_dog_direction_and_hazard_shelter_are_explicit():
     assert "ld1822DogBall" in CSS
 
 def test_naturescape_respects_dangerous_weather():
-    assert "hazardKeys=hazards.map" in EFFECTS
-    assert "if(hazardKeys.includes('flood'))" in EFFECTS
-    assert "['tornado','tropical','storm','fire']" in EFFECTS
+    assert "function weatherWorldState(" in EFFECTS
+    assert "function weatherWorldAdjustedCounts(" in EFFECTS
+    assert "keys.has('flood')" in EFFECTS
+    assert "world.mode==='shelter'" in EFFECTS
     assert "appendDogCompanion(frag,source,safeCounts" in EFFECTS
 
 def test_cloudy_is_cloud_mass_not_fog_layer():

@@ -7,9 +7,9 @@ README = (ROOT / 'README.md').read_text(encoding='utf-8')
 
 
 def test_v1817_version_and_pinned_fresh_install_reference():
-    assert (ROOT / 'VERSION').read_text(encoding='utf-8').strip() == '1.8.22'
-    assert 'v1.8.22/scripts/install-one-line.sh' in README
-    assert 'VERSION="1.8.22"' in (ROOT / 'scripts/install-one-line.sh').read_text(encoding='utf-8')
+    assert (ROOT / 'VERSION').read_text(encoding='utf-8').strip() == '1.8.23'
+    assert 'v1.8.23/scripts/install-one-line.sh' in README
+    assert 'VERSION="1.8.23"' in (ROOT / 'scripts/install-one-line.sh').read_text(encoding='utf-8')
 
 
 def test_cloudy_weather_uses_defined_clouds_instead_of_fog_blur():
@@ -25,7 +25,8 @@ def test_cloudy_weather_uses_defined_clouds_instead_of_fog_blur():
 
 
 def test_naturescape_can_render_even_if_base_weather_layer_is_disabled():
-    assert 'const seasonalOn=' in FX
+    assert 'seasonalOn=(source.weatherSeasonalEffects!==false' in FX
+    assert 'seasonalParticleCount(season,source,performanceApi.frontendCapabilities().constrained,data,world)' in FX
     assert '(allowed||hazardOn||seasonalOn)' in FX
     assert '!state.allowed&&!state.seasonalOn' in FX
     assert '#weather-effects-overlay .weather-fx-seasonal{z-index:2}' in CSS
