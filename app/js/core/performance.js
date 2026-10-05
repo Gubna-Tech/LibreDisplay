@@ -9,14 +9,29 @@ let longTaskCount=0,longTaskTotalMs=0,longTaskMaxMs=0,longTaskObserverActive=fal
 function frontendCapabilities(){
   const cores=Math.max(0,Number(navigator.hardwareConcurrency)||0);
   const memoryGB=Math.max(0,Number(navigator.deviceMemory)||0);
-  const constrained=!!(cores&&cores<=4&&memoryGB&&memoryGB<=2);
+  const platform=String(navigator.userAgentData?.platform||navigator.platform||'');
+  const ua=String(navigator.userAgent||'');
+  const armLinux=/linux/i.test(`${platform} ${ua}`)&&/(arm|aarch64|armv7|armv8)/i.test(`${platform} ${ua}`);
+  const lowMemoryFourCore=!!(cores&&cores<=4&&memoryGB&&memoryGB<=4);
+  const piClass=!!(cores&&cores<=4&&armLinux);
+  const constrained=piClass||lowMemoryFourCore;
   return {
     cores,
     memoryGB,
+    platform,
+    armLinux,
+    piClass,
     constrained,
-    tier:constrained?'constrained':'standard',
-    reason:constrained?'Browser reports a low-memory four-core-or-smaller device.':'Standard frontend behavior.'
+    tier:piClass?'pi4':constrained?'constrained':'standard',
+    reason:piClass?'Four-core ARM/Linux display detected; Pi-class visual budgeting is active.':constrained?'Browser reports a four-core low-memory device.':'Standard frontend behavior.'
   };
+}
+
+function visualPerformanceBudget(){
+  const caps=frontendCapabilities();
+  if(caps.piClass)return {tier:'pi4',particleScale:.46,wildlifeScale:.52,holidayScale:.62,targetFrameMs:33,blurScale:.35};
+  if(caps.constrained)return {tier:'constrained',particleScale:.55,wildlifeScale:.62,holidayScale:.70,targetFrameMs:28,blurScale:.50};
+  return {tier:'standard',particleScale:1,wildlifeScale:1,holidayScale:1,targetFrameMs:16,blurScale:1};
 }
 
 function effectiveVisualConfig(source){
@@ -113,4 +128,4 @@ function observeFrontendLongTasks(){
 applyFrontendPerformanceClass();
 observeFrontendLongTasks();
 
-LibreDisplayRuntime.exposeModule('performance',{frontendCapabilities,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,frontendPerformanceSnapshot,observeFrontendLongTasks},{},{globals:false});
+LibreDisplayRuntime.exposeModule('performance',{frontendCapabilities,visualPerformanceBudget,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,frontendPerformanceSnapshot,observeFrontendLongTasks},{},{globals:false});

@@ -5,14 +5,16 @@ const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 const {serverPath}=bootstrapApi;
 const {escHtml,esc,resilientFetch}=LibreDisplayRuntime.getModule('shared');
 const integrationsApi=LibreDisplayRuntime.getModule('integrations');
+const backgroundsApi=LibreDisplayRuntime.getModule('backgrounds');
 
 
-function exportSettings(){
+async function exportSettings(){
   if(!confirm('Export settings for this display? The file may include private calendar URLs and integration credentials. Store it securely.'))return;
-  const payload={product:'LibreDisplay',format:2,build:bootstrapApi.DASHBOARD_BUILD,exportedAt:new Date().toISOString(),endpoint:bootstrapApi.ACTIVE_ENDPOINT,config:{...cfg,_schemaVersion:2}};
+  const backgroundSnapshot=await backgroundsApi.createPortableBackgroundSnapshot(cfg).catch(()=>null);
+  const payload={product:'LibreDisplay',format:3,build:bootstrapApi.DASHBOARD_BUILD,exportedAt:new Date().toISOString(),endpoint:bootstrapApi.ACTIVE_ENDPOINT,config:{...cfg,_schemaVersion:2},backgroundSnapshot};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`libredisplay-${bootstrapApi.ACTIVE_ENDPOINT}-settings-${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
-function analyzeImportedSettings(raw){const envelope=raw&&raw.product==='LibreDisplay'&&raw.config&&typeof raw.config==='object';const candidate=envelope?raw.config:raw;if(!candidate||typeof candidate!=='object'||Array.isArray(candidate))throw new Error('That file does not contain a LibreDisplay settings object.');const plugins=new Set(integrationsApi.integrationManifests.map(x=>x.id)),blocks=Array.isArray(candidate.customBlocks)?candidate.customBlocks:[],missing=[...new Set(blocks.filter(b=>b?.type==='integration'&&b.config?.plugin&&!plugins.has(b.config.plugin)).map(b=>b.config.plugin))];return {candidate,sourceBuild:envelope?String(raw.build||'unknown'):'unversioned settings file',schema:Number(candidate._schemaVersion)||1,calendars:Array.isArray(candidate.calendars)?candidate.calendars.length:0,blocks:blocks.length,missing};}
+function analyzeImportedSettings(raw){const envelope=raw&&raw.product==='LibreDisplay'&&raw.config&&typeof raw.config==='object';const candidate=envelope?raw.config:raw;if(!candidate||typeof candidate!=='object'||Array.isArray(candidate))throw new Error('That file does not contain a LibreDisplay settings object.');const plugins=new Set(integrationsApi.integrationManifests.map(x=>x.id)),blocks=Array.isArray(candidate.customBlocks)?candidate.customBlocks:[],missing=[...new Set(blocks.filter(b=>b?.type==='integration'&&b.config?.plugin&&!plugins.has(b.config.plugin)).map(b=>b.config.plugin))];return {candidate,backgroundSnapshot:envelope?raw.backgroundSnapshot||null:null,sourceBuild:envelope?String(raw.build||'unknown'):'unversioned settings file',schema:Number(candidate._schemaVersion)||1,calendars:Array.isArray(candidate.calendars)?candidate.calendars.length:0,blocks:blocks.length,missing};}
 async function importSettingsFile(input){
   const file=input?.files?.[0];if(!file)return;
   try{
@@ -20,7 +22,7 @@ async function importSettingsFile(input){
     const notes=[`Source: ${info.sourceBuild}`,`Schema: ${info.schema}${info.schema<2?' → will migrate to schema 2':''}`,`${info.calendars} calendar source${info.calendars===1?'':'s'}`,`${info.blocks} custom block${info.blocks===1?'':'s'}`];
     if(info.missing.length)notes.push(`Missing plugins: ${info.missing.join(', ')}`);
     if(!confirm(`Import this LibreDisplay configuration?\n\n${notes.join('\n')}\n\nCurrent settings will be kept as the automatic previous-save backup.`))return;
-    cfg={...cfg,...info.candidate};ensureCfgDefaults();configApi.alertRuntimeState=null;window.__uiPreviewCfg=null;const saved=await saveCfg();if(!saved?.ok)throw new Error(saved?.error||'The imported settings could not be saved to the server.');setAppearanceForm(cfg);applySettings();markSettingsClean();alert('Settings imported and migrated successfully.');openSetup(false);
+    cfg={...cfg,...info.candidate};ensureCfgDefaults();configApi.alertRuntimeState=null;window.__uiPreviewCfg=null;const saved=await saveCfg();if(!saved?.ok)throw new Error(saved?.error||'The imported settings could not be saved to the server.');const restoredBackground=info.backgroundSnapshot?await backgroundsApi.restorePortableBackgroundSnapshot(info.backgroundSnapshot,cfg):false;setAppearanceForm(cfg);applySettings();markSettingsClean();alert('Settings imported and migrated successfully.'+(restoredBackground?' The exported background snapshot was restored while the configured source reconnects.':''));openSetup(false);
   }catch(e){alert('Could not import settings: '+(e?.message||e));}
   finally{if(input)input.value='';}
 }
@@ -46,28 +48,28 @@ async function exportPortableBackup(){
     const allScenes=scenesData.scenes||{version:1,automatic:true,baseProfiles:{},items:[]};
     const portableScenes={version:1,automatic:allScenes.automatic!==false,baseProfiles:{},items:(allScenes.items||[]).filter(x=>(x?.endpoint||'main')===bootstrapApi.ACTIVE_ENDPOINT)};
     if(allScenes.baseProfiles?.[bootstrapApi.ACTIVE_ENDPOINT])portableScenes.baseProfiles[bootstrapApi.ACTIVE_ENDPOINT]=allScenes.baseProfiles[bootstrapApi.ACTIVE_ENDPOINT];
-    const payload={product:'LibreDisplay',kind:'portable-backup',format:1,build:bootstrapApi.DASHBOARD_BUILD,exportedAt:new Date().toISOString(),sourceEndpoint:bootstrapApi.ACTIVE_ENDPOINT,config:configData.config||{},profiles:profilesData.profiles||{version:1,updatedAt:0,activeId:'',items:[]},scenes:portableScenes};
+    const backgroundSnapshot=await backgroundsApi.createPortableBackgroundSnapshot(configData.config||{}).catch(()=>null);const payload={product:'LibreDisplay',kind:'portable-backup',format:2,build:bootstrapApi.DASHBOARD_BUILD,exportedAt:new Date().toISOString(),sourceEndpoint:bootstrapApi.ACTIVE_ENDPOINT,config:configData.config||{},profiles:profilesData.profiles||{version:1,updatedAt:0,activeId:'',items:[]},scenes:portableScenes,backgroundSnapshot};
     const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
     downloadJsonFile(payload,`LibreDisplay-${bootstrapApi.ACTIVE_ENDPOINT}-portable-${stamp}.json`);
     setBackupRecoveryStatus('Portable backup downloaded. It may contain private calendar URLs or integration credentials, so keep it private.');
   }catch(e){setBackupRecoveryStatus('Could not create portable backup: '+(e?.message||e),true);}
 }
 function analyzePortableBackup(raw){
-  if(!raw||raw.product!=='LibreDisplay'||raw.kind!=='portable-backup'||Number(raw.format)!==1)throw new Error('That file is not a supported LibreDisplay portable backup.');
+  if(!raw||raw.product!=='LibreDisplay'||raw.kind!=='portable-backup'||![1,2].includes(Number(raw.format)))throw new Error('That file is not a supported LibreDisplay portable backup.');
   if(!raw.config||typeof raw.config!=='object'||Array.isArray(raw.config))throw new Error('Portable backup is missing its display configuration.');
   const profiles=raw.profiles&&typeof raw.profiles==='object'&&!Array.isArray(raw.profiles)?raw.profiles:{version:1,updatedAt:0,activeId:'',items:[]};
   const scenes=raw.scenes&&typeof raw.scenes==='object'&&!Array.isArray(raw.scenes)?raw.scenes:{version:1,automatic:true,baseProfiles:{},items:[]};
   const blocks=Array.isArray(raw.config.customBlocks)?raw.config.customBlocks:[],plugins=new Set(integrationsApi.integrationManifests.map(x=>x.id));
   const missing=[...new Set(blocks.filter(b=>b?.type==='integration'&&b.config?.plugin&&!plugins.has(b.config.plugin)).map(b=>b.config.plugin))];
-  return {config:raw.config,profiles,scenes,build:String(raw.build||'unknown'),sourceEndpoint:String(raw.sourceEndpoint||'main'),exportedAt:String(raw.exportedAt||''),profileCount:Array.isArray(profiles.items)?profiles.items.length:0,sceneCount:Array.isArray(scenes.items)?scenes.items.length:0,missing};
+  return {config:raw.config,profiles,scenes,backgroundSnapshot:raw.backgroundSnapshot||null,build:String(raw.build||'unknown'),sourceEndpoint:String(raw.sourceEndpoint||'main'),exportedAt:String(raw.exportedAt||''),profileCount:Array.isArray(profiles.items)?profiles.items.length:0,sceneCount:Array.isArray(scenes.items)?scenes.items.length:0,missing};
 }
 async function importPortableBackupFile(input){
   const file=input?.files?.[0];if(!file)return;
   let safetyPointId='';
   try{
-    if(file.size>10*1024*1024)throw new Error('Portable backup is larger than the 10 MB safety limit.');
+    if(file.size>28*1024*1024)throw new Error('Portable backup is larger than the 28 MB safety limit.');
     const raw=JSON.parse(await file.text()),info=analyzePortableBackup(raw);
-    const notes=[`Source build: ${info.build}`,`Source display: ${info.sourceEndpoint}`,`${info.profileCount} Profile${info.profileCount===1?'':'s'}`,`${info.sceneCount} Scene rule${info.sceneCount===1?'':'s'}`];
+    const notes=[`Source build: ${info.build}`,`Source display: ${info.sourceEndpoint}`,`${info.profileCount} Profile${info.profileCount===1?'':'s'}`,`${info.sceneCount} Scene rule${info.sceneCount===1?'':'s'}`,info.backgroundSnapshot?'Includes a portable last-known still background':'No portable background snapshot included'];
     if(info.missing.length)notes.push(`Missing integrations on this server: ${info.missing.join(', ')}`);
     if(!confirm(`Import this portable LibreDisplay backup into “${bootstrapApi.ACTIVE_ENDPOINT}”?\n\n${notes.join('\n')}\n\nLibreDisplay will create a local restore point first, then replace this display's saved configuration plus Profiles and Scenes.`))return;
     setBackupRecoveryStatus('Creating a safety restore point…');
@@ -92,7 +94,8 @@ async function importPortableBackupFile(input){
       ['/api/scenes',{scenes:mergedScenes},'Scenes']
     ];
     for(const [url,payload,label] of writes){const res=await resilientFetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||`Could not import ${label} (HTTP ${res.status}).`);}
-    setBackupRecoveryStatus('Portable backup imported. Reloading the saved state…');
+    const restoredBackground=info.backgroundSnapshot?await backgroundsApi.restorePortableBackgroundSnapshot(info.backgroundSnapshot,info.config):false;
+    setBackupRecoveryStatus(`Portable backup imported${restoredBackground?' with its last-known background snapshot':''}. Reloading the saved state…`);
     setTimeout(()=>location.reload(),300);
   }catch(e){
     let recovery='';

@@ -17,6 +17,7 @@ const modulePaths = [
   "/js/backgrounds/google-photos.js",
   "/js/backgrounds/media.js",
   "/js/backgrounds/index.js",
+  "/js/backgrounds/portable.js",
   "/js/blocks/index.js",
   "/js/layout/index.js",
   "/js/layout/remote.js",

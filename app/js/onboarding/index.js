@@ -53,11 +53,29 @@ function syncWizardDisplayNameFromEndpoints(){
   configApi.wizardDisplayNameDraft=currentWizardDisplayName();
   if(configApi.WIZARD_STEPS[configApi.wizardStepIndex]?.key==='display')renderWizardStep();
 }
+function wizardPhysicalViewport(){
+  const dpr=Math.max(1,Number(window.devicePixelRatio)||1),cssW=Math.max(Number(window.innerWidth)||0,Number(globalThis.screen?.width)||0),cssH=Math.max(Number(window.innerHeight)||0,Number(globalThis.screen?.height)||0);
+  return {cssW,cssH,dpr,physicalW:Math.round(cssW*dpr),physicalH:Math.round(cssH*dpr)};
+}
+function wizardDisplayScale(){
+  const v=wizardPhysicalViewport(),long=Math.max(v.physicalW,v.physicalH),short=Math.min(v.physicalW,v.physicalH);
+  if(long>=3200&&short>=1700)return '4k';
+  if(long>=2300&&short>=1250)return 'highres';
+  return '1080';
+}
+function applyWizardDisplayScale(){
+  const setup=document.getElementById('setup');if(!setup)return '1080';
+  const scale=configApi.isWizardMode&&cfg.onboardingComplete!==true?wizardDisplayScale():'saved';
+  setup.dataset.wizardDisplayScale=scale;
+  if(configApi.isWizardMode&&cfg.onboardingComplete!==true){setup.dataset.firstRunResolution=scale;setup.setAttribute('data-first-run-auto-scale','true');}
+  else{delete setup.dataset.firstRunResolution;setup.removeAttribute('data-first-run-auto-scale');}
+  return scale;
+}
 function setWizardMode(on){
   const was=configApi.isWizardMode;
   configApi.isWizardMode=!!on;
   if(configApi.isWizardMode&&!was)beginWizardSession();
-  const setup=document.getElementById('setup');setup?.classList.toggle('wizard-mode',configApi.isWizardMode);
+  const setup=document.getElementById('setup');setup?.classList.toggle('wizard-mode',configApi.isWizardMode);applyWizardDisplayScale();
   if(configApi.isWizardMode){configApi.wizardStepIndex=Math.max(0,Math.min(configApi.wizardStepIndex,configApi.WIZARD_STEPS.length-1));renderWizardStep();}
 }
 const WIZARD_PERFORMANCE_PRESETS={
@@ -416,7 +434,8 @@ async function saveSetup(options={}){
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("onboarding", {applyStarterTemplate,wizardPerformanceState,wizardPerformanceProfile,applyWizardPerformancePreset,wizardPerformanceFeatureChanged,currentWizardDisplayName,beginWizardSession,syncWizardDisplayNameFromEndpoints,setWizardMode,renderWizardSummary,wizardHealthCard,buildWizardHealthRows,renderWizardHealth,renderWizardExtra,renderWizardStep,wizardCommitDisplayName,wizardCreateSetupBaseline,wizardLoadRestorePointCount,runWizardHealthChecks,wizardSaveAndRunChecks,wizardBack,wizardSkip,wizardNext,openFullSettingsFromWizard,startWizardFromSettings,newCalendarId,calendarRowsFromDom,readCalendarInputs,syncCalendarEditorRows,calendarCardHtml,bindCalendarCard,renderCalendarSourceList,addCalendarSource,removeCalendarSource,duplicateCalendarSource,importCalendarFile,calendarOrderIds,calendarPriority,readCalendarOrder,renderCalendarOrderList,moveCalendarOrder,renderCalendarLegend,bindCalendarColorControls,bindCalendarUxInputs,updateCalendarEntryVisibility,toggleEmptyCalendarSlots,normalizeWeatherLocationResult,savedWeatherLocation,weatherLocationTitle,weatherLocationSearchText,renderWeatherLocationSelected,weatherLocationQueryChanged,selectWeatherLocationResult,searchWeatherLocations,previewWeatherLocationLabel,saveSetup}, {
+window.addEventListener('resize',()=>{if(configApi.isWizardMode)applyWizardDisplayScale();});
+LibreDisplayRuntime.exposeModule("onboarding", {applyStarterTemplate,wizardPerformanceState,wizardPerformanceProfile,applyWizardPerformancePreset,wizardPerformanceFeatureChanged,currentWizardDisplayName,beginWizardSession,syncWizardDisplayNameFromEndpoints,wizardPhysicalViewport,wizardDisplayScale,applyWizardDisplayScale,setWizardMode,renderWizardSummary,wizardHealthCard,buildWizardHealthRows,renderWizardHealth,renderWizardExtra,renderWizardStep,wizardCommitDisplayName,wizardCreateSetupBaseline,wizardLoadRestorePointCount,runWizardHealthChecks,wizardSaveAndRunChecks,wizardBack,wizardSkip,wizardNext,openFullSettingsFromWizard,startWizardFromSettings,newCalendarId,calendarRowsFromDom,readCalendarInputs,syncCalendarEditorRows,calendarCardHtml,bindCalendarCard,renderCalendarSourceList,addCalendarSource,removeCalendarSource,duplicateCalendarSource,importCalendarFile,calendarOrderIds,calendarPriority,readCalendarOrder,renderCalendarOrderList,moveCalendarOrder,renderCalendarLegend,bindCalendarColorControls,bindCalendarUxInputs,updateCalendarEntryVisibility,toggleEmptyCalendarSlots,normalizeWeatherLocationResult,savedWeatherLocation,weatherLocationTitle,weatherLocationSearchText,renderWeatherLocationSelected,weatherLocationQueryChanged,selectWeatherLocationResult,searchWeatherLocations,previewWeatherLocationLabel,saveSetup}, {
   "STARTER_TEMPLATES": {configurable:true,get:()=>STARTER_TEMPLATES},
   "STARTER_TEMPLATE_LAYOUTS": {configurable:true,get:()=>STARTER_TEMPLATE_LAYOUTS},
   "pendingWeatherLocation": {configurable:true,get:()=>pendingWeatherLocation,set:(value)=>{pendingWeatherLocation=value;}},

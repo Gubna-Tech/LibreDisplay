@@ -2516,3 +2516,32 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 @keyframes ld1825RabbitHopRefined{0%{transform:translateX(0) translateY(0) scale(var(--rabbit-scale,1))}6%{transform:translateX(8vw) translateY(-2.6vh) scale(var(--rabbit-scale,1))}12%{transform:translateX(16vw) translateY(0) scale(var(--rabbit-scale,1))}28%{transform:translateX(38vw) translateY(-2.1vh) scale(var(--rabbit-scale,1))}44%{transform:translateX(58vw) translateY(0) scale(var(--rabbit-scale,1))}61%{transform:translateX(78vw) translateY(-2.9vh) scale(var(--rabbit-scale,1))}78%{transform:translateX(98vw) translateY(0) scale(var(--rabbit-scale,1))}100%{transform:translateX(118vw) translateY(0) scale(var(--rabbit-scale,1))}}
 @keyframes ld1825RabbitLegA{from{transform:rotate(-18deg)}to{transform:rotate(24deg)}}
 @keyframes ld1825RabbitLegB{from{transform:rotate(18deg)}to{transform:rotate(-24deg)}}
+
+/* v1.8.26 Pi-class runtime budget: keep the ecosystem enabled while removing costly paint effects. */
+html.ld-constrained-device #weather-effects-overlay :is(.weather-fx-seasonal,.weather-fx-bird,.weather-fx-owl,.weather-fx-bee,.weather-fx-butterfly,.weather-fx-firefly,.weather-fx-dragonfly,.weather-fx-ladybug,.weather-fx-moth,.weather-fx-dog-v2,.dogv2-shadow,.dogv2-body,.dogv2-head,.dogv2-neck,.dogv2-muzzle,.dogv2-nose){filter:none!important;box-shadow:none!important}
+html.ld-constrained-device #weather-effects-overlay .dogv2-shadow{opacity:.13}
+html.ld-constrained-device #weather-effects-overlay .weather-fx-firefly{box-shadow:none!important}
+html.ld-constrained-device #weather-effects-overlay .weather-fx-cloud-mass{filter:none!important}
+html.ld-constrained-device #weather-effects-overlay .weather-fx-fog-bank{filter:blur(3px)!important}
+
+/* v1.8.26 first-run resolution scaling: readable before the user can reach Accessibility settings. */
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="highres"] .setup-box{max-width:1120px;padding:30px}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="highres"] .wizard-title{font-size:23px}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="highres"] .wizard-desc{font-size:15px;line-height:1.62}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="highres"] :is(.s-row label,.checkline,.howto,.settings-note,.section-summary,.wizard-performance-card span,.wizard-summary-card span){font-size:14px;line-height:1.58}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="highres"] :is(.s-row input,.s-row select,.btn-util,.wizard-performance-card){font-size:15px;min-height:46px}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .setup-box{max-width:1480px;padding:40px 44px;max-height:92vh}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .setup-brand-mark{width:58px;height:58px}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .setup-box h2{font-size:34px}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .setup-box .sub{font-size:19px;line-height:1.62;margin-left:72px}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .wizard-shell{padding:26px 28px;border-radius:18px}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .wizard-progress-label{font-size:14px}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .wizard-progress-track{height:8px;margin-bottom:20px}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .wizard-title{font-size:30px;margin-bottom:9px}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .wizard-desc{font-size:19px;line-height:1.65}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .s-section[data-settings-tab]{padding:24px 26px 22px;border-radius:18px}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .s-section[data-settings-tab]>h3{font-size:21px}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] :is(.s-row label,.checkline,.howto,.settings-note,.section-summary,.wizard-performance-card span,.wizard-summary-card span,.wizard-inline-note){font-size:18px;line-height:1.62}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] :is(.s-row input,.s-row select,.btn-util,.wizard-performance-card){font-size:19px;min-height:58px;padding-top:14px;padding-bottom:14px}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .wizard-performance-card b,#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .wizard-summary-card b{font-size:18px}
+#setup.wizard-mode[data-first-run-auto-scale="true"][data-wizard-display-scale="4k"] .wizard-performance-presets{gap:14px}
