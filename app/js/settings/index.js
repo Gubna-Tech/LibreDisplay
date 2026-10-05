@@ -127,7 +127,7 @@ function openSetup(startWizard=false){
     document.getElementById('s-photo-preload').checked=cfg.photoPreload;
     const offlineCache=document.getElementById('s-bg-offline-cache');if(offlineCache)offlineCache.checked=cfg.backgroundOfflineCacheEnabled!==false;
     const offlineCount=document.getElementById('s-bg-offline-cache-count');if(offlineCount)offlineCount.value=String(cfg.backgroundOfflineCacheCount??30);const offlineCountLabel=document.getElementById('s-bg-offline-cache-count-value');if(offlineCountLabel)offlineCountLabel.textContent=String(cfg.backgroundOfflineCacheCount??30);
-    const offlineMax=document.getElementById('s-bg-offline-cache-max-mb');if(offlineMax)offlineMax.value=String(cfg.backgroundOfflineCacheMaxMb??192);
+    const offlineMax=document.getElementById('s-bg-offline-cache-max-mb');if(offlineMax)offlineMax.value=String(cfg.backgroundOfflineCacheMaxMb??192);updateBackgroundReserveEstimate();
     document.getElementById('s-bg-startup-priority').checked=cfg.backgroundStartupPriority!==false;
     document.getElementById('s-bg-startup-delay').value=String(cfg.backgroundStartupDelayMs??700);const startupDelayLabel=document.getElementById('s-bg-startup-delay-value');if(startupDelayLabel)startupDelayLabel.textContent=(Number(cfg.backgroundStartupDelayMs??700)/1000).toFixed(1)+'s';
     setBackgroundStatus(configApi.lastBackgroundStatus.text,configApi.lastBackgroundStatus.error);
@@ -167,6 +167,13 @@ function openSetup(startWizard=false){
   }
 }
 
+function updateBackgroundReserveEstimate(){
+  const cap=Math.max(32,Number(document.getElementById('s-bg-offline-cache-max-mb')?.value)||192),limit=Math.max(0,Number(document.getElementById('s-bg-offline-cache-count')?.value)||0),out=document.getElementById('s-bg-offline-cache-estimate');
+  if(!out)return;
+  const count=size=>Math.max(0,Math.floor(cap/size)),fmt=n=>`${n.toLocaleString()} photo${n===1?'':'s'}`;
+  out.textContent=`For perspective, ${cap} MB is roughly ${fmt(count(1.5))} at 1.5 MB each, ${fmt(count(4))} at 4 MB each, or ${fmt(count(8))} at 8 MB each. Your Reserve images setting currently caps the reserve at ${limit} image${limit===1?'':'s'}; the 10-image hot cache and browser quota headroom can make the practical total lower.`;
+}
+
 function applySettings(){
   ensureCfgDefaults();
   configApi.staleCacheSources.clear();LibreDisplayRuntime.getModule('remote').updateOfflinePill();
@@ -175,6 +182,7 @@ function applySettings(){
   const calendar=LibreDisplayRuntime.getModule('calendar');
   const backgrounds=LibreDisplayRuntime.getModule('backgrounds');
   const appearance=LibreDisplayRuntime.getModule('appearance');
+  try{LibreDisplayRuntime.getModule('weatherEffects').setWeatherHazardTestProfile('live');}catch(_e){}
   performance.stopManagedInterval('weather-refresh');
   performance.stopManagedInterval('calendar-refresh');
   performance.stopManagedInterval('alert-refresh');
@@ -240,6 +248,6 @@ function revealSettingsCog(){
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("settings", {setSettingsPreviewReturnVisible,previewDashboardFromSettings,returnToSettingsPreview,requestCloseSetup,restoreSavedSettingsPreview,closeSetup,skipSetup,openSetup,applySettings,loadSessionInfo,revealSettingsCog}, {
+LibreDisplayRuntime.exposeModule("settings", {setSettingsPreviewReturnVisible,previewDashboardFromSettings,returnToSettingsPreview,requestCloseSetup,restoreSavedSettingsPreview,closeSetup,skipSetup,openSetup,applySettings,loadSessionInfo,revealSettingsCog,updateBackgroundReserveEstimate}, {
   "settingsPreviewMode": {configurable:true,get:()=>settingsPreviewMode,set:(value)=>{settingsPreviewMode=value;}}
-}, {globalFunctions:['previewDashboardFromSettings','returnToSettingsPreview','requestCloseSetup','closeSetup','openSetup','applySettings','loadSessionInfo','revealSettingsCog'],globalStates:[]});
+}, {globalFunctions:['previewDashboardFromSettings','returnToSettingsPreview','requestCloseSetup','closeSetup','openSetup','applySettings','loadSessionInfo','revealSettingsCog','updateBackgroundReserveEstimate'],globalStates:[]});

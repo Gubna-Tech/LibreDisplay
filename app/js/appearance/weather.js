@@ -42,7 +42,15 @@ const WEATHER_DEPENDENT_CONTROLS={
   's-weather-season-birds':['s-weather-bird-habitat','s-weather-bird-intensity','s-weather-bird-size','s-weather-bird-speed','s-weather-bird-flock','s-weather-bird-opacity','s-weather-bird-height','s-weather-bird-diversity','s-weather-bird-rare'],
   's-weather-season-owls':['s-weather-owl-intensity','s-weather-owl-size','s-weather-owl-speed','s-weather-owl-opacity','s-weather-owl-diversity'],
   's-weather-season-crystals':['s-weather-crystal-intensity','s-weather-crystal-size','s-weather-crystal-speed','s-weather-crystal-opacity'],
-  's-weather-cold-frost':['s-weather-cold-frost-intensity','s-weather-cold-frost-width','s-weather-cold-frost-opacity']
+  's-weather-cold-frost':['s-weather-cold-frost-intensity','s-weather-cold-frost-width','s-weather-cold-frost-opacity'],
+  's-weather-hazard-flood':['s-weather-hazard-flood-level','s-weather-hazard-flood-debris','s-weather-hazard-flood-speed'],
+  's-weather-hazard-wind':['s-weather-hazard-wind-gusts','s-weather-hazard-wind-speed'],
+  's-weather-hazard-tornado':['s-weather-hazard-tornado-size','s-weather-hazard-tornado-opacity'],
+  's-weather-hazard-tropical':['s-weather-hazard-tropical-bands','s-weather-hazard-tropical-surge'],
+  's-weather-hazard-storm':['s-weather-hazard-storm-cloud','s-weather-hazard-storm-gust'],
+  's-weather-hazard-winter':['s-weather-hazard-winter-whiteout','s-weather-hazard-winter-drift'],
+  's-weather-hazard-visibility':['s-weather-hazard-visibility-opacity'],
+  's-weather-hazard-heat-fire':['s-weather-hazard-heat-shimmer']
 };
 function syncWeatherControlVisibility(){
   for(const [toggleId,ids] of Object.entries(WEATHER_DEPENDENT_CONTROLS)){const toggle=document.getElementById(toggleId),show=toggle?.checked!==false;for(const id of ids){const control=document.getElementById(id),row=control?.closest('.s-row');if(row){row.hidden=!show;row.setAttribute('aria-hidden',show?'false':'true');}}}

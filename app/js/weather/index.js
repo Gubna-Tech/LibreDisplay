@@ -59,8 +59,15 @@ const WD={0:'Clear',1:'Mainly clear',2:'Partly cloudy',3:'Cloudy',
   61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',
   75:'Heavy snow',77:'Snow grains',80:'Showers',81:'Rain showers',82:'Violent showers',
   85:'Snow showers',86:'Heavy snow',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
-function wi(c){return WI[c]||'🌡️';}
+const WIN={0:'🌙',1:'🌙☁️',2:'🌙☁️',51:'🌧️',53:'🌧️',80:'🌧️'};
+function wi(c,isDay=true){return isDay===false?(WIN[c]||WI[c]||'🌡️'):(WI[c]||'🌡️');}
 function wd(c){return WD[c]||'';}
+function weatherTimeIsDay(time,daily){
+  const raw=String(time||''),dayKey=raw.slice(0,10),idx=(daily?.time||[]).indexOf(dayKey),hour=Number(raw.slice(11,13));
+  if(idx<0)return Number.isFinite(hour)?hour>=7&&hour<19:true;
+  const rise=String(daily.sunrise?.[idx]||''),set=String(daily.sunset?.[idx]||'');if(!rise||!set)return Number.isFinite(hour)?hour>=7&&hour<19:true;
+  return raw>=rise&&raw<set;
+}
 function C(v){return cfg.useFahrenheit?Math.round(v*9/5+32):Math.round(v);}
 function u(){return cfg.useFahrenheit?'°F':'°C';}
 
@@ -161,7 +168,8 @@ function renderWeather(d){
   if(locationEl){locationEl.textContent=locationLabel;locationEl.classList.toggle('show',!!locationLabel);}
   document.getElementById('wx-temp').textContent=C(c.temperature_2m)+'°';
   const effects=LibreDisplayRuntime.getModule('weatherEffects'),currentIcon=document.getElementById('wx-icon');
-  effects.decorateWeatherIcon(currentIcon,c.weather_code,wi(c.weather_code),ui);
+  const currentIsDay=Number(c.is_day)!==0;
+  effects.decorateWeatherIcon(currentIcon,c.weather_code,wi(c.weather_code,currentIsDay),ui,currentIsDay);
   currentIcon.style.display=ui.showCurrentIcon?'':'none';
   document.getElementById('wx-feels').textContent='Feels like '+C(c.apparent_temperature)+'°';
   document.getElementById('wx-cond').textContent=wd(c.weather_code);
@@ -197,7 +205,7 @@ function renderWeather(d){
     const el=document.createElement('div');
     el.className='hr-col';
     el.innerHTML=`<div class="hr-time">${h12}${ampm}</div>
-      <div class="hr-icon" data-weather-code="${hr.weather_code[i]}">${effects.weatherIconMarkup(hr.weather_code[i],wi(hr.weather_code[i]),ui)}</div>
+      <div class="hr-icon" data-weather-code="${hr.weather_code[i]}">${effects.weatherIconMarkup(hr.weather_code[i],wi(hr.weather_code[i],weatherTimeIsDay(hr.time[i],dl)),ui,weatherTimeIsDay(hr.time[i],dl))}</div>
       ${ui.showPrecip?`<div class="hr-rain">💧${pp}%</div>`:''}
       <div class="hr-temp">${C(hr.temperature_2m[i])}°</div>`;
     hrDiv.appendChild(el);

@@ -55,6 +55,7 @@ function renderSoftwareUpdateStatus(){
   const updateBtn=document.getElementById('software-update-now');
   const releaseLink=document.getElementById('software-update-release-link');
   const badge=document.getElementById('settings-update-badge');
+  const systemTab=document.querySelector('.settings-tab-btn[data-tab="system"]');
   if(current)current.textContent='v'+bootstrapApi.DASHBOARD_BUILD;
   const d=softwareUpdateState;
   const autoStatus=document.getElementById('software-update-auto-status');
@@ -62,7 +63,9 @@ function renderSoftwareUpdateStatus(){
     const checked=Number(d?.checkedAt)||0,when=checked?new Date(checked*1000).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'';
     autoStatus.textContent=checked?`Automatic update detection is on · last checked ${when}${d?.stale?' · showing last successful result':''}.`:'Automatic update detection is on · checking when Settings opens and every 15 minutes while open.';
   }
-  if(badge)badge.classList.toggle('show',bootstrapApi.SESSION_ROLE==='owner'&&!!d?.ok&&!!d.updateAvailable);
+  const updateAvailable=bootstrapApi.SESSION_ROLE==='owner'&&!!d?.ok&&!!d.updateAvailable;
+  if(badge)badge.classList.remove('show');
+  if(systemTab)systemTab.classList.toggle('update-available',updateAvailable);
   if(releaseLink){
     const href=d?.releaseUrl&&safeHttpUrl(d.releaseUrl)?safeHttpUrl(d.releaseUrl):'';
     releaseLink.href=href||'#';

@@ -49,8 +49,8 @@
     "module": "weather",
     "part": "index",
     "path": "/js/weather/index.js",
-    "lines": 279,
-    "functions": 30,
+    "lines": 287,
+    "functions": 31,
     "bindings": 13
   },
   {
@@ -58,8 +58,8 @@
     "module": "weather",
     "part": "effects",
     "path": "/js/weather/effects.js",
-    "lines": 409,
-    "functions": 21,
+    "lines": 426,
+    "functions": 27,
     "bindings": 0
   },
   {
@@ -121,8 +121,8 @@
     "module": "backgrounds",
     "part": "index",
     "path": "/js/backgrounds/index.js",
-    "lines": 545,
-    "functions": 42,
+    "lines": 546,
+    "functions": 43,
     "bindings": 2
   },
   {
@@ -165,7 +165,7 @@
     "module": "appearance",
     "part": "weather",
     "path": "/js/appearance/weather.js",
-    "lines": 56,
+    "lines": 64,
     "functions": 4,
     "bindings": 0,
     "order": 19
@@ -211,7 +211,7 @@
     "module": "system",
     "part": "index",
     "path": "/js/system/index.js",
-    "lines": 475,
+    "lines": 478,
     "functions": 34,
     "bindings": 16
   },
@@ -238,8 +238,8 @@
     "module": "settings",
     "part": "index",
     "path": "/js/settings/index.js",
-    "lines": 245,
-    "functions": 11,
+    "lines": 253,
+    "functions": 12,
     "bindings": 1
   },
   {
