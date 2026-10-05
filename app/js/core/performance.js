@@ -34,9 +34,9 @@ function frontendPixelLoad(){
 
 function visualPerformanceBudget(){
   const caps=frontendCapabilities(),pixels=frontendPixelLoad();
-  if(caps.piClass&&pixels.tier==='4k')return {tier:'pi4',resolutionTier:'4k',particleScale:.28,wildlifeScale:.36,holidayScale:.44,hazardScale:.55,cloudScale:.58,targetFrameMs:45,blurScale:.12};
-  if(caps.piClass&&pixels.tier==='highres')return {tier:'pi4',resolutionTier:'highres',particleScale:.31,wildlifeScale:.39,holidayScale:.47,hazardScale:.58,cloudScale:.63,targetFrameMs:42,blurScale:.15};
-  if(caps.piClass)return {tier:'pi4',resolutionTier:'standard',particleScale:.34,wildlifeScale:.42,holidayScale:.50,hazardScale:.62,cloudScale:.68,targetFrameMs:40,blurScale:.18};
+  if(caps.piClass&&pixels.tier==='4k')return {tier:'pi4',resolutionTier:'4k',particleScale:.25,wildlifeScale:.33,holidayScale:.40,hazardScale:.51,cloudScale:.54,targetFrameMs:48,blurScale:.10};
+  if(caps.piClass&&pixels.tier==='highres')return {tier:'pi4',resolutionTier:'highres',particleScale:.29,wildlifeScale:.37,holidayScale:.45,hazardScale:.56,cloudScale:.60,targetFrameMs:44,blurScale:.13};
+  if(caps.piClass)return {tier:'pi4',resolutionTier:'standard',particleScale:.32,wildlifeScale:.40,holidayScale:.48,hazardScale:.60,cloudScale:.65,targetFrameMs:42,blurScale:.16};
   if(caps.constrained)return {tier:'constrained',resolutionTier:pixels.tier,particleScale:.50,wildlifeScale:.58,holidayScale:.66,hazardScale:.78,cloudScale:.82,targetFrameMs:30,blurScale:.42};
   return {tier:'standard',resolutionTier:pixels.tier,particleScale:1,wildlifeScale:1,holidayScale:1,hazardScale:1,cloudScale:1,targetFrameMs:16,blurScale:1};
 }

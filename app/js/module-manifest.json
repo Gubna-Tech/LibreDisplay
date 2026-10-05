@@ -58,7 +58,7 @@
     "module": "weather",
     "part": "scenery",
     "path": "/js/weather/scenery.js",
-    "lines": 158,
+    "lines": 161,
     "functions": 51,
     "bindings": 0
   },
