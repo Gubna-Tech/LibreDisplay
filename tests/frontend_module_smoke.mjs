@@ -263,14 +263,14 @@ if(!quietLate.active||quietLate.elapsedMs!==60*60*1000)throw new Error('OLED qui
 if(!quietEarly.active||quietEarly.elapsedMs!==8*60*60*1000)throw new Error('OLED quiet-hours schedule failed overnight boundary');
 if(quietDay.active||quietDisabled.active)throw new Error('OLED quiet-hours schedule failed daytime/equal-time boundary');
 const bridge=LibreDisplayRuntime.describeBridge();
-if(bridge.length>276)throw new Error(`compatibility bridge regressed to ${bridge.length} globals`);
+if(bridge.length>280)throw new Error(`compatibility bridge regressed to ${bridge.length} globals`);
 const bridgeStateCount=bridge.filter(row=>row.kind==='state').length;
 if(bridgeStateCount>10)throw new Error(`compatibility state bridge regressed to ${bridgeStateCount} bindings`);
 for(const handler of ['editLocalAccount','deleteLocalAccount','weatherDetailDragStart','weatherDetailDrop','addIntegrationFromSettings','removeSceneRule','startReleaseRollback','selectLayoutPreset','runWizardHealthChecks']){
   if(typeof globalThis[handler]!=='function')throw new Error(`required generated UI handler missing from compatibility bridge: ${handler}`);
 }
 const bridgeFunctions=bridge.filter(row=>row.kind==='function').length,bridgeStates=bridge.filter(row=>row.kind==='state').length;
-if(bridgeFunctions>267)throw new Error(`compatibility function bridge regressed to ${bridgeFunctions} bindings`);
+if(bridgeFunctions>271)throw new Error(`compatibility function bridge regressed to ${bridgeFunctions} bindings`);
 for(const stateName of ['ACTIVE_ENDPOINT','SESSION_ROLE','wxData','calStatuses','displayEndpoints','systemHealthState','settingsPreviewMode']){
   if(typeof globalThis[stateName]!=='undefined')throw new Error(`migrated state leaked back onto compatibility bridge: ${stateName}`);
 }

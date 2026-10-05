@@ -510,9 +510,10 @@ def test_v1813_naturescape_creature_anatomy_preserves_bilateral_wings_and_true_f
 
 def test_update_attention_cue_is_subtle_and_respects_reduced_motion():
     css = (ROOT / "app" / "css" / "dashboard.css").read_text(encoding="utf-8")
-    assert "ldUpdateBadgeAttention" in css
+    assert "ldUpdateTabAttention" in css
     assert "ldUpdateButtonAttention" in css
-    assert "html.ld-reduce-motion #setup .settings-update-badge.show" in css
+    assert '.settings-tab-btn[data-tab="system"].update-available' in css
+    assert 'html.ld-reduce-motion #setup .settings-tab-btn[data-tab="system"].update-available' in css
     assert "html.ld-reduce-motion #setup .update-now-btn{animation:none!important}" in css
 
 

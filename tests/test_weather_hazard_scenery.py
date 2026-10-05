@@ -32,9 +32,9 @@ def test_alert_hazard_scenery_is_wired_to_active_alerts():
     assert "configApi.activeWeatherAlerts" in fx
     assert "weatherEffects').refreshWeatherEffects" in alerts
     assert "weatherHazardEffects:true" in cfg
-    assert 'id="settings-naturescape-hazards"' in html
+    assert 'id="settings-weather-hazards"' in html
     assert 'id="s-weather-hazard-intensity"' in html
 
 def test_readme_version_content_remains_release_scoped():
-    # v1.8.13 stays the release version; this milestone does not require README edits.
-    assert (ROOT/"VERSION").read_text().strip()=="1.8.13"
+    # v1.8.14 stays the release version; this milestone does not require README edits.
+    assert (ROOT/"VERSION").read_text().strip()=="1.8.14"

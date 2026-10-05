@@ -638,7 +638,7 @@ class ResilienceContractTests(unittest.TestCase):
         self.assertIn("function refreshWeatherEffects(){applyWeatherEffects(configApi.wxData);}", effects)
         self.assertIn("attributeOldValue:true", effects)
         self.assertIn("weatherPauseClassSignature", effects)
-        self.assertIn("effects.decorateWeatherIcon(currentIcon,c.weather_code,wi(c.weather_code),ui)", (ROOT / "app" / "js" / "weather" / "index.js").read_text(encoding="utf-8"))
+        self.assertIn("effects.decorateWeatherIcon(currentIcon,c.weather_code,wi(c.weather_code,currentIsDay),ui,currentIsDay)", (ROOT / "app" / "js" / "weather" / "index.js").read_text(encoding="utf-8"))
         self.assertIn("#weather-effects-overlay{position:fixed;inset:0;z-index:1", css)
         self.assertIn("#app {", css)
 
