@@ -36,5 +36,5 @@ def test_alert_hazard_scenery_is_wired_to_active_alerts():
     assert 'id="s-weather-hazard-intensity"' in html
 
 def test_readme_version_content_remains_release_scoped():
-    # v1.8.23 is the active release version.
-    assert (ROOT/"VERSION").read_text().strip()=="1.8.23"
+    # v1.8.24 is the active release version.
+    assert (ROOT/"VERSION").read_text().strip()=="1.8.24"

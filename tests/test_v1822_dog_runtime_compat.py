@@ -35,7 +35,10 @@ def test_runtime_forces_visible_motion_and_has_stall_watchdog():
 
 
 def test_dog_legs_are_jointed_paths_not_vertical_rectangles():
-    assert "const leg=(x,name,far=false)=>{const front=name.startsWith('front')" in SCENERY
+    assert 'function dogLegSvg(' in SCENERY
+    assert 'dogv2-upper-limb' in SCENERY
+    assert 'dogv2-lower-limb' in SCENERY
     assert '<rect x=\"${x-legW/2}' not in SCENERY
-    assert "mid=top+legH*.52" in SCENERY
-    assert "<circle cx=\"${x+w*.44}\" cy=\"${mid+3}\"" in SCENERY
+    assert "jointY=top+legH*(front?.48:.44)" in SCENERY
+    assert "hockY=top+legH*.70" in SCENERY
+    assert "data-limb=\"rear\"" in SCENERY

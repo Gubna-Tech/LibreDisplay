@@ -6,7 +6,7 @@ HTML=(ROOT/'app/dashboard.html').read_text()
 VERSION=(ROOT/'VERSION').read_text().strip()
 
 def test_version_and_new_dog_renderer_are_present():
-    assert VERSION=='1.8.23'
+    assert VERSION=='1.8.24'
     assert 'weather-fx-dog-v2' in SCENERY
     assert 'dogv2-svg' in SCENERY
     assert 'dogSvgMarkup' in SCENERY
@@ -30,12 +30,12 @@ def test_locomotion_is_raf_curved_and_facing_is_instant():
     assert 'transition:none!important' in CSS
     assert '.dogv2-facing-stage{transform-box:view-box' in CSS
     assert 'transition:transform .2s ease' not in CSS
-    v2=CSS.split('/* v1.8.23 — replacement Dog Companion renderer.')[1]
+    v2=CSS.split('replacement Dog Companion renderer.')[1]
     assert 'transition:transform' not in v2
     assert '-310deg' not in v2
 
 def test_ball_is_direction_aware_and_states_do_not_spin_whole_dog():
-    v2=CSS.split('/* v1.8.23 — replacement Dog Companion renderer.')[1]
+    v2=CSS.split('replacement Dog Companion renderer.')[1]
     assert '.dog-facing-left .dogv2-ball' in v2
     assert 'var(--dog-ball-x,24px)' in v2
     assert "--dog-ball-x',`${dir*24}px`" in SCENERY
