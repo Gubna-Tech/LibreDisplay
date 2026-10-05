@@ -10,16 +10,16 @@ CONFIG=(ROOT/'app/js/core/config.js').read_text()
 
 
 def test_current_release_version_is_v1816_and_readme_uses_pinned_bootstrap():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.17'
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.18'
     readme=(ROOT/'README.md').read_text()
-    assert 'Gubna-Tech/LibreDisplay/v1.8.17/scripts/install-one-line.sh' in readme
-    assert 'pinned **v1.8.17** release' in readme
+    assert 'Gubna-Tech/LibreDisplay/v1.8.18/scripts/install-one-line.sh' in readme
+    assert 'pinned **v1.8.18** release' in readme
 
 
 def test_offline_reserve_explains_photo_count_perspective_and_yields_when_caching():
     assert 's-bg-offline-cache-estimate' in HTML
-    assert '192 MB — ~48 typical photos' in HTML
-    assert 'optimized 1.5 MB' in HTML or '1.5 MB each' in HTML
+    assert 'Recommended · 192 MB · about 48 photos' in HTML
+    assert 'browser-storage headroom' in HTML
     assert 'function backgroundCacheYield()' in BG
     assert 'requestIdleCallback' in BG
 
@@ -70,4 +70,4 @@ def test_alert_animation_is_weather_scoped_testable_and_granular():
 def test_hazard_rendering_limits_dom_on_constrained_devices():
     assert 'appendHazardScenery(frag,source,wind,constrained)' in FX
     assert 'constrained?5:10' in FX
-    assert 'constrained?3:5' in FX
+    assert 'constrained?5:9' in FX

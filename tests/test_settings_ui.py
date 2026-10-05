@@ -426,19 +426,18 @@ def test_secondary_background_cache_is_bounded_lazy_and_exposed_in_settings():
     dashboard = (ROOT / "app" / "dashboard.html").read_text(encoding="utf-8")
     config = (ROOT / "app" / "js" / "core" / "config.js").read_text(encoding="utf-8")
     backgrounds = (ROOT / "app" / "js" / "backgrounds" / "index.js").read_text(encoding="utf-8")
-    navigation = (ROOT / "app" / "js" / "settings" / "navigation.js").read_text(encoding="utf-8")
-    for control_id in ("s-bg-offline-cache", "s-bg-offline-cache-count", "s-bg-offline-cache-max-mb"):
-        assert f'id="{control_id}"' in dashboard
-        assert f"'{control_id}'" in navigation
+    assert 'id="s-bg-offline-reserve"' in dashboard
+    assert 's-bg-offline-cache-count' not in dashboard
+    assert 's-bg-offline-cache-max-mb' not in dashboard
+    assert 's-bg-offline-cache"' not in dashboard
     assert "backgroundOfflineCacheEnabled:true" in config
-    assert "backgroundOfflineCacheCount:30" in config
     assert "backgroundOfflineCacheMaxMb:192" in config
+    assert "backgroundReserveCandidateLimit" in backgrounds
     assert "const HOT_BACKGROUND_LIMIT=10" in backgrounds
     assert "setTimeout(()=>{backgroundCacheFillTimer=null;void fillBackgroundCaches(list);},4500)" in backgrounds
     assert "navigator.storage?.estimate?.()" in backgrounds
     assert "enforceBackgroundCacheBudget" in backgrounds
     assert "backgroundMediaKind(url)==='image'&&!backgroundMediaIsMotion(url)" in backgrounds
-    assert "Math.min(60" in backgrounds
 
 
 def test_bird_habitat_setting_is_exposed_and_auto_is_inland_safe():

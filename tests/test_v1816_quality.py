@@ -9,9 +9,9 @@ SYSTEM=(ROOT/'app/js/system/index.js').read_text(encoding='utf-8')
 
 
 def test_v1816_version_and_pinned_installer():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.17'
-    assert 'v1.8.17/scripts/install-one-line.sh' in (ROOT/'README.md').read_text()
-    assert 'VERSION="1.8.17"' in (ROOT/'scripts/install-one-line.sh').read_text()
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.18'
+    assert 'v1.8.18/scripts/install-one-line.sh' in (ROOT/'README.md').read_text()
+    assert 'VERSION="1.8.18"' in (ROOT/'scripts/install-one-line.sh').read_text()
 
 
 def test_night_icons_use_eight_phase_lunar_cycle_and_hemisphere_pov():
@@ -37,10 +37,10 @@ def test_hazard_test_mode_forces_a_render_without_layout_preview_suppression():
 
 
 def test_all_hazard_families_have_visible_realism_layers():
-    for marker in ('hazard-flood-wave','hazard-flood-branch','hazard-tornado-wallcloud','hazard-tornado-wisp','hazard-tornado-vortex','hazard-tornado-debris','weather-fx-hazard-tropical','weather-fx-hazard-winter','hazard-storm-gust-front','weather-fx-hazard-visibility','weather-fx-hazard-heat-fire'):
+    for marker in ('hazard-flood-wave','hazard-flood-branch','hazard-flood-depth','hazard-tornado-wallcloud','hazard-tornado-slice','hazard-tornado-debris','hazard-tropical-cloud','hazard-tropical-rain','hazard-blizzard-gust','hazard-storm-gust-front','hazard-storm-bolt','weather-fx-hazard-visibility','hazard-fire-ember'):
         assert marker in FX or marker in CSS
     assert 'opacity:var(--hazard-alpha,.63)' in CSS
-    assert "--hazard-alpha',(intensity*opacity*.9).toFixed(3)" in FX
+    assert "--hazard-alpha',(intensity*opacity*.96).toFixed(3)" in FX
     assert 'funnel cloud' in FX and 'lakeshore flood' in FX and 'gale warning' in FX
 
 

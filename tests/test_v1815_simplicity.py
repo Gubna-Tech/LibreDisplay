@@ -16,11 +16,11 @@ README=(ROOT/'README.md').read_text()
 
 
 def test_v1815_version_and_pinned_one_command_quick_start():
-    assert (ROOT/'VERSION').read_text().strip()=='1.8.17'
-    command='bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.8.17/scripts/install-one-line.sh)"'
+    assert (ROOT/'VERSION').read_text().strip()=='1.8.18'
+    command='bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.8.18/scripts/install-one-line.sh)"'
     assert command in README
     assert 'v1.8.14/scripts/install-one-line.sh' not in README
-    assert 'VERSION="1.8.17"' in BOOTSTRAP
+    assert 'VERSION="1.8.18"' in BOOTSTRAP
     assert 'archive/refs/tags/v$VERSION.zip' in BOOTSTRAP
 
 
