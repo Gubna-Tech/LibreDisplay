@@ -160,9 +160,8 @@
   </div>
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.17</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.8.19</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
-
   <div class="s-section" id="settings-endpoints" data-settings-tab="overview">
    <h3>Displays</h3>
    <div class="howto">One LibreDisplay server can power multiple screens. Each named display has its own calendars, photos, layout, theme, and read-only Display Link. Use a lightweight Viewer, tablet, TV browser, or another Pi at each screen.</div>
@@ -173,7 +172,6 @@
    <div id="endpoint-list" class="endpoint-list" style="margin-top:10px;"></div>
    <div id="endpoint-status" class="settings-note" style="margin-top:7px;"></div>
   </div>
-
   <div class="s-section" id="settings-remote" data-owner-only="1" data-settings-level="advanced" data-settings-tab="system">
    <h3>Remote management</h3>
    <div class="howto">Use the admin pairing link for configuration. Every named display has its own read-only Display Link; the field below shows the link for the display you are currently editing. Both are limited to your trusted LAN/private VPN. Do not port-forward LibreDisplay directly to the public internet.</div>
@@ -191,8 +189,6 @@
    </div>
    <div id="remote-settings-status" class="settings-note" style="margin-top:7px;">Remote editing is off by default. Enable it here only when you want to pair another device.</div>
   </div>
-
-
   <div class="s-section" id="settings-users" data-settings-tab="system" data-owner-only="1">
    <h3>Local accounts &amp; roles</h3>
    <div class="howto">Create local <b>Owner</b>, <b>Editor</b>, or <b>Viewer</b> accounts. Owners administer the whole server. Editors can change only their assigned displays. Viewers can open only their assigned displays and cannot save configuration. Passwords are stored locally as PBKDF2-SHA256 hashes.</div>
@@ -205,7 +201,6 @@
    <div class="utility-actions"><button class="btn-util" type="button" onclick="saveLocalAccount('create')">Create account</button><button class="btn-util" type="button" onclick="saveLocalAccount('update')">Update account</button><button class="btn-util" type="button" onclick="loadLocalAccounts()">Refresh</button></div>
    <div id="account-list" style="margin-top:8px"></div><div id="account-status" class="settings-note" style="margin-top:7px"></div>
   </div>
-
   <div class="s-section" id="settings-profiles" data-settings-level="advanced" data-owner-only="1" data-settings-tab="system">
    <h3>Display profiles</h3>
    <div class="howto">Save complete dashboard configurations as named profiles, then reuse them on this display or explicitly apply them to another LibreDisplay endpoint. Profiles are snapshots of dashboard content and presentation; applying one never changes the profile itself. Use “Update selected” only when you intentionally want to replace a profile with the currently saved dashboard.</div>
@@ -227,7 +222,6 @@
    <div class="settings-note" style="margin-top:8px;">Tip: duplicate a known-good profile before experimenting. Profiles can also be used by Scenes &amp; schedules below.</div>
    <div id="profile-status" class="howto profile-status" style="display:none;"></div>
   </div>
-
   <div class="s-section" id="settings-scenes" data-settings-level="advanced" data-owner-only="1" data-settings-tab="system">
    <h3>Scenes &amp; schedules</h3>
    <div class="howto">Schedule saved Profiles on this display. LibreDisplay applies scenes on the server, so schedules continue working even when no Settings browser is open. Overnight ranges are supported.</div>
@@ -237,7 +231,6 @@
    <div id="scene-list" class="scene-list"></div>
    <div id="scene-status" class="settings-note" style="margin-top:8px;"></div>
   </div>
-
   <div class="s-section" id="settings-family" data-owner-only="1" data-settings-tab="family">
    <h3>Family &amp; touch mode</h3>
    <div class="howto">Local-only household chores, points, rewards, and child-lock controls. Add a <b>Family Chores</b> block from Arrange dashboard to make these touch-friendly on a wall display. No cloud account is required.</div>
@@ -256,14 +249,12 @@
    <div class="utility-actions"><button class="btn-util" type="button" onclick="setHouseholdPin()">Set / change PIN &amp; enable lock</button><button class="btn-util" type="button" onclick="clearHouseholdPin()">Disable &amp; clear PIN</button></div>
    <div id="family-status" class="settings-note" style="margin-top:8px;"></div>
   </div>
-
   <div class="s-section" id="settings-location" data-settings-tab="weather">
    <h3>Location &amp; Weather</h3>
    <div class="howto">Search for a place, then choose the exact match before saving. LibreDisplay shows the region, country, coordinates, and timezone so cities with the same name are not confused. Forecast values come from the weather model/grid for those coordinates and can differ somewhat from a nearby personal weather station.</div>
    <div class="s-row"><label>Weather location</label><div class="weather-location-search"><input id="s-city" placeholder="Springfield, Illinois" autocomplete="off" oninput="weatherLocationQueryChanged()" onkeydown="if(event.key==='Enter'){event.preventDefault();searchWeatherLocations();}"><button class="btn-util" type="button" onclick="searchWeatherLocations()">Find places</button></div><div id="weather-location-search-status" class="weather-location-status"></div><div id="weather-location-results" class="weather-location-results"></div><div id="weather-location-selected" class="weather-location-selected"></div></div>
    <div class="s-row"><label>Display label (optional)</label><input id="s-locname" placeholder="Home · Chicago" oninput="previewWeatherLocationLabel()"><div class="settings-inline-help">Shown above Current Weather on the dashboard. Leave blank to hide the label; it does not change the selected forecast coordinates.</div></div>
   </div>
-
   <div class="s-section" id="settings-calendars" data-settings-tab="calendars">
    <h3>Calendars <button class="help-tip" type="button" aria-label="Calendar help" data-help="Add and test ICS feeds before saving. Display range, event count, and calendar auto-scroll are controlled in Appearance and can be fine-tuned further in Arrange mode.">?</button></h3>
    <div class="howto">Add as many calendars as you need. LibreDisplay accepts standard iCalendar/ICS subscription links from Google Calendar, Proton Calendar, Outlook/Microsoft 365, iCloud shared calendars, Nextcloud, Fastmail, and other providers that expose an ICS feed. You can also import a local <code>.ics</code> file.</div>
@@ -290,7 +281,6 @@
     <div id="calendar-order-list" class="calendar-order-list"></div>
    </div>
   </div>
-
   <div class="s-section" id="settings-alerts" data-settings-tab="weather">
    <h3>Weather alerts <button class="help-tip" type="button" aria-label="Weather alert help" data-help="Test mode is generated locally and should keep running with Settings closed. Motion controls apply to both simulated and real alerts.">?</button></h3>
    <div class="howto">Uses active National Weather Service alerts for the configured location (U.S.). Up to 10 alerts are shown. Test mode generates 10 simulated alerts locally so you can tune the layout at any time.</div>
@@ -308,8 +298,6 @@
    </div>
    <div id="alert-status" class="howto" role="status" aria-live="polite" style="display:none;margin-top:10px;"></div>
   </div>
-
-
   <div class="s-section" id="settings-alert-appearance" data-settings-level="advanced" data-settings-tab="weather">
    <h3>Alert appearance &amp; filtering <button class="help-tip" type="button" aria-label="Alert filtering help" data-help="Severity filtering applies to real National Weather Service alerts. Test mode intentionally keeps mixed severities so you can preview the layout.">?</button></h3>
    <div class="settings-grid">
@@ -321,7 +309,6 @@
     <label class="checkline"><input id="s-alert-show-meta" type="checkbox" onchange="previewAppearance()"> Show alert area / source</label>
    </div>
   </div>
-
   <div class="s-section" id="settings-backgrounds" data-settings-tab="backgrounds">
    <h3>Pictures, video &amp; moving backgrounds <button class="help-tip" type="button" aria-label="Background help" data-help="Choose one active source. Google Photos shared albums paginate up to 1,000 images; local or NAS folders and stock sources can also rotate automatically.">?</button></h3>
    <div class="howto">Choose the background source and tune its rotation in one place. Local and NAS folders support still images, animated GIFs, browser-playable video, and raw Motion JPEG (.mjpg/.mjpeg/.mpjpg) loops.</div>
@@ -336,7 +323,6 @@
     <button class="btn-util" type="button" onclick="nextBackgroundNow()">Next stock photo</button>
    </div>
    <div class="settings-note stock-bg-only">Stock backgrounds use the external SourceSplash image service and require internet access. The service may source images from multiple licensed providers.</div>
-
    <div class="google-bg-only settings-inline-group">
     <div class="s-subhead">Google Photos shared album</div>
     <div class="settings-inline-help">Google Photos → open album → Share icon → “Create link” → copy URL. LibreDisplay paginates large shared albums and loads up to 1,000 photos per album.</div>
@@ -347,7 +333,6 @@
      <button class="btn-util" type="button" onclick="reshuffleBackgroundNow()">Reshuffle now</button>
     </div>
    </div>
-
    <div class="folders-bg-only settings-inline-group">
     <div class="s-subhead">Local / NAS media folders</div>
     <div class="s-row"><label>Media folders — one path per line</label><textarea id="s-media-folders" class="media-paths" placeholder="/home/pi/Pictures/Family
@@ -363,7 +348,6 @@
     </div>
     <div class="settings-note" style="margin-top:7px;">Supported folder media includes JPG, PNG, WebP, GIF, AVIF, BMP, MP4, WebM, OGV, M4V, MOV, MJPG, MJPEG and MPJPG. NAS folders use normal Linux mount points. The included <b>scripts/setup-nas.sh</b> helper mounts SMB/CIFS or NFS shares read-only under <code>/mnt/libredisplay</code>. For another local folder outside the approved picture roots, run <b>scripts/setup-media.sh</b> locally on the Pi, then reboot.</div>
    </div>
-
    <div class="settings-inline-group rotating-bg-only">
     <div class="s-subhead">Rotation &amp; order</div>
     <div class="settings-inline-help">Choose how quickly pictures change and how LibreDisplay moves through the full source.</div>
@@ -391,7 +375,6 @@
    </div>
    <div id="background-status" class="howto" style="display:none;margin-top:10px;"></div>
   </div>
-
   <div class="s-section" id="settings-weather-options" data-settings-tab="weather">
    <h3>Weather preferences</h3>
    <div class="settings-grid">
@@ -399,7 +382,6 @@
     <div class="s-row"><label>Weather refresh</label><select id="s-weather-refresh"><option value="5">Every 5 minutes</option><option value="10">Every 10 minutes</option><option value="15">Every 15 minutes</option><option value="30">Every 30 minutes</option></select></div>
    </div>
   </div>
-
   <div class="s-section" id="settings-weather-motion" data-settings-tab="weather">
    <h3>Weather effects &amp; preview</h3>
    <div class="howto">Turn on the full-screen atmosphere, preview any condition, and set the overall look here. Detailed rain, snow, fog, seasonal and storm tuning is grouped into the sections below.</div>
@@ -411,9 +393,11 @@
     <label class="checkline"><input id="s-weather-effect-precipitation" type="checkbox" checked onchange="previewAppearance()"> Enable rain and snow particles</label>
     <div class="utility-actions weather-effect-presets"><button class="btn-util" type="button" onclick="applyWeatherEffectPreset('subtle')">Subtle</button><button class="btn-util" type="button" onclick="applyWeatherEffectPreset('balanced')">Balanced</button><button class="btn-util" type="button" onclick="applyWeatherEffectPreset('immersive')">Immersive</button><button class="btn-util" type="button" onclick="previewCurrentWeatherOverlay()">Show current overlay</button></div>
     <div class="s-subhead">Weather Effect Lab</div>
-    <label class="checkline"><input id="s-weather-effect-test-mode" type="checkbox" onchange="handleWeatherEffectTestModeChange(this)"> Test mode — force a weather type <button class="help-tip" type="button" aria-label="Weather effect test mode help" data-help="Preview simulated weather while tuning controls. Test weather is temporary and is never saved as forecast data.">?</button></label>
-    <div class="s-row"><label>Test weather</label><select id="s-weather-effect-test-condition" onchange="weatherEffectTestProfileChanged(this)"><option value="drizzle">Light drizzle</option><option value="rain" selected>Rain</option><option value="heavy-rain">Heavy rain</option><option value="storm">Thunderstorm</option><option value="snow">Snow</option><option value="heavy-snow">Heavy snow</option><option value="fog">Fog</option><option value="cloud">Cloudy</option><option value="windy">Windy clouds</option><option value="partly">Partly cloudy</option><option value="clear">Clear day</option><option value="night">Clear night</option></select></div>
-    <div class="utility-actions weather-effect-presets"><button class="btn-util" type="button" onclick="previewWeatherTestFullScreen()">Preview test full screen</button><button class="btn-util" type="button" onclick="stopWeatherEffectTest()">Stop test</button></div>
+    <div class="s-subhead">Normal weather preview</div>
+    <div class="settings-note">Use this while tuning ordinary rain, snow, clouds, fog, sun and wind. It previews behind Settings so you can adjust controls without leaving the menu. It never creates a weather alert.</div>
+    <label class="checkline"><input id="s-weather-effect-test-mode" type="checkbox" onchange="handleWeatherEffectTestModeChange(this)"> Preview a normal weather condition <button class="help-tip" type="button" aria-label="Weather preview help" data-help="Temporarily replaces the visual weather condition only. Settings stays open and no alert card or severe-weather scene is generated.">?</button></label>
+    <div class="s-row"><label>Normal weather condition</label><select id="s-weather-effect-test-condition" onchange="weatherEffectTestProfileChanged(this)"><option value="drizzle">Light drizzle</option><option value="rain" selected>Rain</option><option value="heavy-rain">Heavy rain</option><option value="storm">Thunderstorm</option><option value="snow">Snow</option><option value="heavy-snow">Heavy snow</option><option value="fog">Fog</option><option value="cloud">Cloudy</option><option value="windy">Windy clouds</option><option value="partly">Partly cloudy</option><option value="clear">Clear day</option><option value="night">Clear night</option></select></div>
+    <div class="utility-actions weather-effect-presets"><button class="btn-util" type="button" onclick="previewWeatherTestFullScreen()">Preview behind Settings</button><button class="btn-util" type="button" onclick="stopWeatherEffectTest()">Return to live weather</button></div>
     <div class="s-row"><label>Full-screen effect behavior</label><select id="s-weather-effect-mode" onchange="previewAppearance()"><option value="auto">Automatic — match current weather</option><option value="precipitation">Precipitation only — rain, snow, storms</option><option value="ambient">Ambient only — clouds, fog, clear sky</option></select></div>
     <label class="checkline"><input id="s-weather-effect-auto-intensity" type="checkbox" checked onchange="previewAppearance()"> Auto-match intensity to live conditions</label>
     <div class="s-row"><label>Effect intensity <span id="s-weather-effect-intensity-value" class="range-value">50%</span></label><input id="s-weather-effect-intensity" type="range" min="10" max="100" step="5" value="50" oninput="previewAppearance()"><div class="range-ends"><span>Subtle</span><span>Dense</span></div></div>
@@ -424,7 +408,6 @@
     <div class="s-row"><label>Wind influence <span id="s-weather-effect-wind-strength-value" class="range-value">100%</span></label><input id="s-weather-effect-wind-strength" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"><div class="range-ends"><span>Vertical</span><span>Strong drift</span></div></div>
    </div>
   </div>
-
   <div class="s-section" id="settings-weather-rain" data-settings-tab="weather">
    <h3>Rain</h3>
    <div class="howto">Tune rainfall independently. Use Weather Effect Lab to preview light rain, normal rain, or heavy rain while adjusting these controls.</div>
@@ -442,7 +425,6 @@
     <div class="s-row"><label>Wet-streak glow <span id="s-weather-rain-glow-value" class="range-value">100%</span></label><input id="s-weather-rain-glow" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
    </div>
   </div>
-
   <div class="s-section" id="settings-weather-snow" data-settings-tab="weather">
    <h3>Snow</h3>
    <div class="howto">Tune snow density, flake appearance, drift, and depth without changing rain or fog.</div>
@@ -458,7 +440,6 @@
     <div class="s-row"><label>Snow depth variation <span id="s-weather-snow-depth-value" class="range-value">100%</span></label><input id="s-weather-snow-depth" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
    </div>
   </div>
-
   <div class="s-section" id="settings-weather-fog" data-settings-tab="weather">
    <h3>Fog &amp; mist</h3>
    <div class="howto">Control fog visibility, softness, speed, and vertical coverage separately from precipitation.</div>
@@ -472,7 +453,6 @@
     <div class="s-row"><label>Fog band height <span id="s-weather-fog-layer-height-value" class="range-value">100%</span></label><input id="s-weather-fog-layer-height" type="range" min="40" max="200" step="5" value="100" oninput="previewAppearance()"></div>
    </div>
   </div>
-
   <div class="s-section" id="settings-naturescape-overview" data-settings-tab="naturescape">
    <h3>Naturescape behavior</h3>
    <div class="howto">Naturescape adds living, seasonal scenery around the weather overlay. Automatic mode uses the saved weather location, hemisphere, climate band, local month, daylight, temperature, and current conditions.</div>
@@ -482,7 +462,6 @@
     <div class="s-row"><label>Overall seasonal intensity <span id="s-weather-seasonal-intensity-value" class="range-value">45%</span></label><input id="s-weather-seasonal-intensity" type="range" min="0" max="100" step="5" value="45" oninput="previewAppearance()"></div>
    </div>
   </div>
-
   <div class="s-section" id="settings-naturescape-flora" data-settings-tab="naturescape">
    <h3>Leaves, grass &amp; petals</h3>
    <div class="howto">Tune non-animal seasonal scenery. Each layer keeps its own amount, scale, movement, and visibility controls.</div>
@@ -506,7 +485,6 @@
     <div class="s-row"><label>Petal opacity <span id="s-weather-petal-opacity-value" class="range-value">100%</span></label><input id="s-weather-petal-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
    </div>
   </div>
-
   <div class="s-section" id="settings-naturescape-insects" data-settings-tab="naturescape">
    <h3>Bees, butterflies &amp; fireflies</h3>
    <div class="howto">Day and night insects follow season, region, weather, and daylight. Amount, size, speed, visibility, glow, and butterfly diversity remain independently adjustable.</div>
@@ -547,7 +525,6 @@
     <div class="s-row"><label>Moth opacity <span id="s-weather-moth-opacity-value" class="range-value">100%</span></label><input id="s-weather-moth-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
    </div>
   </div>
-
   <div class="s-section" id="settings-naturescape-birds" data-settings-tab="naturescape">
    <h3>Birds &amp; regional wildlife</h3>
    <div class="howto">Bird species and flight style follow the saved location, season, daylight, and weather. Tune the population, size, speed, flocking, visibility, flight height, species diversity, and rare/large-bird frequency here.</div>
@@ -564,7 +541,6 @@
     <div class="s-row"><label>Rare / large bird frequency <span id="s-weather-bird-rare-value" class="range-value">30%</span></label><input id="s-weather-bird-rare" type="range" min="0" max="100" step="5" value="30" oninput="previewAppearance()"><div class="settings-note">Controls how often raptors and larger waders appear. They remain uncommon by design for a more natural scene.</div></div>
    </div>
   </div>
-
   <div class="s-section" id="settings-naturescape-dog" data-settings-tab="naturescape">
    <h3>Dog companion</h3>
    <div class="howto">Optional animated companion, disabled by default. Breed-specific proportions, ears, muzzle, coat, legs and tail styling keep the dog recognizable while it wanders, sniffs, plays with a ball, rolls, naps, and occasionally becomes curious about low-flying birds.</div>
@@ -581,11 +557,14 @@
     <div class="s-row"><label>Owl species diversity <span id="s-weather-owl-diversity-value" class="range-value">75%</span></label><input id="s-weather-owl-diversity" type="range" min="0" max="100" step="5" value="75" oninput="previewAppearance()"><div class="settings-note">Higher values broaden the region-appropriate owl pool. Owl Mode remains completely independent from normal birds.</div></div>
    </div>
   </div>
-
   <div class="s-section" id="settings-naturescape-winter" data-settings-tab="naturescape">
    <h3>Winter atmosphere</h3>
    <div class="howto">Cold-air crystals and screen-edge frost are separate from snowfall and only appear when seasonal/location logic makes them appropriate.</div>
    <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-season-snowmen" type="checkbox" checked onchange="previewAppearance()"> Snowmen in snow-capable winter conditions</label>
+    <div class="s-row"><label>Snowman amount <span id="s-weather-snowman-intensity-value" class="range-value">60%</span></label><input id="s-weather-snowman-intensity" type="range" min="0" max="100" step="5" value="60" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Snowman size <span id="s-weather-snowman-size-value" class="range-value">100%</span></label><input id="s-weather-snowman-size" type="range" min="60" max="160" step="5" value="100" oninput="previewAppearance()"></div>
+    <div class="s-row"><label>Snowman opacity <span id="s-weather-snowman-opacity-value" class="range-value">100%</span></label><input id="s-weather-snowman-opacity" type="range" min="20" max="100" step="5" value="100" oninput="previewAppearance()"></div>
     <label class="checkline"><input id="s-weather-season-crystals" type="checkbox" checked onchange="previewAppearance()"> Winter crystal / cold-air accents</label>
     <div class="s-row"><label>Winter crystal amount <span id="s-weather-crystal-intensity-value" class="range-value">70%</span></label><input id="s-weather-crystal-intensity" type="range" min="0" max="180" step="5" value="70" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Crystal size <span id="s-weather-crystal-size-value" class="range-value">100%</span></label><input id="s-weather-crystal-size" type="range" min="30" max="200" step="5" value="100" oninput="previewAppearance()"></div>
@@ -597,50 +576,43 @@
     <div class="s-row"><label>Frost opacity <span id="s-weather-cold-frost-opacity-value" class="range-value">100%</span></label><input id="s-weather-cold-frost-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
    </div>
   </div>
-
   <div class="s-section" id="settings-weather-hazards" data-settings-tab="weather">
-   <h3>Weather alert animations &amp; dangerous conditions</h3>
-   <div class="howto">Live Weather Alerts can add hazard-specific scenery behind the dashboard. Alert animation belongs to Weather because it modifies the weather atmosphere itself; NatureScape remains focused on seasonal plants and wildlife.</div>
+   <h3>Severe weather &amp; alert scenery</h3>
+   <div class="howto">Live alerts can add hazard-specific scenery behind the dashboard. This is separate from the Normal Weather Preview above: severe previews launch an immersive full-screen emergency scene so you can judge the complete alert presentation.</div>
    <div class="settings-grid">
-    <label class="checkline"><input id="s-weather-hazard-effects" type="checkbox" checked onchange="previewAppearance()"> Alert-driven weather scenery</label>
-    <div class="s-row"><label>Alert animation test</label><select id="s-weather-hazard-test" onchange="weatherHazardTestProfileChanged(this)"><option value="live">Live alerts</option><option value="flood">Flash flood</option><option value="wind">High wind</option><option value="tornado">Tornado warning</option><option value="tropical">Hurricane / tropical storm</option><option value="storm">Severe thunderstorm</option><option value="winter">Blizzard / winter storm</option><option value="visibility">Dense fog / smoke / dust</option><option value="heat-fire">Heat / fire weather</option></select><div class="settings-note">This test is local and temporary. It previews the selected alert animation without changing saved alert data.</div></div>
-    <div class="utility-actions weather-effect-presets"><button class="btn-util" type="button" onclick="previewWeatherHazardTestFullScreen()">Preview alert animation full screen</button><button class="btn-util" type="button" onclick="stopWeatherHazardTest()">Stop alert test</button></div>
+    <label class="checkline"><input id="s-weather-hazard-effects" type="checkbox" checked onchange="previewAppearance()"> Alert-driven severe-weather scenery</label>
+    <div class="s-subhead">Severe weather preview</div>
+    <div class="s-row"><label>Emergency scenario</label><select id="s-weather-hazard-test" onchange="weatherHazardTestProfileChanged(this)"><option value="live">Live alerts</option><option value="flood">Flash flood</option><option value="wind">High wind</option><option value="tornado">Tornado warning</option><option value="tropical">Hurricane</option><option value="storm">Severe thunderstorm</option><option value="winter">Blizzard / winter storm</option><option value="visibility">Dense fog / smoke / dust</option><option value="heat">Extreme heat</option><option value="fire">Red flag / fire weather</option></select><div class="settings-note">Severe preview is local and temporary. It launches the selected hazard scene full screen and does not modify saved alert data.</div></div>
+    <div class="utility-actions weather-effect-presets"><button class="btn-util" type="button" onclick="previewWeatherHazardTestFullScreen()">Launch full-screen severe preview</button><button class="btn-util" type="button" onclick="stopWeatherHazardTest()">Return to live alerts</button></div>
     <div class="s-row"><label>Overall hazard intensity <span id="s-weather-hazard-intensity-value" class="range-value">70%</span></label><input id="s-weather-hazard-intensity" type="range" min="20" max="100" step="5" value="70" oninput="previewAppearance()"><div class="range-ends"><span>Subtle</span><span>Strong</span></div></div>
     <div class="s-row"><label>Overall hazard opacity <span id="s-weather-hazard-opacity-value" class="range-value">100%</span></label><input id="s-weather-hazard-opacity" type="range" min="0" max="100" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Overall hazard animation speed <span id="s-weather-hazard-speed-value" class="range-value">100%</span></label><input id="s-weather-hazard-speed" type="range" min="30" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Minimum alert severity</label><select id="s-weather-hazard-min-severity" onchange="previewAppearance()"><option value="all">All alerts</option><option value="minor">Minor +</option><option value="moderate" selected>Moderate +</option><option value="severe">Severe +</option><option value="extreme">Extreme only</option></select></div>
-
     <div class="s-subhead">Flood / flash flood</div>
     <label class="checkline"><input id="s-weather-hazard-flood" type="checkbox" checked onchange="previewAppearance()"> Flood water &amp; floating debris</label>
     <div class="s-row"><label>Flood water level <span id="s-weather-hazard-flood-level-value" class="range-value">100%</span></label><input id="s-weather-hazard-flood-level" type="range" min="20" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Flood debris amount <span id="s-weather-hazard-flood-debris-value" class="range-value">100%</span></label><input id="s-weather-hazard-flood-debris" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Flood current speed <span id="s-weather-hazard-flood-speed-value" class="range-value">100%</span></label><input id="s-weather-hazard-flood-speed" type="range" min="30" max="180" step="5" value="100" oninput="previewAppearance()"></div>
-
     <div class="s-subhead">Wind</div>
     <label class="checkline"><input id="s-weather-hazard-wind" type="checkbox" checked onchange="previewAppearance()"> High-wind gusts</label>
     <div class="s-row"><label>Gust amount <span id="s-weather-hazard-wind-gusts-value" class="range-value">100%</span></label><input id="s-weather-hazard-wind-gusts" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Gust travel speed <span id="s-weather-hazard-wind-speed-value" class="range-value">100%</span></label><input id="s-weather-hazard-wind-speed" type="range" min="30" max="180" step="5" value="100" oninput="previewAppearance()"></div>
-
     <div class="s-subhead">Tornado / waterspout</div>
     <label class="checkline"><input id="s-weather-hazard-tornado" type="checkbox" checked onchange="previewAppearance()"> Tornado / waterspout funnel scenes</label>
     <div class="s-row"><label>Funnel size <span id="s-weather-hazard-tornado-size-value" class="range-value">100%</span></label><input id="s-weather-hazard-tornado-size" type="range" min="40" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Funnel opacity <span id="s-weather-hazard-tornado-opacity-value" class="range-value">100%</span></label><input id="s-weather-hazard-tornado-opacity" type="range" min="10" max="100" step="5" value="100" oninput="previewAppearance()"></div>
-
     <div class="s-subhead">Hurricane / tropical storm</div>
     <label class="checkline"><input id="s-weather-hazard-tropical" type="checkbox" checked onchange="previewAppearance()"> Tropical storm bands &amp; surge</label>
     <div class="s-row"><label>Storm-band strength <span id="s-weather-hazard-tropical-bands-value" class="range-value">100%</span></label><input id="s-weather-hazard-tropical-bands" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Surge height <span id="s-weather-hazard-tropical-surge-value" class="range-value">100%</span></label><input id="s-weather-hazard-tropical-surge" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
-
     <div class="s-subhead">Severe thunderstorm</div>
     <label class="checkline"><input id="s-weather-hazard-storm" type="checkbox" checked onchange="previewAppearance()"> Shelf clouds &amp; gust fronts</label>
     <div class="s-row"><label>Shelf-cloud strength <span id="s-weather-hazard-storm-cloud-value" class="range-value">100%</span></label><input id="s-weather-hazard-storm-cloud" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Gust-front strength <span id="s-weather-hazard-storm-gust-value" class="range-value">100%</span></label><input id="s-weather-hazard-storm-gust" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
-
     <div class="s-subhead">Blizzard / winter storm</div>
     <label class="checkline"><input id="s-weather-hazard-winter" type="checkbox" checked onchange="previewAppearance()"> Blizzard / winter-storm whiteout</label>
     <div class="s-row"><label>Whiteout strength <span id="s-weather-hazard-winter-whiteout-value" class="range-value">100%</span></label><input id="s-weather-hazard-winter-whiteout" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Blowing-snow drift <span id="s-weather-hazard-winter-drift-value" class="range-value">100%</span></label><input id="s-weather-hazard-winter-drift" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
-
     <div class="s-subhead">Visibility / heat / fire weather</div>
     <label class="checkline"><input id="s-weather-hazard-visibility" type="checkbox" checked onchange="previewAppearance()"> Dense fog / smoke / dust / air-quality haze</label>
     <div class="s-row"><label>Hazard haze opacity <span id="s-weather-hazard-visibility-opacity-value" class="range-value">100%</span></label><input id="s-weather-hazard-visibility-opacity" type="range" min="0" max="180" step="5" value="100" oninput="previewAppearance()"></div>
@@ -649,7 +621,6 @@
    </div>
    <div class="settings-note">Live hazard scenes use the same alert feed already shown by LibreDisplay. The Weather Alerts card test mode also drives these scenes, while the Alert animation test above can preview one hazard directly. Reduced-motion, display-protection, and constrained-device limits are respected.</div>
   </div>
-
   <div class="s-section" id="settings-weather-sky" data-settings-tab="weather">
    <h3>Sky, wind &amp; thunderstorms</h3>
    <div class="howto">Control ambient sky layers and storm details separately from precipitation.</div>
@@ -677,7 +648,6 @@
    </div>
    <div class="utility-actions" style="margin-top:8px;"><button class="btn-util" type="button" onclick="resetWeatherAnimationSettings()">Reset all weather effect settings</button></div>
   </div>
-
   <div class="s-section" id="settings-weather-details" data-settings-level="advanced" data-settings-tab="weather">
    <h3>Weather Details element</h3>
    <div class="howto">Build the Weather Details element row-by-row. Enable only the metrics you want, then drag rows or use the arrow buttons to change their display order. Air Quality and UV use the same cached Open-Meteo air-quality source as the optional Air Quality block.</div>
@@ -689,7 +659,6 @@
     <button class="btn-util" type="button" onclick="resetWeatherDetails()">Reset details</button>
    </div>
   </div>
-
   <div class="s-section" id="settings-background-style" data-settings-level="advanced" data-settings-tab="backgrounds">
    <h3>Background appearance</h3>
    <div class="howto">These controls preview live and only affect how the current background is presented on screen.</div>
@@ -702,7 +671,6 @@
     <div class="s-row"><label>Photo focal position</label><select id="s-bg-position" onchange="previewAppearance()"><option value="center">Center</option><option value="center top">Top</option><option value="center bottom">Bottom</option><option value="left center">Left</option><option value="right center">Right</option></select></div>
    </div>
   </div>
-
   <div class="s-section" id="settings-templates" data-settings-tab="look">
    <h3>Starter templates</h3>
    <div class="howto">Apply a presentation/layout starting point without replacing your calendar links, photo folders, location, integrations, or added custom blocks. The template previews immediately; Save &amp; Apply replaces any saved built-in Arrange positions, while Cancel/Esc restores them.</div>
@@ -718,7 +686,6 @@
    </div>
    <div id="template-status" class="settings-note" style="margin-top:8px;"></div>
   </div>
-
   <div class="s-section" id="settings-theme" data-settings-tab="look">
    <h3>Theme &amp; typography</h3>
    <div class="howto">Libre Night is the default LibreDisplay look: black and charcoal surfaces with a restrained green accent, designed for an always-on home display. Other included themes keep the same UI structure while changing the mood. Theme and font changes preview live.</div>
@@ -730,7 +697,6 @@
    <div id="font-choice-grid" class="font-choice-grid" role="radiogroup" aria-label="Dashboard font previews"></div>
    <div class="settings-note">Each font name above is rendered in that font so you can choose visually. LibreDisplay uses local system fallbacks when a named face is not installed, keeping the dashboard fully offline-capable.</div>
   </div>
-
   <div class="s-section" id="settings-accessibility" data-settings-tab="look">
    <h3>Accessibility &amp; language</h3>
    <div class="howto">Keep the everyday controls simple while adapting motion, contrast, keyboard focus, and date language for the people who use this display.</div>
@@ -750,17 +716,14 @@
     <div class="s-row"><label>Pixel-shift interval <span id="s-burnin-shift-interval-value" class="range-value">5 min</span></label><input id="s-burnin-shift-interval" type="range" min="0.5" max="30" step="0.5" value="5" oninput="previewAppearance()"><div class="range-ends"><span>30 sec</span><span>30 min</span></div></div>
     <div class="s-row"><label>Pixel-shift distance <span id="s-burnin-shift-distance-value" class="range-value">2 px</span></label><input id="s-burnin-shift-distance" type="range" min="1" max="8" step="1" value="2" oninput="previewAppearance()"><div class="range-ends"><span>1 px</span><span>8 px</span></div></div>
     <div class="s-row"><label>Shift transition <span id="s-burnin-shift-transition-value" class="range-value">1.2s</span></label><input id="s-burnin-shift-transition" type="range" min="0" max="3" step="0.1" value="1.2" oninput="previewAppearance()"><div class="range-ends"><span>Instant</span><span>3 sec</span></div></div>
-
     <label class="checkline"><input id="s-burnin-idle-dimming" type="checkbox" onchange="previewAppearance()"> Idle dimming</label>
     <div class="s-row"><label>Dim after <span id="s-burnin-idle-value" class="range-value">30 min</span></label><input id="s-burnin-idle" type="range" min="1" max="240" step="1" value="30" oninput="previewAppearance()"><div class="range-ends"><span>1 min</span><span>4 hr</span></div></div>
     <div class="s-row"><label>Dim brightness <span id="s-burnin-brightness-value" class="range-value">40%</span></label><input id="s-burnin-brightness" type="range" min="5" max="90" step="1" value="40" oninput="previewAppearance()"><div class="range-ends"><span>Darker</span><span>Lighter</span></div></div>
-
     <label class="checkline"><input id="s-burnin-quiet-hours" type="checkbox" onchange="previewAppearance()"> Quiet hours schedule</label>
     <div class="s-row"><label>Quiet hours start</label><input id="s-burnin-quiet-start" type="time" value="22:00" onchange="previewAppearance()"></div>
     <div class="s-row"><label>Quiet hours end</label><input id="s-burnin-quiet-end" type="time" value="07:00" onchange="previewAppearance()"></div>
     <label class="checkline"><input id="s-burnin-quiet-wake-enabled" type="checkbox" checked onchange="previewAppearance()"> Temporarily wake on local input during quiet hours</label>
     <div class="s-row"><label>Temporary wake duration <span id="s-burnin-quiet-wake-value" class="range-value">5 min</span></label><input id="s-burnin-quiet-wake" type="range" min="1" max="30" step="1" value="5" oninput="previewAppearance()"><div class="range-ends"><span>1 min</span><span>30 min</span></div></div>
-
     <label class="checkline"><input id="s-burnin-deep-protection" type="checkbox" onchange="previewAppearance()"> Deep idle / black-screen protection <button class="help-tip" type="button" aria-label="Deep protection help" data-help="After a longer period without local input, applies a stronger dim level regardless of whether quiet hours are enabled. Set Deep brightness to 0% for a fully black screen.">?</button></label>
     <div class="s-row"><label>Deep protection trigger</label><select id="s-burnin-deep-trigger" onchange="previewAppearance()"><option value="idle">Extended inactivity</option><option value="quiet">Time spent in Quiet Hours</option></select></div>
     <div class="s-row"><label>Deep protection after <span id="s-burnin-deep-idle-value" class="range-value">3 hr</span></label><input id="s-burnin-deep-idle" type="range" min="15" max="720" step="5" value="180" oninput="previewAppearance()"><div class="range-ends"><span>15 min</span><span>12 hr</span></div></div>
@@ -772,7 +735,6 @@
    </div>
    <div class="settings-note">Pixel shift does not require Quiet hours or dimming. All display-care effects are suppressed during Arrange and layout preview and never rewrite saved layout geometry.</div>
   </div>
-
   <div class="s-section" id="settings-settings-button" data-settings-tab="look">
    <h3>Settings button</h3>
    <div class="howto">Keep the Settings cog convenient without letting it dominate the dashboard. Move it to any corner and tune how noticeable it is when idle.</div>
@@ -783,7 +745,6 @@
     <label class="checkline"><input id="s-cog-label" type="checkbox" checked onchange="previewAppearance()"> Show “Settings” hint on hover / first discovery</label>
    </div>
   </div>
-
   <div class="s-section" id="settings-layout-presentation" data-settings-level="advanced" data-settings-tab="look">
    <h3>Text &amp; element sizing</h3>
    <div class="howto">Fine-tune dashboard text treatment and the default content scale for major built-in elements. Arrange can still override individual elements later.</div>
@@ -793,7 +754,6 @@
     <div class="s-row"><label>Text shadow strength <span id="s-text-shadow-value" class="range-value">100%</span></label><input id="s-text-shadow" type="range" min="0" max="140" step="5" value="100" oninput="previewAppearance()"></div>
    </div>
    <div class="s-row"><label>Primary text color</label><div class="color-setting-row"><select disabled><option>Dashboard text</option></select><input id="s-text-color" type="color" value="#ffffff"><input id="s-text-hex" class="color-hex" type="text" maxlength="7" value="#FFFFFF" spellcheck="false"></div></div>
-
    <div class="s-subhead">Element sizing <button class="help-tip" type="button" aria-label="Element sizing help" data-help="These are dashboard-wide size defaults. Arrange mode can override an individual element or one internal section without changing the global default.">?</button></div>
    <div class="settings-grid">
     <div class="s-row"><label>Calendar text <span id="s-ui-calendar-value" class="range-value">100%</span></label><input id="s-ui-calendar" type="range" min="75" max="140" step="1" value="100" oninput="previewAppearance()"></div>
@@ -803,20 +763,16 @@
     <div class="s-row"><label>Sunset / Wind / Humidity <span id="s-ui-details-value" class="range-value">100%</span></label><input id="s-ui-details" type="range" min="75" max="140" step="1" value="100" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Weather alert text <span id="s-ui-alert-value" class="range-value">100%</span></label><input id="s-ui-alert" type="range" min="75" max="150" step="1" value="100" oninput="previewAppearance()"></div>
    </div>
-
   </div>
-
   <div class="s-section" id="settings-layout" data-settings-tab="layout">
    <h3>Dashboard layout</h3>
    <div class="howto">Choose from LibreDisplay’s expanded layout library. These are original command-center compositions built around the patterns that work best on wall displays: calendar-first, photo-first, split planner, weather-focused, compact, and portrait. Selecting a card stages the layout only for preview; your saved dashboard is untouched until <b>Save &amp; Apply</b>. Use <b>Preview selected layout</b> to inspect it full-screen with your real calendar, weather, background, and added custom blocks. Cancel/Esc restores the saved layout.</div>
-
    <div id="layout-preset-gallery" class="layout-preset-grid" role="radiogroup" aria-label="Dashboard layout presets"></div>
    <div class="layout-preset-actions">
     <button id="layout-preset-preview-button" class="btn-util" type="button" onclick="previewSelectedLayoutFromSettings()">Preview selected layout</button>
     <div id="layout-preset-status" class="settings-note" role="status" aria-live="polite">Current saved layout selected.</div>
    </div>
    <div class="settings-note layout-preset-current-note">Preset layouts stage the built-in positions, alignment, and content density as one balanced composition. Standard presets leave added blocks exactly where you placed them. Integration Showcase presets also snap compatible configured blocks into their labeled slots so the live preview matches the intended composition; unmatched blocks stay put. Empty showcase slots are preview-only suggestions and are never saved as fake data. Your accounts, data sources, credentials, theme, and background stay intact.</div>
-
    <div class="s-subhead">Advanced layout editor <button class="help-tip" type="button" aria-label="Arrange mode help" data-help="Arrange changes presentation only. Select an element to move or resize it, then use the movable inspector to style the whole block or individual titles, values, labels, and event text.">?</button></div>
    <div class="howto">Unlock the dashboard to drag and resize each major element independently. Select any element to open its inspector for content size, font, text color, opacity, horizontal/vertical content alignment, and precise screen placement. Arrow keys nudge a selected block; Shift + arrow resizes it. For added blocks, Delete removes, Ctrl/Cmd+D duplicates, Enter configures, and double-click opens configuration. Press A for Add Block or ? for the shortcut guide. The Add Block catalog supports multiple reusable custom blocks. Positions are stored proportionally so layouts scale across similar screen resolutions.</div>
    <div class="settings-grid">
@@ -829,7 +785,6 @@
     <button class="btn-util" type="button" onclick="resetSavedBlockLayout()">Reset block layout</button>
    </div>
    <div id="layout-mode-status" class="settings-note" style="margin-top:8px;">Layout: default locked arrangement</div>
-
    <div class="s-subhead">Clock &amp; visibility</div>
    <div class="settings-grid">
     <div class="s-row"><label>Time format</label><select id="s-time-format" onchange="previewAppearance()"><option value="12">12 hour</option><option value="24">24 hour</option></select></div>
@@ -847,9 +802,7 @@
     <label class="checkline"><input id="s-show-current-icon" type="checkbox" onchange="previewAppearance()"> Show current weather icon</label>
     <div class="howto">Weather Details contents and order are configured from the Weather tab.</div>
    </div>
-
   </div>
-
   <div class="s-section" id="settings-layout-geometry" data-settings-level="advanced" data-settings-tab="layout">
    <h3>Geometry &amp; ranges</h3>
    <div class="howto">Power-user controls for the default dashboard regions, forecast density, calendar range, spacing, and scrolling behavior.</div>
@@ -870,7 +823,6 @@
     <div class="s-row"><label>Calendar scroll speed <span id="s-calendar-scroll-speed-value" class="range-value">12 px/s</span> <button class="help-tip" type="button" aria-label="Calendar scroll speed help" data-help="Used only when Calendar overflow is set to Slow auto-scroll.">?</button></label><input id="s-calendar-scroll-speed" type="range" min="2" max="60" step="1" value="12" oninput="previewAppearance()"></div>
     <div class="s-row"><label>Calendar events per day <button class="help-tip" type="button" aria-label="Calendar events per day help" data-help="Maximum number of entries shown in each day cell. This affects how much calendar content must fit or scroll.">?</button></label><select id="s-calendar-max-events" onchange="previewAppearance()"><option value="1">1 event</option><option value="2">2 events</option><option value="3">3 events</option><option value="4">4 events</option><option value="5">5 events</option><option value="6">6 events</option></select></div>
    </div>
-
   </div>
   <div class="s-section" id="settings-integrations" data-settings-tab="integrations">
    <h3>Integrations</h3>
@@ -893,14 +845,12 @@
    <div id="integration-health-run-status" class="settings-note" style="display:none;margin-bottom:8px;"></div>
    <div id="integration-health-list" class="integration-health-list"><div class="settings-note">Loading integration health…</div></div>
   </div>
-
   <div class="s-section" id="settings-provider-health" data-settings-tab="system" data-owner-only="1">
    <h3>Data sources &amp; providers</h3>
    <div class="howto">A unified view of the services feeding this display. It shows whether data is current, delayed, misconfigured, or offline without exposing private URLs, tokens, or coordinates.</div>
    <div id="provider-health-list" class="provider-health-list"><div class="settings-note">Loading provider health…</div></div>
    <div class="utility-actions" style="margin-top:9px;"><button class="btn-util" type="button" onclick="refreshProviderHealth(true)">Refresh data sources</button><button class="btn-util" type="button" onclick="checkAllIntegrationsNow()">Test integrations</button></div>
   </div>
-
   <div class="s-section" id="settings-display-readiness" data-settings-tab="system" data-owner-only="1">
    <h3>Display readiness &amp; kiosk resilience</h3>
    <div class="howto">Checks the currently reported display viewport and kiosk heartbeat without changing the dashboard. Use it to catch accidental browser zoom, undersized viewports, orientation mismatches, or a stalled local kiosk before they become layout problems.</div>
@@ -913,7 +863,6 @@
    <div id="display-readiness-notes" class="display-readiness-list"><div class="settings-note">Waiting for display metrics…</div></div>
    <div class="utility-actions" style="margin-top:9px;"><button class="btn-util" type="button" onclick="refreshDisplayReadiness()">Recheck display</button></div>
   </div>
-
   <div class="s-section" id="settings-system-health" data-settings-tab="system" data-owner-only="1">
    <h3>System health</h3>
    <div class="howto">A local, privacy-safe live view of the LibreDisplay host. It refreshes automatically while Settings is open so storage, uptime, connectivity, deployment mode, and runtime health stay current.</div>
@@ -934,12 +883,11 @@
    <div id="system-health-refresh-status" class="settings-note" role="status" aria-live="polite" style="margin-top:9px;">Auto-refresh every 15 seconds while Settings is open.</div>
    <div class="utility-actions" style="margin-top:9px;"><button class="btn-util" type="button" onclick="loadSystemHealth()">Refresh now</button><button class="btn-util" type="button" onclick="downloadDiagnostics()">Download diagnostics</button></div>
   </div>
-
   <div class="s-section" id="settings-software-update" data-settings-tab="system" data-owner-only="1">
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.17</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.8.19</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -947,7 +895,6 @@
    <div id="software-update-auto-status" class="settings-note" style="margin-top:8px;">Auto-checks when Settings opens and every 15 minutes while it remains open.</div>
    <div id="software-update-action-status" class="settings-note" style="display:none;margin-top:8px;"></div>
   </div>
-
   <div class="s-section" id="settings-update-history" data-settings-tab="system" data-owner-only="1">
    <h3>Update history &amp; rollback</h3>
    <div class="howto">Native updates keep a private pre-update snapshot containing the previous LibreDisplay application plus the sensitive safety backup created at that same point. Rollback verifies the snapshot, keeps your current state recoverable, restores the previous version and its pre-update data, then restarts the device.</div>
@@ -956,7 +903,6 @@
    <div class="s-subhead">Recent maintenance</div>
    <div id="maintenance-history-list" class="settings-note">No update or rollback history recorded yet.</div>
   </div>
-
   <div class="s-section" id="settings-backup-recovery" data-settings-tab="system" data-owner-only="1">
    <h3>Backup & recovery</h3>
    <div class="howto">Create a portable settings bundle for moving LibreDisplay to another device, or keep local restore points before experimenting. Portable bundles include this display's settings plus Profiles and this display's Scene rules, but not media files, account passwords, pairing secrets, or host/NAS credentials.</div>
@@ -977,7 +923,6 @@
    <div id="restore-point-list" class="restore-point-list"><div class="settings-note">Loading restore points…</div></div>
    <div class="howto" style="margin-top:10px;"><b>Need a full server backup?</b> The existing <code>backup.sh</code> / <code>server-backup.py</code> tools remain the correct path when you also need media, plugins, environment secrets, or host/NAS state. Full backups may contain credentials and should be protected like passwords.</div>
   </div>
-
   <div class="s-section" id="settings-utilities" data-settings-level="advanced" data-settings-tab="system">
    <h3>Utilities</h3>
    <div class="utility-actions">
@@ -997,17 +942,14 @@
    <div id="diagnostics-status" class="howto" style="display:none;"></div>
    <div id="cache-status" class="howto" style="display:none;"></div>
   </div>
-
    </main>
   </div>
-
   <div id="wizard-actions" class="wizard-actions">
    <button id="wizard-back" class="btn-skip" type="button" onclick="wizardBack()">Back</button>
    <button id="wizard-skip" class="btn-skip" type="button" onclick="wizardSkip()">Skip this step</button>
    <button class="btn-util" type="button" onclick="openFullSettingsFromWizard()">Open full settings</button>
    <button id="wizard-next" class="btn-save" type="button" onclick="wizardNext()">Next</button>
   </div>
-
   <div class="s-actions">
    <div id="settings-dirty" class="settings-dirty">No unsaved changes</div>
    <button id="s-preview-button" class="btn-util settings-preview-button" type="button" onclick="previewDashboardFromSettings()">Preview dashboard</button>
@@ -1016,25 +958,16 @@
   </div>
  </div>
 </div>
-
-
 <div id="app">
-
  <div id="top-strip">
-
  </div>
  <div id="calendar-legend" aria-label="Calendar legend"></div>
  <div id="custom-block-layer" aria-label="Custom dashboard blocks"></div>
  <div id="layout-showcase-layer" aria-hidden="true"></div>
-
-
  <div id="alert-zone" aria-live="polite" aria-label="Weather alerts">
   <div id="alert-viewport" class="alert-viewport"><div id="alert-track" class="alert-track"></div></div>
  </div>
-
-
  <div id="bottom">
-
   <div id="wx-left">
    <div class="wx-main">
     <div class="wx-current">
@@ -1045,16 +978,12 @@
     <div class="wx-feels" id="wx-feels">Feels like --°</div>
     <div class="wx-cond" id="wx-cond">--</div>
    </div>
-
    <div id="clock-block">
     <div class="clock-time"><span id="clock-hm">--:--</span><sup class="clock-sec" id="clock-sec">--</sup></div>
     <div class="clock-date" id="clock-date">--</div>
    </div>
-
    <div class="wx-details" id="wx-details"></div>
   </div>
-
-
   <div id="wx-right">
    <div class="wx-forecast" id="wx-forecast"></div>
    <div id="wx-hourly-block">
@@ -1063,8 +992,6 @@
   </div>
  </div>
 </div>
-
-
 <button id="cog" type="button" onclick="toggleQuickAccessMenu(event)" title="Quick access" aria-haspopup="menu" aria-controls="quick-access-menu" aria-expanded="false">⚙</button>
 <div id="quick-access-menu" role="menu" aria-hidden="true">
  <div class="quick-access-head"><b>Quick access</b><span>Customize without digging through Settings</span></div>
@@ -1078,8 +1005,6 @@
  <div class="quick-access-foot"><button type="button" onclick="quickAccessRefresh()">Refresh data</button><button type="button" onclick="quickAccessUseDevice()">Use device</button><button type="button" onclick="quickAccessFullscreen()">Fullscreen</button></div>
 </div>
 <button id="settings-preview-return" type="button" onclick="returnToSettingsPreview()" aria-hidden="true"><span>← Return to Settings</span><small>Previewing unsaved changes</small></button>
-
-
 <div id="remote-layout-preview-shell" aria-hidden="true">
  <div id="remote-layout-preview-topbar">
   <div id="remote-layout-preview-title"><b>Arrange for display</b><span id="remote-layout-preview-meta">Loading display viewport…</span></div>
@@ -1191,7 +1116,6 @@
 </div>
 <div id="offline-pill" role="status" aria-live="polite">Offline · cached data</div>
 <div id="screen-care-overlay" aria-hidden="true"></div>
-
 <script type="module" src="/js/app.js"></script>
 </body>
 </html>
