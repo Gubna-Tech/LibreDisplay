@@ -12,6 +12,8 @@ MANIFEST = {
     "icon": "♪",
     "kind": "now-playing",
     "refreshMin": 1,
+    "access": "local",
+    "freedomNote": "Reads Sonos metadata directly over the local network with no cloud API key or signup.",
     "settings": [
         {"key": "speaker", "label": "Sonos speaker IP / hostname", "type": "text", "required": True, "help": "Example: 192.168.1.42. LibreDisplay reads local Sonos UPnP metadata on port 1400."},
         {"key": "port", "label": "Sonos port", "type": "number", "default": 1400},

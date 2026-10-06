@@ -8,7 +8,7 @@ MANIFEST = {
     "description": "Show active Todoist tasks and complete them from a touch display.",
     "version": "1.0",
     "icon": "✓",
-    "kind": "tasks",
+    "kind": "tasks", "alternative": "caldav-tasks", "freedomNote": "For a standards-based self-hosted option, LibreDisplay also supports CalDAV / Nextcloud Tasks.",
     "actions": ["complete"],
     "refreshMin": 2,
     "settings": [

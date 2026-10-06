@@ -25,7 +25,7 @@ function resetLayoutEditorDraft(){
 }
 function resetSelectedLayoutBlock(){
   if(!layoutEditorActive||!layoutSelectedKey)return;pushLayoutHistory();
-  const customId=customKeyId(layoutSelectedKey);if(customId){const b=customBlockById(customId,layoutCustomBlocksDraft);if(!b)return;b.rect=defaultBlockRect(b.type);b.config=b.config||{};Object.assign(b.config,{_contentScale:100,_hAlign:'auto',_vAlign:'auto',_fontFamily:'',_textColor:'',_opacity:100});renderCustomBlocks(layoutCustomBlocksDraft);renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);return;}
+  const customId=customKeyId(layoutSelectedKey);if(customId){const b=customBlockById(customId,layoutCustomBlocksDraft);if(!b)return;b.rect=defaultBlockRect(b.type);b.config=b.config||{};Object.assign(b.config,{_contentScale:100,_hAlign:'auto',_vAlign:'auto',_fontFamily:'',_textColor:'',_opacity:100,_internalLayout:{}});renderCustomBlocks(layoutCustomBlocksDraft);renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);return;}
   if(!layoutApi().LAYOUT_BLOCK_DEFS[layoutSelectedKey])return;
   cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutApi().layoutEditorDraft));
   const defaults=measureDefaultLayoutRects(),r=defaults[layoutSelectedKey];if(!r)return;

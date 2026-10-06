@@ -12,7 +12,7 @@ MANIFEST = {
     "description": "Synchronize Microsoft To Do through Microsoft Graph and complete or reopen tasks from LibreDisplay.",
     "version": "1.0",
     "icon": "M",
-    "kind": "tasks",
+    "kind": "tasks", "alternative": "caldav-tasks", "freedomNote": "For a standards-based self-hosted option, LibreDisplay also supports CalDAV / Nextcloud Tasks.",
     "actions": ["complete", "reopen"],
     "refreshMin": 2,
     "settings": [

@@ -8,7 +8,7 @@ MANIFEST = {
     "description": "Show Asana tasks from a project or workspace and complete or reopen them from LibreDisplay.",
     "version": "1.0",
     "icon": "A",
-    "kind": "tasks",
+    "kind": "tasks", "alternative": "caldav-tasks", "freedomNote": "For a standards-based self-hosted option, LibreDisplay also supports CalDAV / Nextcloud Tasks.",
     "actions": ["complete", "reopen"],
     "refreshMin": 3,
     "settings": [

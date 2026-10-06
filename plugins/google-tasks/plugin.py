@@ -11,7 +11,7 @@ MANIFEST = {
     "description": "Synchronize a Google Tasks list and complete or reopen tasks from LibreDisplay.",
     "version": "1.0",
     "icon": "G",
-    "kind": "tasks",
+    "kind": "tasks", "alternative": "caldav-tasks", "freedomNote": "For a standards-based self-hosted option, LibreDisplay also supports CalDAV / Nextcloud Tasks.",
     "actions": ["complete", "reopen"],
     "refreshMin": 2,
     "settings": [

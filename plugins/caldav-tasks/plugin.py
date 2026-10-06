@@ -14,6 +14,8 @@ MANIFEST = {
     "kind": "tasks",
     "actions": ["complete", "reopen"],
     "refreshMin": 2,
+    "access": "self-hosted",
+    "freedomNote": "Works with open CalDAV servers such as self-hosted Nextcloud. Your server may still require its own local username/app password.",
     "settings": [
         {"key": "collectionUrl", "label": "Task collection URL", "type": "url", "required": True, "help": "Use the full CalDAV calendar/task collection URL that contains VTODO items."},
         {"key": "username", "label": "Username", "type": "text", "required": True},

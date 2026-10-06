@@ -9,6 +9,8 @@ MANIFEST = {
     "version": "1.1",
     "icon": "⌂",
     "refreshMin": 1,
+    "access": "local",
+    "freedomNote": "Local-first and self-hostable. LibreDisplay talks directly to your Home Assistant server; no third-party cloud account is required by this integration. Local Home Assistant authentication is still required.",
     "settings": [
         {"key": "baseUrl", "label": "Home Assistant URL", "type": "url", "required": True, "default": "http://homeassistant.local:8123", "help": "Use the local/private Home Assistant address, for example http://192.168.1.50:8123."},
         {"key": "token", "label": "Long-lived access token", "type": "password", "required": True, "help": "Create this in your Home Assistant user profile. It stays on the LibreDisplay server."},

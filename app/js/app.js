@@ -21,6 +21,7 @@ const modulePaths = [
   "/js/backgrounds/portable.js",
   "/js/blocks/index.js",
   "/js/layout/index.js",
+  "/js/layout/integration-layout.js",
   "/js/layout/remote.js",
   "/js/layout/persistence.js",
   "/js/appearance/weather.js",

@@ -11,11 +11,41 @@ MANIFEST={"id":"grateful-dead",
  'name': 'Deadhead · Grateful Dead',
  'description': 'Unofficial fan integration for deeply customizable Today in Dead History shows, setlists, sourced member quotes, and '
                 'listening suggestions.',
- 'version': '1.3',
+ 'version': '1.5',
  'icon': '✺',
  'refreshMin': 30,
  'kind': 'data',
  'category': 'Media',
+ 'access': 'no-key',
+ 'freedomNote': 'Setlists prefer JerryBase, then Relisten, then Internet Archive; listening links prefer Internet Archive. These core sources require no LibreDisplay API key or account.',
+ 'layoutParts': [
+     {'key': 'root', 'label': 'Deadhead content canvas', 'selector': '.deadhead-panel', 'root': True, 'container': True, 'movable': False, 'order': 0},
+     {'key': 'header', 'label': 'Header', 'selector': '.deadhead-header', 'parent': 'root', 'container': True, 'order': 0},
+     {'key': 'browser', 'label': 'Show browser', 'selector': '.deadhead-year-strip,.deadhead-show-list', 'parent': 'root', 'order': 10},
+     {'key': 'navigation', 'label': 'Show navigation', 'selector': '.deadhead-nav', 'parent': 'root', 'container': True, 'order': 20},
+     {'key': 'show', 'label': 'Featured show details', 'selector': '.deadhead-show', 'parent': 'root', 'container': True, 'order': 30},
+     {'key': 'weather', 'label': 'Weather listening pick', 'selector': '.deadhead-listen-prompt', 'parent': 'root', 'order': 40},
+     {'key': 'setlist', 'label': 'Setlist', 'selector': '.deadhead-setlist', 'parent': 'root', 'container': True, 'order': 50},
+     {'key': 'quote', 'label': 'Quote', 'selector': '.deadhead-quote', 'parent': 'root', 'container': True, 'order': 60},
+     {'key': 'footer', 'label': 'Footer', 'selector': '.deadhead-footer', 'parent': 'root', 'container': True, 'order': 70},
+     {'key': 'headerIcon', 'label': 'Header icon', 'selector': '.deadhead-mark', 'parent': 'header', 'order': 0},
+     {'key': 'headerCopy', 'label': 'Header title / subtitle', 'selector': '.deadhead-header-copy', 'parent': 'header', 'container': True, 'order': 10},
+     {'key': 'navPrevious', 'label': 'Previous button', 'selector': '.deadhead-prev', 'parent': 'navigation', 'order': 0},
+     {'key': 'navPosition', 'label': 'Navigation position', 'selector': '.deadhead-nav-position', 'parent': 'navigation', 'order': 10},
+     {'key': 'navNext', 'label': 'Next button', 'selector': '.deadhead-next', 'parent': 'navigation', 'order': 20},
+     {'key': 'showTopline', 'label': 'Show counter / recordings', 'selector': '.deadhead-show-topline', 'parent': 'show', 'container': True, 'order': 0},
+     {'key': 'showDate', 'label': 'Performance date', 'selector': '.deadhead-show-date', 'parent': 'show', 'order': 10},
+     {'key': 'showVenue', 'label': 'Venue / location', 'selector': '.deadhead-show-venue', 'parent': 'show', 'order': 20},
+     {'key': 'showLinks', 'label': 'Source links', 'selector': '.deadhead-show-actions', 'parent': 'show', 'container': True, 'order': 30},
+     {'key': 'setlistHeading', 'label': 'Setlist heading / source', 'selector': '.deadhead-setlist-heading', 'parent': 'setlist', 'order': 0},
+     {'key': 'setlistScroller', 'label': 'Setlist scrolling content', 'selector': '.deadhead-setlist-scroll', 'parent': 'setlist', 'container': True, 'order': 10},
+     {'key': 'setlistBody', 'label': 'Sets and encore', 'selector': '.deadhead-setlist-body', 'parent': 'setlistScroller', 'container': True, 'order': 0},
+     {'key': 'setlistFavorites', 'label': 'Favorite-song hits', 'selector': '.deadhead-favorites', 'parent': 'setlistScroller', 'order': 10},
+     {'key': 'quoteText', 'label': 'Quote text', 'selector': '.deadhead-quote blockquote', 'parent': 'quote', 'order': 0},
+     {'key': 'quoteAttribution', 'label': 'Quote attribution', 'selector': '.deadhead-quote figcaption', 'parent': 'quote', 'order': 10},
+     {'key': 'listenButton', 'label': 'Listen suggestion button', 'selector': '.deadhead-another', 'parent': 'footer', 'order': 0},
+     {'key': 'footerMeta', 'label': 'Footer status', 'selector': '.deadhead-footer-meta', 'parent': 'footer', 'container': True, 'order': 10},
+ ],
  'settings': [{'key': 'era',
                'label': 'Favorite era',
                'type': 'select',
@@ -88,25 +118,26 @@ MANIFEST={"id":"grateful-dead",
                'type': 'number',
                'default': 18,
                'section': 'Shows & rotation',
-               'min': 4,
-               'max': 80,
-               'step': 1},
+               'min': 0.5,
+               'max': 240,
+               'step': 0.5,
+               'help': 'Fine-grained reel speed. Lower values crawl slowly; higher values move quickly. Fractional speeds are supported.'},
               {'key': 'browserScrollStartDelay',
                'label': 'Browser pause before scrolling (sec)',
                'type': 'number',
                'default': 3,
                'section': 'Shows & rotation',
                'min': 0,
-               'max': 30,
-               'step': 1},
+               'max': 120,
+               'step': 0.5},
               {'key': 'browserScrollLoopPause',
                'label': 'Browser pause at each end / loop (sec)',
                'type': 'number',
                'default': 4,
                'section': 'Shows & rotation',
                'min': 0,
-               'max': 60,
-               'step': 1},
+               'max': 180,
+               'step': 0.5},
               {'key': 'browserScrollLoopMode',
                'label': 'Browser auto-scroll loop style',
                'type': 'select',
@@ -267,7 +298,7 @@ MANIFEST={"id":"grateful-dead",
                'type': 'checkbox',
                'default': True,
                'section': 'Sources & listening',
-               'sectionHelp': 'Choose each outbound link independently. JerryBase and Internet Archive are the preferred source order, with other listening links remaining optional.'},
+               'sectionHelp': 'Choose each outbound link independently. Internet Archive is the default first listening destination, while setlist enrichment separately prefers JerryBase then Relisten then Archive.'},
               {'key': 'showJerryBaseLink',
                'label': 'Show JerryBase link',
                'type': 'checkbox',
@@ -298,6 +329,18 @@ MANIFEST={"id":"grateful-dead",
                'type': 'text',
                'default': 'Listen on Relisten',
                'section': 'Sources & listening'},
+              {'key': 'sourceLinkOrder',
+               'label': 'Listening/source link order',
+               'type': 'select',
+               'default': 'archive,relisten,jerrybase',
+               'options': [{'value': 'archive,relisten,jerrybase', 'label': 'Internet Archive → Relisten → JerryBase'},
+                           {'value': 'archive,jerrybase,relisten', 'label': 'Internet Archive → JerryBase → Relisten'},
+                           {'value': 'relisten,archive,jerrybase', 'label': 'Relisten → Internet Archive → JerryBase'},
+                           {'value': 'relisten,jerrybase,archive', 'label': 'Relisten → JerryBase → Internet Archive'},
+                           {'value': 'jerrybase,relisten,archive', 'label': 'JerryBase → Relisten → Internet Archive'},
+                           {'value': 'jerrybase,archive,relisten', 'label': 'JerryBase → Internet Archive → Relisten'}],
+               'section': 'Sources & listening',
+               'help': 'Controls visible outbound-link order only. Setlist provider priority is configured separately.'},
               {'key': 'linkStyle',
                'label': 'Source link style',
                'type': 'select',
@@ -346,10 +389,11 @@ MANIFEST={"id":"grateful-dead",
                'label': 'Setlist source',
                'type': 'select',
                'default': 'auto',
-               'options': [{'value': 'auto', 'label': 'Automatic · JerryBase → Internet Archive → setlist.fm fallback'},
-                           {'value': 'jerrybase', 'label': 'JerryBase · preferred · no key'},
-                           {'value': 'archive', 'label': 'Internet Archive · preferred fallback · no key'},
-                           {'value': 'setlistfm', 'label': 'setlist.fm · API key · optional fallback'}],
+               'options': [{'value': 'auto', 'label': 'Automatic · JerryBase → Relisten → Internet Archive → setlist.fm'},
+                           {'value': 'jerrybase', 'label': 'JerryBase · first choice · no key'},
+                           {'value': 'relisten', 'label': 'Relisten · second choice · no key'},
+                           {'value': 'archive', 'label': 'Internet Archive · third choice · no key'},
+                           {'value': 'setlistfm', 'label': 'setlist.fm · API key · optional last fallback'}],
                'section': 'Setlists'},
               {'key': 'setlistPreload',
                'label': 'Preload setlists for',
@@ -382,13 +426,14 @@ MANIFEST={"id":"grateful-dead",
                'default': True,
                'section': 'Setlists'},
               {'key': 'setlistMaxSets',
-               'label': 'Maximum sets shown',
+               'label': 'Maximum sets / encores shown',
                'type': 'number',
                'default': 5,
                'section': 'Setlists',
                'min': 1,
-               'max': 5,
-               'step': 1},
+               'max': 8,
+               'step': 1,
+               'help': 'Raise this for unusually long shows with extra sets or multiple encores.'},
               {'key': 'setlistSongsPerSet',
                'label': 'Maximum songs per set',
                'type': 'number',
@@ -417,25 +462,26 @@ MANIFEST={"id":"grateful-dead",
                'type': 'number',
                'default': 14,
                'section': 'Setlists',
-               'min': 4,
-               'max': 80,
-               'step': 1},
+               'min': 0.5,
+               'max': 240,
+               'step': 0.5,
+               'help': 'Fine-grained setlist reel speed. Fractional speeds are supported so very slow wall-display crawls work reliably.'},
               {'key': 'setlistScrollStartDelay',
                'label': 'Setlist pause before scrolling (sec)',
                'type': 'number',
                'default': 4,
                'section': 'Setlists',
                'min': 0,
-               'max': 30,
-               'step': 1},
+               'max': 120,
+               'step': 0.5},
               {'key': 'setlistScrollLoopPause',
                'label': 'Setlist pause at end / between loops (sec)',
                'type': 'number',
                'default': 5,
                'section': 'Setlists',
                'min': 0,
-               'max': 60,
-               'step': 1},
+               'max': 180,
+               'step': 0.5},
               {'key': 'setlistScrollLoopMode',
                'label': 'Setlist auto-scroll loop style',
                'type': 'select',
@@ -460,16 +506,23 @@ MANIFEST={"id":"grateful-dead",
                'default': '',
                'section': 'Setlists',
                'required': False,
-               'help': 'Optional. JerryBase is tried first and Internet Archive second. setlist.fm is only used when explicitly selected or as an automatic fallback when a key is present.'},
+               'help': 'Optional. Automatic setlists try JerryBase first, Relisten second, Internet Archive third, and setlist.fm only as a final fallback when a key is present.'},
               {'key': 'quotesEnabled',
-               'label': 'Show member quotes',
+               'label': 'Show quotes & lyric snippets',
                'type': 'checkbox',
                'default': True,
                'section': 'Quotes',
-               'sectionHelp': 'Quotes can be completely hidden, independently rotated, filtered to one member, and stripped down to just '
-                              'the text.'},
+               'sectionHelp': 'Mix sourced band-member quotes with short fan-favorite lyric snippets, choose either kind alone, filter member quotes, and control attribution independently.'},
+              {'key': 'quoteContent',
+               'label': 'Quote reel content',
+               'type': 'select',
+               'default': 'mixed',
+               'options': [{'value': 'mixed', 'label': 'Member quotes + fan-favorite lyric snippets'},
+                           {'value': 'quotes', 'label': 'Member quotes only'},
+                           {'value': 'lyrics', 'label': 'Lyric snippets only'}],
+               'section': 'Quotes'},
               {'key': 'quoteMember',
-               'label': 'Quote member',
+               'label': 'Member quote filter',
                'type': 'select',
                'default': 'all',
                'options': [{'value': 'all', 'label': 'Rotate all members'},
@@ -485,7 +538,7 @@ MANIFEST={"id":"grateful-dead",
                            {'value': 'brent', 'label': 'Brent Mydland'},
                            {'value': 'vince', 'label': 'Vince Welnick'}],
                'section': 'Quotes'},
-              {'key': 'quoteRotate', 'label': 'Rotate member quotes', 'type': 'checkbox', 'default': True, 'section': 'Quotes'},
+              {'key': 'quoteRotate', 'label': 'Rotate quotes / lyric snippets', 'type': 'checkbox', 'default': True, 'section': 'Quotes'},
               {'key': 'quoteSeconds',
                'label': 'Quote rotation interval',
                'type': 'select',
@@ -657,19 +710,45 @@ MANIFEST={"id":"grateful-dead",
                'max': 100,
                'step': 5}]}
 
-# Quotes are intentionally short sourced excerpts from interviews and member archives.
+# Quotes are intentionally short sourced excerpts. Lyric snippets stay short and link to Dead.net song pages.
 QUOTES=[
-    {"key":"jerry","member":"Jerry Garcia","quote":"All it takes to create another reality is for people to live in it.","source":"Grateful Dead Deadcast · Europe '72: Denmark","url":"https://www.dead.net/deadcast/europe-72-denmark"},
-    {"key":"bob","member":"Bob Weir","quote":"We've always been pretty free to do the things we want.","source":"November 1972 interview","url":"https://deadsources.blogspot.com/2022/09/november-1972-bob-weir-interview.html"},
-    {"key":"phil","member":"Phil Lesh","quote":"Somehow the music would make us act in unison.","source":"Spring 1971 interview","url":"https://deadsources.blogspot.com/2013/12/spring-1971-phil-lesh-interview.html"},
-    {"key":"mickey","member":"Mickey Hart","quote":"I like to create things from nothing, to make things happen.","source":"PBS NewsHour · CANVAS","url":"https://www.pbs.org/newshour/show/grateful-dead-drummer-mickey-hart-combines-music-and-art-at-the-las-vegas-sphere"},
-    {"key":"bill","member":"Bill Kreutzmann","quote":"Even with the older material, you're always creating new music in the moment.","source":"Grateful Dead interview","url":"https://www.dead.net/features/dead-world-roundup/talkin-about-music-laughter-and-life-bill-kreutzmann"},
-    {"key":"pigpen","member":"Ron “Pigpen” McKernan","quote":"And then I’d sing and play harmonica. Way before the Warlocks.","source":"Deadcast archival interview · 10/6/70","url":"https://www.dead.net/adventures-pigpen-part-1"},
-    {"key":"keith","member":"Keith Godchaux","quote":"I don’t want to listen to it. I want to play it.","source":"Donna Jean recounting Keith · Grateful Dead Deadcast","url":"https://www.dead.net/enter-keith-godchaux"},
-    {"key":"donna","member":"Donna Jean Godchaux","quote":"When I sing again, it's going to be with that band.","source":"Grateful Dead Deadcast · Donna Jean","url":"https://www.dead.net/donna-jean"},
-    {"key":"brent","member":"Brent Mydland","quote":"There are people who like me and people who don’t like the fact that I’m in the band.","source":"The Golden Road interview, quoted by Phoenix New Times","url":"https://www.phoenixnewtimes.com/music/better-off-deadphoenix-native-vince-welnick-makes-good-on-grateful-expectations-6426051/"},
-    {"key":"tom","member":"Tom Constanten","quote":"We sort of threw the spaghetti at the wall to see what would happen.","source":"Grateful Web interview · 2026","url":"https://www.gratefulweb.com/articles/we-sort-of-threw-spaghetti-at-the-wall-an-interview-with-tom-constanten-of-the-grateful-dead/"},
-    {"key":"vince","member":"Vince Welnick","quote":"They’re very much a family, and that’s something you don’t find much in rock ’n’ roll anymore.","source":"Phoenix New Times interview · 1995","url":"https://www.phoenixnewtimes.com/music/better-off-deadphoenix-native-vince-welnick-makes-good-on-grateful-expectations-6426051/"}
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"All it takes to create another reality is for people to live in it.","source":"Grateful Dead Deadcast · Europe '72: Denmark","url":"https://www.dead.net/deadcast/europe-72-denmark"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"We've always been pretty free to do the things we want.","source":"November 1972 interview","url":"https://deadsources.blogspot.com/2022/09/november-1972-bob-weir-interview.html"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"Somehow the music would make us act in unison.","source":"Spring 1971 interview","url":"https://deadsources.blogspot.com/2013/12/spring-1971-phil-lesh-interview.html"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"I like to create things from nothing, to make things happen.","source":"PBS NewsHour · CANVAS","url":"https://www.pbs.org/newshour/show/grateful-dead-drummer-mickey-hart-combines-music-and-art-at-the-las-vegas-sphere"},
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"Even with the older material, you're always creating new music in the moment.","source":"Grateful Dead interview","url":"https://www.dead.net/features/dead-world-roundup/talkin-about-music-laughter-and-life-bill-kreutzmann"},
+    {"key":"pigpen","kind":"quote","member":"Ron “Pigpen” McKernan","quote":"And then I’d sing and play harmonica. Way before the Warlocks.","source":"Deadcast archival interview · 10/6/70","url":"https://www.dead.net/adventures-pigpen-part-1"},
+    {"key":"keith","kind":"quote","member":"Keith Godchaux","quote":"I don’t want to listen to it. I want to play it.","source":"Donna Jean recounting Keith · Grateful Dead Deadcast","url":"https://www.dead.net/enter-keith-godchaux"},
+    {"key":"donna","kind":"quote","member":"Donna Jean Godchaux","quote":"When I sing again, it's going to be with that band.","source":"Grateful Dead Deadcast · Donna Jean","url":"https://www.dead.net/donna-jean"},
+    {"key":"brent","kind":"quote","member":"Brent Mydland","quote":"There are people who like me and people who don’t like the fact that I’m in the band.","source":"The Golden Road interview, quoted by Phoenix New Times","url":"https://www.phoenixnewtimes.com/music/better-off-deadphoenix-native-vince-welnick-makes-good-on-grateful-expectations-6426051/"},
+    {"key":"tom","kind":"quote","member":"Tom Constanten","quote":"We sort of threw the spaghetti at the wall to see what would happen.","source":"Grateful Web interview · 2026","url":"https://www.gratefulweb.com/articles/we-sort-of-threw-spaghetti-at-the-wall-an-interview-with-tom-constanten-of-the-grateful-dead/"},
+    {"key":"vince","kind":"quote","member":"Vince Welnick","quote":"They’re very much a family, and that’s something you don’t find much in rock ’n’ roll anymore.","source":"Phoenix New Times interview · 1995","url":"https://www.phoenixnewtimes.com/music/better-off-deadphoenix-native-vince-welnick-makes-good-on-grateful-expectations-6426051/"},
+    {"key":"lyrics","kind":"lyric","member":"Franklin's Tower","quote":"May the four winds blow you safely home","source":"Dead.net lyrics","url":"https://www.dead.net/song/franklins-tower"},
+    {"key":"lyrics","kind":"lyric","member":"Terrapin Station","quote":"Some rise, some fall, some climb to get to Terrapin","source":"Dead.net lyrics","url":"https://www.dead.net/song/terrapin-station"},
+    {"key":"lyrics","kind":"lyric","member":"Scarlet Begonias","quote":"The sky was yellow and the sun was blue","source":"Dead.net lyrics","url":"https://www.dead.net/song/scarlet-begonias"},
+    {"key":"lyrics","kind":"lyric","member":"Ramble On Rose","quote":"The grass ain't greener on either side of the hill","source":"Fan-favorite line · Ramble On Rose","url":"https://www.dead.net/song/ramble-rose"},
+    {"key":"lyrics","kind":"lyric","member":"Ripple","quote":"Let there be songs to fill the air","source":"Dead.net lyrics","url":"https://www.dead.net/song/ripple"},
+    {"key":"lyrics","kind":"lyric","member":"Touch of Grey","quote":"I will get by, I will survive","source":"Dead.net lyrics","url":"https://www.dead.net/song/touch-grey"},
+    {"key":"lyrics","kind":"lyric","member":"He's Gone","quote":"Nothing left to do but smile, smile, smile","source":"Dead.net lyrics","url":"https://www.dead.net/song/hes-gone"},
+    {"key":"lyrics","kind":"lyric","member":"Truckin'","quote":"What a long strange trip it's been","source":"Dead.net lyrics","url":"https://www.dead.net/song/truckin"},
+    {"key":"lyrics","kind":"lyric","member":"Help on the Way","quote":"Without love in the dream it'll never come true","source":"Dead.net lyrics","url":"https://www.dead.net/song/help-way"},
+    {"key":"lyrics","kind":"lyric","member":"Box of Rain","quote":"A box of rain will ease the pain","source":"Dead.net lyrics","url":"https://www.dead.net/song/box-rain"},
+    {"key":"lyrics","kind":"lyric","member":"Eyes of the World","quote":"Sometimes we live no particular way but our own","source":"Dead.net lyrics","url":"https://www.dead.net/song/eyes-world"},
+    {"key":"lyrics","kind":"lyric","member":"The Music Never Stopped","quote":"The music never stopped","source":"Dead.net lyrics","url":"https://www.dead.net/song/music-never-stopped"},
+    {"key":"lyrics","kind":"lyric","member":"Althea","quote":"There are things you can replace, and others you cannot","source":"Dead.net lyrics","url":"https://www.dead.net/song/althea"},
+    {"key":"lyrics","kind":"lyric","member":"Cassidy","quote":"Let your life proceed by its own designs","source":"Dead.net lyrics","url":"https://www.dead.net/song/cassidy"},
+    {"key":"lyrics","kind":"lyric","member":"Fire on the Mountain","quote":"Long distance runner, what you standing there for?","source":"Dead.net lyrics","url":"https://www.dead.net/song/fire-mountain"},
+    {"key":"lyrics","kind":"lyric","member":"Uncle John's Band","quote":"What I want to know, how does the song go?","source":"Dead.net lyrics","url":"https://www.dead.net/song/uncle-johns-band"},
+    {"key":"lyrics","kind":"lyric","member":"Estimated Prophet","quote":"California, a prophet on the burning shore","source":"Dead.net lyrics","url":"https://www.dead.net/song/estimated-prophet"},
+    {"key":"lyrics","kind":"lyric","member":"Black Muddy River","quote":"I will walk alone by the black muddy river","source":"Dead.net lyrics","url":"https://www.dead.net/song/black-muddy-river"},
+    {"key":"lyrics","kind":"lyric","member":"Standing on the Moon","quote":"I'd rather be with you","source":"Dead.net lyrics","url":"https://www.dead.net/song/standing-moon"},
+    {"key":"lyrics","kind":"lyric","member":"Days Between","quote":"When all we ever wanted was to learn and grow","source":"Dead.net lyrics","url":"https://www.dead.net/song/days-between"},
+    {"key":"lyrics","kind":"lyric","member":"Stella Blue","quote":"All the years combine, they melt into a dream","source":"Dead.net lyrics","url":"https://www.dead.net/song/stella-blue"},
+    {"key":"lyrics","kind":"lyric","member":"The Wheel","quote":"Won't you try just a little bit harder","source":"Dead.net lyrics","url":"https://www.dead.net/song/wheel"},
+    {"key":"lyrics","kind":"lyric","member":"Sugaree","quote":"Shake it, shake it, Sugaree","source":"Dead.net lyrics","url":"https://www.dead.net/song/sugaree"},
+    {"key":"lyrics","kind":"lyric","member":"Bird Song","quote":"Dry your eyes on the wind","source":"Dead.net lyrics","url":"https://www.dead.net/song/bird-song"},
+    {"key":"lyrics","kind":"lyric","member":"Attics of My Life","quote":"When I had no wings to fly, you flew","source":"Dead.net lyrics","url":"https://www.dead.net/song/attics-my-life"},
+    {"key":"lyrics","kind":"lyric","member":"Not Fade Away","quote":"Our love is real, not fade away","source":"Dead.net lyrics","url":"https://www.dead.net/song/not-fade-away"}
 ]
 
 MEMBER_ORDER=['jerry','bob','phil','mickey','bill','pigpen','tom','keith','donna','brent','vince']
@@ -687,6 +766,18 @@ def _int(value, lo, hi, default):
     except Exception: value=default
     return max(lo,min(hi,value))
 
+def _number(value, lo, hi, default, step=1):
+    try: value=float(value)
+    except Exception:
+        try: value=float(default)
+        except Exception: value=0.0
+    value=max(float(lo),min(float(hi),value))
+    try: step=float(step)
+    except Exception: step=1.0
+    if step>=1 and float(step).is_integer() and float(lo).is_integer() and float(hi).is_integer():
+        return int(value)
+    return round(value,4)
+
 def _color(value, default):
     value=str(value or '').strip()
     return value.lower() if re.match(r'^#[0-9a-fA-F]{6}$',value) else default
@@ -699,7 +790,7 @@ def _display_settings(settings):
         if not key or key in hidden: continue
         default=field.get('default');value=settings.get(key,default);kind=field.get('type')
         if kind=='checkbox': output[key]=_bool(value,_bool(default,False))
-        elif kind=='number': output[key]=_int(value,int(field.get('min',-100000)),int(field.get('max',100000)),int(default or 0))
+        elif kind=='number': output[key]=_number(value,field.get('min',-100000),field.get('max',100000),default or 0,field.get('step',1))
         elif kind=='select':
             allowed={str(x.get('value')) for x in field.get('options') or []};candidate=str(value if value is not None else default)
             output[key]=candidate if candidate in allowed else str(default or '')
@@ -765,14 +856,20 @@ def _custom_quotes(value):
         parts=[x.strip() for x in line.split('|',2)]
         if len(parts)<2 or not parts[0] or not parts[1]: continue
         url=parts[2] if len(parts)>2 and re.match(r'^https?://',parts[2],re.I) else ''
-        out.append({"key":"custom","member":plain_text(parts[0],60),"quote":plain_text(parts[1],220),"source":"Personal quote pack","url":url})
+        out.append({"key":"custom","kind":"quote","member":plain_text(parts[0],60),"quote":plain_text(parts[1],220),"source":"Personal quote pack","url":url})
     return out
 
 def _quote_rows(settings,today):
     rows=QUOTES+_custom_quotes(settings.get('customQuotes'))
+    content=str(settings.get('quoteContent') or 'mixed').lower()
+    if content=='quotes': rows=[x for x in rows if x.get('kind','quote')=='quote']
+    elif content=='lyrics': rows=[x for x in rows if x.get('kind')=='lyric']
     member=str(settings.get('quoteMember') or 'all').lower()
-    if member!='all': rows=[x for x in rows if x.get('key')==member] or rows
-    seed=int(hashlib.sha256((today.isoformat()+member).encode()).hexdigest()[:10],16)
+    if member!='all' and content!='lyrics':
+        quotes=[x for x in rows if x.get('kind','quote')=='quote' and x.get('key')==member]
+        lyrics=[x for x in rows if x.get('kind')=='lyric'] if content=='mixed' else []
+        rows=quotes+lyrics or rows
+    seed=int(hashlib.sha256((today.isoformat()+member+content).encode()).hexdigest()[:10],16)
     if rows:
         offset=seed%len(rows);rows=rows[offset:]+rows[:offset]
     return rows
@@ -849,7 +946,34 @@ def _jerrybase_setlist(ctx,show,favorites):
     if not sets:return None
     flat=[song for group in sets for song in group['songs']]
     hits=[song for song in flat if any(token in song.lower() for token in favorites)][:10]
-    return {'sets':sets[:5],'favoriteSongHits':hits,'url':final or url,'attribution':'JerryBase','sourceKind':'no-key','venue':venue}
+    return {'sets':sets[:8],'favoriteSongHits':hits,'url':final or url,'attribution':'JerryBase','sourceKind':'no-key','venue':venue}
+
+def _relisten_setlist(ctx,show,favorites):
+    url=str(show.get('relistenUrl') or '').strip()
+    if not url:return None
+    raw,final=_request_text(ctx,url,max_bytes=1800*1024)
+    # Relisten's current show page exposes track links in performance order. Keep this parser
+    # intentionally tolerant so a markup refresh simply falls through to Archive instead of failing the block.
+    songs=[]
+    for href,label in re.findall(r'<a\b[^>]*href=[\"\']([^\"\']+)[\"\'][^>]*>(.*?)</a>',raw,re.I|re.S):
+        href=html.unescape(href)
+        if '/grateful-dead/' not in href or not re.search(r'/\d{4}/\d{2}/\d{2}/[^/?#]+',href): continue
+        title=plain_text(_clean_html_text(label),120)
+        title=re.sub(r'\s+\d{1,2}:\d{2}(?::\d{2})?\s*$','',title).strip()
+        title=re.sub(r'\s*[-–>]\s*$','',title).strip()
+        if not title or title.lower() in {'fin','sources','view on archive.org','tuning','crowd','intro'}: continue
+        if title not in songs:songs.append(title)
+    if not songs:
+        # Next/React payload fallback: collect track-shaped title/name objects without depending on a private endpoint.
+        for blob in re.findall(r'<script\b[^>]*>(.*?)</script>',raw,re.I|re.S):
+            if 'track' not in blob.lower(): continue
+            for title in re.findall(r'[\"\'](?:title|name)[\"\']\s*:\s*[\"\']([^\"\']{2,120})[\"\']',html.unescape(blob),re.I):
+                title=plain_text(title,120)
+                if title and title.lower() not in {'tuning','crowd','intro'} and title not in songs:songs.append(title)
+    songs=songs[:45]
+    if not songs:return None
+    hits=[song for song in songs if any(token in song.lower() for token in favorites)][:10]
+    return {'sets':[{'name':'Relisten','songs':songs}],'favoriteSongHits':hits,'url':final or url,'attribution':'Relisten','sourceKind':'no-key'}
 
 def _archive_track_setlist(ctx,show,favorites):
     identifier=str(show.get('identifier') or '').strip()
@@ -881,7 +1005,7 @@ def _setlistfm_enrichment(ctx,key,show,favorites):
         songs=[plain_text(x.get('name'),100) for x in group.get('song') or [] if plain_text(x.get('name'),100)]
         if songs: sets.append({'name':plain_text(group.get('name') or ('Encore' if group.get('encore') else 'Set'),40),'songs':songs[:35]});flat.extend(songs)
     hits=[song for song in flat if any(t in song.lower() for t in favorites)][:10]
-    return {'sets':sets[:5],'favoriteSongHits':hits,'url':plain_text(row.get('url'),300),'attribution':'setlist.fm','sourceKind':'api-key'}
+    return {'sets':sets[:8],'favoriteSongHits':hits,'url':plain_text(row.get('url'),300),'attribution':'setlist.fm','sourceKind':'api-key'}
 
 # Backwards-compatible helper name retained for companion/runtime contracts.
 def _setlist_enrichment(ctx,key,show,favorites):
@@ -891,6 +1015,7 @@ def _setlist_for_show(ctx,settings,show,favorites):
     source=str(settings.get('setlistSource') or 'auto').lower();key=str(settings.get('setlistApiKey') or '').strip();errors=[]
     providers=[]
     if source in ('auto','jerrybase'): providers.append(('JerryBase',lambda:_jerrybase_setlist(ctx,show,favorites)))
+    if source in ('auto','relisten'): providers.append(('Relisten',lambda:_relisten_setlist(ctx,show,favorites)))
     if source in ('auto','archive'): providers.append(('Internet Archive',lambda:_archive_track_setlist(ctx,show,favorites)))
     if source=='setlistfm' or (source=='auto' and key): providers.append(('setlist.fm',lambda:_setlistfm_enrichment(ctx,key,show,favorites)))
     for name,fn in providers:
@@ -921,9 +1046,9 @@ def fetch(settings,context):
             setlist_errors.extend(errors)
     quotes=_quote_rows(settings,today) if display.get('quotesEnabled',True) else []
     return {
-        'kind':'deadhead','provider':'Internet Archive · Relisten · JerryBase','title':display.get('headerTitle') or 'Today in Dead History','date':today.isoformat(),'monthDay':today.strftime('%B %-d') if hasattr(today,'strftime') else today.isoformat(),
+        'kind':'deadhead','provider':'JerryBase setlists · Relisten setlists/listening · Internet Archive listening','title':display.get('headerTitle') or 'Today in Dead History','date':today.isoformat(),'monthDay':today.strftime('%B %-d') if hasattr(today,'strftime') else today.isoformat(),
         'shows':shows,'featuredIndex':featured_index,'quotes':quotes,'quote':quotes[0] if quotes else None,'setlists':setlists,'setlist':setlists.get(shows[featured_index]['date']) if shows and featured_index>=0 else None,'setlistErrors':setlist_errors[:6],'providerError':provider_error,
         'era':era,'showMode':str(settings.get('showMode') or 'today'),'showOrder':str(settings.get('showOrder') or 'oldest'),'showBrowser':display.get('showBrowser','year-strip'),'autoRotate':display.get('autoRotate',True),'rotationSeconds':_int(display.get('rotationSeconds'),15,120,30),
         'quoteRotate':display.get('quoteRotate',True),'quoteSeconds':_int(display.get('quoteSeconds'),30,300,60),'visualMode':display.get('visualMode','subtle'),'favoriteSongs':favorites,'setlistsEnabled':display.get('setlistsEnabled',True),'setlistSource':display.get('setlistSource','auto'),'display':display,
-        'unofficial':True,'sources':[{'label':'JerryBase setlists','url':'https://jerrybase.com/'},{'label':'Internet Archive recordings','url':'https://archive.org/details/GratefulDead'},{'label':'Relisten','url':'https://relisten.net/grateful-dead'},{'label':'The SetList Program','url':'https://www.setlists.net/'}]
+        'unofficial':True,'sources':[{'label':'JerryBase setlists','url':'https://jerrybase.com/'},{'label':'Relisten setlists & listening','url':'https://relisten.net/grateful-dead'},{'label':'Internet Archive recordings','url':'https://archive.org/details/GratefulDead'},{'label':'The SetList Program','url':'https://www.setlists.net/'}]
     }

@@ -8,7 +8,7 @@ MANIFEST = {
     "description": "Show Trello cards as tasks and toggle each card's due-complete state from LibreDisplay.",
     "version": "1.0",
     "icon": "T",
-    "kind": "tasks",
+    "kind": "tasks", "alternative": "caldav-tasks", "freedomNote": "For a standards-based self-hosted option, LibreDisplay also supports CalDAV / Nextcloud Tasks.",
     "actions": ["complete", "reopen"],
     "refreshMin": 3,
     "settings": [

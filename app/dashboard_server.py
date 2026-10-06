@@ -1047,6 +1047,34 @@ def plugin_setting_key(value):
     return value[:64]
 
 
+def clean_plugin_layout_part(part):
+    if not isinstance(part, dict):
+        return None
+    key = plugin_setting_key(part.get("key"))
+    if not key:
+        return None
+    selector = str(part.get("selector") or part.get("selectors") or "").strip()[:320]
+    # Layout selectors come from installed server-side plugins, but keep the
+    # display contract deliberately small and reject CSS declaration syntax.
+    if not selector or any(ch in selector for ch in "{};"):
+        return None
+    parent = plugin_setting_key(part.get("parent")) if part.get("parent") else ""
+    try:
+        order = int(part.get("order", 0))
+    except Exception:
+        order = 0
+    return {
+        "key": key,
+        "label": str(part.get("label") or key).strip()[:80],
+        "selector": selector,
+        "parent": parent,
+        "order": max(-200, min(200, order)),
+        "container": bool(part.get("container", False)),
+        "movable": bool(part.get("movable", True)),
+        "root": bool(part.get("root", False)),
+    }
+
+
 def clean_plugin_field(field):
     if not isinstance(field, dict):
         return None
@@ -1124,6 +1152,10 @@ def load_plugins():
             has_oauth = bool({"refreshToken", "clientId", "accessToken"} & field_keys)
             has_secret = any(x.get("type") == "password" for x in fields)
             auth = "oauth" if has_oauth else ("credential" if has_secret else "none")
+            layout_parts = [x for x in (clean_plugin_layout_part(v) for v in (raw.get("layoutParts") or [])) if x][:80]
+            access = str(raw.get("access") or ("no-key" if auth == "none" else "account-key")).strip().lower()[:32]
+            if access not in {"no-key", "local", "self-hosted", "account", "api-key", "account-key"}:
+                access = "no-key" if auth == "none" else "account-key"
             manifest = {
                 "apiVersion": PLUGIN_API_VERSION,
                 "id": pid,
@@ -1137,6 +1169,10 @@ def load_plugins():
                 "kind": kind,
                 "category": str(raw.get("category") or category_map.get(kind, "Other"))[:48],
                 "auth": str(raw.get("auth") or auth)[:24],
+                "access": access,
+                "freedomNote": str(raw.get("freedomNote") or "").strip()[:240],
+                "alternative": plugin_slug(raw.get("alternative")) if raw.get("alternative") else "",
+                "layoutParts": layout_parts,
                 "actions": [plugin_slug(x) for x in (raw.get("actions") or []) if plugin_slug(x)][:20],
             }
             found[pid] = {"manifest": manifest, "module": module, "folder": folder}
