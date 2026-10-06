@@ -58,7 +58,7 @@
     "module": "weather",
     "part": "scenery",
     "path": "/js/weather/scenery.js",
-    "lines": 225,
+    "lines": 205,
     "functions": 69,
     "bindings": 0
   },
@@ -183,7 +183,7 @@
     "module": "appearance",
     "part": "weather",
     "path": "/js/appearance/weather.js",
-    "lines": 68,
+    "lines": 73,
     "functions": 4,
     "bindings": 0,
     "order": 21
