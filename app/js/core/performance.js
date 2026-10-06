@@ -1,6 +1,6 @@
 // Lightweight frontend scheduling and capability hints for lower-powered displays.
-// Pi 4 remains the standard baseline. Automatic low-power behavior only activates
-// when the browser reports both a small memory budget and a four-core-or-smaller CPU.
+// Pi-class budgeting is keyed to four-core ARM/Linux displays. The separate low-memory
+// fallback covers other four-core-or-smaller devices without assuming Raspberry Pi hardware.
 
 const managedIntervals=new Map();
 const managedRuns=new Map();
@@ -34,11 +34,11 @@ function frontendPixelLoad(){
 
 function visualPerformanceBudget(){
   const caps=frontendCapabilities(),pixels=frontendPixelLoad();
-  if(caps.piClass&&pixels.tier==='4k')return {tier:'pi4',resolutionTier:'4k',particleScale:.25,wildlifeScale:.33,holidayScale:.40,hazardScale:.51,cloudScale:.54,targetFrameMs:48,blurScale:.10};
-  if(caps.piClass&&pixels.tier==='highres')return {tier:'pi4',resolutionTier:'highres',particleScale:.29,wildlifeScale:.37,holidayScale:.45,hazardScale:.56,cloudScale:.60,targetFrameMs:44,blurScale:.13};
-  if(caps.piClass)return {tier:'pi4',resolutionTier:'standard',particleScale:.32,wildlifeScale:.40,holidayScale:.48,hazardScale:.60,cloudScale:.65,targetFrameMs:42,blurScale:.16};
-  if(caps.constrained)return {tier:'constrained',resolutionTier:pixels.tier,particleScale:.50,wildlifeScale:.58,holidayScale:.66,hazardScale:.78,cloudScale:.82,targetFrameMs:30,blurScale:.42};
-  return {tier:'standard',resolutionTier:pixels.tier,particleScale:1,wildlifeScale:1,holidayScale:1,hazardScale:1,cloudScale:1,targetFrameMs:16,blurScale:1};
+  if(caps.piClass&&pixels.tier==='4k')return {tier:'pi4',resolutionTier:'4k',particleScale:.14,wildlifeScale:.22,holidayScale:.27,hazardScale:.33,cloudScale:.34,targetFrameMs:24,blurScale:0,maxParticles:18,maxFogBanks:2,maxClouds:4,secondaryScale:.36};
+  if(caps.piClass&&pixels.tier==='highres')return {tier:'pi4',resolutionTier:'highres',particleScale:.18,wildlifeScale:.26,holidayScale:.31,hazardScale:.39,cloudScale:.40,targetFrameMs:16,blurScale:0,maxParticles:24,maxFogBanks:2,maxClouds:5,secondaryScale:.44};
+  if(caps.piClass)return {tier:'pi4',resolutionTier:'standard',particleScale:.22,wildlifeScale:.30,holidayScale:.36,hazardScale:.45,cloudScale:.46,targetFrameMs:16,blurScale:0,maxParticles:30,maxFogBanks:2,maxClouds:6,secondaryScale:.52};
+  if(caps.constrained)return {tier:'constrained',resolutionTier:pixels.tier,particleScale:.46,wildlifeScale:.54,holidayScale:.62,hazardScale:.72,cloudScale:.76,targetFrameMs:24,blurScale:.30,maxParticles:56,maxFogBanks:3,maxClouds:9,secondaryScale:.72};
+  return {tier:'standard',resolutionTier:pixels.tier,particleScale:1,wildlifeScale:1,holidayScale:1,hazardScale:1,cloudScale:1,targetFrameMs:16,blurScale:1,maxParticles:240,maxFogBanks:8,maxClouds:20,secondaryScale:1};
 }
 
 function effectiveVisualConfig(source){
@@ -51,9 +51,13 @@ function lightweightModeSummary(source){
 }
 
 function applyFrontendPerformanceClass(){
-  const caps=frontendCapabilities();
-  document.documentElement.dataset.performanceTier=caps.tier;
-  document.documentElement.classList.toggle('ld-constrained-device',caps.constrained);
+  const caps=frontendCapabilities(),budget=visualPerformanceBudget(),root=document.documentElement;
+  root.dataset.performanceTier=caps.tier;
+  root.dataset.performanceResolution=budget.resolutionTier;
+  root.classList.toggle('ld-constrained-device',caps.constrained);
+  root.classList.toggle('ld-pi4-device',caps.piClass);
+  root.classList.toggle('ld-pi4-highres',caps.piClass&&budget.resolutionTier==='highres');
+  root.classList.toggle('ld-pi4-4k',caps.piClass&&budget.resolutionTier==='4k');
   return caps;
 }
 
