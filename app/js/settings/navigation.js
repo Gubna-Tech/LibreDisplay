@@ -1,42 +1,73 @@
 // Settings tabs, section metadata, help registry, search, and navigation.
 const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 
-const SETTINGS_TABS=['overview','weather','naturescape','calendars','backgrounds','look','layout','family','integrations','system'];
+const SETTINGS_TABS=['overview','calendars','backgrounds','weather','weatherfx','weatheralerts','nature','wildlife','companions','look','displaycare','layout','family','integrations','displays','system'];
 const SETTINGS_TAB_TITLES={
   overview:'Home',
-  weather:'Weather',
-  naturescape:'Naturescape',
   calendars:'Calendars',
   backgrounds:'Backgrounds',
+  weather:'Weather',
+  weatherfx:'Weather Effects',
+  weatheralerts:'Weather Alerts',
+  nature:'Nature & Seasons',
+  wildlife:'Wildlife',
+  companions:'Companion & Holidays',
   look:'Personalization',
+  displaycare:'Display Care',
   layout:'Layout',
   family:'Family',
   integrations:'Integrations',
-  system:'System'
+  displays:'Displays & Access',
+  system:'System & Maintenance'
+};
+const SETTINGS_TAB_GROUPS={
+  overview:'Start',
+  calendars:'Content',backgrounds:'Content',
+  weather:'Weather',weatherfx:'Weather',weatheralerts:'Weather',
+  nature:'Living scenery',wildlife:'Living scenery',companions:'Living scenery',
+  look:'Appearance',displaycare:'Appearance',layout:'Appearance',
+  family:'Household & services',integrations:'Household & services',
+  displays:'System',system:'System'
 };
 const SETTINGS_TAB_HINTS={
-  overview:'Dashboard status, displays, common actions, and a quick path to the settings you use most.',
-  weather:'Weather location, forecast behavior, precipitation, atmosphere, storms, Weather Details, and severe-weather alerts.',
-  naturescape:'Season-aware living scenery, regional wildlife, birds, butterflies, insects, leaves, grass, petals, crystals, and frost.',
+  overview:'Shortcuts, current status, performance mode, and project information.',
   calendars:'Calendar feeds, imported files, event presentation, refresh timing, and display rules.',
   backgrounds:'Photo sources, local or NAS folders, slideshow rotation, and background presentation.',
-  look:'Themes, typography, accessibility, templates, and the Settings-button experience.',
-  layout:'Arrange the dashboard, choose what is visible, and tune sizing, spacing, ranges, and default geometry.',
+  weather:'Weather location, units, refresh behavior, and the optional Weather Details element.',
+  weatherfx:'Normal-weather atmosphere: rain, snow, fog, clouds, sun, wind, and lightning.',
+  weatheralerts:'Severe-weather cards, filtering, alert motion, and hazard-driven full-screen scenery.',
+  nature:'Season behavior, leaves, grass, petals, winter crystals, and cold-weather atmosphere.',
+  wildlife:'Bees, butterflies, fireflies, other insects, birds, owls, and regional wildlife behavior.',
+  companions:'Dog companion behavior and special-day holiday overlays, previews, and customization.',
+  look:'Themes, typography, language, accessibility, and the Settings-button experience.',
+  displaycare:'OLED and always-on display protection: pixel shift, dimming, quiet hours, and deep protection.',
+  layout:'Starter templates, dashboard arrangement, content sizing, spacing, ranges, and geometry.',
   family:'Household members, chores, rewards, and touch-mode behavior.',
   integrations:'Browse installed providers, add integration blocks, and review connection health.',
-  system:'Accounts, remote access, profiles, scenes, updates, backup, diagnostics, and recovery.'
+  displays:'Display endpoints, remote access, local accounts, saved profiles, and scheduled scenes.',
+  system:'Provider health, display readiness, host health, updates, backup, diagnostics, and recovery.'
 };
 function updateSettingsPageHeader(searchQuery=''){
   const title=document.getElementById('settings-page-title');
   const hint=document.getElementById('settings-tab-hint');
+  const kicker=document.getElementById('settings-page-kicker');
+  const meta=document.getElementById('settings-page-meta');
   const q=String(searchQuery||'').trim();
   if(q){
+    if(kicker)kicker.textContent='Search';
     if(title)title.textContent='Search results';
     if(hint)hint.textContent=`Matches for “${q}” across LibreDisplay settings.`;
+    if(meta)meta.textContent='Search spans every category, including advanced settings.';
     return;
   }
+  if(kicker)kicker.textContent=SETTINGS_TAB_GROUPS[activeSettingsTab]||'Settings';
   if(title)title.textContent=SETTINGS_TAB_TITLES[activeSettingsTab]||'Settings';
   if(hint)hint.textContent=SETTINGS_TAB_HINTS[activeSettingsTab]||'';
+  if(meta){
+    const sections=visibleSettingsSectionsForTab(activeSettingsTab);
+    const controls=sections.reduce((total,section)=>total+section.querySelectorAll('input:not([type="hidden"]),select,textarea').length,0);
+    meta.textContent=`${sections.length} focused section${sections.length===1?'':'s'} · ${controls} control${controls===1?'':'s'} shown`;
+  }
 }
 const SETTINGS_SECTION_SUMMARIES={
   'settings-overview':'Health checks and the most common dashboard actions.',
@@ -60,19 +91,19 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-weather-fog':'Tune fog and mist density, movement, visibility, blur, and vertical coverage.',
   'settings-naturescape-overview':'Choose automatic or manual season behavior and the overall Naturescape intensity.',
   'settings-naturescape-flora':'Tune leaves, grass, petals, their movement, size, amount, and visibility.',
-  'settings-naturescape-insects':'Tune bees, butterflies, fireflies, daylight behavior, glow, diversity, movement, and visibility.',
+  'settings-naturescape-insects':'Tune daytime bees and butterflies, including activity, size, speed, visibility, and butterfly species diversity.',
   'settings-naturescape-birds':'Tune regional birds, flocking, size, flight, visibility, height, species diversity, and rare/large species.',
   'settings-naturescape-dog':'Choose an optional state-driven dog companion, breed, coat, collar, activity, size, and visibility.',
   'settings-naturescape-holidays':'Enable special-day scenery, choose which holidays may appear, tune intensity, and preview every holiday overlay.',
   'settings-naturescape-owls':'Optional owl naturescape with region-aware species, ground, glide and swoop behavior, size, visibility and diversity controls.',
   'settings-naturescape-winter':'Tune winter crystals and extreme-cold edge frost independently from snowfall.',
-  'settings-weather-hazards':'Control and test alert-driven flood, wind, tornado, hurricane, severe-storm, blizzard, visibility and heat/fire-weather animations.',
-  'settings-weather-sky':'Tune clouds, sun, wind, lightning realism, reduced motion, and OLED dimming behavior.',
+  'settings-weather-hazards':'Choose overall hazard behavior, severity threshold, intensity, opacity, speed, and a full-screen preview scenario.',
+  'settings-weather-sky':'Tune ambient clouds, sunlight, and directional wind movement separately from precipitation and lightning.',
   'settings-weather-details':'Choose, enable and reorder Weather Details metrics.',
   'settings-background-style':'Power-user controls for how backgrounds are rendered.',
   'settings-templates':'Apply safe layout and presentation starting points without replacing data sources.',
   'settings-theme':'Choose a LibreDisplay color theme and dashboard font.',
-  'settings-accessibility':'Language, reduced motion, contrast and keyboard focus.',
+  'settings-accessibility':'Language, Settings interface size, motion preference, contrast, and keyboard focus.',
   'settings-settings-button':'Move and soften the Settings cog so it stays available without distracting from the dashboard.',
   'settings-integrations':'Browse installed providers, test live connections, and review refresh health without exposing credentials.',
   'settings-provider-health':'Review weather, calendars, backgrounds, alerts, and integrations in one privacy-safe troubleshooting view.',
@@ -84,6 +115,13 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-software-update':'Check GitHub releases and install supported native updates directly from Settings.',
   'settings-update-history':'Review private pre-update snapshots and safely return a native installation to a previous release.',
   'settings-backup-recovery':'Portable configuration backups and local restore points for safe migration and recovery.',
+  'settings-display-care':'Independent OLED and always-on protections including pixel shift, idle dimming, quiet hours, temporary wake, and deep-black protection.',
+  'settings-naturescape-fireflies':'Tune warm-season evening fireflies independently from daytime pollinators.',
+  'settings-naturescape-other-insects':'Tune dragonflies, ladybugs, and moths with separate activity, size, speed, and visibility controls.',
+  'settings-weather-hazards-flood-wind':'Tune flood water, floating debris, current speed, high-wind gusts, and gust travel speed.',
+  'settings-weather-hazards-storms':'Tune tornado, tropical-storm, severe-thunderstorm, and blizzard scene strength independently.',
+  'settings-weather-hazards-visibility':'Tune dense visibility haze and heat or red-flag fire-weather scenery.',
+  'settings-weather-lightning':'Tune thunderstorm lightning, visible bolts, storm-cloud detail, rain sheets, motion preferences, and OLED dimming behavior.',
   'settings-utilities':'Backup, restore, cache, diagnostics and recovery tools.'
 };
 const SETTINGS_CONTROL_HELP={
@@ -274,8 +312,9 @@ function setSettingsViewMode(mode){
 function enhanceSettingsSections(){
   if(settingsSectionsEnhanced)return;
   settingsSectionsEnhanced=true;
-  let collapsed=[];
-  try{collapsed=JSON.parse(sessionStorage.getItem('libredisplay_settings_collapsed')||'[]');if(!Array.isArray(collapsed))collapsed=[];}catch(e){collapsed=[];}
+  let collapsed=[],hasSavedCollapseState=false;
+  try{const raw=sessionStorage.getItem('libredisplay_settings_collapsed');hasSavedCollapseState=raw!==null;collapsed=JSON.parse(raw||'[]');if(!Array.isArray(collapsed))collapsed=[];}catch(e){collapsed=[];}
+  const firstSectionByTab=new Set();
   document.querySelectorAll('.s-section[data-settings-tab]').forEach(section=>{
     const h=section.querySelector(':scope > h3');
     if(!h)return;
@@ -289,7 +328,10 @@ function enhanceSettingsSections(){
       summary.textContent=SETTINGS_SECTION_SUMMARIES[section.id]||'';
       h.insertAdjacentElement('afterend',summary);
     }
-    if(collapsed.includes(section.id))section.classList.add('section-collapsed');
+    const tab=section.dataset.settingsTab||'';
+    const defaultCollapsed=!hasSavedCollapseState&&firstSectionByTab.has(tab);
+    if(!firstSectionByTab.has(tab))firstSectionByTab.add(tab);
+    if(collapsed.includes(section.id)||defaultCollapsed)section.classList.add('section-collapsed');
     h.setAttribute('aria-expanded',section.classList.contains('section-collapsed')?'false':'true');
   });
 }
@@ -312,6 +354,32 @@ function settingsSectionRoleAllowed(section){return !(section?.dataset?.ownerOnl
 function visibleSettingsSectionsForTab(tab){
   return [...document.querySelectorAll(`.s-section[data-settings-tab="${tab}"]`)].filter(s=>settingsSectionRoleAllowed(s)&&(settingsViewMode==='all'||s.dataset.settingsLevel!=='advanced'));
 }
+function buildSettingsMobileCategory(){
+  const sel=document.getElementById('settings-mobile-category-select');if(!sel)return;
+  const groups=new Map();
+  for(const btn of document.querySelectorAll('.settings-tab-btn[data-tab]')){
+    if(btn.dataset.ownerOnly==='1'&&bootstrapApi.SESSION_ROLE!=='owner')continue;
+    const tab=btn.dataset.tab;if(!SETTINGS_TABS.includes(tab))continue;
+    const group=SETTINGS_TAB_GROUPS[tab]||'Settings';
+    if(!groups.has(group)){const optgroup=document.createElement('optgroup');optgroup.label=group;groups.set(group,optgroup);sel.appendChild(optgroup);}
+    const opt=document.createElement('option');opt.value=tab;opt.textContent=SETTINGS_TAB_TITLES[tab]||tab;groups.get(group).appendChild(opt);
+  }
+  sel.value=activeSettingsTab;
+}
+function buildSettingsSectionDirectory(){
+  const box=document.getElementById('settings-section-directory');if(!box)return;
+  box.replaceChildren();
+  const sections=visibleSettingsSectionsForTab(activeSettingsTab);
+  for(const section of sections){
+    const button=document.createElement('button');button.type='button';button.className='settings-section-card';button.dataset.section=section.id;
+    const title=document.createElement('b');title.textContent=section.querySelector(':scope > h3')?.childNodes[0]?.textContent?.trim()||section.id;
+    const copy=document.createElement('span');copy.textContent=SETTINGS_SECTION_SUMMARIES[section.id]||'';
+    const count=section.querySelectorAll('input:not([type="hidden"]),select,textarea').length;
+    const meta=document.createElement('small');meta.textContent=`${count} control${count===1?'':'s'}${section.dataset.settingsLevel==='advanced'?' · Advanced':''}`;
+    button.append(title,copy,meta);button.addEventListener('click',()=>jumpToSettingsSection(section.id));box.appendChild(button);
+  }
+  box.hidden=sections.length<=1;
+}
 function buildSettingsSectionJump(){
   const sel=document.getElementById('settings-section-select');if(!sel)return;
   const sections=visibleSettingsSectionsForTab(activeSettingsTab);
@@ -322,6 +390,8 @@ function buildSettingsSectionJump(){
     sel.appendChild(opt);
   }
   sel.disabled=!sections.length;
+  buildSettingsSectionDirectory();
+  buildSettingsMobileCategory();
 }
 function jumpToSettingsSection(id){
   const section=document.getElementById(id);if(!section)return;
@@ -347,7 +417,7 @@ function applySettingsSectionVisibility(){
 }
 
 function switchSettingsTab(tab,scrollTop=true){
-  if(tab==='content')tab='weather';
+  const legacyTabs={content:'weather',naturescape:'nature'};tab=legacyTabs[tab]||tab;
   tab=SETTINGS_TABS.includes(tab)?tab:'overview';
   if(tab!=='overview'&&![...document.querySelectorAll(`.s-section[data-settings-tab="${tab}"]`)].some(settingsSectionRoleAllowed))tab='overview';
   activeSettingsTab=tab;
@@ -364,6 +434,7 @@ function switchSettingsTab(tab,scrollTop=true){
     btn.setAttribute('aria-selected',on?'true':'false');
   });
   applySettingsSectionVisibility();
+  const mobileCategory=document.getElementById('settings-mobile-category-select');if(mobileCategory)mobileCategory.value=tab;
   if(tab==='system'&&settingsSectionRoleAllowed(document.getElementById('settings-backup-recovery'))){loadRestorePoints();loadReleaseRollbacks();}
   if(scrollTop){
     const box=document.querySelector('.setup-box');
@@ -381,12 +452,12 @@ const SETTINGS_SEARCH_ALIASES={
   'settings-weather-fog':'weather fog mist haze density opacity blur layer visibility',
   'settings-naturescape-overview':'naturescape nature season seasonal spring summer fall autumn winter region hemisphere climate living scenery',
   'settings-naturescape-flora':'naturescape nature leaves leaf grass petals plants flora autumn spring summer opacity visibility sway wind',
-  'settings-naturescape-insects':'naturescape wildlife bugs insects bees butterflies butterfly fireflies firefly species glow day night opacity visibility',
+  'settings-naturescape-insects':'nature naturescape wildlife insects bees butterflies butterfly pollinators species day opacity visibility',
   'settings-naturescape-birds':'naturescape wildlife birds bird species sparrow cardinal blue jay finch owl hawk eagle crane egret flock flight opacity visibility rare large',
   'settings-naturescape-dog':'naturescape dog companion pet labrador shepherd pyrenees toller collar coat sleep sit sniff dig ball breed',
   'settings-naturescape-holidays':'naturescape holiday holidays overlay christmas hanukkah thanksgiving fourth july independence halloween day dead new year easter memorial juneteenth veterans test',
   'settings-naturescape-winter':'naturescape winter crystal crystals frost cold ice edge opacity visibility',
-  'settings-weather-hazards':'weather alert alerts animation test dangerous severe hazard hazards flood flash flood wind tornado waterspout hurricane tropical storm thunderstorm blizzard winter storm fog smoke dust air quality heat red flag warning advisory watch disaster',
+  'settings-weather-hazards':'weather alert alerts severe hazard hazards preview test severity intensity opacity speed emergency warning advisory watch disaster',
   'settings-weather-sky':'weather sky clouds sun wind storm thunder lightning bolt flash reduced motion oled dimming',
   'settings-backgrounds':'background backgrounds picture pictures photo photos images slideshow google album nas media folder startup loading performance',
   'settings-accessibility':'accessibility readable readability larger large text contrast focus keyboard motion language settings size eyesight vision',
@@ -398,6 +469,13 @@ const SETTINGS_SEARCH_ALIASES={
   'settings-software-update':'update upgrade release version github install restart reboot',
   'settings-update-history':'update history rollback previous version recovery release downgrade restore safety snapshot',
   'settings-backup-recovery':'backup restore recovery migrate migration portable export import restore point rollback profiles scenes',
+  'settings-display-care':'display care oled burn in burnin burn-in pixel shift dim dimming quiet hours black screen deep protection wake always on screen care',
+  'settings-naturescape-fireflies':'nature naturescape wildlife fireflies firefly night evening glow insects warm season',
+  'settings-naturescape-other-insects':'nature naturescape wildlife dragonflies dragonfly ladybugs ladybug moths moth insects',
+  'settings-weather-hazards-flood-wind':'weather alerts hazards flood flash flood water debris current high wind gust gusts',
+  'settings-weather-hazards-storms':'weather alerts hazards tornado waterspout hurricane tropical storm thunderstorm blizzard winter storm',
+  'settings-weather-hazards-visibility':'weather alerts hazards fog smoke dust air quality heat fire red flag haze shimmer',
+  'settings-weather-lightning':'weather effects thunderstorm lightning bolt bolts flash storm cloud rain sheets reduced motion oled dimming',
   'settings-utilities':'backup restore diagnostics recovery cache export import'
 };
 function settingsSectionSearchText(section){
@@ -447,9 +525,10 @@ function clearSettingsSearch(){
 
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("settings", {updateSettingsPageHeader,settingsControlLabel,cleanSettingsLabelText,makeSettingsHelpButton,enhanceSettingsControlHelp,loadSettingsViewMode,setSettingsViewMode,enhanceSettingsSections,saveCollapsedSettingsSections,toggleSettingsSection,setAllSettingsSectionsCollapsed,settingsSectionRoleAllowed,visibleSettingsSectionsForTab,buildSettingsSectionJump,jumpToSettingsSection,applySettingsSectionVisibility,switchSettingsTab,settingsSectionSearchText,settingsSearchControlText,openSettingsSearchResult,filterSettings,clearSettingsSearch}, {
+LibreDisplayRuntime.exposeModule("settings", {updateSettingsPageHeader,settingsControlLabel,cleanSettingsLabelText,makeSettingsHelpButton,enhanceSettingsControlHelp,loadSettingsViewMode,setSettingsViewMode,enhanceSettingsSections,saveCollapsedSettingsSections,toggleSettingsSection,setAllSettingsSectionsCollapsed,settingsSectionRoleAllowed,visibleSettingsSectionsForTab,buildSettingsMobileCategory,buildSettingsSectionDirectory,buildSettingsSectionJump,jumpToSettingsSection,applySettingsSectionVisibility,switchSettingsTab,settingsSectionSearchText,settingsSearchControlText,openSettingsSearchResult,filterSettings,clearSettingsSearch}, {
   "SETTINGS_TABS": {configurable:true,get:()=>SETTINGS_TABS},
   "SETTINGS_TAB_TITLES": {configurable:true,get:()=>SETTINGS_TAB_TITLES},
+  "SETTINGS_TAB_GROUPS": {configurable:true,get:()=>SETTINGS_TAB_GROUPS},
   "SETTINGS_TAB_HINTS": {configurable:true,get:()=>SETTINGS_TAB_HINTS},
   "SETTINGS_SECTION_SUMMARIES": {configurable:true,get:()=>SETTINGS_SECTION_SUMMARIES},
   "SETTINGS_CONTROL_HELP": {configurable:true,get:()=>SETTINGS_CONTROL_HELP},

@@ -231,6 +231,7 @@ async function loadSessionInfo(){
     document.documentElement.classList.toggle('role-editor',bootstrapApi.SESSION_ROLE==='editor');
     document.documentElement.classList.toggle('role-viewer',bootstrapApi.SESSION_ROLE==='viewer');
     for(const el of document.querySelectorAll('[data-owner-only="1"]'))el.style.display=(bootstrapApi.SESSION_ROLE==='owner'?'':'none');
+    LibreDisplayRuntime.getModule('settings').buildSettingsMobileCategory?.();
     const addDisplay=document.querySelector('#settings-endpoints .utility-actions button');if(addDisplay&&bootstrapApi.SESSION_ROLE!=='owner')addDisplay.style.display='none';
   }catch(e){}
 }

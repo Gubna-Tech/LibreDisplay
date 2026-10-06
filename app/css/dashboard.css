@@ -2765,3 +2765,62 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 .holiday-foundation-hanukkah{background:radial-gradient(ellipse at 9% 108%,rgba(73,125,196,.20),transparent 37%),radial-gradient(ellipse at 91% 108%,rgba(73,125,196,.11),transparent 37%);}
 .holiday-foundation-hanukkah::before{left:7vw;right:7vw;bottom:1.2vh;height:1px;background:linear-gradient(90deg,transparent,rgba(154,190,231,.28),transparent);}
 .holiday-foundation-christmas{background:radial-gradient(ellipse at 14% 108%,rgba(204,111,55,.15),transparent 38%),radial-gradient(ellipse at 88% 108%,rgba(54,119,72,.16),transparent 39%);}
+
+/* Grouped settings navigation and focused section directory. */
+#setup .settings-workspace{grid-template-columns:282px minmax(0,1fr)}
+#setup .settings-sidebar{padding:14px 12px 18px}
+#setup .settings-tabs{gap:2px}
+#setup .settings-nav-group-label{
+  margin:14px 10px 5px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--ld-border) 75%,transparent);
+  color:var(--ld-subtle);font-size:8px;font-weight:850;letter-spacing:1.15px;text-transform:uppercase;line-height:1.2;
+}
+#setup .settings-nav-group-label:first-child{margin-top:2px;padding-top:0;border-top:0}
+#setup .settings-tab-btn{grid-template-columns:30px minmax(0,1fr);gap:8px;padding:6px 8px;border-radius:9px}
+#setup .settings-nav-icon{width:28px;height:28px;border-radius:7px;font-size:13px}
+#setup .settings-nav-copy{gap:1px}
+#setup .settings-nav-copy b{font-size:11.5px}
+#setup .settings-nav-copy small{font-size:8.5px}
+#setup .settings-mobile-category{display:none}
+#setup .settings-mobile-category label{display:block;margin:0 0 5px;color:var(--ld-subtle);font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}
+#setup .settings-mobile-category select{width:100%;height:40px;padding:8px 10px;border:1px solid var(--ld-border);border-radius:9px;background:var(--ld-surface-2);color:var(--ld-text);font-family:var(--ld-app-font)}
+#setup .settings-mobile-category select option,#setup .settings-mobile-category select optgroup{color:#111827;background:#fff}
+#setup .settings-page-meta{margin-top:6px;color:var(--ld-subtle);font-size:9px;line-height:1.35;font-weight:650}
+#setup .settings-section-jump{display:none}
+#setup .settings-section-directory{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:-4px 0 16px;
+}
+#setup .settings-section-directory[hidden]{display:none!important}
+#setup .settings-section-card{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"title meta" "copy copy";gap:3px 10px;
+  min-width:0;padding:11px 12px;border:1px solid var(--ld-border);border-radius:11px;
+  background:color-mix(in srgb,var(--ld-surface-2) 52%,transparent);color:var(--ld-text);text-align:left;cursor:pointer;
+  transition:border-color .14s ease,background .14s ease,transform .14s ease;
+}
+#setup .settings-section-card:hover,#setup .settings-section-card:focus-visible{
+  border-color:color-mix(in srgb,var(--ld-accent) 42%,var(--ld-border));background:color-mix(in srgb,var(--ld-accent) 7%,var(--ld-surface-2));
+}
+#setup .settings-section-card:active{transform:translateY(1px)}
+#setup .settings-section-card b{grid-area:title;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:760}
+#setup .settings-section-card span{grid-area:copy;display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;color:var(--ld-muted);font-size:9.5px;line-height:1.38}
+#setup .settings-section-card small{grid-area:meta;align-self:start;color:var(--ld-subtle);font-size:8px;line-height:1.35;white-space:nowrap}
+#setup .s-section[data-settings-tab]{scroll-margin-top:16px}
+#setup .s-section[data-settings-tab].section-collapsed{background:color-mix(in srgb,var(--ld-surface-2) 42%,transparent)}
+#setup .s-section[data-settings-tab].section-collapsed:hover{background:color-mix(in srgb,var(--ld-surface-2) 64%,transparent)}
+
+@media(max-width:900px){
+  #setup .settings-workspace{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}
+  #setup .settings-sidebar{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(190px,.65fr);gap:8px 12px;overflow:visible;padding:10px 12px 9px}
+  #setup .settings-search{grid-column:1/2;margin:0}
+  #setup .settings-mobile-category{display:block;grid-column:2/3;align-self:start}
+  #setup .settings-tabs{display:none!important}
+  #setup .settings-sidebar-tools{grid-column:1/-1;margin:0;padding-top:8px}
+  #setup .settings-section-jump{display:block}
+  #setup .settings-section-directory{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:0}
+}
+@media(max-width:620px){
+  #setup .settings-sidebar{grid-template-columns:1fr;gap:8px}
+  #setup .settings-search,#setup .settings-mobile-category,#setup .settings-sidebar-tools{grid-column:1}
+  #setup .settings-section-directory{grid-template-columns:1fr;gap:6px;margin-bottom:12px}
+  #setup .settings-section-card{padding:10px 11px}
+  #setup .settings-page-meta{font-size:8.5px}
+}
