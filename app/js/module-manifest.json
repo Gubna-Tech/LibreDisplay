@@ -265,7 +265,7 @@
     "module": "settings",
     "part": "navigation",
     "path": "/js/settings/navigation.js",
-    "lines": 539,
+    "lines": 540,
     "functions": 22,
     "bindings": 9
   },
@@ -283,8 +283,8 @@
     "module": "settings",
     "part": "interactions",
     "path": "/js/settings/interactions.js",
-    "lines": 132,
-    "functions": 10,
+    "lines": 167,
+    "functions": 16,
     "bindings": 5
   },
   {

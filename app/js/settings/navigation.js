@@ -321,19 +321,20 @@ function enhanceSettingsSections(){
     h.removeAttribute('title');
     h.setAttribute('role','button');
     h.setAttribute('tabindex','0');
-    h.addEventListener('click',e=>{if(e.target?.closest?.('.help-tip'))return;toggleSettingsSection(section.id);});
     h.addEventListener('keydown',e=>{if(e.target?.closest?.('.help-tip'))return;if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleSettingsSection(section.id);}});
     if(!section.querySelector(':scope > .section-summary')){
       const summary=document.createElement('div');summary.className='section-summary';
       summary.textContent=SETTINGS_SECTION_SUMMARIES[section.id]||'';
       h.insertAdjacentElement('afterend',summary);
     }
+    section.addEventListener('click',e=>{const target=e.target;if(!(target instanceof Element)||target.closest('button,input,select,textarea,a,label,[contenteditable="true"],.utility-actions,.settings-section-reset'))return;const summary=section.querySelector(':scope > .section-summary');if(section.classList.contains('section-collapsed')||h.contains(target)||summary?.contains(target))toggleSettingsSection(section.id);});
     const tab=section.dataset.settingsTab||'';
     const defaultCollapsed=!hasSavedCollapseState&&firstSectionByTab.has(tab);
     if(!firstSectionByTab.has(tab))firstSectionByTab.add(tab);
     if(collapsed.includes(section.id)||defaultCollapsed)section.classList.add('section-collapsed');
     h.setAttribute('aria-expanded',section.classList.contains('section-collapsed')?'false':'true');
   });
+  LibreDisplayRuntime.getModule('settings').enhanceSettingsSectionPolish?.();
 }
 function saveCollapsedSettingsSections(){
   const ids=[...document.querySelectorAll('.s-section.section-collapsed')].map(s=>s.id).filter(Boolean);
