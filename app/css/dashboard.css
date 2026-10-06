@@ -2941,3 +2941,7 @@ html.ld-pi4-device .deadhead-panel,html.ld-pi4-device .deadhead-orbit{box-shadow
 .deadhead-panel.deadhead-density-compact{font-size:.92em}.deadhead-panel.deadhead-density-compact .deadhead-show{padding:6px 0}.deadhead-panel.deadhead-density-compact .deadhead-setlist{padding:6px}.deadhead-panel.deadhead-density-compact .deadhead-year{padding:3px 6px}.deadhead-panel.deadhead-density-roomy .deadhead-show{padding:14px 0}.deadhead-panel.deadhead-density-roomy .deadhead-setlist{padding:12px}.deadhead-panel.deadhead-density-roomy .deadhead-year{padding:6px 9px}
 body.ld-deadhead-subtle .bg-layer::after{opacity:calc(.5 * var(--ld-deadhead-bg-strength,1))}body.ld-deadhead-psychedelic .bg-layer::after{opacity:calc(.7 * var(--ld-deadhead-bg-strength,1))}
 @media(max-width:680px){.deadhead-panel{--dead-pad:12px}.deadhead-quote-compact{display:block}.integration-custom-section summary small{display:none}}
+.deadhead-panel .deadhead-show-list,.deadhead-panel .deadhead-year-strip,.deadhead-panel .deadhead-setlist{scroll-behavior:auto;overscroll-behavior:contain}
+.deadhead-panel .deadhead-hide-scrollbar{scrollbar-width:none;-ms-overflow-style:none}
+.deadhead-panel .deadhead-hide-scrollbar::-webkit-scrollbar{width:0;height:0;display:none}
+.deadhead-panel .deadhead-autoscroll-active{will-change:scroll-position}
