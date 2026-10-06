@@ -112,7 +112,7 @@ wait_for_server() {
 }
 
 start_server() {
-  python3 -I "$SERVER" &
+  python3 -I -B "$SERVER" &
   SERVER_PID=$!
   if ! wait_for_server; then
     wait "$SERVER_PID" 2>/dev/null || true
