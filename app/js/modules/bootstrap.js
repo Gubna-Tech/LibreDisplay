@@ -1,7 +1,7 @@
 // LibreDisplay source section: /js/core/bootstrap.js
 {
 
-const DASHBOARD_BUILD = '1.9.11';
+const DASHBOARD_BUILD = '1.9.12';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;

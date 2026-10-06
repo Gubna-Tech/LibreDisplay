@@ -1072,6 +1072,7 @@ def clean_plugin_layout_part(part):
         "container": bool(part.get("container", False)),
         "movable": bool(part.get("movable", True)),
         "root": bool(part.get("root", False)),
+        "visibilitySetting": plugin_setting_key(part.get("visibilitySetting")) if part.get("visibilitySetting") else "",
     }
 
 
