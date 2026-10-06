@@ -2971,3 +2971,32 @@ body.ld-deadhead-subtle .bg-layer::after{opacity:calc(.5 * var(--ld-deadhead-bg-
 /* Integration editing uses one shared presentation contract across providers. */
 .integration-layout-quick{padding:10px;border:1px solid color-mix(in srgb,var(--ld-accent) 22%,rgba(255,255,255,.08));border-radius:10px;background:color-mix(in srgb,var(--ld-accent) 4%,var(--ld-surface-2))}.integration-layout-quick>.block-field{margin-top:8px}.integration-subsection-visibility{margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.12)}.integration-subsection-visibility summary{cursor:pointer;font-size:10px;font-weight:750;color:var(--ld-text);list-style:none}.integration-subsection-visibility summary::-webkit-details-marker{display:none}.integration-subsection-visibility summary::before{content:'›';display:inline-block;margin-right:6px;transition:transform .15s ease}.integration-subsection-visibility[open] summary::before{transform:rotate(90deg)}.integration-layout-visibility .block-field.check{padding-top:0}.integration-data,.integration-map-shell{height:100%;min-height:0;min-width:0}.integration-map-shell{overflow:hidden;border-radius:10px}.integration-map-shell>.integration-map{display:block}.integration-photo.ld-internal-flex-container{overflow:visible}.integration-photo.ld-internal-flex-container>.integration-photo-caption{position:relative;left:auto;right:auto;bottom:auto;min-width:0}.integration-photo.ld-internal-flex-container>img{min-width:0;min-height:0}
 .integration-task-shell,.integration-message-shell{height:100%;min-height:0;min-width:0}
+
+/* Uniform element/integration editor: Settings-style progressive disclosure and contextual help. */
+#block-config-fields{gap:8px}
+.block-editor-section{margin:0!important;padding:0;border:1px solid var(--ld-border);border-radius:12px;background:color-mix(in srgb,var(--ld-surface-2) 52%,transparent);overflow:hidden}
+.block-editor-section>summary{display:flex;align-items:center;gap:10px;min-height:54px;padding:10px 12px;list-style:none;cursor:pointer;color:var(--ld-text);transition:border-color .14s ease,background .14s ease}
+.block-editor-section>summary::-webkit-details-marker{display:none}
+.block-editor-section>summary::before{content:'›';flex:0 0 auto;color:var(--ld-subtle);font-size:17px;line-height:1;transition:transform .15s ease}
+.block-editor-section[open]>summary::before{transform:rotate(90deg)}
+.block-editor-section>summary:hover,.block-editor-section>summary:focus-visible{background:color-mix(in srgb,var(--ld-accent) 6%,var(--ld-surface-2));outline:none}
+.block-editor-section[open]>summary{border-bottom:1px solid var(--ld-border);background:color-mix(in srgb,var(--ld-surface-3) 50%,transparent)}
+.block-editor-section-copy{display:grid;gap:2px;min-width:0;flex:1}
+.block-editor-section-copy b{font-size:11.5px;font-weight:780;line-height:1.25}
+.block-editor-section-copy small{color:var(--ld-muted);font-size:9.5px;line-height:1.35;font-weight:500}
+.block-editor-section>summary>.help-tip{flex:0 0 auto;margin-left:auto}
+.block-editor-section-body{padding:12px;gap:10px 14px}
+.block-editor-section-body>.block-field.check{padding:9px 10px;border:1px solid color-mix(in srgb,var(--ld-border) 82%,transparent);border-radius:9px;background:color-mix(in srgb,var(--ld-surface-3) 36%,transparent)}
+.block-editor-section-body>.block-field.check:hover,.block-editor-section-body>.block-field.check:focus-within{border-color:color-mix(in srgb,var(--ld-accent) 30%,var(--ld-border));background:color-mix(in srgb,var(--ld-surface-3) 54%,transparent)}
+.block-editor-section .block-field>label{display:flex;align-items:center;gap:3px}
+.block-editor-section .block-field.check>label{display:flex;align-items:center;gap:3px}
+.block-editor-section .block-editor-help{margin-left:4px}
+.block-editor-section .integration-setup-head,.block-editor-section .integration-section-visibility,.block-editor-section .integration-layout-quick,.block-editor-section .integration-setup-group,.block-editor-section .integration-customization-note{border-radius:10px}
+.block-editor-section .integration-setup-more{border:1px solid var(--ld-border);border-radius:10px;background:color-mix(in srgb,var(--ld-surface-2) 38%,transparent);padding:0;overflow:hidden}
+.block-editor-section .integration-setup-more>summary{display:flex;align-items:center;gap:7px;padding:9px 10px;cursor:pointer;color:var(--ld-text);list-style:none}
+.block-editor-section .integration-setup-more>summary::-webkit-details-marker{display:none}
+.block-editor-section .integration-setup-more>summary::before{content:'›';color:var(--ld-subtle);transition:transform .15s ease}
+.block-editor-section .integration-setup-more[open]>summary::before{transform:rotate(90deg)}
+.block-editor-section .integration-setup-grid{padding:0 10px 10px}
+.block-editor-section .integration-field-help{display:none}
+@media(max-width:700px){.block-editor-section-body{grid-template-columns:1fr}.block-editor-section-body>.block-field.full{grid-column:auto}.block-editor-section>summary{min-height:48px;padding:9px 10px}.block-editor-section-copy small{font-size:9px}}

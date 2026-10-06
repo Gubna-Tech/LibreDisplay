@@ -574,7 +574,7 @@ function manifestForBlock(block){return integrationsApi.integrationManifest(bloc
 function normalizePartDef(raw,index=0){if(!raw||typeof raw!=='object')return null;const key=cleanKey(raw.key);const selector=String(raw.selector||raw.selectors||'').trim();if(!key||!selector)return null;return {key,label:String(raw.label||key).slice(0,80),selector,parent:cleanKey(raw.parent),order:internalClamp(raw.order,-200,200,index*10),container:raw.container===true,movable:raw.movable!==false,root:raw.root===true,visibilitySetting:cleanKey(raw.visibilitySetting)};}
 function integrationPartDefs(block,manifest=manifestForBlock(block)){
   const outer={key:'outer',label:'Integration canvas',selector:'.custom-block-card',parent:'',order:-100,container:true,movable:false,root:true};
-  const title={key:'blockTitle',label:'Block title',selector:'.custom-block-title',parent:'outer',order:0,container:false,movable:true,root:false};
+  const title={key:'blockTitle',label:'Element title / header',selector:'.custom-block-title',parent:'outer',order:0,container:false,movable:true,root:false};
   const raw=integrationsApi.integrationLayoutParts?.(manifest)||[];
   const defs=[outer,title];let index=0;
   for(const item of raw){const def=normalizePartDef(item,index++);if(!def||defs.some(x=>x.key===def.key))continue;if(!def.parent)def.parent='outer';defs.push(def);}
