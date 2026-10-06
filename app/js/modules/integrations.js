@@ -22,6 +22,61 @@ async function loadIntegrations(){
   }catch(e){console.warn('integration discovery failed',e);}
 }
 function integrationManifest(id){return integrationManifestMap.get(String(id||''))||null;}
+const INTEGRATION_LAYOUT_PART_DEFAULTS={
+  status:[
+    {key:'root',label:'Status content',selector:'.integration-status',root:true,container:true,movable:false,order:0},
+    {key:'value',label:'Primary value',selector:'.integration-status-value',parent:'root',order:0},
+    {key:'provider',label:'Provider label',selector:'.integration-status-provider',parent:'root',order:10},
+    {key:'details',label:'Details',selector:'.integration-status-details',parent:'root',container:true,order:20},
+    {key:'detailLabels',label:'Detail labels',selector:'.integration-status-detail b',parent:'details',movable:false,order:0},
+    {key:'detailValues',label:'Detail values',selector:'.integration-status-detail span',parent:'details',movable:false,order:10},
+  ],
+  'now-playing':[
+    {key:'root',label:'Now playing content',selector:'.integration-now-playing',root:true,container:true,movable:false,order:0},
+    {key:'art',label:'Artwork',selector:'.integration-now-art',parent:'root',order:0},
+    {key:'copy',label:'Track information',selector:'.integration-now-copy',parent:'root',container:true,order:10},
+    {key:'title',label:'Track title',selector:'.integration-now-title',parent:'copy',order:0},
+    {key:'artist',label:'Artist',selector:'.integration-now-artist',parent:'copy',order:10},
+    {key:'album',label:'Album',selector:'.integration-now-album',parent:'copy',order:20},
+    {key:'progress',label:'Playback progress',selector:'.integration-now-progress',parent:'copy',order:30},
+    {key:'state',label:'Playback status',selector:'.integration-now-state',parent:'copy',order:40},
+  ],
+  photos:[
+    {key:'root',label:'Photo content',selector:'.integration-photo',root:true,container:true,movable:false,order:0},
+    {key:'image',label:'Photo',selector:'.integration-photo img',parent:'root',order:0},
+    {key:'caption',label:'Photo caption',selector:'.integration-photo-caption',parent:'root',order:10},
+  ],
+  tasks:[
+    {key:'root',label:'Task content',selector:'.integration-task-shell',root:true,container:true,movable:false,order:0},
+    {key:'list',label:'Task list',selector:'.integration-task-list',parent:'root',container:true,order:0},
+    {key:'items',label:'Task rows',selector:'.integration-task',parent:'list',movable:false,order:0},
+    {key:'actions',label:'Completion controls',selector:'.integration-task button',parent:'items',movable:false,order:0},
+    {key:'titles',label:'Task titles',selector:'.integration-task-title',parent:'items',movable:false,order:10},
+    {key:'metadata',label:'Task details',selector:'.integration-task-meta',parent:'items',movable:false,order:20},
+  ],
+  messages:[
+    {key:'root',label:'Message content',selector:'.integration-message-shell',root:true,container:true,movable:false,order:0},
+    {key:'list',label:'Message list',selector:'.integration-messages',parent:'root',container:true,order:0},
+    {key:'items',label:'Message cards',selector:'.integration-message',parent:'list',movable:false,order:0},
+    {key:'text',label:'Message text',selector:'.integration-message-text',parent:'items',movable:false,order:0},
+    {key:'metadata',label:'Message metadata',selector:'.integration-message-meta',parent:'items',movable:false,order:10},
+  ],
+  map:[
+    {key:'root',label:'Map content',selector:'.integration-map-shell',root:true,container:true,movable:false,order:0},
+    {key:'map',label:'Map',selector:'.integration-map',parent:'root',order:0},
+  ],
+  data:[
+    {key:'root',label:'Integration content',selector:'.integration-data,.integration-render-host',root:true,container:true,movable:false,order:0},
+    {key:'content',label:'Primary content',selector:'.custom-data-value,.custom-data-raw,.custom-rss-list',parent:'root',container:true,order:0},
+    {key:'detail',label:'Supporting detail',selector:'.integration-data-detail',parent:'root',order:10},
+    {key:'items',label:'List items',selector:'.custom-rss-item',parent:'content',movable:false,order:0},
+  ],
+};
+function integrationLayoutParts(manifest){
+  const explicit=Array.isArray(manifest?.layoutParts)&&manifest.layoutParts.length?manifest.layoutParts:null;
+  const source=explicit||(INTEGRATION_LAYOUT_PART_DEFAULTS[String(manifest?.kind||'data')]||INTEGRATION_LAYOUT_PART_DEFAULTS.data);
+  return source.map(row=>({...row}));
+}
 let integrationHealthRows=[];
 let integrationHealthLoadedAt=0;
 function configuredIntegrationBlocks(){return (cfg.customBlocks||[]).filter(b=>b?.type==='integration'&&b.config?.plugin);}
@@ -92,7 +147,7 @@ function arrangeCustomBlockFromSettings(blockId){launchCustomBlockFromSettings(b
 function addIntegrationFromSettings(pluginId){if(LibreDisplayRuntime.getModule('system').settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;closeSetup(true);setTimeout(()=>{startLayoutEditor();beginAddIntegration(pluginId);},80);}
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("integrations", {loadIntegrations,integrationManifest,configuredIntegrationBlocks,integrationDirectoryCategories,integrationAccessKind,integrationAccessLabel,integrationFreedomRank,integrationMatchesAccess,healthAgeText,healthTimeText,integrationStateLabel,integrationErrorKindLabel,integrationStatusRank,integrationRowsForPlugin,integrationAggregateForPlugin,loadIntegrationHealth,renderConfiguredIntegrationBlocks,renderIntegrationDirectory,renderIntegrationHealth,forceIntegrationCheck,checkIntegrationNow,checkAllIntegrationsNow,launchCustomBlockFromSettings,editCustomBlockFromSettings,arrangeCustomBlockFromSettings,addIntegrationFromSettings}, {
+LibreDisplayRuntime.exposeModule("integrations", {loadIntegrations,integrationManifest,integrationLayoutParts,configuredIntegrationBlocks,integrationDirectoryCategories,integrationAccessKind,integrationAccessLabel,integrationFreedomRank,integrationMatchesAccess,healthAgeText,healthTimeText,integrationStateLabel,integrationErrorKindLabel,integrationStatusRank,integrationRowsForPlugin,integrationAggregateForPlugin,loadIntegrationHealth,renderConfiguredIntegrationBlocks,renderIntegrationDirectory,renderIntegrationHealth,forceIntegrationCheck,checkIntegrationNow,checkAllIntegrationsNow,launchCustomBlockFromSettings,editCustomBlockFromSettings,arrangeCustomBlockFromSettings,addIntegrationFromSettings}, {
   "DEFAULT_CAL_COLORS": {configurable:true,get:()=>DEFAULT_CAL_COLORS},
   "integrationManifests": {configurable:true,get:()=>integrationManifests,set:(value)=>{integrationManifests=value;}},
   "integrationManifestMap": {configurable:true,get:()=>integrationManifestMap,set:(value)=>{integrationManifestMap=value;}},
