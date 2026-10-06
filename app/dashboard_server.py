@@ -1054,7 +1054,7 @@ def clean_plugin_field(field):
     if not key:
         return None
     ftype = str(field.get("type") or "text").lower()
-    if ftype not in {"text", "password", "url", "number", "checkbox", "select", "textarea"}:
+    if ftype not in {"text", "password", "url", "number", "checkbox", "select", "textarea", "color"}:
         ftype = "text"
     row = {
         "key": key,
@@ -1063,7 +1063,16 @@ def clean_plugin_field(field):
         "default": field.get("default"),
         "required": bool(field.get("required", False)),
         "help": str(field.get("help") or "").strip()[:240],
+        "section": str(field.get("section") or "").strip()[:80],
+        "sectionHelp": str(field.get("sectionHelp") or "").strip()[:240],
+        "sectionOpen": bool(field.get("sectionOpen", False)),
+        "placeholder": str(field.get("placeholder") or "").strip()[:160],
     }
+    if ftype == "number":
+        for attr in ("min", "max", "step"):
+            value = field.get(attr)
+            if value is not None:
+                row[attr] = value
     if ftype == "select":
         options = []
         for option in field.get("options") or []:
