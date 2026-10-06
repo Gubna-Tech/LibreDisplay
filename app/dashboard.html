@@ -164,7 +164,7 @@
   </div>
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.9.1</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.9.2</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
   <div class="s-section" id="settings-endpoints" data-settings-tab="displays">
    <h3>Displays</h3>
@@ -562,7 +562,7 @@
    <div class="settings-grid">
     <label class="checkline"><input id="s-weather-dog-companion" type="checkbox" onchange="previewAppearance()"> Show dog companion</label>
     <div class="s-row"><label>Dog breed</label><select id="s-weather-dog-breed" onchange="previewAppearance()"><option value="labrador">Labrador Retriever</option><option value="golden">Golden Retriever</option><option value="german-shepherd">German Shepherd</option><option value="white-swiss-shepherd">White Swiss Shepherd</option><option value="great-pyrenees">Great Pyrenees</option><option value="nova-scotia-duck-tolling-retriever">Nova Scotia Duck Tolling Retriever</option><option value="border-collie">Border Collie</option><option value="australian-shepherd">Australian Shepherd</option><option value="beagle">Beagle</option><option value="corgi">Pembroke Welsh Corgi</option><option value="dachshund">Dachshund</option><option value="french-bulldog">French Bulldog</option><option value="poodle">Standard Poodle</option><option value="husky">Siberian Husky</option><option value="shiba">Shiba Inu</option><option value="boxer">Boxer</option><option value="great-dane">Great Dane</option><option value="chihuahua">Chihuahua</option></select></div>
-    <div class="s-row"><label>Labrador coat</label><select id="s-weather-dog-labrador-coat" onchange="previewAppearance()"><option value="black">Black</option><option value="yellow" selected>Yellow / cream</option><option value="fox-red">Fox red</option><option value="chocolate">Chocolate</option></select><div class="settings-note">Used only for Labrador Retrievers. Yellow Labradors naturally range from pale cream through fox red, so both are available as visual choices.</div></div>
+    <div class="s-row"><label>Breed color / pattern</label><select id="s-weather-dog-labrador-coat" onchange="previewAppearance()"><option value="yellow" selected>Yellow / cream</option></select><div class="settings-note">Choices follow the selected breed, including breed-appropriate colors and patterns such as sable, merle, brindle, tricolor, dapple, agouti, and harlequin where applicable.</div></div>
     <div class="s-row"><label>Accessory</label><select id="s-weather-dog-accessory" onchange="previewAppearance()"><option value="none">No accessory</option><option value="collar" selected>Collar</option><option value="bandana">Bandana</option></select><div class="settings-note">Choose a collar, a tied bandana, or no accessory. The selected color is shared by collars and bandanas.</div></div>
     <div class="s-row"><label>Accessory color</label><div class="color-setting-row"><input id="s-weather-dog-accessory-color" type="color" value="#3478d4" aria-label="Dog accessory color"><input id="s-weather-dog-accessory-color-hex" class="color-hex" type="text" maxlength="7" value="#3478D4" spellcheck="false" aria-label="Dog accessory hex color"></div></div>
     <div class="s-row"><label>Companion activity <span id="s-weather-dog-activity-value" class="range-value">100%</span></label><input id="s-weather-dog-activity" type="range" min="40" max="160" step="5" value="100" oninput="previewAppearance()"><div class="settings-note">Activity changes how often the dog chooses active behaviors. Even at high activity it still rests, sits, sniffs, and sleeps.</div></div>
@@ -960,7 +960,7 @@
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.9.1</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.9.2</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>

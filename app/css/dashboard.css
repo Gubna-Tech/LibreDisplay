@@ -2829,3 +2829,18 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
   #setup .settings-section-card{padding:10px 11px}
   #setup .settings-page-meta{font-size:8.5px}
 }
+
+/* Dog shelter compositing: the dog is clipped into the doorway between the dark interior and front sill. */
+.weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse{width:190px;height:132px}
+.weather-fx-dog-v2 .dogv2-doghouse-back::after{left:30px;bottom:0;width:84px;height:75px;border-radius:45px 45px 3px 3px;background:radial-gradient(ellipse at 50% 78%,rgba(87,56,43,.34),transparent 58%),linear-gradient(180deg,#211916,#0d0b0a);box-shadow:inset 0 0 14px rgba(0,0,0,.76)}
+.weather-fx-dog-v2 .dogv2-house-head{left:55px;bottom:4px;width:84px;height:73px;z-index:3;overflow:hidden;border-radius:44px 44px 2px 2px;background:transparent;clip-path:ellipse(51% 67% at 50% 60%);animation:ldDogHouseSettle 6.6s ease-in-out infinite;transform-origin:50% 86%}
+.weather-fx-dog-v2 .dogv2-house-head svg{width:100%;height:100%;overflow:hidden}
+.weather-fx-dog-v2 .dogv2-doghouse-front{left:22px;bottom:-1px;width:150px;height:20px;z-index:6;border-radius:3px;background:linear-gradient(180deg,#ae7040,#784526);box-shadow:inset 0 2px 0 rgba(255,255,255,.11),0 -2px 5px rgba(0,0,0,.13)}
+.weather-fx-dog-v2 .dogv2-doghouse-front::after{left:49px;right:49px;top:3px;height:3px}
+.weather-fx-dog-v2 .dogv2-bandana{filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))}.weather-fx-dog-v2 .dogv2-bandana-neck{stroke-linejoin:round}.weather-fx-dog-v2 .dogv2-bandana-cloth{transform-origin:50% 0}
+
+/* Update attention: visible without turning Settings into an alarm. */
+#setup #settings-software-update.update-attention{border-color:color-mix(in srgb,#f4c542 55%,var(--ld-border));box-shadow:0 0 0 1px rgba(244,197,66,.14),0 0 24px rgba(244,197,66,.10)}
+#setup .update-now-btn.update-emphasis{border-color:#f4c542;box-shadow:0 0 0 1px rgba(244,197,66,.34),0 0 18px rgba(244,197,66,.42);animation:ld192UpdateGlow 1.9s ease-in-out infinite;background:color-mix(in srgb,var(--ld-accent) 82%,#f4c542 18%)}
+@keyframes ld192UpdateGlow{0%,100%{box-shadow:0 0 0 1px rgba(244,197,66,.26),0 0 10px rgba(244,197,66,.24);transform:translateZ(0)}50%{box-shadow:0 0 0 2px rgba(244,197,66,.42),0 0 26px rgba(244,197,66,.58);transform:translateZ(0) scale(1.018)}}
+html.ld-reduce-motion #setup .update-now-btn.update-emphasis{animation:none!important}

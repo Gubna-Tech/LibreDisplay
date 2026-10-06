@@ -63,16 +63,16 @@ function renderSoftwareUpdateStatus(){
     const checked=Number(d?.checkedAt)||0,when=checked?new Date(checked*1000).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'';
     autoStatus.textContent=checked?`Automatic update detection is on · last checked ${when}${d?.stale?' · showing last successful result':''}.`:'Automatic update detection is on · checking when Settings opens and every 15 minutes while open.';
   }
-  const updateAvailable=bootstrapApi.SESSION_ROLE==='owner'&&!!d?.ok&&!!d.updateAvailable;
+  const updateAvailable=bootstrapApi.SESSION_ROLE==='owner'&&!!d?.ok&&!!d.updateAvailable,updateSection=document.getElementById('settings-software-update');
   if(badge){badge.classList.toggle('show',updateAvailable);badge.setAttribute('aria-hidden',updateAvailable?'false':'true');}
-  if(systemTab)systemTab.classList.toggle('update-available',updateAvailable);
+  if(systemTab)systemTab.classList.toggle('update-available',updateAvailable);if(updateSection){updateSection.classList.toggle('update-attention',updateAvailable);if(updateAvailable){updateSection.classList.remove('section-collapsed');updateSection.querySelector(':scope > h3')?.setAttribute('aria-expanded','true');try{LibreDisplayRuntime.getModule('settings').saveCollapsedSettingsSections?.();}catch(_e){}}}
   if(releaseLink){
     const href=d?.releaseUrl&&safeHttpUrl(d.releaseUrl)?safeHttpUrl(d.releaseUrl):'';
     releaseLink.href=href||'#';
     releaseLink.classList.toggle('show',!!href&&!!d?.updateAvailable);
     if(d?.latestVersion)releaseLink.textContent=`View v${d.latestVersion} release notes ↗`;
   }
-  if(updateBtn){updateBtn.style.display='none';updateBtn.disabled=false;updateBtn.textContent='Update now';}
+  if(updateBtn){updateBtn.style.display='none';updateBtn.disabled=false;updateBtn.textContent='Update now';updateBtn.classList.toggle('update-emphasis',updateAvailable&&!!d?.canUpdateInApp);}
   if(!d){if(status)status.textContent='Checking GitHub…';if(instructions)instructions.style.display='none';return;}
   if(!d.ok){if(status)status.textContent='Could not check right now';if(instructions){instructions.style.display='block';instructions.textContent='LibreDisplay will try again later. You can also run “libredisplay check” in Terminal.';}return;}
   if(d.updateAvailable){
