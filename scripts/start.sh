@@ -6,8 +6,8 @@ ENV_FILE="$ROOT_DIR/data/libredisplay.env"
 SERVER="$ROOT_DIR/app/dashboard_server.py"
 DATA_DIR="$ROOT_DIR/data"
 
-mkdir -p "$DATA_DIR"
 umask 077
+mkdir -p "$DATA_DIR"
 
 # Native updates leave a private transaction marker before any live application
 # path is replaced. If power was lost mid-update, recover the verified pre-update
@@ -34,7 +34,8 @@ fi
 : "${DASHBOARD_ENDPOINT:=main}"
 : "${DASHBOARD_KIOSK_WATCHDOG:=1}"
 : "${DASHBOARD_KIOSK_HEARTBEAT_TIMEOUT:=150}"
-export DASHBOARD_HOST DASHBOARD_PORT DASHBOARD_REMOTE_ENABLED DASHBOARD_REMOTE_NETWORKS DASHBOARD_DATA_DIR DASHBOARD_ENDPOINT
+: "${PYTHONDONTWRITEBYTECODE:=1}"
+export DASHBOARD_HOST DASHBOARD_PORT DASHBOARD_REMOTE_ENABLED DASHBOARD_REMOTE_NETWORKS DASHBOARD_DATA_DIR DASHBOARD_ENDPOINT PYTHONDONTWRITEBYTECODE
 mkdir -p "$DASHBOARD_DATA_DIR"
 KIOSK_HEARTBEAT_FILE="$DASHBOARD_DATA_DIR/kiosk-heartbeat.json"
 DISPLAY_MODE_FILE="$DASHBOARD_DATA_DIR/display-mode.json"

@@ -2844,3 +2844,20 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 #setup .update-now-btn.update-emphasis{border-color:#f4c542;box-shadow:0 0 0 1px rgba(244,197,66,.34),0 0 18px rgba(244,197,66,.42);animation:ld192UpdateGlow 1.9s ease-in-out infinite;background:color-mix(in srgb,var(--ld-accent) 82%,#f4c542 18%)}
 @keyframes ld192UpdateGlow{0%,100%{box-shadow:0 0 0 1px rgba(244,197,66,.26),0 0 10px rgba(244,197,66,.24);transform:translateZ(0)}50%{box-shadow:0 0 0 2px rgba(244,197,66,.42),0 0 26px rgba(244,197,66,.58);transform:translateZ(0) scale(1.018)}}
 html.ld-reduce-motion #setup .update-now-btn.update-emphasis{animation:none!important}
+
+.weather-fx-dog-v2 .dogv2-body-markings,.weather-fx-dog-v2 .dogv2-head-markings,.weather-fx-dog-v2 .dogv2-shelter-head-markings{pointer-events:none}
+.weather-fx-dog-v2 .dogv2-bandana{filter:drop-shadow(0 1px 1px rgba(0,0,0,.18));transform-origin:48% 38%}
+.weather-fx-dog-v2 .dogv2-bandana-neck{stroke-linejoin:round}
+.weather-fx-dog-v2 .dogv2-bandana-cloth{transform-origin:50% 8%}
+.weather-fx-dog-v2.dog-shelter-house{animation:none!important}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse,.weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse *,.weather-fx-dog-v2.dog-shelter-house .dogv2-house-head{animation:none!important}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-house-head{transform:none!important}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse{filter:drop-shadow(0 4px 5px rgba(0,0,0,.18))}
+.weather-fx-dog-v2.dog-shelter-flood{animation:none!important}
+.weather-fx-dog-v2.dog-shelter-flood .dogv2-shadow{opacity:0}
+.weather-fx-dog-v2.dog-shelter-flood .dogv2-floaty{bottom:18px;animation:ld193FloatyRing 3.6s ease-in-out infinite}
+.weather-fx-dog-v2.dog-shelter-flood .dogv2-pose-stage{transform:translate(0,11px) scale(.89);animation:ld193DogFloat 3.6s ease-in-out infinite;transform-origin:50% 70%}
+.weather-fx-dog-v2.dog-shelter-flood .dogv2-head-group{animation:ld193DogFloatHead 3.6s ease-in-out infinite}
+@keyframes ld193DogFloat{0%,100%{transform:translate(0,10px) scale(.89) rotate(-1.2deg)}25%{transform:translate(0,6px) scale(.89) rotate(.3deg)}50%{transform:translate(0,3px) scale(.89) rotate(1deg)}75%{transform:translate(0,7px) scale(.89) rotate(.2deg)}}
+@keyframes ld193DogFloatHead{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-1px) rotate(1.4deg)}}
+@keyframes ld193FloatyRing{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-2px) rotate(1deg)}}
