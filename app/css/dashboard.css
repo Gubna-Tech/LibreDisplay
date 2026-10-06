@@ -2951,3 +2951,11 @@ body.ld-deadhead-subtle .bg-layer::after{opacity:calc(.5 * var(--ld-deadhead-bg-
 .deadhead-panel .deadhead-hide-scrollbar{scrollbar-width:none;-ms-overflow-style:none}
 .deadhead-panel .deadhead-hide-scrollbar::-webkit-scrollbar{width:0;height:0;display:none}
 .deadhead-panel .deadhead-autoscroll-active{will-change:scroll-position}
+
+/* Focused integration-internal Arrange controls: major sections first, details on demand. */
+.layout-internal-scope-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:7px 0}.layout-internal-scope-tabs button{border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.055);color:var(--ld-subtle);font:700 10px/1.2 var(--ld-app-font);padding:7px 8px;cursor:pointer}.layout-internal-scope-tabs button.active{border-color:color-mix(in srgb,var(--ld-accent) 55%,rgba(255,255,255,.16));background:color-mix(in srgb,var(--ld-accent) 14%,transparent);color:var(--ld-text)}
+.layout-internal-advanced{margin-top:8px;border-top:1px dashed rgba(255,255,255,.12);padding-top:7px}.layout-internal-advanced[hidden]{display:none!important}.layout-internal-advanced summary{cursor:pointer;color:var(--ld-text);font-size:10px;font-weight:750;list-style:none;padding:3px 0}.layout-internal-advanced summary::-webkit-details-marker{display:none}.layout-internal-advanced summary::before{content:'›';display:inline-block;margin-right:6px;transition:transform .15s ease}.layout-internal-advanced[open] summary::before{transform:rotate(90deg)}
+.layout-internal-edit-box:not(.selected){opacity:.72}.layout-integration-internal .layout-prop-hint{line-height:1.35}
+
+/* Seamless Deadhead carousel clones repeat content without moving the fixed setlist source header. */
+.deadhead-panel .deadhead-reel-clone{pointer-events:none}.deadhead-panel .deadhead-show-list,.deadhead-panel .deadhead-year-strip,.deadhead-panel .deadhead-setlist-scroll{overflow-anchor:none}

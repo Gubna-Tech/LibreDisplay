@@ -3,6 +3,7 @@ import hashlib
 import html
 import json
 import re
+import time
 from urllib.parse import quote, urlencode
 from _shared import request_json, plain_text
 
@@ -11,10 +12,11 @@ MANIFEST={"id":"grateful-dead",
  'name': 'Deadhead · Grateful Dead',
  'description': 'Unofficial fan integration for deeply customizable Today in Dead History shows, setlists, sourced member quotes, and '
                 'listening suggestions.',
- 'version': '1.5',
+ 'version': '1.6',
  'icon': '✺',
  'refreshMin': 30,
  'kind': 'data',
+ 'actions': ['load-setlist'],
  'category': 'Media',
  'access': 'no-key',
  'freedomNote': 'Setlists prefer JerryBase, then Relisten, then Internet Archive; listening links prefer Internet Archive. These core sources require no LibreDisplay API key or account.',
@@ -131,18 +133,20 @@ MANIFEST={"id":"grateful-dead",
                'max': 120,
                'step': 0.5},
               {'key': 'browserScrollLoopPause',
-               'label': 'Browser pause at each end / loop (sec)',
+               'label': 'Browser end / restart pause (sec)',
                'type': 'number',
                'default': 4,
                'section': 'Shows & rotation',
                'min': 0,
                'max': 180,
-               'step': 0.5},
+               'step': 0.5,
+               'help': 'Used by Bounce and Restart. Continuous carousel mode repeats seamlessly without an end pause.'},
               {'key': 'browserScrollLoopMode',
                'label': 'Browser auto-scroll loop style',
                'type': 'select',
-               'default': 'bounce',
-               'options': [{'value': 'bounce', 'label': 'Bounce · down/up continuously'},
+               'default': 'continuous',
+               'options': [{'value': 'continuous', 'label': 'Continuous carousel · seamless repeat'},
+                           {'value': 'bounce', 'label': 'Bounce · down/up continuously'},
                            {'value': 'restart', 'label': 'Restart · top to bottom, then top'},
                            {'value': 'once', 'label': 'Once · stop at the end'}],
                'section': 'Shows & rotation'},
@@ -404,6 +408,21 @@ MANIFEST={"id":"grateful-dead",
                            {'value': '5', 'label': '5 shows'},
                            {'value': '8', 'label': '8 shows'}],
                'section': 'Setlists'},
+              {'key': 'setlistSmartLoad',
+               'label': 'Smart-load missing setlists',
+               'type': 'checkbox',
+               'default': True,
+               'section': 'Setlists',
+               'help': 'When a rotating or selected show was not preloaded, LibreDisplay checks JerryBase, Relisten, then Internet Archive automatically instead of leaving the setlist area blank.'},
+              {'key': 'setlistPreloadAhead',
+               'label': 'Smart-load shows ahead',
+               'type': 'number',
+               'default': 2,
+               'section': 'Setlists',
+               'min': 0,
+               'max': 6,
+               'step': 1,
+               'help': 'Prepares upcoming setlists in the background so unattended show rotation is less likely to wait for a lookup.'},
               {'key': 'setlistHeading', 'label': 'Setlist heading', 'type': 'text', 'default': 'Setlist', 'section': 'Setlists'},
               {'key': 'setlistShowSource',
                'label': 'Show setlist source / attribution',
@@ -481,12 +500,14 @@ MANIFEST={"id":"grateful-dead",
                'section': 'Setlists',
                'min': 0,
                'max': 180,
-               'step': 0.5},
+               'step': 0.5,
+               'help': 'Used by Bounce and Restart. Continuous carousel mode repeats seamlessly without an end pause.'},
               {'key': 'setlistScrollLoopMode',
                'label': 'Setlist auto-scroll loop style',
                'type': 'select',
-               'default': 'restart',
-               'options': [{'value': 'restart', 'label': 'Restart · top to bottom, then top'},
+               'default': 'continuous',
+               'options': [{'value': 'continuous', 'label': 'Continuous carousel · seamless repeat'},
+                           {'value': 'restart', 'label': 'Restart · top to bottom, then top'},
                            {'value': 'bounce', 'label': 'Bounce · down/up continuously'},
                            {'value': 'once', 'label': 'Once · stop at the end'}],
                'section': 'Setlists'},
@@ -1011,8 +1032,44 @@ def _setlistfm_enrichment(ctx,key,show,favorites):
 def _setlist_enrichment(ctx,key,show,favorites):
     return _setlistfm_enrichment(ctx,key,show,favorites)
 
+_SETLIST_CACHE={}
+_SETLIST_CACHE_TTL=6*60*60
+_SETLIST_NEGATIVE_TTL=30*60
+
+def _setlist_cache_key(settings,show):
+    source=str(settings.get('setlistSource') or 'auto').lower()
+    keyed='1' if str(settings.get('setlistApiKey') or '').strip() else '0'
+    return (str(show.get('date') or ''),str(show.get('identifier') or ''),source,keyed)
+
+def _setlist_with_favorites(row,favorites):
+    if not row:return None
+    copy=json.loads(json.dumps(row))
+    flat=[song for group in copy.get('sets') or [] for song in group.get('songs') or []]
+    copy['favoriteSongHits']=[song for song in flat if any(token in str(song).lower() for token in favorites)][:10]
+    return copy
+
+def _setlist_cache_get(settings,show,favorites):
+    item=_SETLIST_CACHE.get(_setlist_cache_key(settings,show))
+    if not item:return False,None
+    saved_at,row=item
+    ttl=_SETLIST_CACHE_TTL if row else _SETLIST_NEGATIVE_TTL
+    if time.time()-saved_at>ttl:
+        _SETLIST_CACHE.pop(_setlist_cache_key(settings,show),None)
+        return False,None
+    return True,_setlist_with_favorites(row,favorites) if row else None
+
+def _setlist_cache_put(settings,show,row):
+    clean=None
+    if row:
+        clean=json.loads(json.dumps(row))
+        clean.pop('favoriteSongHits',None)
+    _SETLIST_CACHE[_setlist_cache_key(settings,show)]=(time.time(),clean)
+
 def _setlist_for_show(ctx,settings,show,favorites):
     source=str(settings.get('setlistSource') or 'auto').lower();key=str(settings.get('setlistApiKey') or '').strip();errors=[]
+    if ctx is not None:
+        cached,row=_setlist_cache_get(settings,show,favorites)
+        if cached:return row,errors
     providers=[]
     if source in ('auto','jerrybase'): providers.append(('JerryBase',lambda:_jerrybase_setlist(ctx,show,favorites)))
     if source in ('auto','relisten'): providers.append(('Relisten',lambda:_relisten_setlist(ctx,show,favorites)))
@@ -1021,9 +1078,29 @@ def _setlist_for_show(ctx,settings,show,favorites):
     for name,fn in providers:
         try:
             row=fn()
-            if row and row.get('sets'): return row,errors
+            if row and row.get('sets'):
+                if ctx is not None:_setlist_cache_put(settings,show,row)
+                return row,errors
         except Exception as exc: errors.append(f'{name}: {str(exc)[:60]}')
+    if ctx is not None and not errors:_setlist_cache_put(settings,show,None)
     return None,errors
+
+
+def action(settings,context,action_name,payload):
+    if action_name!='load-setlist':raise ValueError('Unsupported Deadhead action')
+    date=_show_date((payload or {}).get('date'))
+    if not date:raise ValueError('A valid show date is required')
+    identifier=plain_text((payload or {}).get('identifier') or '',180)
+    if identifier and not re.fullmatch(r'[A-Za-z0-9._-]{1,180}',identifier):identifier=''
+    show={
+        'date':date,'year':int(date[:4]),'identifier':identifier,
+        'archiveUrl':f'https://archive.org/details/{quote(identifier)}' if identifier else 'https://archive.org/details/GratefulDead',
+        'relistenUrl':f'https://relisten.net/grateful-dead/{date[:4]}/{date[5:7]}/{date[8:10]}',
+        'jerrybaseUrl':f'https://jerrybase.com/events/{date.replace("-","")}-01',
+    }
+    favorites=_tokens(settings.get('favoriteSongs'))
+    row,errors=_setlist_for_show(context,settings,show,favorites)
+    return {'date':date,'available':bool(row and row.get('sets')),'setlist':row,'errors':errors[:4]}
 
 def fetch(settings,context):
     today=datetime.datetime.now().astimezone().date();era=str(settings.get('era') or 'all').lower();provider_error=''
@@ -1038,11 +1115,21 @@ def fetch(settings,context):
     display=_display_settings(settings);setlists={};setlist_errors=[]
     if display.get('setlistsEnabled',True) and shows:
         preload=min(len(shows),_int(settings.get('setlistPreload'),1,8,3))
+        # Reuse setlists discovered by on-demand smart loading before spending more network requests.
+        for show in shows:
+            cached,row=_setlist_cache_get(settings,show,favorites)
+            if cached and row:setlists[show['date']]=row
         indices=list(range(len(shows)))
         if featured_index>=0: indices=[featured_index]+[i for i in indices if i!=featured_index]
-        for idx in indices[:preload]:
-            row,errors=_setlist_for_show(context,settings,shows[idx],favorites)
-            if row:setlists[shows[idx]['date']]=row
+        # A failed lookup no longer consumes a preload slot: keep scanning until the requested
+        # number of actual setlists is available, or every rotating show has been checked.
+        for idx in indices:
+            show=shows[idx]
+            is_featured=(idx==featured_index)
+            if len(setlists)>=preload and not (is_featured and show['date'] not in setlists):break
+            if show['date'] in setlists:continue
+            row,errors=_setlist_for_show(context,settings,show,favorites)
+            if row:setlists[show['date']]=row
             setlist_errors.extend(errors)
     quotes=_quote_rows(settings,today) if display.get('quotesEnabled',True) else []
     return {
