@@ -1,6 +1,0 @@
-from _shared import request_json, qs
-MANIFEST={"apiVersion":1,"id":"alpha-vantage","name":"Stocks · Alpha Vantage","description":"Show the latest quoted price and change for a stock symbol using Alpha Vantage.","version":"1.0","icon":"$","refreshMin":5,"kind":"status","settings":[{"key":"apiKey","label":"Alpha Vantage API key","type":"password","required":True},{"key":"symbol","label":"Ticker symbol","type":"text","required":True},{"key":"label","label":"Display label","type":"text"}]}
-def fetch(s,c):
- data,_,_=request_json(c,qs('https://www.alphavantage.co/query',{'function':'GLOBAL_QUOTE','symbol':str(s.get('symbol') or '').upper(),'apikey':s.get('apiKey')})); q=data.get('Global Quote') or {}; price=q.get('05. price'); change=q.get('09. change'); pct=str(q.get('10. change percent') or '').replace('%','')
- if not price: raise RuntimeError(str(data.get('Note') or data.get('Information') or 'No quote returned'))
- return {'kind':'status','provider':'Alpha Vantage','title':str(s.get('label') or s.get('symbol') or '').upper(),'value':float(price),'suffix':'','details':[{'label':'Change','value':change},{'label':'Change %','value':pct+'%' if pct else ''},{'label':'Previous close','value':q.get('08. previous close')}]}
