@@ -9,6 +9,7 @@ const modulePaths = [
   "/js/core/performance.js",
   "/js/weather/index.js",
   "/js/weather/scenery.js",
+  "/js/weather/canvas.js",
   "/js/weather/effects.js",
   "/js/weather/alerts.js",
   "/js/calendar/ics-parser.js",

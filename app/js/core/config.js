@@ -9,7 +9,7 @@ let cfg = {
   calendars:[],
   photosUrl:'',
   mediaFolders:[],
-  mediaRecursive:true,backgroundMotionEnabled:null,lightweightModeEnabled:false,
+  mediaRecursive:true,backgroundMotionEnabled:null,lightweightModeEnabled:false,animationPerformanceMode:'auto',
   backgroundSource:'google',
   stockCategory:'nature',
   stockQuery:'',

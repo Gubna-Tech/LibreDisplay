@@ -5,6 +5,8 @@
 const managedIntervals=new Map();
 const managedRuns=new Map();
 let longTaskCount=0,longTaskTotalMs=0,longTaskMaxMs=0,longTaskObserverActive=false;
+const ANIMATION_MODES=new Set(['auto','smooth','balanced','fidelity']);
+let animationGovernor={running:false,raf:0,lastSample:0,samples:[],fps:0,targetFps:45,droppedPct:0,quality:.74,lastAdjust:0,frames:0,dropped:0};
 
 function frontendCapabilities(){
   const cores=Math.max(0,Number(navigator.hardwareConcurrency)||0);
@@ -32,7 +34,7 @@ function frontendPixelLoad(){
   return {physicalWidth,physicalHeight,megapixels,tier:megapixels>=7?'4k':megapixels>=3.2?'highres':'standard'};
 }
 
-function visualPerformanceBudget(){
+function baseVisualPerformanceBudget(){
   const caps=frontendCapabilities(),pixels=frontendPixelLoad();
   if(caps.piClass&&pixels.tier==='4k')return {tier:'pi4',resolutionTier:'4k',particleScale:.14,wildlifeScale:.22,holidayScale:.27,hazardScale:.33,cloudScale:.34,targetFrameMs:24,blurScale:0,maxParticles:18,maxFogBanks:2,maxClouds:4,secondaryScale:.36};
   if(caps.piClass&&pixels.tier==='highres')return {tier:'pi4',resolutionTier:'highres',particleScale:.18,wildlifeScale:.26,holidayScale:.31,hazardScale:.39,cloudScale:.40,targetFrameMs:16,blurScale:0,maxParticles:24,maxFogBanks:2,maxClouds:5,secondaryScale:.44};
@@ -40,6 +42,15 @@ function visualPerformanceBudget(){
   if(caps.constrained)return {tier:'constrained',resolutionTier:pixels.tier,particleScale:.46,wildlifeScale:.54,holidayScale:.62,hazardScale:.72,cloudScale:.76,targetFrameMs:24,blurScale:.30,maxParticles:56,maxFogBanks:3,maxClouds:9,secondaryScale:.72};
   return {tier:'standard',resolutionTier:pixels.tier,particleScale:1,wildlifeScale:1,holidayScale:1,hazardScale:1,cloudScale:1,targetFrameMs:16,blurScale:1,maxParticles:240,maxFogBanks:8,maxClouds:20,secondaryScale:1};
 }
+function currentAnimationPerformanceMode(){try{const value=String(LibreDisplayRuntime.getModule('config')?.cfg?.animationPerformanceMode||'auto').toLowerCase();return ANIMATION_MODES.has(value)?value:'auto';}catch{return 'auto';}}
+function animationModeProfile(){const caps=frontendCapabilities(),pixels=frontendPixelLoad(),mode=currentAnimationPerformanceMode();if(!caps.piClass)return {mode,targetFps:60,quality:1};if(mode==='smooth')return {mode,targetFps:30,quality:.58};if(mode==='balanced')return {mode,targetFps:45,quality:.76};if(mode==='fidelity')return {mode,targetFps:60,quality:1};const initial=pixels.tier==='4k'?30:animationGovernor.targetFps||45;return {mode,targetFps:initial,quality:animationGovernor.quality||.74};}
+function visualPerformanceBudget(){const base=baseVisualPerformanceBudget(),caps=frontendCapabilities();if(!caps.piClass)return base;const profile=animationModeProfile(),factor=Math.max(.42,Math.min(1,profile.quality)),frameMs=Math.round(1000/Math.max(20,profile.targetFps));return {...base,particleScale:base.particleScale*factor,wildlifeScale:base.wildlifeScale*Math.max(.62,factor),holidayScale:base.holidayScale*Math.max(.58,factor),hazardScale:base.hazardScale*Math.max(.62,factor),cloudScale:base.cloudScale*Math.max(.60,factor),secondaryScale:base.secondaryScale*Math.max(.55,factor),targetFrameMs:frameMs,maxParticles:Math.max(10,Math.round(base.maxParticles*factor)),maxClouds:Math.max(3,Math.round(base.maxClouds*Math.max(.65,factor))),animationMode:profile.mode,targetFps:profile.targetFps,adaptiveQuality:factor};}
+function animationPerformanceFrameMs(){return Math.max(16,Math.round(1000/Math.max(20,animationModeProfile().targetFps)));}
+function animationPerformanceSnapshot(){const profile=animationModeProfile(),caps=frontendCapabilities();return {mode:profile.mode,fps:Number(animationGovernor.fps.toFixed(1)),targetFps:profile.targetFps,droppedPct:Number(animationGovernor.droppedPct.toFixed(1)),quality:Number(profile.quality.toFixed(2)),renderer:caps.piClass?'Canvas + compositor':'Browser compositor',piClass:caps.piClass,running:animationGovernor.running};}
+function resetAnimationGovernor(){const profile=animationModeProfile(),pixels=frontendPixelLoad();animationGovernor.samples=[];animationGovernor.frames=0;animationGovernor.dropped=0;animationGovernor.fps=0;animationGovernor.droppedPct=0;animationGovernor.lastSample=0;animationGovernor.lastAdjust=performance.now?.()||Date.now();animationGovernor.targetFps=profile.mode==='auto'?(pixels.tier==='4k'?30:45):profile.targetFps;animationGovernor.quality=profile.mode==='auto'?(pixels.tier==='4k'?.58:pixels.tier==='highres'?.68:.74):profile.quality;}
+function animationGovernorTick(now){if(!animationGovernor.running)return;const stamp=Number(now)||Date.now();if(animationGovernor.lastSample){const dt=stamp-animationGovernor.lastSample;if(dt>2&&dt<250){animationGovernor.samples.push(dt);if(animationGovernor.samples.length>180)animationGovernor.samples.shift();animationGovernor.frames++;const desired=1000/Math.max(20,animationGovernor.targetFps);if(dt>desired*1.50)animationGovernor.dropped++;if(animationGovernor.samples.length>=30){const avg=animationGovernor.samples.reduce((a,b)=>a+b,0)/animationGovernor.samples.length;animationGovernor.fps=1000/avg;animationGovernor.droppedPct=animationGovernor.frames?animationGovernor.dropped/animationGovernor.frames*100:0;}}}animationGovernor.lastSample=stamp;const mode=currentAnimationPerformanceMode(),caps=frontendCapabilities(),pixels=frontendPixelLoad();if(caps.piClass&&mode==='auto'&&stamp-animationGovernor.lastAdjust>5000&&animationGovernor.samples.length>=120){const sorted=[...animationGovernor.samples].sort((a,b)=>a-b),p90=sorted[Math.floor(sorted.length*.90)]||16.7,fps=animationGovernor.fps,target=animationGovernor.targetFps;if((target>=45&&(p90>31||fps<36||animationGovernor.droppedPct>7))||(target===30&&(p90>43||fps<25))){animationGovernor.targetFps=30;animationGovernor.quality=Math.max(.46,animationGovernor.quality-.10);animationGovernor.samples=[];animationGovernor.frames=animationGovernor.dropped=0;animationGovernor.lastAdjust=stamp;applyFrontendPerformanceClass();}else if(target===30&&pixels.tier!=='4k'&&p90<20&&fps>50&&animationGovernor.droppedPct<1&&stamp-animationGovernor.lastAdjust>30000){animationGovernor.targetFps=45;animationGovernor.quality=Math.min(.78,animationGovernor.quality+.06);animationGovernor.samples=[];animationGovernor.frames=animationGovernor.dropped=0;animationGovernor.lastAdjust=stamp;applyFrontendPerformanceClass();}else if(target===45&&pixels.tier==='standard'&&p90<17.8&&fps>56&&animationGovernor.droppedPct<1&&stamp-animationGovernor.lastAdjust>45000){animationGovernor.targetFps=60;animationGovernor.quality=Math.min(.86,animationGovernor.quality+.05);animationGovernor.samples=[];animationGovernor.frames=animationGovernor.dropped=0;animationGovernor.lastAdjust=stamp;applyFrontendPerformanceClass();}}animationGovernor.raf=requestAnimationFrame(animationGovernorTick);}
+function startAnimationGovernor(){if(animationGovernor.running)return;animationGovernor.running=true;resetAnimationGovernor();animationGovernor.raf=requestAnimationFrame(animationGovernorTick);}
+function refreshAnimationPerformanceMode(){resetAnimationGovernor();applyFrontendPerformanceClass();return animationPerformanceSnapshot();}
 
 function effectiveVisualConfig(source){
   if(!source||source.lightweightModeEnabled!==true)return source;
@@ -58,6 +69,9 @@ function applyFrontendPerformanceClass(){
   root.classList.toggle('ld-pi4-device',caps.piClass);
   root.classList.toggle('ld-pi4-highres',caps.piClass&&budget.resolutionTier==='highres');
   root.classList.toggle('ld-pi4-4k',caps.piClass&&budget.resolutionTier==='4k');
+  root.dataset.animationTargetFps=String(budget.targetFps||60);
+  root.classList.toggle('ld-pi-smooth',caps.piClass&&(budget.targetFps||60)<=30);
+  root.classList.toggle('ld-pi-steady',caps.piClass&&(budget.targetFps||60)<=45);
   return caps;
 }
 
@@ -112,6 +126,7 @@ function frontendPerformanceSnapshot(){
     ...frontendCapabilities(),
     pixelLoad:frontendPixelLoad(),
     visualBudget:visualPerformanceBudget(),
+    animation:animationPerformanceSnapshot(),
     pageUptimeMs:Math.max(0,Math.round(Number(performance?.now?.())||0)),
     hidden:!!document.hidden,
     reducedMotion:document.documentElement.classList.contains('ld-reduce-motion'),
@@ -140,5 +155,6 @@ function observeFrontendLongTasks(){
 
 applyFrontendPerformanceClass();
 observeFrontendLongTasks();
+startAnimationGovernor();
 
-LibreDisplayRuntime.exposeModule('performance',{frontendCapabilities,frontendPixelLoad,visualPerformanceBudget,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,frontendPerformanceSnapshot,observeFrontendLongTasks},{},{globals:false});
+LibreDisplayRuntime.exposeModule('performance',{frontendCapabilities,frontendPixelLoad,baseVisualPerformanceBudget,visualPerformanceBudget,animationPerformanceMode:currentAnimationPerformanceMode,animationModeProfile,animationPerformanceFrameMs,animationPerformanceSnapshot,startAnimationGovernor,refreshAnimationPerformanceMode,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,frontendPerformanceSnapshot,observeFrontendLongTasks},{},{globals:false});
