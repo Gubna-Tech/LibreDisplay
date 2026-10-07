@@ -1,7 +1,0 @@
-from _shared import request_json, qs
-MANIFEST={"apiVersion":1,"id":"weather-company-pws","name":"Personal Weather Station · Weather Company","description":"Show current observations from a Weather Company / Weather Underground personal weather station.","version":"1.0","icon":"⌂","refreshMin":5,"kind":"status","settings":[{"key":"apiKey","label":"Weather Company API key","type":"password","required":True},{"key":"stationId","label":"PWS station ID","type":"text","required":True},{"key":"units","label":"Units","type":"select","default":"e","options":[{"value":"e","label":"US"},{"value":"m","label":"Metric"},{"value":"h","label":"UK hybrid"}]}]}
-def fetch(s,c):
- data,_,_=request_json(c,qs('https://api.weather.com/v2/pws/observations/current',{'stationId':s.get('stationId'),'format':'json','units':s.get('units') or 'e','apiKey':s.get('apiKey')})); obs=(data.get('observations') or [None])[0]
- if not obs: raise RuntimeError('No PWS observation returned')
- imp=obs.get('imperial') or obs.get('metric') or obs.get('uk_hybrid') or obs.get('metric_si') or {}; temp=imp.get('temp'); hum=obs.get('humidity')
- return {'kind':'status','provider':'Weather Company PWS','title':str(obs.get('stationID') or s.get('stationId')),'value':temp if temp is not None else '—','suffix':'°','details':[{'label':'Humidity','value':f'{hum}%' if hum is not None else ''},{'label':'Wind','value':imp.get('windSpeed')},{'label':'Pressure','value':imp.get('pressure')},{'label':'Observed','value':obs.get('obsTimeLocal')}]}
