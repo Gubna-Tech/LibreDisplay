@@ -694,6 +694,12 @@ body.remote-layout-proxy #layout-editor-layer{display:none!important}
   pointer-events:none;
 }
 #layout-editor-layer.show { display:block; }
+
+#layout-editor-layer.show::before,#layout-editor-layer.show::after{content:"";position:fixed;z-index:0;pointer-events:none;opacity:.5}
+#layout-editor-layer.show::before{left:50%;top:0;bottom:0;border-left:1px dashed color-mix(in srgb,var(--ld-accent) 72%,white)}
+#layout-editor-layer.show::after{top:50%;left:0;right:0;border-top:1px dashed color-mix(in srgb,var(--ld-accent) 72%,white)}
+.layout-axis-tools{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.layout-axis-tools button{min-height:34px;white-space:normal;line-height:1.15}
 #layout-editor-layer.grid-on {
   background-image:
     linear-gradient(rgba(255,255,255,.075) 1px, transparent 1px),

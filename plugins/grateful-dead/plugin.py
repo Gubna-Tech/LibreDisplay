@@ -12,7 +12,7 @@ MANIFEST={"id":"grateful-dead",
  'name': 'Deadhead · Grateful Dead',
  'description': 'Unofficial fan integration for deeply customizable Today in Dead History shows, setlists, sourced member quotes, and '
                 'listening suggestions.',
- 'version': '1.8',
+ 'version': '1.9',
  'icon': '✺',
  'refreshMin': 30,
  'kind': 'data',
@@ -539,15 +539,14 @@ MANIFEST={"id":"grateful-dead",
                'type': 'checkbox',
                'default': True,
                'section': 'Quotes',
-               'sectionHelp': 'Rotate a much larger mix of sourced band-member quotes, short fan-favorite lyric hooks, and song spotlights. Choose the content mix, ordering, member filter, timing, and attribution independently.'},
+               'sectionHelp': 'Rotate a large mix of band-member quotes and short fan-favorite lyric snippets. Mixed mode deliberately gives member quotes and lyrics equal airtime, with ordering, member filter, timing, and attribution controlled independently.'},
               {'key': 'quoteContent',
                'label': 'Quote reel content',
                'type': 'select',
                'default': 'mixed',
-               'options': [{'value': 'mixed', 'label': 'Quotes + lyric hooks + song spotlights'},
+               'options': [{'value': 'mixed', 'label': 'Member quotes + lyric snippets'},
                            {'value': 'quotes', 'label': 'Member quotes only'},
-                           {'value': 'lyrics', 'label': 'Lyric snippets only'},
-                           {'value': 'spotlights', 'label': 'Fan-favorite song spotlights'}],
+                           {'value': 'lyrics', 'label': 'Lyric snippets only'}],
                'section': 'Quotes'},
               {'key': 'quoteOrder',
                'label': 'Quote reel order',
@@ -747,18 +746,7 @@ MANIFEST={"id":"grateful-dead",
                'step': 5}]}
 
 # Quotes are intentionally short sourced excerpts. Lyric snippets stay short and link to Dead.net song pages.
-QUOTES=[
-    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"All it takes to create another reality is for people to live in it.","source":"Grateful Dead Deadcast · Europe '72: Denmark","url":"https://www.dead.net/deadcast/europe-72-denmark"},
-    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"We've always been pretty free to do the things we want.","source":"November 1972 interview","url":"https://deadsources.blogspot.com/2022/09/november-1972-bob-weir-interview.html"},
-    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"Somehow the music would make us act in unison.","source":"Spring 1971 interview","url":"https://deadsources.blogspot.com/2013/12/spring-1971-phil-lesh-interview.html"},
-    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"I like to create things from nothing, to make things happen.","source":"PBS NewsHour · CANVAS","url":"https://www.pbs.org/newshour/show/grateful-dead-drummer-mickey-hart-combines-music-and-art-at-the-las-vegas-sphere"},
-    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"Even with the older material, you're always creating new music in the moment.","source":"Grateful Dead interview","url":"https://www.dead.net/features/dead-world-roundup/talkin-about-music-laughter-and-life-bill-kreutzmann"},
-    {"key":"pigpen","kind":"quote","member":"Ron “Pigpen” McKernan","quote":"And then I’d sing and play harmonica. Way before the Warlocks.","source":"Deadcast archival interview · 10/6/70","url":"https://www.dead.net/adventures-pigpen-part-1"},
-    {"key":"keith","kind":"quote","member":"Keith Godchaux","quote":"I don’t want to listen to it. I want to play it.","source":"Donna Jean recounting Keith · Grateful Dead Deadcast","url":"https://www.dead.net/enter-keith-godchaux"},
-    {"key":"donna","kind":"quote","member":"Donna Jean Godchaux","quote":"When I sing again, it's going to be with that band.","source":"Grateful Dead Deadcast · Donna Jean","url":"https://www.dead.net/donna-jean"},
-    {"key":"brent","kind":"quote","member":"Brent Mydland","quote":"There are people who like me and people who don’t like the fact that I’m in the band.","source":"The Golden Road interview, quoted by Phoenix New Times","url":"https://www.phoenixnewtimes.com/music/better-off-deadphoenix-native-vince-welnick-makes-good-on-grateful-expectations-6426051/"},
-    {"key":"tom","kind":"quote","member":"Tom Constanten","quote":"We sort of threw the spaghetti at the wall to see what would happen.","source":"Grateful Web interview · 2026","url":"https://www.gratefulweb.com/articles/we-sort-of-threw-spaghetti-at-the-wall-an-interview-with-tom-constanten-of-the-grateful-dead/"},
-    {"key":"vince","kind":"quote","member":"Vince Welnick","quote":"They’re very much a family, and that’s something you don’t find much in rock ’n’ roll anymore.","source":"Phoenix New Times interview · 1995","url":"https://www.phoenixnewtimes.com/music/better-off-deadphoenix-native-vince-welnick-makes-good-on-grateful-expectations-6426051/"},
+BASE_LYRIC_SNIPPETS=[
     {"key":"lyrics","kind":"lyric","member":"Franklin's Tower","quote":"May the four winds blow you safely home","source":"Dead.net lyrics","url":"https://www.dead.net/song/franklins-tower"},
     {"key":"lyrics","kind":"lyric","member":"Terrapin Station","quote":"Some rise, some fall, some climb to get to Terrapin","source":"Dead.net lyrics","url":"https://www.dead.net/song/terrapin-station"},
     {"key":"lyrics","kind":"lyric","member":"Scarlet Begonias","quote":"The sky was yellow and the sun was blue","source":"Dead.net lyrics","url":"https://www.dead.net/song/scarlet-begonias"},
@@ -785,11 +773,11 @@ QUOTES=[
     {"key":"lyrics","kind":"lyric","member":"Bird Song","quote":"Dry your eyes on the wind","source":"Dead.net lyrics","url":"https://www.dead.net/song/bird-song"},
     {"key":"lyrics","kind":"lyric","member":"Attics of My Life","quote":"When I had no wings to fly, you flew","source":"Dead.net lyrics","url":"https://www.dead.net/song/attics-my-life"},
     {"key":"lyrics","kind":"lyric","member":"Not Fade Away","quote":"Our love is real, not fade away","source":"Dead.net lyrics","url":"https://www.dead.net/song/not-fade-away"}
+
 ]
 
-
 # The built-in reel intentionally keeps direct lyric excerpts very short.  The larger
-# rotation is achieved with many song spotlights plus sourced member quotes, so an
+# rotation is achieved with many lyric snippets plus sourced member quotes, so an
 # unattended display can stay fresh without bundling long copyrighted lyric passages.
 EXTRA_LYRIC_SNIPPETS=[
     {"key":"lyric-bertha","kind":"lyric","member":"Bertha","quote":"Why don't you arrest me?","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
@@ -856,19 +844,172 @@ EXTRA_LYRIC_SNIPPETS=[
     {"key":"lyric-cream-puff","kind":"lyric","member":"Cream Puff War","quote":"Wait a minute, watch what you're doing","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
 ]
 
-SONG_SPOTLIGHT_TITLES=[
-    'Alabama Getaway','Alligator','Althea','And We Bid You Goodnight','Around and Around','Attics of My Life','Beat It on Down the Line','Bertha','Big Boss Man','Big River','Bird Song','Black Muddy River','Black Peter','Blow Away','Box of Rain','Brokedown Palace','Brown-Eyed Women','Built to Last','Candyman','Casey Jones','Cassidy','China Cat Sunflower','China Doll','Cold Rain and Snow','Comes a Time','Cosmic Charlie','Crazy Fingers','Cream Puff War','Cumberland Blues','Dancing in the Street','Dark Star','Days Between','Deal','Dire Wolf','Doin’ That Rag','Don’t Ease Me In','Dupree’s Diamond Blues','Easy Answers','Easy Wind','El Paso','Estimated Prophet','Eyes of the World','Far From Me','Feel Like a Stranger','Fire on the Mountain','Foolish Heart','Franklin’s Tower','Friend of the Devil','Goin’ Down the Road Feeling Bad','Good Lovin’','Good Morning Little School Girl','Hard to Handle','He’s Gone','Hell in a Bucket','Help on the Way','Here Comes Sunshine','High Time','I Know You Rider','I Need a Miracle','It Must Have Been the Roses','Jack Straw','Jack-A-Roe','Just a Little Light','Lazy Lightning','Lazy River Road','Let It Grow','Liberty','Looks Like Rain','Loose Lucy','Loser','Lost Sailor','Mama Tried','Me and My Uncle','Mexicali Blues','Might as Well','Mississippi Half-Step Uptown Toodeloo','Morning Dew','Mountains of the Moon','Mr. Charlie','Music Never Stopped','My Brother Esau','New Minglewood Blues','New Speedway Boogie','Not Fade Away','One More Saturday Night','Operator','Passenger','Peggy-O','Picasso Moon','Playing in the Band','Promised Land','Ramble On Rose','Ripple','Row Jimmy','Saint of Circumstance','Samson and Delilah','Scarlet Begonias','Shakedown Street','Ship of Fools','So Many Roads','St. Stephen','Standing on the Moon','Stella Blue','Sugar Magnolia','Sugaree','Supplication','Tennessee Jed','Terrapin Station','The Eleven','The Golden Road','The Other One','The Wheel','They Love Each Other','Throwing Stones','Tons of Steel','Touch of Grey','Truckin’','U.S. Blues','Unbroken Chain','Uncle John’s Band','Victim or the Crime','Viola Lee Blues','Wang Dang Doodle','Weather Report Suite','West L.A. Fadeaway','Wharf Rat','Women Are Smarter','You Win Again','Aiko Aiko','All Along the Watchtower','Baby Blue','Ballad of a Thin Man','Big Railroad Blues','Black-Throated Wind','Broken Arrow','Caution','China-Rider','Cold Jordan','Corrina','Cryptical Envelopment','Day Job','Dear Mr. Fantasy','Death Don’t Have No Mercy','Desolation Row','Drums','Easy to Love You','Eternity','Feedback','Good Times','Hey Pocky Way','I Fought the Law','Iko Iko','It’s All Over Now','It’s All Over Now, Baby Blue','Johnny B. Goode','Keep Your Day Job','Knockin’ on Heaven’s Door','Little Red Rooster','Looks Like Rain','Maggie’s Farm','Man Smart, Woman Smarter','Matilda','Mind Left Body Jam','Mission in the Rain','Money Money','Morning Dew','New Orleans','Nobody’s Fault but Mine','Queen Jane Approximately','Reuben and Cherise','Revolution','Road Runner','Sage & Spirit','Samba in the Rain','She Belongs to Me','Sittin’ on Top of the World','Smokestack Lightning','Space','Spoonful','The Last Time','The Race Is On','The Same Thing','U.S. Blues','Walkin’ Blues','Wave to the Wind','Werewolves of London','When I Paint My Masterpiece','You Ain’t Woman Enough','You See a Broken Heart','Keep on Growing','Let the Good Times Roll','Dear Prudence','Good Golly Miss Molly','Midnight Hour','Turn on Your Lovelight','Hurts Me Too','King Bee','Next Time You See Me','Minglewood Blues','C.C. Rider','Around and Around','Promised Land','Big River','El Paso','Me and Bobby McGee','Sing Me Back Home','Mama Tried','Dark Hollow','Deep Elem Blues','Rosalie McFall','Monkey and the Engineer','Ripple','To Lay Me Down','Cumberland Blues','Dire Wolf','Friend of the Devil','Cassidy','Bird Song','China Doll','Wharf Rat','Brokedown Palace','Box of Rain','Attics of My Life','Unbroken Chain','Pride of Cucamonga','Passenger','Sunrise','Estimated Prophet','Terrapin Station','Shakedown Street','France','From the Heart of Me','Lost Sailor','Saint of Circumstance','Alabama Getaway','Far From Me','Feel Like a Stranger','Touch of Grey','West L.A. Fadeaway','Hell in a Bucket','Throwing Stones','Black Muddy River','Foolish Heart','Built to Last','Standing on the Moon','Picasso Moon','Victim or the Crime','Liberty','Days Between','So Many Roads','Lazy River Road'
+MEMBER_QUOTES=[
+    # Jerry Garcia — short interview/statement excerpts from archival and compiled sources.
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"You ain't gonna learn what you don't wanna know.","source":"A-Z Quotes · Jerry Garcia","url":"https://www.azquotes.com/author/5328-Jerry_Garcia"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Too much of a good thing is just about right.","source":"A-Z Quotes · Jerry Garcia","url":"https://www.azquotes.com/author/5328-Jerry_Garcia"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"We're like licorice.","source":"A-Z Quotes · Jerry Garcia","url":"https://www.azquotes.com/author/5328-Jerry_Garcia"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Magic is what we do, music is how we do it.","source":"A-Z Quotes · Jerry Garcia","url":"https://www.azquotes.com/author/5328-Jerry_Garcia"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"You don't want to be the best at what you do.","source":"A-Z Quotes · Jerry Garcia","url":"https://www.azquotes.com/author/5328-Jerry_Garcia"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"You want to be the only one.","source":"A-Z Quotes · Jerry Garcia","url":"https://www.azquotes.com/author/5328-Jerry_Garcia"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Truth is something you stumble into.","source":"A-Z Quotes · Jerry Garcia","url":"https://www.azquotes.com/author/5328-Jerry_Garcia"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"The pursuit of happiness is the basic, ultimate freedom.","source":"A-Z Quotes · Jerry Garcia","url":"https://www.azquotes.com/author/5328-Jerry_Garcia"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Constantly choosing the lesser of two evils is still choosing evil.","source":"A-Z Quotes · Jerry Garcia","url":"https://www.azquotes.com/author/5328-Jerry_Garcia"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Somebody has to do something.","source":"A-Z Quotes · Jerry Garcia","url":"https://www.azquotes.com/author/5328-Jerry_Garcia"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Music is a good way to encapsulate a lot of it.","source":"A-Z Quotes · Jerry Garcia","url":"https://www.azquotes.com/author/5328-Jerry_Garcia"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"To get really high is to forget yourself.","source":"A-Z Quotes · Jerry Garcia","url":"https://www.azquotes.com/author/5328-Jerry_Garcia"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"We would all like to live an uncluttered life.","source":"A-Z Quotes · page 2","url":"https://www.azquotes.com/author/5328-Jerry_Garcia?p=2"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"A simple life, a good life.","source":"A-Z Quotes · page 2","url":"https://www.azquotes.com/author/5328-Jerry_Garcia?p=2"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"You have to allow it to happen.","source":"A-Z Quotes · page 2","url":"https://www.azquotes.com/author/5328-Jerry_Garcia?p=2"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"The nature of what we're doing is non-formulaic.","source":"A-Z Quotes · page 2","url":"https://www.azquotes.com/author/5328-Jerry_Garcia?p=2"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"It's a joke.","source":"A-Z Quotes · page 3","url":"https://www.azquotes.com/author/5328-Jerry_Garcia?p=3"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Accept the reality that people do want to change their consciousness.","source":"A-Z Quotes · page 3","url":"https://www.azquotes.com/author/5328-Jerry_Garcia?p=3"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"I would rather be a balanced musician.","source":"A-Z Quotes · page 3","url":"https://www.azquotes.com/author/5328-Jerry_Garcia?p=3"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"I'm tending to think more about the music.","source":"A-Z Quotes · page 3","url":"https://www.azquotes.com/author/5328-Jerry_Garcia?p=3"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"The world you can walk around the block in — that's reality.","source":"A-Z Quotes · page 3","url":"https://www.azquotes.com/author/5328-Jerry_Garcia?p=3"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"And the live show is still our main thing.","source":"BrainyQuote · Jerry Garcia","url":"https://www.brainyquote.com/authors/jerry-garcia-quotes"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Our strong suit is what we do, and our audience.","source":"BrainyQuote · Jerry Garcia","url":"https://www.brainyquote.com/authors/jerry-garcia-quotes"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Stuff that's hidden and murky and ambiguous is scary.","source":"BrainyQuote · Jerry Garcia","url":"https://www.brainyquote.com/authors/jerry-garcia-quotes"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Whatever kills you kills you.","source":"BrainyQuote · Jerry Garcia","url":"https://www.brainyquote.com/authors/jerry-garcia-quotes"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Your death is authentic no matter how you die.","source":"BrainyQuote · Jerry Garcia","url":"https://www.brainyquote.com/authors/jerry-garcia-quotes"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"I'm shopping around for something to do that no one will like.","source":"BrainyQuote · Jerry Garcia","url":"https://www.brainyquote.com/authors/jerry-garcia-quotes"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"We're already past saving.","source":"BrainyQuote · Jerry Garcia","url":"https://www.brainyquote.com/authors/jerry-garcia-quotes"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"The process of selecting tone is an aesthetic process.","source":"BrainyQuote · Jerry Garcia","url":"https://www.brainyquote.com/authors/jerry-garcia-quotes"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Hunter's forte is lyrics.","source":"BrainyQuote · Jerry Garcia","url":"https://www.brainyquote.com/authors/jerry-garcia-quotes"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"There are guys who never seem to run out of ideas.","source":"BrainyQuote · Jerry Garcia","url":"https://www.brainyquote.com/authors/jerry-garcia-quotes"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"All it takes to create another reality is people living in it.","source":"Deadcast · Europe '72 Denmark","url":"https://www.dead.net/deadcast/rewind-europe-72-denmark"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"We fantasized about a different reality.","source":"Deadcast · Europe '72 Denmark","url":"https://www.dead.net/deadcast/rewind-europe-72-denmark"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"We concentrated on our own reality.","source":"Deadcast · Europe '72 Denmark","url":"https://www.dead.net/deadcast/rewind-europe-72-denmark"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"We don't respond to the press or television.","source":"Deadcast · Europe '72 Denmark","url":"https://www.dead.net/deadcast/rewind-europe-72-denmark"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Whatever makes Grateful Dead run is something continuous.","source":"Deadcast · Europe '72 Denmark","url":"https://www.dead.net/deadcast/rewind-europe-72-denmark"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"There are a lot of things that can't be preached.","source":"Deadcast · Europe '72 Denmark","url":"https://www.dead.net/deadcast/rewind-europe-72-denmark"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"I have no special place to guide anyone to.","source":"Deadcast · Europe '72 Denmark","url":"https://www.dead.net/deadcast/rewind-europe-72-denmark"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"I don't mind being a kind of guide.","source":"Deadcast · Europe '72 Denmark","url":"https://www.dead.net/deadcast/rewind-europe-72-denmark"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Why should I know more than others about what's happening?","source":"Deadcast · Europe '72 Denmark","url":"https://www.dead.net/deadcast/rewind-europe-72-denmark"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"There is something greater than me.","source":"Deadcast · Europe '72 Denmark","url":"https://www.dead.net/deadcast/rewind-europe-72-denmark"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"It is bigger than all of us.","source":"Deadcast · Europe '72 Denmark","url":"https://www.dead.net/deadcast/rewind-europe-72-denmark"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"I approach interviews the same way I approach music.","source":"Grateful Dead Sources · April 11, 1972","url":"https://deadsources.blogspot.com/2014/09/april-11-1972-jerry-garcia-interview.html"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"It's improvisational.","source":"Grateful Dead Sources · April 11, 1972","url":"https://deadsources.blogspot.com/2014/09/april-11-1972-jerry-garcia-interview.html"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"I depend on what kind of feed I get.","source":"Grateful Dead Sources · April 11, 1972","url":"https://deadsources.blogspot.com/2014/09/april-11-1972-jerry-garcia-interview.html"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"I'm surprised at our success.","source":"Grateful Dead Sources · March 20, 1981","url":"https://deadsources.blogspot.com/2021/04/march-20-1981-jerry-garcia-interview.html"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Shit, I would pay to play music.","source":"Grateful Dead Sources · March 20, 1981","url":"https://deadsources.blogspot.com/2021/04/march-20-1981-jerry-garcia-interview.html"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"I'd enjoy it whether we were obscure or hugely successful.","source":"Grateful Dead Sources · March 20, 1981","url":"https://deadsources.blogspot.com/2021/04/march-20-1981-jerry-garcia-interview.html"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"I want it to be the full range.","source":"Grateful Dead Sources · March 20, 1981","url":"https://deadsources.blogspot.com/2021/04/march-20-1981-jerry-garcia-interview.html"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Fuck 'em if they can't take a joke.","source":"Grateful Dead Sources · Fall 1977","url":"https://deadsources.blogspot.com/2021/04/fall-1977-jerry-garcia-interview.html"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Everything is allowed.","source":"Grateful Dead Sources · Fall 1977","url":"https://deadsources.blogspot.com/2021/04/fall-1977-jerry-garcia-interview.html"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"We've never spared the audience.","source":"Grateful Dead Sources · Fall 1977","url":"https://deadsources.blogspot.com/2021/04/fall-1977-jerry-garcia-interview.html"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"We've played much weirder shit than this.","source":"Grateful Dead Sources · Fall 1977","url":"https://deadsources.blogspot.com/2021/04/fall-1977-jerry-garcia-interview.html"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Live music is where it's at for us.","source":"Grateful Dead Sources · 1981 X Factor","url":"https://deadsources.blogspot.com/2024/03/1981-jerry-garcia-interview.html"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Our idea of performance is what we do live.","source":"Grateful Dead Sources · 1981 X Factor","url":"https://deadsources.blogspot.com/2024/03/1981-jerry-garcia-interview.html"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Making records is a concession to the music business.","source":"Grateful Dead Sources · 1981 X Factor","url":"https://deadsources.blogspot.com/2024/03/1981-jerry-garcia-interview.html"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"I don't think of myself as an adult.","source":"IMDb · Jerry Garcia quotes","url":"https://www.imdb.com/name/nm0305263/quotes/"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"An adult is someone who's made up their mind.","source":"IMDb · Jerry Garcia quotes","url":"https://www.imdb.com/name/nm0305263/quotes/"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"I'd rather have my immortality while I'm alive.","source":"IMDb · Jerry Garcia quotes","url":"https://www.imdb.com/name/nm0305263/quotes/"},
+
+    # Bob Weir.
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"What I like best about music is when time goes away.","source":"A-Z Quotes · Bob Weir","url":"https://www.azquotes.com/author/28436-Bob_Weir"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"More fun than a frog in a glass of milk.","source":"A-Z Quotes · Bob Weir","url":"https://www.azquotes.com/author/28436-Bob_Weir"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"The same song on a different day was a different song.","source":"A-Z Quotes · Bob Weir","url":"https://www.azquotes.com/author/28436-Bob_Weir"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"We're just inviting adventure into our life.","source":"A-Z Quotes · Bob Weir","url":"https://www.azquotes.com/author/28436-Bob_Weir"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"Adventure carries a little baggage.","source":"A-Z Quotes · Bob Weir","url":"https://www.azquotes.com/author/28436-Bob_Weir"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"Everybody has something to bring to the table.","source":"A-Z Quotes · Bob Weir","url":"https://www.azquotes.com/author/28436-Bob_Weir"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"Bicycles are almost as good as guitars for meeting girls.","source":"A-Z Quotes · Bob Weir","url":"https://www.azquotes.com/author/28436-Bob_Weir"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"Grace isn't enough.","source":"A-Z Quotes · Bob Weir","url":"https://www.azquotes.com/author/28436-Bob_Weir"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"You've got to intend to be there when it's happening.","source":"A-Z Quotes · Bob Weir","url":"https://www.azquotes.com/author/28436-Bob_Weir"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"Dynamic benign neglect.","source":"A-Z Quotes · Bob Weir","url":"https://www.azquotes.com/author/28436-Bob_Weir"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"Slowly you become your own man.","source":"A-Z Quotes · Bob Weir","url":"https://www.azquotes.com/author/28436-Bob_Weir"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"Sometimes the magic works and sometimes it doesn't.","source":"A-Z Quotes · Bob Weir","url":"https://www.azquotes.com/author/28436-Bob_Weir"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"Our lives are interesting.","source":"A-Z Quotes · Bob Weir interviews","url":"https://www.azquotes.com/author/28436-Bob_Weir/tag/new_quotes_from_interviews"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"The bulk of my input comes from my peers.","source":"A-Z Quotes · Bob Weir interviews","url":"https://www.azquotes.com/author/28436-Bob_Weir/tag/new_quotes_from_interviews"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"We have cultural depth.","source":"A-Z Quotes · Bob Weir interviews","url":"https://www.azquotes.com/author/28436-Bob_Weir/tag/new_quotes_from_interviews"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"We get all kinds of stuff to chew on.","source":"A-Z Quotes · Bob Weir interviews","url":"https://www.azquotes.com/author/28436-Bob_Weir/tag/new_quotes_from_interviews"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"Certain kinds of people just can't live life taking risks.","source":"A-Z Quotes · Bob Weir interviews","url":"https://www.azquotes.com/author/28436-Bob_Weir/tag/new_quotes_from_interviews"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"I just let songs happen the way they're going to happen.","source":"A-Z Quotes · Bob Weir interviews","url":"https://www.azquotes.com/author/28436-Bob_Weir/tag/new_quotes_from_interviews"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"Where am I going from here?","source":"A-Z Quotes · Bob Weir songs","url":"https://www.azquotes.com/author/28436-Bob_Weir/tag/song"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"We've always been pretty free to do the things we want.","source":"Grateful Dead Sources · November 1972","url":"https://deadsources.blogspot.com/2022/09/november-1972-bob-weir-interview.html"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"We've always had 100% artistic control.","source":"Grateful Dead Sources · November 1972","url":"https://deadsources.blogspot.com/2022/09/november-1972-bob-weir-interview.html"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"There's not much they can tell us not to do.","source":"Grateful Dead Sources · November 1972","url":"https://deadsources.blogspot.com/2022/09/november-1972-bob-weir-interview.html"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"It developed into what I wanted in the first place.","source":"Grateful Dead Sources · May 1972","url":"https://deadsources.blogspot.com/2022/05/may-1972-bob-weir-interview.html"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"I got him right square on the head.","source":"Grateful Dead Hour 370","url":"https://www.dead.net/features/gd-radio-hour/grateful-dead-hour-no-370"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"What was I gonna do with this water balloon?","source":"Grateful Dead Hour 370","url":"https://www.dead.net/features/gd-radio-hour/grateful-dead-hour-no-370"},
+
+    # Phil Lesh.
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"To sing a simple round is truly an enlightening experience.","source":"A-Z Quotes · Phil Lesh","url":"https://www.azquotes.com/author/26428-Phil_Lesh"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"There was always so much encouragement from Deadheads.","source":"A-Z Quotes · Phil Lesh","url":"https://www.azquotes.com/author/26428-Phil_Lesh"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"Everything we ever did demonstrated the value of cross-fertilization.","source":"A-Z Quotes · Phil Lesh","url":"https://www.azquotes.com/author/26428-Phil_Lesh"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"We had all these different influences.","source":"A-Z Quotes · Phil Lesh","url":"https://www.azquotes.com/author/26428-Phil_Lesh"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"Bobby Weir used to call it electric Dixieland.","source":"A-Z Quotes · Phil Lesh","url":"https://www.azquotes.com/author/26428-Phil_Lesh"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"Nobody told us we couldn't do it.","source":"A-Z Quotes · Phil Lesh","url":"https://www.azquotes.com/author/26428-Phil_Lesh"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"I wanted our music to be jaw-dropping.","source":"A-Z Quotes · Phil Lesh","url":"https://www.azquotes.com/author/26428-Phil_Lesh"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"Jerry Garcia was behind it the whole way.","source":"A-Z Quotes · Phil Lesh","url":"https://www.azquotes.com/author/26428-Phil_Lesh"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"We need to support the arts in schools.","source":"A-Z Quotes · Phil Lesh","url":"https://www.azquotes.com/author/26428-Phil_Lesh"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"We're responsible for keeping it going harmoniously.","source":"A-Z Quotes · Phil Lesh","url":"https://www.azquotes.com/author/26428-Phil_Lesh"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"The structural techniques seemed infinitely applicable.","source":"Deadcast · Phil 85 Part 1","url":"https://www.dead.net/phil-85-part-1"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"It was a lot of fun.","source":"Deadcast · Phil 85 Part 1","url":"https://www.dead.net/phil-85-part-1"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"If Phil is happening, the band's happening.","source":"Deadcast · Phil 85 Part 1 · Garcia on Lesh","url":"https://www.dead.net/phil-85-part-1"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"A prettier shot you never saw.","source":"Grateful Dead Hour 370","url":"https://www.dead.net/features/gd-radio-hour/grateful-dead-hour-no-370"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"If you're dancing to it, it'll sure fuck you up.","source":"Dead.net · Blues for Allah 50","url":"https://www.dead.net/blues-allah-50-king-solomons-marblesstronger-dirt"},
+
+    # Mickey Hart.
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"Adventures don't begin until you get into the forest.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"That first step is an act of faith.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"There's nothing like music to relieve the soul.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"Life is about rhythm.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"We are a rhythm machine.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"A good groove releases adrenaline in your body.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"You feel uplifted, centered, calm, powerful.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"The voice of the drum is a spirit thing.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"The Grateful Dead were a powerful force.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"Everywhere people are using drums to alter consciousness.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"Music gives the soul a voice.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"Music gives the soul a sound.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"People will always try to find themselves.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"The best music is impossible to define.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"The Grateful Dead were very kind.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"We loved to play free.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"Dreams sometimes foretell the future.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"Music was also about science, technology, engineering and mathematics.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"The adventure of composition is a mystery.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"In the beginning, there was noise.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+
+    # Bill Kreutzmann.
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"I am just a guy who plays drums.","source":"A-Z Quotes · Bill Kreutzmann","url":"https://www.azquotes.com/author/24236-Bill_Kreutzmann"},
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"I saw a drummer play and thought, that's really cool.","source":"A-Z Quotes · Bill Kreutzmann","url":"https://www.azquotes.com/author/24236-Bill_Kreutzmann"},
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"I tried it and I loved it.","source":"A-Z Quotes · Bill Kreutzmann","url":"https://www.azquotes.com/author/24236-Bill_Kreutzmann"},
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"I don't care about posing.","source":"A-Z Quotes · Bill Kreutzmann","url":"https://www.azquotes.com/author/24236-Bill_Kreutzmann"},
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"I care about being able to play.","source":"A-Z Quotes · Bill Kreutzmann","url":"https://www.azquotes.com/author/24236-Bill_Kreutzmann"},
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"Playing with integrity is what matters.","source":"A-Z Quotes · Bill Kreutzmann","url":"https://www.azquotes.com/author/24236-Bill_Kreutzmann"},
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"I'd rather play here in this small bar.","source":"A-Z Quotes · Bill Kreutzmann","url":"https://www.azquotes.com/author/24236-Bill_Kreutzmann"},
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"There's no expectations; it's encouragement to be different.","source":"A-Z Quotes · Bill Kreutzmann","url":"https://www.azquotes.com/author/24236-Bill_Kreutzmann"},
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"We're doing this for fun.","source":"A-Z Quotes · Bill Kreutzmann","url":"https://www.azquotes.com/author/24236-Bill_Kreutzmann"},
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"I love the farm, I love growing stuff.","source":"A-Z Quotes · Bill Kreutzmann","url":"https://www.azquotes.com/author/24236-Bill_Kreutzmann"},
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"The internet takes out the middle man.","source":"Cincy Groove · Bill Kreutzmann interview","url":"https://cincygroove.com/2009/05/20/interview-with-bill-kreutzmann-from-the-grateful-dead-and-bk3/"},
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"It lets the artist be their own record company.","source":"Cincy Groove · Bill Kreutzmann interview","url":"https://cincygroove.com/2009/05/20/interview-with-bill-kreutzmann-from-the-grateful-dead-and-bk3/"},
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"The Dead is some kind of contact with an audience.","source":"Grateful Dead Sources · Spring 1972","url":"https://deadsources.blogspot.com/2014/09/spring-1972-weir-kreutzmann-interview.html"},
+
+    # Pigpen and other members — smaller pools, still first-class in the member filter.
+    {"key":"pigpen","kind":"quote","member":"Ron “Pigpen” McKernan","quote":"The whole early Kepler's scene — that's when I met Jerry.","source":"Deadcast · Adventures of Pigpen Part 1","url":"https://www.dead.net/adventures-pigpen-part-1"},
+    {"key":"pigpen","kind":"quote","member":"Ron “Pigpen” McKernan","quote":"And then I'd sing and play harmonica.","source":"Deadcast · Adventures of Pigpen Part 1","url":"https://www.dead.net/adventures-pigpen-part-1"},
+    {"key":"pigpen","kind":"quote","member":"Ron “Pigpen” McKernan","quote":"Way before the Warlocks.","source":"Deadcast · Adventures of Pigpen Part 1","url":"https://www.dead.net/adventures-pigpen-part-1"},
+    {"key":"pigpen","kind":"quote","member":"Ron “Pigpen” McKernan","quote":"Not my fault, Jerry gave it to me.","source":"Grateful Dead Sources · 1966 radio interview","url":"https://deadsources.blogspot.com/2012/02/1966-radio-interview.html"},
+    {"key":"tom","kind":"quote","member":"Tom Constanten","quote":"We sort of threw the spaghetti at the wall.","source":"Grateful Web interview","url":"https://www.gratefulweb.com/articles/we-sort-of-threw-spaghetti-at-the-wall-an-interview-with-tom-constanten-of-the-grateful-dead/"},
+    {"key":"keith","kind":"quote","member":"Keith Godchaux","quote":"I don't want to listen to it. I want to play it.","source":"Deadcast · Enter Keith Godchaux","url":"https://www.dead.net/enter-keith-godchaux"},
+    {"key":"donna","kind":"quote","member":"Donna Jean Godchaux","quote":"When I sing again, it's going to be with that band.","source":"Deadcast · Donna Jean","url":"https://www.dead.net/donna-jean"},
+    {"key":"brent","kind":"quote","member":"Brent Mydland","quote":"There are people who like me and people who don't.","source":"The Golden Road interview, quoted by Phoenix New Times","url":"https://www.phoenixnewtimes.com/music/better-off-deadphoenix-native-vince-welnick-makes-good-on-grateful-expectations-6426051/"},
+    {"key":"vince","kind":"quote","member":"Vince Welnick","quote":"They're very much a family.","source":"Phoenix New Times interview · 1995","url":"https://www.phoenixnewtimes.com/music/better-off-deadphoenix-native-vince-welnick-makes-good-on-grateful-expectations-6426051/"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Music goes way back before language does.","source":"A-Z Quotes · Jerry Garcia interviews","url":"https://www.azquotes.com/author/5328-Jerry_Garcia/tag/new_quotes_from_interviews"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"Music is like the key to a spiritual existence.","source":"A-Z Quotes · Jerry Garcia interviews","url":"https://www.azquotes.com/author/5328-Jerry_Garcia/tag/new_quotes_from_interviews"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"I'm trying to have a guitar built.","source":"A-Z Quotes · Jerry Garcia interviews","url":"https://www.azquotes.com/author/5328-Jerry_Garcia/tag/new_quotes_from_interviews"},
+    {"key":"jerry","kind":"quote","member":"Jerry Garcia","quote":"You start recognizing habits; then you have to break them.","source":"A-Z Quotes · Jerry Garcia interviews","url":"https://www.azquotes.com/author/5328-Jerry_Garcia/tag/new_quotes_from_interviews"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"The pervasive attitude is that it's crazy to invite danger.","source":"A-Z Quotes · Bob Weir interviews","url":"https://www.azquotes.com/author/28436-Bob_Weir/tag/new_quotes_from_interviews"},
+    {"key":"bob","kind":"quote","member":"Bob Weir","quote":"I still retain a bit of a child's focus.","source":"A-Z Quotes · Bob Weir interviews","url":"https://www.azquotes.com/author/28436-Bob_Weir/tag/new_quotes_from_interviews"},
+    {"key":"phil","kind":"quote","member":"Phil Lesh","quote":"It seemed logical to apply those structural techniques.","source":"Deadcast · Phil 85 Part 1","url":"https://www.dead.net/phil-85-part-1"},
+    {"key":"mickey","kind":"quote","member":"Mickey Hart","quote":"What is the best music is impossible to define.","source":"A-Z Quotes · Mickey Hart","url":"https://www.azquotes.com/author/6345-Mickey_Hart"},
+    {"key":"bill","kind":"quote","member":"Bill Kreutzmann","quote":"Communication is terribly important.","source":"Cincy Groove · Bill Kreutzmann interview","url":"https://cincygroove.com/2009/05/20/interview-with-bill-kreutzmann-from-the-grateful-dead-and-bk3/"},
 ]
 
-def _song_spotlights():
-    seen=set();rows=[]
-    for title in SONG_SPOTLIGHT_TITLES:
-        normalized=str(title).strip()
-        key=normalized.casefold()
-        if not normalized or key in seen: continue
-        seen.add(key)
-        rows.append({"key":"spotlight-"+hashlib.sha1(normalized.encode()).hexdigest()[:10],"kind":"spotlight","member":"Fan favorite","quote":normalized,"source":"Song spotlight","url":"https://www.dead.net/songs"})
-    return rows
+# Backward-compatible quote library name: member quotes plus the original compact lyric set.
+QUOTES=MEMBER_QUOTES+BASE_LYRIC_SNIPPETS
 
 MEMBER_ORDER=['jerry','bob','phil','mickey','bill','pigpen','tom','keith','donna','brent','vince']
 
@@ -979,8 +1120,7 @@ def _custom_quotes(value):
     return out
 
 def _quote_rows(settings,today):
-    rows=QUOTES+EXTRA_LYRIC_SNIPPETS+_song_spotlights()+_custom_quotes(settings.get('customQuotes'))
-    # Remove duplicate visible entries even when a song exists in more than one source family.
+    rows=QUOTES+EXTRA_LYRIC_SNIPPETS+_custom_quotes(settings.get('customQuotes'))
     deduped=[];seen=set()
     for row in rows:
         sig=(str(row.get('kind') or ''),str(row.get('member') or '').casefold(),str(row.get('quote') or '').casefold())
@@ -988,19 +1128,31 @@ def _quote_rows(settings,today):
         seen.add(sig);deduped.append(row)
     rows=deduped
     content=str(settings.get('quoteContent') or 'mixed').lower()
-    if content=='quotes': rows=[x for x in rows if x.get('kind','quote')=='quote']
-    elif content=='lyrics': rows=[x for x in rows if x.get('kind')=='lyric']
-    elif content=='spotlights': rows=[x for x in rows if x.get('kind')=='spotlight']
     member=str(settings.get('quoteMember') or 'all').lower()
-    if member!='all' and content not in ('lyrics','spotlights'):
-        quotes=[x for x in rows if x.get('kind','quote')=='quote' and x.get('key')==member]
-        companion=[x for x in rows if x.get('kind') in ('lyric','spotlight')] if content=='mixed' else []
-        rows=quotes+companion or rows
+    quote_rows=[x for x in rows if x.get('kind','quote')=='quote']
+    lyric_rows=[x for x in rows if x.get('kind')=='lyric']
+    if member!='all':
+        filtered=[x for x in quote_rows if x.get('key')==member]
+        if filtered: quote_rows=filtered
     order=str(settings.get('quoteOrder') or 'daily-shuffle').lower()
-    if order!='catalog' and rows:
-        seed=today.isoformat()+member+content
-        rows.sort(key=lambda x:hashlib.sha256((seed+'|'+str(x.get('kind'))+'|'+str(x.get('member'))+'|'+str(x.get('quote'))).encode()).hexdigest())
-    return rows
+    def ordered(items, kind):
+        items=list(items)
+        if order!='catalog' and items:
+            seed=today.isoformat()+member+content+'|'+kind
+            items.sort(key=lambda x:hashlib.sha256((seed+'|'+str(x.get('member'))+'|'+str(x.get('quote'))).encode()).hexdigest())
+        return items
+    quote_rows=ordered(quote_rows,'quote');lyric_rows=ordered(lyric_rows,'lyric')
+    if content=='quotes': return quote_rows
+    if content=='lyrics': return lyric_rows
+    # Mixed deliberately alternates categories so member quotes and lyric snippets
+    # receive equal unattended-display airtime regardless of the pool sizes.
+    if not quote_rows: return lyric_rows
+    if not lyric_rows: return quote_rows
+    mixed=[];count=max(len(quote_rows),len(lyric_rows))
+    for i in range(count):
+        mixed.append(quote_rows[i%len(quote_rows)])
+        mixed.append(lyric_rows[i%len(lyric_rows)])
+    return mixed
 
 def _favorite_score(show, favorites):
     hay=f"{show.get('venue','')} {show.get('location','')}".lower()
