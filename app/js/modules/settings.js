@@ -35,7 +35,7 @@ function mountSettings(){
 }
 function unmountSettings(){
   if(!settingsMounted)return;
-  document.getElementById('settings-mount')?.replaceChildren();settingsMounted=false;
+  document.getElementById('settings-mount')?.replaceChildren();settingsMounted=false;LibreDisplayRuntime.getModule('settings').settingsSectionsEnhanced=false;
 }
 function setSettingsPreviewReturnVisible(on){
   const btn=document.getElementById('settings-preview-return');if(!btn)return;
@@ -1433,7 +1433,9 @@ function resolveDelegatedAction(name){const parts=String(name||'').split('.');if
 function runDeclarativeAction(eventName,event,element){if(!element)return;const prevent=element.getAttribute('data-ld-prevent-'+eventName);if(prevent==='1')event.preventDefault();const removeClass=element.getAttribute('data-ld-remove-class-'+eventName);if(removeClass)element.classList?.remove(removeClass);const name=element.getAttribute('data-ld-action-'+eventName);if(!name)return;const fn=resolveDelegatedAction(name);if(!fn)return;const args=delegatedActionArgs(element),pass=element.getAttribute('data-ld-action-pass')||'';if(pass==='checked')args.push(!!element.checked);else if(pass==='value')args.push(element.value);if(element.getAttribute('data-ld-action-event-first')==='1')args.unshift(event);else if(element.getAttribute('data-ld-action-event-last')==='1')args.push(event);return fn.apply(element,args);}
 function handleDelegatedDashboardEvent(eventName,event){const staticAttr='data-ld-on'+eventName;const staticElement=delegatedEventElement(event,staticAttr);if(staticElement){const fn=DASHBOARD_EVENT_HANDLERS[staticElement.getAttribute(staticAttr)];if(typeof fn==='function')return fn.call(staticElement,event);}const actionAttr='data-ld-action-'+eventName;const actionElement=delegatedEventElement(event,actionAttr)||delegatedEventElement(event,'data-ld-prevent-'+eventName)||delegatedEventElement(event,'data-ld-remove-class-'+eventName);return runDeclarativeAction(eventName,event,actionElement);}
 function bindDelegatedDashboardEvents(){for(const eventName of DASHBOARD_DELEGATED_EVENTS)document.addEventListener(eventName,event=>handleDelegatedDashboardEvent(eventName,event));}
+function handleExpandableSummaryClick(event){const summary=event?.target?.closest?.('summary');if(!summary||event.target?.closest?.('button,input,select,textarea,a,label,[contenteditable="true"]'))return;const details=summary.parentElement;if(!details||details.tagName!=='DETAILS')return;if(!details.matches('#layout-properties details,#block-config-modal details'))return;event.preventDefault();details.open=!details.open;}
 bindDelegatedDashboardEvents();
-LibreDisplayRuntime.exposeModule('settings',{handleDelegatedDashboardEvent,bindDelegatedDashboardEvents,resolveDelegatedAction}, {}, {globals:false});
+document.addEventListener('click',handleExpandableSummaryClick);
+LibreDisplayRuntime.exposeModule('settings',{handleDelegatedDashboardEvent,bindDelegatedDashboardEvents,resolveDelegatedAction,handleExpandableSummaryClick}, {}, {globals:false});
 }
 // End source section: /js/settings/delegated-events.js
