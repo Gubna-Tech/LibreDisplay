@@ -19,7 +19,7 @@ function ensureIntegrationClientScript(manifest){
   const promise=new Promise(resolve=>{
     const finish=ok=>{if(script){delete script.dataset.integrationLoading;script.dataset.integrationLoaded=ok?'1':'0';}resolve(!!ok);};
     const created=!script;
-    if(created){script=document.createElement('script');script.src=serverPath(`/plugins/${encodeURIComponent(id)}/client.js`);script.dataset.integration=id;script.dataset.integrationLoading='1';script.async=true;}
+    if(created){script=document.createElement('script');const version=encodeURIComponent(String(manifest.version||'1'));script.src=serverPath(`/plugins/${encodeURIComponent(id)}/client.js?v=${version}`);script.dataset.integration=id;script.dataset.integrationLoading='1';script.async=true;}
     script.addEventListener('load',()=>finish(typeof window.LibreDisplayIntegrationRenderers?.[id]==='function'),{once:true});
     script.addEventListener('error',()=>finish(false),{once:true});
     if(created)document.head.appendChild(script);

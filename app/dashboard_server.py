@@ -1167,6 +1167,7 @@ def load_plugins():
                 "refreshMin": max(1, min(1440, int(raw.get("refreshMin") or 5))),
                 "settings": fields,
                 "clientScript": (folder / "client.js").is_file() and not (folder / "client.js").is_symlink(),
+                "selfStyled": bool(raw.get("selfStyled")),
                 "kind": kind,
                 "category": str(raw.get("category") or category_map.get(kind, "Other"))[:48],
                 "auth": str(raw.get("auth") or auth)[:24],
@@ -3656,7 +3657,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             data = path.read_bytes()
             if len(data) > 512 * 1024:
                 return self.text_response(413, "Plugin client script is too large")
-            return self.bytes_response(200, data, "application/javascript; charset=utf-8")
+            return self.bytes_response(200, data, "application/javascript; charset=utf-8", {"Cache-Control":"no-store"})
         except Exception:
             return self.text_response(500, "Could not read plugin client script")
 

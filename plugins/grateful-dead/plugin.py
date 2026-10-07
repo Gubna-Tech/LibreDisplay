@@ -12,7 +12,8 @@ MANIFEST={"id":"grateful-dead",
  'name': 'Deadhead · Grateful Dead',
  'description': 'Unofficial fan integration for deeply customizable Today in Dead History shows, setlists, sourced member quotes, and '
                 'listening suggestions.',
- 'version': '1.9',
+ 'version': '2.0',
+ 'selfStyled': True,
  'icon': '✺',
  'refreshMin': 30,
  'kind': 'data',
@@ -1128,6 +1129,8 @@ def _quote_rows(settings,today):
         seen.add(sig);deduped.append(row)
     rows=deduped
     content=str(settings.get('quoteContent') or 'mixed').lower()
+    if content not in ('mixed','quotes','lyrics'):
+        content='mixed'
     member=str(settings.get('quoteMember') or 'all').lower()
     quote_rows=[x for x in rows if x.get('kind','quote')=='quote']
     lyric_rows=[x for x in rows if x.get('kind')=='lyric']
