@@ -12,7 +12,7 @@ MANIFEST={"id":"grateful-dead",
  'name': 'Deadhead · Grateful Dead',
  'description': 'Unofficial fan integration for deeply customizable Today in Dead History shows, setlists, sourced member quotes, and '
                 'listening suggestions.',
- 'version': '1.7',
+ 'version': '1.8',
  'icon': '✺',
  'refreshMin': 30,
  'kind': 'data',
@@ -539,15 +539,24 @@ MANIFEST={"id":"grateful-dead",
                'type': 'checkbox',
                'default': True,
                'section': 'Quotes',
-               'sectionHelp': 'Mix sourced band-member quotes with short fan-favorite lyric snippets, choose either kind alone, filter member quotes, and control attribution independently.'},
+               'sectionHelp': 'Rotate a much larger mix of sourced band-member quotes, short fan-favorite lyric hooks, and song spotlights. Choose the content mix, ordering, member filter, timing, and attribution independently.'},
               {'key': 'quoteContent',
                'label': 'Quote reel content',
                'type': 'select',
                'default': 'mixed',
-               'options': [{'value': 'mixed', 'label': 'Member quotes + fan-favorite lyric snippets'},
+               'options': [{'value': 'mixed', 'label': 'Quotes + lyric hooks + song spotlights'},
                            {'value': 'quotes', 'label': 'Member quotes only'},
-                           {'value': 'lyrics', 'label': 'Lyric snippets only'}],
+                           {'value': 'lyrics', 'label': 'Lyric snippets only'},
+                           {'value': 'spotlights', 'label': 'Fan-favorite song spotlights'}],
                'section': 'Quotes'},
+              {'key': 'quoteOrder',
+               'label': 'Quote reel order',
+               'type': 'select',
+               'default': 'daily-shuffle',
+               'options': [{'value': 'daily-shuffle', 'label': 'Daily shuffle · recommended'},
+                           {'value': 'catalog', 'label': 'Catalog order'}],
+               'section': 'Quotes',
+               'help': 'Daily shuffle uses a stable daily order, while the display starts at a time-based position so refreshes do not keep returning to the same first quote.'},
               {'key': 'quoteMember',
                'label': 'Member quote filter',
                'type': 'select',
@@ -778,6 +787,89 @@ QUOTES=[
     {"key":"lyrics","kind":"lyric","member":"Not Fade Away","quote":"Our love is real, not fade away","source":"Dead.net lyrics","url":"https://www.dead.net/song/not-fade-away"}
 ]
 
+
+# The built-in reel intentionally keeps direct lyric excerpts very short.  The larger
+# rotation is achieved with many song spotlights plus sourced member quotes, so an
+# unattended display can stay fresh without bundling long copyrighted lyric passages.
+EXTRA_LYRIC_SNIPPETS=[
+    {"key":"lyric-bertha","kind":"lyric","member":"Bertha","quote":"Why don't you arrest me?","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-deal","kind":"lyric","member":"Deal","quote":"Don't you let that deal go down","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-brown-eyed-women","kind":"lyric","member":"Brown-Eyed Women","quote":"The bottle was dusty but the liquor was clean","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-china-cat","kind":"lyric","member":"China Cat Sunflower","quote":"Like a one-eyed Cheshire, like a diamond-eye jack","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-st-stephen","kind":"lyric","member":"St. Stephen","quote":"Wherever he goes, the people all complain","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-casey-jones","kind":"lyric","member":"Casey Jones","quote":"Driving that train, high on cocaine","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-sugar-magnolia","kind":"lyric","member":"Sugar Magnolia","quote":"Sunshine daydream, walking in the tall trees","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-friend-devil","kind":"lyric","member":"Friend of the Devil","quote":"A friend of the devil is a friend of mine","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-dire-wolf","kind":"lyric","member":"Dire Wolf","quote":"Please don't murder me","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-us-blues","kind":"lyric","member":"U.S. Blues","quote":"Wave that flag, wave it wide and high","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-new-speedway","kind":"lyric","member":"New Speedway Boogie","quote":"One way or another, this darkness got to give","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-wharf-rat","kind":"lyric","member":"Wharf Rat","quote":"I'll get up and fly away","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-brokedown","kind":"lyric","member":"Brokedown Palace","quote":"Fare you well, fare you well","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-loser","kind":"lyric","member":"Loser","quote":"I can tell the Queen of Diamonds","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-jack-straw","kind":"lyric","member":"Jack Straw","quote":"We can share the women, we can share the wine","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-morning-dew","kind":"lyric","member":"Morning Dew","quote":"I guess it doesn't matter anyway","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-playing","kind":"lyric","member":"Playing in the Band","quote":"Some folks trust to reason","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-china-doll","kind":"lyric","member":"China Doll","quote":"Just a little nervous from the fall","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-row-jimmy","kind":"lyric","member":"Row Jimmy","quote":"Roll me over and turn me around","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-shakedown","kind":"lyric","member":"Shakedown Street","quote":"Don't tell me this town ain't got no heart","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-cosmic-charlie","kind":"lyric","member":"Cosmic Charlie","quote":"Go on home, your mama's calling you","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-candyman","kind":"lyric","member":"Candyman","quote":"Come on boys and gamble","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-doin-rag","kind":"lyric","member":"Doin' That Rag","quote":"Come on over, sweetly speaking","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-dupree","kind":"lyric","member":"Dupree's Diamond Blues","quote":"Baby, baby, it looks like rain","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-high-time","kind":"lyric","member":"High Time","quote":"You told me goodbye","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-black-peter","kind":"lyric","member":"Black Peter","quote":"See here how everything lead up to this day","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-cumberland","kind":"lyric","member":"Cumberland Blues","quote":"Make good money, five dollars a day","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-easy-wind","kind":"lyric","member":"Easy Wind","quote":"Gotta find a woman be good to me","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-operator","kind":"lyric","member":"Operator","quote":"Operator, can you help me?","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-passenger","kind":"lyric","member":"Passenger","quote":"Firefly, can you see me?","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-ship-fools","kind":"lyric","member":"Ship of Fools","quote":"Ship of fools on a cruel sea","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-throwing-stones","kind":"lyric","member":"Throwing Stones","quote":"Ashes, ashes, all fall down","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-west-la","kind":"lyric","member":"West L.A. Fadeaway","quote":"Here's what I say","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-bucket","kind":"lyric","member":"Hell in a Bucket","quote":"At least I'm enjoying the ride","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-foolish-heart","kind":"lyric","member":"Foolish Heart","quote":"Never give your love, my friend, unto a foolish heart","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-built-last","kind":"lyric","member":"Built to Last","quote":"Built to last till time itself falls tumbling","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-liberty","kind":"lyric","member":"Liberty","quote":"Ooh freedom, ooh liberty","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-so-many-roads","kind":"lyric","member":"So Many Roads","quote":"So many roads I know","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-lazy-river","kind":"lyric","member":"Lazy River Road","quote":"Way down upon Sycamore Slough","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-corrina","kind":"lyric","member":"Corrina","quote":"Corrina, wake it up baby","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-picasso","kind":"lyric","member":"Picasso Moon","quote":"Bigger than a drive-in movie","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-victim","kind":"lyric","member":"Victim or the Crime","quote":"Am I the victim or the crime?","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-wrs","kind":"lyric","member":"Weather Report Suite","quote":"Wake of the flood, laughing water","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-let-grow","kind":"lyric","member":"Let It Grow","quote":"Let it grow, greatly yield","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-stranger","kind":"lyric","member":"Feel Like a Stranger","quote":"You know it's gonna get stranger","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-lost-sailor","kind":"lyric","member":"Lost Sailor","quote":"Compass card is spinning","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-saint","kind":"lyric","member":"Saint of Circumstance","quote":"Sure don't know what I'm going for","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-alabama","kind":"lyric","member":"Alabama Getaway","quote":"Thirty-two teeth in a jawbone","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-far-from-me","kind":"lyric","member":"Far From Me","quote":"This is final, this is farewell","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-blow-away","kind":"lyric","member":"Blow Away","quote":"You got to blow away","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-little-light","kind":"lyric","member":"Just a Little Light","quote":"This could be just a little light","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-tons-steel","kind":"lyric","member":"Tons of Steel","quote":"She weighs more by the day","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-esau","kind":"lyric","member":"My Brother Esau","quote":"Shadowboxing the apocalypse","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-might-well","kind":"lyric","member":"Might as Well","quote":"Might as well, might as well","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-crazy-fingers","kind":"lyric","member":"Crazy Fingers","quote":"Gone are the days we stopped to decide","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-comes-time","kind":"lyric","member":"Comes a Time","quote":"Comes a time when the blind man takes your hand","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-eleven","kind":"lyric","member":"The Eleven","quote":"No more time to tell how","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-mountains","kind":"lyric","member":"Mountains of the Moon","quote":"Hi ho, the carrion crow","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-rosemary","kind":"lyric","member":"Rosemary","quote":"Boots were of leather, a breath of cologne","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-alligator","kind":"lyric","member":"Alligator","quote":"Sleepy alligator in the noonday sun","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-golden-road","kind":"lyric","member":"The Golden Road","quote":"See that girl barefootin' along","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-cream-puff","kind":"lyric","member":"Cream Puff War","quote":"Wait a minute, watch what you're doing","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+]
+
+SONG_SPOTLIGHT_TITLES=[
+    'Alabama Getaway','Alligator','Althea','And We Bid You Goodnight','Around and Around','Attics of My Life','Beat It on Down the Line','Bertha','Big Boss Man','Big River','Bird Song','Black Muddy River','Black Peter','Blow Away','Box of Rain','Brokedown Palace','Brown-Eyed Women','Built to Last','Candyman','Casey Jones','Cassidy','China Cat Sunflower','China Doll','Cold Rain and Snow','Comes a Time','Cosmic Charlie','Crazy Fingers','Cream Puff War','Cumberland Blues','Dancing in the Street','Dark Star','Days Between','Deal','Dire Wolf','Doin’ That Rag','Don’t Ease Me In','Dupree’s Diamond Blues','Easy Answers','Easy Wind','El Paso','Estimated Prophet','Eyes of the World','Far From Me','Feel Like a Stranger','Fire on the Mountain','Foolish Heart','Franklin’s Tower','Friend of the Devil','Goin’ Down the Road Feeling Bad','Good Lovin’','Good Morning Little School Girl','Hard to Handle','He’s Gone','Hell in a Bucket','Help on the Way','Here Comes Sunshine','High Time','I Know You Rider','I Need a Miracle','It Must Have Been the Roses','Jack Straw','Jack-A-Roe','Just a Little Light','Lazy Lightning','Lazy River Road','Let It Grow','Liberty','Looks Like Rain','Loose Lucy','Loser','Lost Sailor','Mama Tried','Me and My Uncle','Mexicali Blues','Might as Well','Mississippi Half-Step Uptown Toodeloo','Morning Dew','Mountains of the Moon','Mr. Charlie','Music Never Stopped','My Brother Esau','New Minglewood Blues','New Speedway Boogie','Not Fade Away','One More Saturday Night','Operator','Passenger','Peggy-O','Picasso Moon','Playing in the Band','Promised Land','Ramble On Rose','Ripple','Row Jimmy','Saint of Circumstance','Samson and Delilah','Scarlet Begonias','Shakedown Street','Ship of Fools','So Many Roads','St. Stephen','Standing on the Moon','Stella Blue','Sugar Magnolia','Sugaree','Supplication','Tennessee Jed','Terrapin Station','The Eleven','The Golden Road','The Other One','The Wheel','They Love Each Other','Throwing Stones','Tons of Steel','Touch of Grey','Truckin’','U.S. Blues','Unbroken Chain','Uncle John’s Band','Victim or the Crime','Viola Lee Blues','Wang Dang Doodle','Weather Report Suite','West L.A. Fadeaway','Wharf Rat','Women Are Smarter','You Win Again','Aiko Aiko','All Along the Watchtower','Baby Blue','Ballad of a Thin Man','Big Railroad Blues','Black-Throated Wind','Broken Arrow','Caution','China-Rider','Cold Jordan','Corrina','Cryptical Envelopment','Day Job','Dear Mr. Fantasy','Death Don’t Have No Mercy','Desolation Row','Drums','Easy to Love You','Eternity','Feedback','Good Times','Hey Pocky Way','I Fought the Law','Iko Iko','It’s All Over Now','It’s All Over Now, Baby Blue','Johnny B. Goode','Keep Your Day Job','Knockin’ on Heaven’s Door','Little Red Rooster','Looks Like Rain','Maggie’s Farm','Man Smart, Woman Smarter','Matilda','Mind Left Body Jam','Mission in the Rain','Money Money','Morning Dew','New Orleans','Nobody’s Fault but Mine','Queen Jane Approximately','Reuben and Cherise','Revolution','Road Runner','Sage & Spirit','Samba in the Rain','She Belongs to Me','Sittin’ on Top of the World','Smokestack Lightning','Space','Spoonful','The Last Time','The Race Is On','The Same Thing','U.S. Blues','Walkin’ Blues','Wave to the Wind','Werewolves of London','When I Paint My Masterpiece','You Ain’t Woman Enough','You See a Broken Heart','Keep on Growing','Let the Good Times Roll','Dear Prudence','Good Golly Miss Molly','Midnight Hour','Turn on Your Lovelight','Hurts Me Too','King Bee','Next Time You See Me','Minglewood Blues','C.C. Rider','Around and Around','Promised Land','Big River','El Paso','Me and Bobby McGee','Sing Me Back Home','Mama Tried','Dark Hollow','Deep Elem Blues','Rosalie McFall','Monkey and the Engineer','Ripple','To Lay Me Down','Cumberland Blues','Dire Wolf','Friend of the Devil','Cassidy','Bird Song','China Doll','Wharf Rat','Brokedown Palace','Box of Rain','Attics of My Life','Unbroken Chain','Pride of Cucamonga','Passenger','Sunrise','Estimated Prophet','Terrapin Station','Shakedown Street','France','From the Heart of Me','Lost Sailor','Saint of Circumstance','Alabama Getaway','Far From Me','Feel Like a Stranger','Touch of Grey','West L.A. Fadeaway','Hell in a Bucket','Throwing Stones','Black Muddy River','Foolish Heart','Built to Last','Standing on the Moon','Picasso Moon','Victim or the Crime','Liberty','Days Between','So Many Roads','Lazy River Road'
+]
+
+def _song_spotlights():
+    seen=set();rows=[]
+    for title in SONG_SPOTLIGHT_TITLES:
+        normalized=str(title).strip()
+        key=normalized.casefold()
+        if not normalized or key in seen: continue
+        seen.add(key)
+        rows.append({"key":"spotlight-"+hashlib.sha1(normalized.encode()).hexdigest()[:10],"kind":"spotlight","member":"Fan favorite","quote":normalized,"source":"Song spotlight","url":"https://www.dead.net/songs"})
+    return rows
+
 MEMBER_ORDER=['jerry','bob','phil','mickey','bill','pigpen','tom','keith','donna','brent','vince']
 
 def _tokens(value):
@@ -887,18 +979,27 @@ def _custom_quotes(value):
     return out
 
 def _quote_rows(settings,today):
-    rows=QUOTES+_custom_quotes(settings.get('customQuotes'))
+    rows=QUOTES+EXTRA_LYRIC_SNIPPETS+_song_spotlights()+_custom_quotes(settings.get('customQuotes'))
+    # Remove duplicate visible entries even when a song exists in more than one source family.
+    deduped=[];seen=set()
+    for row in rows:
+        sig=(str(row.get('kind') or ''),str(row.get('member') or '').casefold(),str(row.get('quote') or '').casefold())
+        if sig in seen: continue
+        seen.add(sig);deduped.append(row)
+    rows=deduped
     content=str(settings.get('quoteContent') or 'mixed').lower()
     if content=='quotes': rows=[x for x in rows if x.get('kind','quote')=='quote']
     elif content=='lyrics': rows=[x for x in rows if x.get('kind')=='lyric']
+    elif content=='spotlights': rows=[x for x in rows if x.get('kind')=='spotlight']
     member=str(settings.get('quoteMember') or 'all').lower()
-    if member!='all' and content!='lyrics':
+    if member!='all' and content not in ('lyrics','spotlights'):
         quotes=[x for x in rows if x.get('kind','quote')=='quote' and x.get('key')==member]
-        lyrics=[x for x in rows if x.get('kind')=='lyric'] if content=='mixed' else []
-        rows=quotes+lyrics or rows
-    seed=int(hashlib.sha256((today.isoformat()+member+content).encode()).hexdigest()[:10],16)
-    if rows:
-        offset=seed%len(rows);rows=rows[offset:]+rows[:offset]
+        companion=[x for x in rows if x.get('kind') in ('lyric','spotlight')] if content=='mixed' else []
+        rows=quotes+companion or rows
+    order=str(settings.get('quoteOrder') or 'daily-shuffle').lower()
+    if order!='catalog' and rows:
+        seed=today.isoformat()+member+content
+        rows.sort(key=lambda x:hashlib.sha256((seed+'|'+str(x.get('kind'))+'|'+str(x.get('member'))+'|'+str(x.get('quote'))).encode()).hexdigest())
     return rows
 
 def _favorite_score(show, favorites):
@@ -1142,6 +1243,6 @@ def fetch(settings,context):
         'kind':'deadhead','provider':'JerryBase setlists · Relisten setlists/listening · Internet Archive listening','title':display.get('headerTitle') or 'Today in Dead History','date':today.isoformat(),'monthDay':today.strftime('%B %-d') if hasattr(today,'strftime') else today.isoformat(),
         'shows':shows,'featuredIndex':featured_index,'quotes':quotes,'quote':quotes[0] if quotes else None,'setlists':setlists,'setlist':setlists.get(shows[featured_index]['date']) if shows and featured_index>=0 else None,'setlistErrors':setlist_errors[:6],'providerError':provider_error,
         'era':era,'showMode':str(settings.get('showMode') or 'today'),'showOrder':str(settings.get('showOrder') or 'oldest'),'showBrowser':display.get('showBrowser','year-strip'),'autoRotate':display.get('autoRotate',True),'rotationSeconds':_int(display.get('rotationSeconds'),15,120,30),
-        'quoteRotate':display.get('quoteRotate',True),'quoteSeconds':_int(display.get('quoteSeconds'),30,300,60),'visualMode':display.get('visualMode','subtle'),'favoriteSongs':favorites,'setlistsEnabled':display.get('setlistsEnabled',True),'setlistSource':display.get('setlistSource','auto'),'display':display,
+        'quoteRotate':display.get('quoteRotate',True),'quoteSeconds':_int(display.get('quoteSeconds'),30,300,60),'quotePoolSize':len(quotes),'quoteOrder':str(display.get('quoteOrder') or 'daily-shuffle'),'visualMode':display.get('visualMode','subtle'),'favoriteSongs':favorites,'setlistsEnabled':display.get('setlistsEnabled',True),'setlistSource':display.get('setlistSource','auto'),'display':display,
         'unofficial':True,'sources':[{'label':'JerryBase setlists','url':'https://jerrybase.com/'},{'label':'Relisten setlists & listening','url':'https://relisten.net/grateful-dead'},{'label':'Internet Archive recordings','url':'https://archive.org/details/GratefulDead'},{'label':'The SetList Program','url':'https://www.setlists.net/'}]
     }

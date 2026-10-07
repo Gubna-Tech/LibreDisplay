@@ -6,7 +6,26 @@ const {escHtml,resilientFetch}=LibreDisplayRuntime.getModule('shared');
 const DEFAULT_CAL_COLORS=['#4ade80','#38bdf8','#f472b6','#a78bfa','#fb923c','#22d3ee','#facc15','#fb7185','#c084fc','#86efac','#60a5fa','#f97316'];
 let integrationManifests=[];
 let integrationManifestMap=new Map();
+const integrationClientLoads=new Map();
 window.LibreDisplayIntegrationRenderers=window.LibreDisplayIntegrationRenderers||{};
+function ensureIntegrationClientScript(manifest){
+  if(!manifest?.clientScript)return Promise.resolve(true);
+  const id=String(manifest.id||'');if(!id)return Promise.resolve(false);
+  if(typeof window.LibreDisplayIntegrationRenderers?.[id]==='function')return Promise.resolve(true);
+  if(integrationClientLoads.has(id))return integrationClientLoads.get(id);
+  let script=document.querySelector(`script[data-integration="${CSS.escape(id)}"]`);
+  if(script?.dataset?.integrationLoaded==='1')return Promise.resolve(typeof window.LibreDisplayIntegrationRenderers?.[id]==='function');
+  if(script&&!script.dataset.integrationLoading){script.remove();script=null;}
+  const promise=new Promise(resolve=>{
+    const finish=ok=>{if(script){delete script.dataset.integrationLoading;script.dataset.integrationLoaded=ok?'1':'0';}resolve(!!ok);};
+    const created=!script;
+    if(created){script=document.createElement('script');script.src=serverPath(`/plugins/${encodeURIComponent(id)}/client.js`);script.dataset.integration=id;script.dataset.integrationLoading='1';script.async=true;}
+    script.addEventListener('load',()=>finish(typeof window.LibreDisplayIntegrationRenderers?.[id]==='function'),{once:true});
+    script.addEventListener('error',()=>finish(false),{once:true});
+    if(created)document.head.appendChild(script);
+  }).finally(()=>integrationClientLoads.delete(id));
+  integrationClientLoads.set(id,promise);return promise;
+}
 async function loadIntegrations(){
   try{
     const res=await resilientFetch(serverPath('/api/integrations'),{cache:'no-store'});
@@ -15,19 +34,18 @@ async function loadIntegrations(){
     integrationManifests=Array.isArray(data?.integrations)?data.integrations:[];
     integrationManifestMap=new Map(integrationManifests.map(x=>[x.id,x]));
     renderIntegrationDirectory();
-    for(const manifest of integrationManifests){
-      if(!manifest.clientScript||document.querySelector(`script[data-integration="${CSS.escape(manifest.id)}"]`))continue;
-      const script=document.createElement('script');script.src=serverPath(`/plugins/${encodeURIComponent(manifest.id)}/client.js`);script.dataset.integration=manifest.id;script.async=true;document.head.appendChild(script);
-    }
-  }catch(e){console.warn('integration discovery failed',e);}
+    await Promise.all(integrationManifests.filter(x=>x?.clientScript).map(ensureIntegrationClientScript));
+    return integrationManifests;
+  }catch(e){console.warn('integration discovery failed',e);return [];}
 }
 function integrationManifest(id){return integrationManifestMap.get(String(id||''))||null;}
 const INTEGRATION_LAYOUT_PART_DEFAULTS={
   status:[
     {key:'root',label:'Status content',selector:'.integration-status',root:true,container:true,movable:false,order:0},
-    {key:'value',label:'Primary value',selector:'.integration-status-value',parent:'root',order:0},
-    {key:'provider',label:'Provider label',selector:'.integration-status-provider',parent:'root',order:10},
-    {key:'details',label:'Details',selector:'.integration-status-details',parent:'root',container:true,order:20},
+    {key:'title',label:'Status label',selector:'.integration-status-title',parent:'root',order:0},
+    {key:'value',label:'Primary value',selector:'.integration-status-value',parent:'root',order:10},
+    {key:'provider',label:'Provider label',selector:'.integration-status-provider',parent:'root',order:20},
+    {key:'details',label:'Details',selector:'.integration-status-details',parent:'root',container:true,order:30},
     {key:'detailLabels',label:'Detail labels',selector:'.integration-status-detail b',parent:'details',movable:false,order:0},
     {key:'detailValues',label:'Detail values',selector:'.integration-status-detail span',parent:'details',movable:false,order:10},
   ],
@@ -42,7 +60,7 @@ const INTEGRATION_LAYOUT_PART_DEFAULTS={
     {key:'state',label:'Playback status',selector:'.integration-now-state',parent:'copy',order:40},
   ],
   photos:[
-    {key:'root',label:'Photo content',selector:'.integration-photo',root:true,container:true,movable:false,order:0},
+    {key:'root',label:'Photo content',selector:'.integration-photo-shell',root:true,container:true,movable:false,order:0},
     {key:'image',label:'Photo',selector:'.integration-photo img',parent:'root',order:0},
     {key:'caption',label:'Photo caption',selector:'.integration-photo-caption',parent:'root',order:10},
   ],
@@ -56,14 +74,16 @@ const INTEGRATION_LAYOUT_PART_DEFAULTS={
   ],
   messages:[
     {key:'root',label:'Message content',selector:'.integration-message-shell',root:true,container:true,movable:false,order:0},
-    {key:'list',label:'Message list',selector:'.integration-messages',parent:'root',container:true,order:0},
+    {key:'title',label:'Message label',selector:'.integration-message-title',parent:'root',order:0},
+    {key:'list',label:'Message list',selector:'.integration-messages',parent:'root',container:true,order:10},
     {key:'items',label:'Message cards',selector:'.integration-message',parent:'list',movable:false,order:0},
     {key:'text',label:'Message text',selector:'.integration-message-text',parent:'items',movable:false,order:0},
     {key:'metadata',label:'Message metadata',selector:'.integration-message-meta',parent:'items',movable:false,order:10},
   ],
   map:[
     {key:'root',label:'Map content',selector:'.integration-map-shell',root:true,container:true,movable:false,order:0},
-    {key:'map',label:'Map',selector:'.integration-map',parent:'root',order:0},
+    {key:'title',label:'Map label',selector:'.integration-map-title',parent:'root',order:0},
+    {key:'map',label:'Map',selector:'.integration-map',parent:'root',order:10},
   ],
   data:[
     {key:'root',label:'Integration content',selector:'.integration-data,.integration-render-host',root:true,container:true,movable:false,order:0},
@@ -147,7 +167,7 @@ function arrangeCustomBlockFromSettings(blockId){launchCustomBlockFromSettings(b
 function addIntegrationFromSettings(pluginId){if(LibreDisplayRuntime.getModule('system').settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;closeSetup(true);setTimeout(()=>{startLayoutEditor();beginAddIntegration(pluginId);},80);}
 
 // Preserve compatibility with existing inline event wiring while callers migrate to module APIs.
-LibreDisplayRuntime.exposeModule("integrations", {loadIntegrations,integrationManifest,integrationLayoutParts,configuredIntegrationBlocks,integrationDirectoryCategories,integrationAccessKind,integrationAccessLabel,integrationFreedomRank,integrationMatchesAccess,healthAgeText,healthTimeText,integrationStateLabel,integrationErrorKindLabel,integrationStatusRank,integrationRowsForPlugin,integrationAggregateForPlugin,loadIntegrationHealth,renderConfiguredIntegrationBlocks,renderIntegrationDirectory,renderIntegrationHealth,forceIntegrationCheck,checkIntegrationNow,checkAllIntegrationsNow,launchCustomBlockFromSettings,editCustomBlockFromSettings,arrangeCustomBlockFromSettings,addIntegrationFromSettings}, {
+LibreDisplayRuntime.exposeModule("integrations", {loadIntegrations,ensureIntegrationClientScript,integrationManifest,integrationLayoutParts,configuredIntegrationBlocks,integrationDirectoryCategories,integrationAccessKind,integrationAccessLabel,integrationFreedomRank,integrationMatchesAccess,healthAgeText,healthTimeText,integrationStateLabel,integrationErrorKindLabel,integrationStatusRank,integrationRowsForPlugin,integrationAggregateForPlugin,loadIntegrationHealth,renderConfiguredIntegrationBlocks,renderIntegrationDirectory,renderIntegrationHealth,forceIntegrationCheck,checkIntegrationNow,checkAllIntegrationsNow,launchCustomBlockFromSettings,editCustomBlockFromSettings,arrangeCustomBlockFromSettings,addIntegrationFromSettings}, {
   "DEFAULT_CAL_COLORS": {configurable:true,get:()=>DEFAULT_CAL_COLORS},
   "integrationManifests": {configurable:true,get:()=>integrationManifests,set:(value)=>{integrationManifests=value;}},
   "integrationManifestMap": {configurable:true,get:()=>integrationManifestMap,set:(value)=>{integrationManifestMap=value;}},
