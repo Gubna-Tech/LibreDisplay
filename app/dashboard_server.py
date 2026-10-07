@@ -2403,6 +2403,44 @@ def normalize_frontend_performance(value):
         }
     return payload
 
+def runtime_capabilities_payload():
+    hardware = {"cpuCount": int(os.cpu_count() or 0)}
+    try:
+        model = Path("/proc/device-tree/model").read_bytes().replace(b"\x00", b"").decode("utf-8", "replace").strip()
+        if model:
+            hardware["model"] = model[:160]
+    except Exception:
+        pass
+    try:
+        meminfo = {}
+        for line in Path("/proc/meminfo").read_text(encoding="utf-8").splitlines():
+            if ":" not in line:
+                continue
+            key, raw = line.split(":", 1)
+            match = re.search(r"(\d+)", raw)
+            if match:
+                meminfo[key] = int(match.group(1)) * 1024
+        if meminfo.get("MemTotal"):
+            hardware["memoryTotalBytes"] = meminfo["MemTotal"]
+        if meminfo.get("MemAvailable"):
+            hardware["memoryAvailableBytes"] = meminfo["MemAvailable"]
+    except Exception:
+        pass
+    model_lower = str(hardware.get("model") or "").lower()
+    if "raspberry pi 3" in model_lower:
+        tier = "pi3"
+    elif "raspberry pi 4" in model_lower:
+        tier = "pi4"
+    elif "raspberry pi 5" in model_lower:
+        tier = "pi5"
+    elif "raspberry pi zero" in model_lower:
+        tier = "pi3"
+    elif "raspberry pi" in model_lower:
+        tier = "pi-constrained"
+    else:
+        tier = "generic"
+    return {"ok": True, "hardware": hardware, "hardwareTier": tier}
+
 def system_health_payload():
     try:
         disk = shutil.disk_usage(DATA_ROOT)
@@ -4342,6 +4380,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if not self.require_owner():
                 return
             return self.json_response(200, {"ok": True, "points": list_restore_points()})
+        if parsed.path == "/api/runtime-capabilities":
+            if not self.require_display_authorized(parsed):
+                return
+            return self.json_response(200, runtime_capabilities_payload())
         if parsed.path == "/api/system-health":
             if not self.require_owner():
                 return

@@ -261,9 +261,11 @@ function renderSystemHealth(){
   const memText=memTotal?`${formatHealthBytes(memAvail)} available / ${formatHealthBytes(memTotal)}`:'Memory unavailable';
   const tempText=Number.isFinite(temp)?` · ${temp.toFixed(1)}°C`:'';
   set('system-health-memory',memText+tempText,Number.isFinite(temp)&&temp>=80?'bad':Number.isFinite(temp)&&temp>=70?'warn':'good');
-  set('system-health-load',Array.isArray(d.loadAverage)&&d.loadAverage.length?d.loadAverage.join(' · '):'Unavailable','');
+  const loads=Array.isArray(d.loadAverage)?d.loadAverage.map(Number).filter(Number.isFinite):[],load1=loads[0]||0,loadPerCore=cores?load1/cores:0;
+  set('system-health-load',loads.length?`${loads.map(v=>v.toFixed(2)).join(' · ')} (1m · 5m · 15m)${cores?` · ${cores} cores`:''}`:'Unavailable',loadPerCore>=1.15?'bad':loadPerCore>=.80?'warn':loads.length?'good':'');
   const kiosk=d.kioskHeartbeat||{},perf=kiosk.frontendPerformance||{},longTasks=perf.longTasks||{};
-  const perfText=kiosk.present&&Object.keys(perf).length?[`${perf.tier||'browser'} tier`,`${Number(longTasks.count)||0} long tasks`,`${Number(longTasks.maxMs)||0} ms max`,perf.heap?.usedBytes?`${formatHealthBytes(perf.heap.usedBytes)} JS heap`:'' ].filter(Boolean).join(' · '):(kiosk.present?'Waiting for browser metrics':'No local kiosk heartbeat');
+  const anim=perf.animation||{},fps=Number(anim.fps)||0,targetFps=Number(anim.targetFps)||0,dropped=Number(anim.droppedPct)||0;
+  const perfText=kiosk.present&&Object.keys(perf).length?[`${perf.tier||'browser'} tier`,perf.hostModel||'',fps?`${fps.toFixed(1)} FPS${targetFps?` / ${targetFps} target`:''}`:'',dropped?`${dropped.toFixed(1)}% dropped`:'',`${Number(longTasks.count)||0} long tasks`,`${Number(longTasks.maxMs)||0} ms max`,perf.heap?.usedBytes?`${formatHealthBytes(perf.heap.usedBytes)} JS heap`:'' ].filter(Boolean).join(' · '):(kiosk.present?'Waiting for browser metrics':'No local kiosk heartbeat');
   set('system-health-browser',perfText,kiosk.present?'good':'warn');
   const conn=perf.connectivity||{},requests=Number(conn.requests)||0,failures=Number(conn.failures)||0,timeouts=Number(conn.timeouts)||0,retries=Number(conn.retries)||0,avg=Number(conn.averageLatencyMs)||0;
   const outbound=d.outboundConnectivity||{},serverRequests=Number(outbound.requests)||0,serverFailures=Number(outbound.failures)||0,serverRetries=Number(outbound.retries)||0,serverAvg=Number(outbound.averageLatencyMs)||0,lastKind=String(outbound.lastFailureKind||'');
