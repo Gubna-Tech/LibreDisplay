@@ -2621,6 +2621,10 @@ def pi_runtime_diagnostics():
         chromium["launchMode"] = str(launch_state.get("mode") or "")[:40]
         chromium["browserBinary"] = str(launch_state.get("browser") or "")[:100]
         chromium["launchStartedAt"] = max(0, int(launch_state.get("startedAt") or 0))
+        chromium["launchAttempt"] = max(0, int(launch_state.get("attempt") or 0))
+        candidates = launch_state.get("profileCandidates") if isinstance(launch_state.get("profileCandidates"), list) else []
+        chromium["profileCandidates"] = [str(value)[:40] for value in candidates if str(value)][:8]
+        chromium["persistedProfile"] = str(launch_state.get("persistedProfile") or "")[:40]
     browser_flags = set()
     main_command_flags = []
     graphics_prefixes = ("--ozone-platform=", "--use-gl=", "--use-angle=", "--enable-features=")
@@ -2666,6 +2670,9 @@ def pi_runtime_diagnostics():
     try:
         if BROWSER_STDERR_PATH.is_file():
             tail = BROWSER_STDERR_PATH.read_text(encoding="utf-8", errors="replace")[-24000:]
+            marker = "=== LibreDisplay Chromium launch profile="
+            if marker in tail:
+                tail = marker + tail.rsplit(marker, 1)[-1]
             interesting = []
             for line in tail.splitlines():
                 clean = re.sub(r"\s+", " ", line).strip()
@@ -2770,6 +2777,7 @@ def system_health_payload():
             "browserRestarts": safe_nonnegative_int(watchdog.get("browserRestarts")),
             "lastReason": str(watchdog.get("lastReason") or "")[:80],
             "lastRecoveryAt": safe_nonnegative_int(watchdog.get("lastRecoveryAt")),
+            "browserAccelProfile": str(watchdog.get("browserAccelProfile") or "")[:40],
         },
         "config": {
             "recoveredAt": safe_nonnegative_int(config_recovery.get("recoveredAt")),

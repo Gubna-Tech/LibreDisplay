@@ -42,6 +42,7 @@ DISPLAY_MODE_FILE="$DASHBOARD_DATA_DIR/display-mode.json"
 WATCHDOG_STATE_FILE="$DASHBOARD_DATA_DIR/watchdog-state.json"
 STARTUP_INTEGRITY_FILE="$DASHBOARD_DATA_DIR/startup-integrity.json"
 BROWSER_LAUNCH_STATE_FILE="$DASHBOARD_DATA_DIR/browser-launch-state.json"
+BROWSER_ACCEL_PROFILE_FILE="$DASHBOARD_DATA_DIR/browser-acceleration-profile.json"
 BROWSER_LOG_FILE="$DASHBOARD_DATA_DIR/chromium-stderr.log"
 
 reset_display_mode() {
@@ -81,13 +82,87 @@ SERVER_RESTART_DELAY=3
 BROWSER_RESTART_DELAY=2
 SERVER_STARTED_AT=0
 BROWSER_ACCEL_PROFILE=normal
-BROWSER_ACCEL_RECOVERY_TRIED=0
+BROWSER_ACCEL_ATTEMPT=0
+BROWSER_ACCEL_VERIFIED=0
+BROWSER_ACCEL_FROM_PERSISTED=0
 PI_MODEL=""
 if [ -r /proc/device-tree/model ]; then
   PI_MODEL=$(tr -d '\000' </proc/device-tree/model 2>/dev/null || true)
 fi
 case "$PI_MODEL" in
-  *"Raspberry Pi 4"*|*"Raspberry Pi 5"*) BROWSER_ACCEL_PROFILE=pi-hardware ;;
+  *"Raspberry Pi 4"*|*"Raspberry Pi 5"*) BROWSER_ACCEL_PROFILE=pi-angle-gles ;;
+esac
+
+is_pi_accel_profile() {
+  case "${1:-}" in
+    pi-angle-gles|pi-angle-gl|pi-angle-vulkan|pi-default) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+read_persisted_accel_profile() {
+  [ -f "$BROWSER_ACCEL_PROFILE_FILE" ] || return 1
+  profile=$(python3 - "$BROWSER_ACCEL_PROFILE_FILE" <<'PYPROFILE' 2>/dev/null || true
+import json, sys
+try:
+    with open(sys.argv[1], 'r', encoding='utf-8') as fh:
+        row=json.load(fh)
+    print(str(row.get('profile') or ''), end='')
+except Exception:
+    pass
+PYPROFILE
+)
+  if is_pi_accel_profile "$profile"; then
+    BROWSER_ACCEL_PROFILE=$profile
+    BROWSER_ACCEL_FROM_PERSISTED=1
+    return 0
+  fi
+  return 1
+}
+
+persist_accel_profile() {
+  is_pi_accel_profile "$BROWSER_ACCEL_PROFILE" || return 0
+  now=$(date +%s)
+  python3 - "$BROWSER_ACCEL_PROFILE_FILE" "$BROWSER_ACCEL_PROFILE" "$now" <<'PYPROFILE' 2>/dev/null || true
+import json, os, sys
+path, profile, verified = sys.argv[1:]
+payload={"profile":profile,"verifiedAt":int(verified)}
+tmp=path+".tmp."+str(os.getpid())
+with open(tmp,'w',encoding='utf-8') as fh:
+    json.dump(payload,fh,separators=(',',':'))
+    fh.write('\n')
+os.chmod(tmp,0o600)
+os.replace(tmp,path)
+PYPROFILE
+}
+
+next_accel_profile() {
+  case "$BROWSER_ACCEL_PROFILE" in
+    pi-angle-gles) BROWSER_ACCEL_PROFILE=pi-angle-gl ;;
+    pi-angle-gl) BROWSER_ACCEL_PROFILE=pi-angle-vulkan ;;
+    pi-angle-vulkan) BROWSER_ACCEL_PROFILE=pi-default ;;
+    *) return 1 ;;
+  esac
+  BROWSER_ACCEL_ATTEMPT=$((BROWSER_ACCEL_ATTEMPT + 1))
+  BROWSER_ACCEL_VERIFIED=0
+  return 0
+}
+
+advance_accel_profile_after_failure() {
+  if [ "$BROWSER_ACCEL_FROM_PERSISTED" = "1" ]; then
+    BROWSER_ACCEL_FROM_PERSISTED=0
+    if [ "$BROWSER_ACCEL_PROFILE" != "pi-angle-gles" ]; then
+      BROWSER_ACCEL_PROFILE=pi-angle-gles
+      BROWSER_ACCEL_ATTEMPT=$((BROWSER_ACCEL_ATTEMPT + 1))
+      BROWSER_ACCEL_VERIFIED=0
+      return 0
+    fi
+  fi
+  next_accel_profile
+}
+
+case "$PI_MODEL" in
+  *"Raspberry Pi 4"*|*"Raspberry Pi 5"*) read_persisted_accel_profile || true ;;
 esac
 
 write_watchdog_state() {
@@ -153,18 +228,28 @@ clear_chromium_gpu_caches() {
 
 write_browser_launch_state() {
   now=$(date +%s)
-  python3 - "$BROWSER_LAUNCH_STATE_FILE" "$BROWSER_ACCEL_PROFILE" "$CURRENT_BROWSER_MODE" "$BROWSER" "$BROWSER_FEATURES" "$BROWSER_ACCEL_FLAGS" "$now" <<'PY' 2>/dev/null || true
+  python3 - "$BROWSER_LAUNCH_STATE_FILE" "$BROWSER_ACCEL_PROFILE" "$CURRENT_BROWSER_MODE" "$BROWSER" "$BROWSER_FEATURES" "$BROWSER_BASE_ACCEL_FLAGS" "$BROWSER_ACCEL_FLAGS" "$now" "$BROWSER_ACCEL_ATTEMPT" "$BROWSER_ACCEL_PROFILE_FILE" <<'PYLAUNCH' 2>/dev/null || true
 import json, os, shlex, sys
-path, profile, mode, browser, features, accel, started = sys.argv[1:]
-flags = ["--ozone-platform=wayland", "--enable-gpu-rasterization", "--enable-zero-copy"]
+path, profile, mode, browser, features, base_accel, accel, started, attempt, persisted_path = sys.argv[1:]
+flags = ["--ozone-platform=wayland"]
+flags.extend(shlex.split(base_accel or ""))
 flags.extend(shlex.split(accel or ""))
 flags.append("--enable-features=" + features)
+persisted = ""
+try:
+    with open(persisted_path, 'r', encoding='utf-8') as fh:
+        persisted = str((json.load(fh) or {}).get('profile') or '')
+except Exception:
+    pass
 payload = {
     "profile": profile,
     "mode": mode,
     "browser": os.path.basename(browser),
     "startedAt": int(started),
+    "attempt": int(attempt),
     "requestedFlags": flags,
+    "profileCandidates": ["pi-angle-gles", "pi-angle-gl", "pi-angle-vulkan", "pi-default"],
+    "persistedProfile": persisted,
 }
 tmp = path + ".tmp." + str(os.getpid())
 with open(tmp, "w", encoding="utf-8") as fh:
@@ -172,7 +257,7 @@ with open(tmp, "w", encoding="utf-8") as fh:
     fh.write("\n")
 os.chmod(tmp, 0o600)
 os.replace(tmp, path)
-PY
+PYLAUNCH
 }
 
 heartbeat_graphics_state() {
@@ -208,17 +293,36 @@ trim_browser_log() {
 
 launch_browser() {
   rm -f "$KIOSK_HEARTBEAT_FILE" 2>/dev/null || true
+  if [ "$BROWSER_ACCEL_PROFILE" = "pi-angle-gles" ] && [ "$BROWSER_ACCEL_ATTEMPT" = "0" ] && [ ! -f "$BROWSER_ACCEL_PROFILE_FILE" ]; then
+    clear_chromium_gpu_caches
+  fi
   trim_browser_log
+  BROWSER_ACCEL_VERIFIED=0
   BROWSER_STARTED_AT=$(date +%s)
+  BROWSER_BASE_ACCEL_FLAGS="--enable-gpu-rasterization --enable-zero-copy"
   BROWSER_ACCEL_FLAGS=""
   BROWSER_FEATURES="OverlayScrollbar"
   case "$BROWSER_ACCEL_PROFILE" in
-    pi-hardware|recovery)
-      BROWSER_ACCEL_FLAGS="--ignore-gpu-blocklist --use-gl=egl"
+    pi-angle-gles)
+      BROWSER_ACCEL_FLAGS="--ignore-gpu-blocklist --use-angle=gles"
       BROWSER_FEATURES="OverlayScrollbar,CanvasOopRasterization"
+      ;;
+    pi-angle-gl)
+      BROWSER_ACCEL_FLAGS="--ignore-gpu-blocklist --use-angle=gl"
+      BROWSER_FEATURES="OverlayScrollbar,CanvasOopRasterization"
+      ;;
+    pi-angle-vulkan)
+      BROWSER_ACCEL_FLAGS="--ignore-gpu-blocklist --use-angle=vulkan"
+      BROWSER_FEATURES="OverlayScrollbar,CanvasOopRasterization"
+      ;;
+    pi-default)
+      BROWSER_BASE_ACCEL_FLAGS=""
+      BROWSER_ACCEL_FLAGS="--ignore-gpu-blocklist"
+      BROWSER_FEATURES="OverlayScrollbar"
       ;;
   esac
   CURRENT_BROWSER_MODE=$(read_display_mode)
+  printf '\n=== LibreDisplay Chromium launch profile=%s attempt=%s started=%s ===\n' "$BROWSER_ACCEL_PROFILE" "$BROWSER_ACCEL_ATTEMPT" "$BROWSER_STARTED_AT" >>"$BROWSER_LOG_FILE" 2>/dev/null || true
   write_browser_launch_state
   if [ "$CURRENT_BROWSER_MODE" = "windowed" ]; then
     SCREEN_RES=$(xrandr --current 2>/dev/null | awk '/\*/{print $1; exit}' || true)
@@ -234,8 +338,7 @@ launch_browser() {
       --window-size="$WINDOW_W,$WINDOW_H" \
       --window-position="$WINDOW_X,$WINDOW_Y" \
       --ozone-platform=wayland \
-      --enable-gpu-rasterization \
-      --enable-zero-copy \
+      $BROWSER_BASE_ACCEL_FLAGS \
       $BROWSER_ACCEL_FLAGS \
       --noerrdialogs \
       --disable-session-crashed-bubble \
@@ -254,8 +357,7 @@ launch_browser() {
       --kiosk \
       --start-maximized \
       --ozone-platform=wayland \
-      --enable-gpu-rasterization \
-      --enable-zero-copy \
+      $BROWSER_BASE_ACCEL_FLAGS \
       $BROWSER_ACCEL_FLAGS \
       --noerrdialogs \
       --disable-infobars \
@@ -324,21 +426,33 @@ while :; do
       launch_browser
     elif [ "$DASHBOARD_KIOSK_WATCHDOG" = "1" ]; then
       NOW=$(date +%s)
-      if [ "$BROWSER_ACCEL_RECOVERY_TRIED" = "0" ] && [ $((NOW - BROWSER_STARTED_AT)) -ge 30 ]; then
+      if is_pi_accel_profile "$BROWSER_ACCEL_PROFILE" && [ $((NOW - BROWSER_STARTED_AT)) -ge 20 ]; then
         GRAPHICS_STATE=$(heartbeat_graphics_state)
-        if [ "$GRAPHICS_STATE" = "software" ]; then
-          BROWSER_ACCEL_RECOVERY_TRIED=1
-          BROWSER_ACCEL_PROFILE=recovery
-          BROWSER_RECOVERY_COUNT=$((BROWSER_RECOVERY_COUNT + 1))
-          write_watchdog_state "browser-software-graphics"
-          printf 'LibreDisplay detected software Chromium graphics; clearing GPU caches and retrying with the Pi acceleration recovery profile.\n' >&2
-          kill "$BROWSER_PID" 2>/dev/null || true
-          wait "$BROWSER_PID" 2>/dev/null || true
-          BROWSER_PID=""
-          clear_chromium_gpu_caches
-          launch_browser
-          sleep 2
-          continue
+        if [ "$GRAPHICS_STATE" = "hardware" ] && [ "$BROWSER_ACCEL_VERIFIED" = "0" ]; then
+          BROWSER_ACCEL_VERIFIED=1
+          persist_accel_profile
+          write_watchdog_state "browser-hardware-graphics"
+          printf 'LibreDisplay verified Chromium hardware graphics with profile %s; profile persisted.\n' "$BROWSER_ACCEL_PROFILE" >&2
+        elif [ "$GRAPHICS_STATE" = "software" ] && [ "$BROWSER_ACCEL_VERIFIED" = "0" ]; then
+          FAILED_PROFILE=$BROWSER_ACCEL_PROFILE
+          rm -f "$BROWSER_ACCEL_PROFILE_FILE" 2>/dev/null || true
+          if advance_accel_profile_after_failure; then
+            BROWSER_RECOVERY_COUNT=$((BROWSER_RECOVERY_COUNT + 1))
+            write_watchdog_state "browser-graphics-profile-$FAILED_PROFILE-failed"
+            printf 'LibreDisplay could not create hardware WebGL with Chromium profile %s; retrying with %s.\n' "$FAILED_PROFILE" "$BROWSER_ACCEL_PROFILE" >&2
+            kill "$BROWSER_PID" 2>/dev/null || true
+            wait "$BROWSER_PID" 2>/dev/null || true
+            BROWSER_PID=""
+            clear_chromium_gpu_caches
+            launch_browser
+            sleep 2
+            continue
+          else
+            BROWSER_ACCEL_VERIFIED=2
+            BROWSER_RECOVERY_COUNT=$((BROWSER_RECOVERY_COUNT + 1))
+            write_watchdog_state "browser-graphics-profiles-exhausted"
+            printf 'LibreDisplay exhausted bounded Chromium hardware profiles; keeping the current kiosk available and reporting the failure remotely.\n' >&2
+          fi
         fi
       fi
       NOW=$(date +%s)
