@@ -80,6 +80,13 @@ BROWSER_RESTART_DELAY=2
 SERVER_STARTED_AT=0
 BROWSER_ACCEL_PROFILE=normal
 BROWSER_ACCEL_RECOVERY_TRIED=0
+PI_MODEL=""
+if [ -r /proc/device-tree/model ]; then
+  PI_MODEL=$(tr -d '\000' </proc/device-tree/model 2>/dev/null || true)
+fi
+case "$PI_MODEL" in
+  *"Raspberry Pi 4"*|*"Raspberry Pi 5"*) BROWSER_ACCEL_PROFILE=pi-hardware ;;
+esac
 
 write_watchdog_state() {
   reason=${1:-}
@@ -167,9 +174,13 @@ launch_browser() {
   rm -f "$KIOSK_HEARTBEAT_FILE" 2>/dev/null || true
   BROWSER_STARTED_AT=$(date +%s)
   BROWSER_ACCEL_FLAGS=""
-  if [ "$BROWSER_ACCEL_PROFILE" = "recovery" ]; then
-    BROWSER_ACCEL_FLAGS="--ignore-gpu-blocklist --enable-features=CanvasOopRasterization --use-gl=egl"
-  fi
+  BROWSER_FEATURES="OverlayScrollbar"
+  case "$BROWSER_ACCEL_PROFILE" in
+    pi-hardware|recovery)
+      BROWSER_ACCEL_FLAGS="--ignore-gpu-blocklist --use-gl=egl"
+      BROWSER_FEATURES="OverlayScrollbar,CanvasOopRasterization"
+      ;;
+  esac
   CURRENT_BROWSER_MODE=$(read_display_mode)
   if [ "$CURRENT_BROWSER_MODE" = "windowed" ]; then
     SCREEN_RES=$(xrandr --current 2>/dev/null | awk '/\*/{print $1; exit}' || true)
@@ -197,7 +208,7 @@ launch_browser() {
       --password-store=basic \
       --disable-pinch \
       --overscroll-history-navigation=0 \
-      --enable-features=OverlayScrollbar \
+      --enable-features="$BROWSER_FEATURES" \
       --user-data-dir="$DATA_DIR/chromium" \
       "$URL" &
   else
@@ -218,7 +229,7 @@ launch_browser() {
       --password-store=basic \
       --disable-pinch \
       --overscroll-history-navigation=0 \
-      --enable-features=OverlayScrollbar \
+      --enable-features="$BROWSER_FEATURES" \
       --user-data-dir="$DATA_DIR/chromium" \
       "$URL" &
   fi

@@ -195,6 +195,68 @@ function animationWorkloadSnapshot(force=false){
   animationWorkloadCache=out;return out;
 }
 
+let displayBenchmarkRunning=false;
+const DISPLAY_BENCHMARK_CLASSES=['ld-bench-pause-css-motion','ld-bench-no-canvas','ld-bench-no-wildlife','ld-bench-no-dog','ld-bench-no-overlay','ld-bench-no-background','ld-bench-no-dashboard-ui','ld-bench-minimal'];
+function waitForBenchmarkFrameDelay(ms){return new Promise(resolve=>setTimeout(resolve,Math.max(0,Number(ms)||0)));}
+function sampleDisplayFrameRate(durationMs=1100){
+  const duration=Math.max(500,Number(durationMs)||1100);
+  return new Promise(resolve=>{
+    const deltas=[];let started=0,last=0,frames=0;
+    const tick=stamp=>{
+      if(!started){started=stamp;last=stamp;requestAnimationFrame(tick);return;}
+      const dt=stamp-last;last=stamp;frames++;if(dt>0&&dt<1000)deltas.push(dt);
+      if(stamp-started<duration){requestAnimationFrame(tick);return;}
+      const usable=deltas.slice(2),avg=usable.length?usable.reduce((a,b)=>a+b,0)/usable.length:0,sorted=[...usable].sort((a,b)=>a-b),pct=p=>sorted.length?sorted[Math.min(sorted.length-1,Math.floor((sorted.length-1)*p))]:0,targetMs=1000/30,dropped=usable.filter(v=>v>targetMs*1.5).length;
+      resolve({fps:avg?1000/avg:0,frameCount:usable.length,p50Ms:pct(.50),p90Ms:pct(.90),p99Ms:pct(.99),droppedPct:usable.length?dropped/usable.length*100:0});
+    };
+    requestAnimationFrame(tick);
+  });
+}
+function diagnoseDisplayBenchmark(stages){
+  const byKey=Object.fromEntries(stages.map(row=>[row.key,row])),base=Number(byKey.baseline?.fps)||0,ceiling=Number(byKey.minimal?.fps)||0;
+  const candidates=stages.filter(row=>!['baseline','minimal'].includes(row.key)).map(row=>({...row,gain:(Number(row.fps)||0)-base})).sort((a,b)=>b.gain-a.gain),best=candidates[0]||{gain:0,label:'No single layer'};
+  if(base>=27)return {kind:'healthy',summary:`The full dashboard is already sustaining ${base.toFixed(1)} FPS and the minimal compositor ceiling is ${ceiling.toFixed(1)} FPS. This run does not reproduce the low-FPS condition; repeat the test on the affected physical display while the usual dashboard scene is active.`,largestSingleGain:best.gain||0,largestSingleStage:best.key||''};
+  if(ceiling<18||ceiling-base<4)return {kind:'platform',summary:`The minimal compositor ceiling is ${ceiling.toFixed(1)} FPS versus ${base.toFixed(1)} FPS with the dashboard visible. The bottleneck is below LibreDisplay's individual visual layers: check Chromium acceleration/EGL, Pi throttling/clocks, display/compositor path, and OS graphics configuration before reducing visual quality.`,largestSingleGain:best.gain||0,largestSingleStage:best.key||''};
+  if(best.gain>=3){
+    const names={pauseCss:'CSS animation/transition motion',noCanvas:'the shared weather/flora canvas',noWildlife:'detailed birds/owls',noDog:'the dog actor',noOverlay:'the Weather/NatureScape overlay as a whole',noBackground:'background image/video rendering',noDashboardUi:'dashboard widgets/layout'};
+    return {kind:'layer',summary:`The strongest isolated gain came from ${names[best.key]||best.label}: +${best.gain.toFixed(1)} FPS (${base.toFixed(1)} → ${Number(best.fps).toFixed(1)}). The minimal ceiling reaches ${ceiling.toFixed(1)} FPS, so the device has headroom and this layer is the first place to profile.`,largestSingleGain:best.gain,largestSingleStage:best.key};
+  }
+  return {kind:'combined',summary:`No single visual layer recovered at least 3 FPS, but the minimal ceiling reaches ${ceiling.toFixed(1)} FPS from a ${base.toFixed(1)} FPS baseline. The slowdown is cumulative compositor/rendering pressure rather than one obvious effect; compare the stage deltas and prioritize the largest two together.`,largestSingleGain:best.gain||0,largestSingleStage:best.key||''};
+}
+async function runDisplayPerformanceBenchmark(options={}){
+  if(displayBenchmarkRunning)throw new Error('Display performance test is already running.');
+  displayBenchmarkRunning=true;
+  const root=document.documentElement,startedAt=new Date().toISOString(),initialClasses=DISPLAY_BENCHMARK_CLASSES.filter(name=>root.classList.contains(name)),wasActive=root.classList.contains('ld-performance-benchmark-active'),playingVideos=[...document.querySelectorAll('video')].filter(v=>!v.paused&&!v.ended),stageDuration=Math.max(700,Number(options.stageDurationMs)||1100),settleMs=Math.max(100,Number(options.settleMs)||220);
+  const stages=[
+    {key:'baseline',label:'Full dashboard'},
+    {key:'pauseCss',label:'CSS motion paused',className:'ld-bench-pause-css-motion'},
+    {key:'noCanvas',label:'Shared weather/flora canvas paused',className:'ld-bench-no-canvas'},
+    {key:'noWildlife',label:'Detailed birds/owls hidden',className:'ld-bench-no-wildlife'},
+    {key:'noDog',label:'Dog hidden',className:'ld-bench-no-dog'},
+    {key:'noOverlay',label:'Weather/NatureScape overlay hidden',className:'ld-bench-no-overlay'},
+    {key:'noBackground',label:'Background layers and video paused',className:'ld-bench-no-background',pauseVideo:true},
+    {key:'noDashboardUi',label:'Dashboard widgets/layout hidden',className:'ld-bench-no-dashboard-ui'},
+    {key:'minimal',label:'Minimal compositor ceiling',className:'ld-bench-minimal',pauseVideo:true}
+  ];
+  const results=[];
+  const restoreVideos=()=>{for(const video of playingVideos){try{if(video.paused)video.play().catch(()=>{});}catch{}}};
+  try{
+    root.classList.add('ld-performance-benchmark-active');
+    for(let index=0;index<stages.length;index++){
+      const stage=stages[index];DISPLAY_BENCHMARK_CLASSES.forEach(name=>root.classList.remove(name));restoreVideos();
+      if(stage.className)root.classList.add(stage.className);if(stage.pauseVideo)for(const video of playingVideos){try{video.pause();}catch{}}
+      options.onStage?.({index:index+1,total:stages.length,key:stage.key,label:stage.label});
+      await waitForBenchmarkFrameDelay(settleMs);
+      const sample=await sampleDisplayFrameRate(stageDuration),row={key:stage.key,label:stage.label,...sample};results.push(row);
+      options.onStage?.({index:index+1,total:stages.length,key:stage.key,label:stage.label,result:row});
+    }
+    const baseline=Number(results[0]?.fps)||0;for(const row of results)row.deltaFps=(Number(row.fps)||0)-baseline;
+    return {startedAt,finishedAt:new Date().toISOString(),stageDurationMs:stageDuration,baselineFps:baseline,ceilingFps:Number(results.find(r=>r.key==='minimal')?.fps)||0,stages:results,diagnosis:diagnoseDisplayBenchmark(results),performance:animationPerformanceSnapshot(),workload:animationWorkloadSnapshot(true),graphics:browserGraphicsSnapshot()};
+  }finally{
+    DISPLAY_BENCHMARK_CLASSES.forEach(name=>root.classList.remove(name));for(const name of initialClasses)root.classList.add(name);if(!wasActive)root.classList.remove('ld-performance-benchmark-active');restoreVideos();displayBenchmarkRunning=false;
+  }
+}
+
 function frontendPerformanceSnapshot(){
   const heap=performance?.memory?{
     usedBytes:Math.max(0,Number(performance.memory.usedJSHeapSize)||0),
@@ -239,6 +301,6 @@ queueMicrotask(hydrateRuntimeHardware);
 observeFrontendLongTasks();
 startAnimationGovernor();
 
-LibreDisplayRuntime.exposeModule('performance',{hardwareTierFromModel,hydrateRuntimeHardware,frontendCapabilities,frontendPixelLoad,baseVisualPerformanceBudget,visualPerformanceBudget,animationPerformanceMode:currentAnimationPerformanceMode,animationModeProfile,animationPerformanceFrameMs,animationPerformanceSnapshot,browserGraphicsSnapshot,startAnimationGovernor,refreshAnimationPerformanceMode,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,frontendPerformanceSnapshot,animationWorkloadSnapshot,observeFrontendLongTasks},{},{globals:false});
+LibreDisplayRuntime.exposeModule('performance',{hardwareTierFromModel,hydrateRuntimeHardware,frontendCapabilities,frontendPixelLoad,baseVisualPerformanceBudget,visualPerformanceBudget,animationPerformanceMode:currentAnimationPerformanceMode,animationModeProfile,animationPerformanceFrameMs,animationPerformanceSnapshot,browserGraphicsSnapshot,startAnimationGovernor,refreshAnimationPerformanceMode,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,sampleDisplayFrameRate,runDisplayPerformanceBenchmark,diagnoseDisplayBenchmark,frontendPerformanceSnapshot,animationWorkloadSnapshot,observeFrontendLongTasks},{displayBenchmarkRunning:{configurable:true,get:()=>displayBenchmarkRunning}},{globals:false});
 }
 // End source section: /js/core/performance.js

@@ -1287,14 +1287,31 @@ body.custom-layout.layout-surface-minimal :is(#top-strip,.wx-main,#clock-block,.
 }
 .health-card .health-value {
   font-size:13px;
+  line-height:1.42;
   color:rgba(255,255,255,.88);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  overflow-wrap:anywhere;
 }
 .health-card .health-value.good { color:#86efac; }
 .health-card .health-value.warn { color:#fde68a; }
 .health-card .health-value.bad { color:#fca5a5; }
+
+/* System Health display-performance isolation test. These classes are transient and never saved. */
+html.ld-performance-benchmark-active #setup { display:none !important; }
+html.ld-bench-pause-css-motion #app *,
+html.ld-bench-pause-css-motion #app *::before,
+html.ld-bench-pause-css-motion #app *::after,
+html.ld-bench-pause-css-motion #weather-effects-overlay *,
+html.ld-bench-pause-css-motion #weather-effects-overlay *::before,
+html.ld-bench-pause-css-motion #weather-effects-overlay *::after { animation-play-state:paused !important; transition:none !important; }
+html.ld-bench-no-wildlife #weather-effects-overlay :is(.weather-fx-bird,.weather-fx-owl) { display:none !important; }
+html.ld-bench-no-dog #weather-effects-overlay .weather-fx-dog-v2 { display:none !important; }
+html.ld-bench-no-overlay #weather-effects-overlay { visibility:hidden !important; }
+html.ld-bench-no-background :is(#bg,#bg-next) { visibility:hidden !important; }
+html.ld-bench-no-dashboard-ui :is(#app,#cog) { visibility:hidden !important; }
+html.ld-bench-minimal :is(#app,#cog,#weather-effects-overlay,#bg,#bg-next) { visibility:hidden !important; }
 .shortcut-note {
   margin-top:10px;
   font-size:10px;

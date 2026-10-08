@@ -52,9 +52,9 @@
     "module": "performance",
     "part": "bundle",
     "path": "/js/modules/performance.js",
-    "lines": 244,
-    "functions": 16,
-    "bindings": 0,
+    "lines": 306,
+    "functions": 20,
+    "bindings": 1,
     "sections": [
       "/js/core/performance.js"
     ]
@@ -163,9 +163,9 @@
     "module": "system",
     "part": "bundle",
     "path": "/js/modules/system.js",
-    "lines": 627,
-    "functions": 60,
-    "bindings": 16,
+    "lines": 657,
+    "functions": 62,
+    "bindings": 18,
     "sections": [
       "/js/system/index.js",
       "/js/system/profiles.js"
@@ -188,8 +188,8 @@
     "module": "settings",
     "part": "bundle",
     "path": "/js/modules/settings.js",
-    "lines": 1441,
-    "functions": 80,
+    "lines": 1489,
+    "functions": 82,
     "bindings": 18,
     "sections": [
       "/js/settings/index.js",

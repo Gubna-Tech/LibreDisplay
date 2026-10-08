@@ -2558,7 +2558,7 @@ def pi_runtime_diagnostics():
             except Exception:
                 pass
             for part in parts[1:]:
-                if part.startswith("--ozone-platform=") or part.startswith("--use-gl=") or part in {"--enable-gpu-rasterization", "--enable-zero-copy", "--disable-gpu", "--ignore-gpu-blocklist"}:
+                if part.startswith("--ozone-platform=") or part.startswith("--use-gl=") or part.startswith("--enable-features=") or part in {"--enable-gpu-rasterization", "--enable-zero-copy", "--disable-gpu", "--ignore-gpu-blocklist"}:
                     browser_flags.add(part[:120])
         except Exception:
             continue

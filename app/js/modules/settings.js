@@ -565,17 +565,63 @@ function makeSettingsHelpButton(title,help,auto=true){
   btn.setAttribute('aria-label',`${btn.dataset.helpTitle} help`);btn.setAttribute('aria-expanded','false');btn.setAttribute('aria-controls','context-help-popover');
   return btn;
 }
+function settingsControlTitle(control,label=settingsControlLabel(control)){
+  if(label)return cleanSettingsLabelText(label);
+  const explicit=String(control?.dataset?.helpTitle||control?.getAttribute?.('aria-label')||'').trim();if(explicit)return explicit;
+  const id=String(control?.id||control?.name||'setting').replace(/^s-/,'').replace(/[-_]+/g,' ').replace(/\b\w/g,ch=>ch.toUpperCase()).trim();
+  return id||String(control?.placeholder||'Setting').replace(/[.…]+$/,'').trim()||'Setting';
+}
+function settingsControlContext(control){
+  const section=control?.closest?.('.s-section[data-settings-tab]'),row=control?.closest?.('.s-row,.checkline,.settings-search,.settings-mobile-category,.settings-section-jump');
+  const sectionTitle=cleanSettingsLabelText(section?.querySelector(':scope > h3'));
+  const rowNotes=row?[...row.querySelectorAll('.settings-inline-help,.settings-note,.range-ends,.howto')].map(el=>String(el.textContent||'').replace(/\s+/g,' ').trim()).filter(Boolean):[];
+  return {section,row,sectionTitle,rowNote:rowNotes.join(' ').slice(0,360)};
+}
+function settingsFallbackHelp(control,label){
+  const title=settingsControlTitle(control,label),type=String(control?.type||control?.tagName||'setting').toLowerCase(),ctx=settingsControlContext(control),parts=[];
+  if(type==='checkbox')parts.push(`Turns “${title}” on or off.`);
+  else if(type==='radio')parts.push(`Selects the “${title}” option in this group.`);
+  else if(control instanceof HTMLSelectElement){const choices=[...control.options].map(o=>String(o.textContent||'').replace(/\s+/g,' ').trim()).filter(Boolean);parts.push(`Choose how “${title}” behaves.`);if(choices.length)parts.push(`Choices include ${choices.slice(0,6).join(', ')}${choices.length>6?', and more':''}.`);}
+  else if(type==='range'){const lo=control.min!==''?control.min:'the minimum',hi=control.max!==''?control.max:'the maximum',step=control.step&&control.step!=='any'?` in ${control.step} increments`:'';parts.push(`Adjusts “${title}” from ${lo} to ${hi}${step}. Lower values reduce the setting; higher values increase it.`);}
+  else if(type==='color')parts.push(`Chooses the color used by “${title}”. The adjacent hex field, when present, accepts the same color as a six-digit value.`);
+  else if(type==='time')parts.push(`Sets the local display time for “${title}”. This follows the host display's local clock.`);
+  else if(type==='number'){const lo=control.min!==''?` Minimum ${control.min}.`:'' ,hi=control.max!==''?` Maximum ${control.max}.`:'';parts.push(`Sets the numeric value for “${title}”.${lo}${hi}`);}
+  else if(type==='url')parts.push(`Enter the URL used for “${title}”. LibreDisplay keeps saved configuration local to your server unless the selected integration must contact that provider.`);
+  else if(type==='file')parts.push(`Choose the local file used by “${title}”. Selecting a file does not change other settings until the related import or apply action runs.`);
+  else if(type==='search')parts.push(`Searches or filters “${title}” as you type. Search text is temporary and is not saved as dashboard configuration.`);
+  else if(type==='password')parts.push(`Enter the private value for “${title}”. It is treated as sensitive configuration and is not shown back in plain text.`);
+  else parts.push(`Sets “${title}”.`);
+  if(ctx.rowNote)parts.push(ctx.rowNote);
+  else if(ctx.section){const summary=SETTINGS_SECTION_SUMMARIES[ctx.section.id];if(summary)parts.push(`In ${ctx.sectionTitle}: ${summary}`);}
+  if(!['search','file'].includes(type))parts.push('Changes can be previewed in Settings and are kept after Save & Apply.');
+  return parts.join(' ').replace(/\s+/g,' ').trim();
+}
+let settingsHelpObserver=null;
 function enhanceSettingsControlHelp(){
-  for(const [id,help] of Object.entries(SETTINGS_CONTROL_HELP)){
-    const control=document.getElementById(id);if(!control)continue;
-    const label=settingsControlLabel(control);if(!label||label.querySelector('.help-tip'))continue;
-    label.appendChild(makeSettingsHelpButton(cleanSettingsLabelText(label),help,true));
-  }
-  document.querySelectorAll('.s-section[data-settings-tab]').forEach(section=>{
+  const root=arguments[0]||document;
+  const scope=root instanceof Element||root instanceof Document?root:document;
+  scope.querySelectorAll?.('.s-section[data-settings-tab] input:not([type="hidden"]),.s-section[data-settings-tab] select,.s-section[data-settings-tab] textarea,.settings-search input,.settings-mobile-category select,.settings-section-jump select').forEach(control=>{
+    if(control.hidden||String(control.style?.display||'').toLowerCase()==='none'||control.closest('[hidden]'))return;
+    const label=settingsControlLabel(control),title=settingsControlTitle(control,label),help=String(control.dataset?.help||SETTINGS_CONTROL_HELP[control.id]||settingsFallbackHelp(control,label)||'').trim();if(!help)return;
+    if(label){if(!label.querySelector('.help-tip'))label.appendChild(makeSettingsHelpButton(title,help,true));}
+    else if(!control.nextElementSibling?.classList?.contains('settings-control-inline-help')){const tip=makeSettingsHelpButton(title,help,true);tip.classList.add('settings-control-inline-help');control.insertAdjacentElement('afterend',tip);if(!control.getAttribute('aria-label'))control.setAttribute('aria-label',title);}
+    control.dataset.contextHelpReady='1';
+  });
+  scope.querySelectorAll?.('.s-section[data-settings-tab] .s-row > label').forEach(label=>{
+    if(label.querySelector('.help-tip'))return;
+    const row=label.closest('.s-row'),control=row?.querySelector('input:not([type="hidden"]),select,textarea'),title=cleanSettingsLabelText(label),section=label.closest('.s-section[data-settings-tab]');
+    if(control){const help=String(control.dataset?.help||SETTINGS_CONTROL_HELP[control.id]||settingsFallbackHelp(control,label)||'').trim();if(help)label.appendChild(makeSettingsHelpButton(title,help,true));return;}
+    const note=[...row?.querySelectorAll?.('.settings-note,.settings-inline-help,.howto')||[]].map(el=>String(el.textContent||'').replace(/\s+/g,' ').trim()).filter(Boolean).join(' ').slice(0,420),summary=SETTINGS_SECTION_SUMMARIES[section?.id]||'';
+    const help=String(label.dataset?.help||`What it is: ${title} shows information or actions for this part of Settings.${note?` ${note}`:summary?` In this section: ${summary}`:''} This row is informational unless it contains an action button.`).trim();
+    if(help)label.appendChild(makeSettingsHelpButton(title,help,true));
+  });
+  scope.querySelectorAll?.('.s-section[data-settings-tab]').forEach(section=>{
     const h=section.querySelector(':scope > h3');if(!h||h.querySelector('.help-tip'))return;
     const title=cleanSettingsLabelText(h),help=SETTINGS_SECTION_SUMMARIES[section.id]||'';if(!help)return;
     h.appendChild(makeSettingsHelpButton(title,help,true));
   });
+  const mount=document.getElementById('settings-mount');
+  if(mount&&!settingsHelpObserver){settingsHelpObserver=new MutationObserver(records=>{if(records.some(r=>r.addedNodes?.length))queueMicrotask(()=>enhanceSettingsControlHelp(mount));});settingsHelpObserver.observe(mount,{childList:true,subtree:true});}
 }
 
 let activeSettingsTab='overview';
@@ -810,7 +856,7 @@ function clearSettingsSearch(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("settings", {updateSettingsPageHeader,settingsControlLabel,cleanSettingsLabelText,makeSettingsHelpButton,enhanceSettingsControlHelp,loadSettingsViewMode,setSettingsViewMode,enhanceSettingsSections,saveCollapsedSettingsSections,toggleSettingsSection,setAllSettingsSectionsCollapsed,settingsSectionRoleAllowed,visibleSettingsSectionsForTab,buildSettingsMobileCategory,buildSettingsSectionDirectory,buildSettingsSectionJump,jumpToSettingsSection,applySettingsSectionVisibility,switchSettingsTab,settingsSectionSearchText,settingsSearchControlText,openSettingsSearchResult,filterSettings,clearSettingsSearch}, {
+LibreDisplayRuntime.exposeModule("settings", {updateSettingsPageHeader,settingsControlLabel,cleanSettingsLabelText,makeSettingsHelpButton,settingsControlTitle,settingsControlContext,settingsFallbackHelp,enhanceSettingsControlHelp,loadSettingsViewMode,setSettingsViewMode,enhanceSettingsSections,saveCollapsedSettingsSections,toggleSettingsSection,setAllSettingsSectionsCollapsed,settingsSectionRoleAllowed,visibleSettingsSectionsForTab,buildSettingsMobileCategory,buildSettingsSectionDirectory,buildSettingsSectionJump,jumpToSettingsSection,applySettingsSectionVisibility,switchSettingsTab,settingsSectionSearchText,settingsSearchControlText,openSettingsSearchResult,filterSettings,clearSettingsSearch}, {
   "SETTINGS_TABS": {configurable:true,get:()=>SETTINGS_TABS},
   "SETTINGS_TAB_TITLES": {configurable:true,get:()=>SETTINGS_TAB_TITLES},
   "SETTINGS_TAB_GROUPS": {configurable:true,get:()=>SETTINGS_TAB_GROUPS},
@@ -1112,7 +1158,7 @@ const SETTINGS_HEALTH_HELP={
   'display-readiness-viewport':'What it is: the CSS-pixel area Chromium is actually giving LibreDisplay. Compare it with the display resolution you expect. A much smaller or oddly shaped viewport can cause clipping, scaling, or unexpected Arrange geometry.',
   'display-readiness-orientation':'What it is: landscape or portrait based on the live browser viewport. It should match the physical screen orientation. If it does not, check OS display rotation and Chromium/kiosk launch settings.',
   'display-readiness-scale':'What it is: device-pixel ratio — how many physical pixels Chromium uses for one CSS pixel. Higher values increase rendering work. Unexpected browser zoom or scaling can make the dashboard look too large and can substantially increase GPU load.',
-  'display-readiness-kiosk':'What it is: the heartbeat from LibreDisplay’s local kiosk/browser process. Healthy: a recent heartbeat. If missing, the server may still be running while Chromium is stopped, frozen, or disconnected from the dashboard.',
+  'display-readiness-heartbeat':'What it is: the heartbeat from LibreDisplay’s local kiosk/browser process. Healthy: a recent heartbeat. If missing, the server may still be running while Chromium is stopped, frozen, or disconnected from the dashboard.',
   'system-health-deployment':'What it is: how LibreDisplay is running on this machine and which release is active. Use it to confirm you are troubleshooting the expected installation/runtime rather than an older copy or different deployment mode.',
   'system-health-uptime':'What it is: time since the host last booted. A short uptime can explain recently cleared caches or restarted services; an unexpectedly short uptime can point to power, crash, or watchdog restarts.',
   'system-health-storage':'What it is: free disk space on the storage holding LibreDisplay data. Healthy: comfortably above 20% free. Below about 20% deserves attention; below 10% can interfere with updates, backups, caches, logs, and media handling.',
@@ -1122,6 +1168,8 @@ const SETTINGS_HEALTH_HELP={
   'system-health-memory':'What it is: currently available RAM versus total RAM, plus CPU temperature when exposed by the OS. LibreDisplay normally does not need most free RAM; animation smoothness is more often limited by GPU/compositor/frame time. Temperatures around 70°C merit watching; around 80°C or above can cause throttling.',
   'system-health-load':'What it is: the average number of tasks running or waiting for CPU/I/O over the last 1, 5, and 15 minutes. Compare each number with the CPU-core count: on a 4-core Pi, about 4.0 means all cores are continuously busy; well below 4 leaves CPU headroom, while sustained values above 4 mean work is queueing. Load is not a percentage and can rise from disk/network waits too.',
   'system-health-browser':'What it is: health/performance reported by the kiosk Chromium process. FPS is actual measured animation pacing; target FPS is LibreDisplay’s current goal; dropped frames and long tasks indicate visible hitching. On a Pi 4, a stable 30 FPS is usually smoother than an unstable 45–60 FPS.',
+  'system-health-pi-runtime':'What it is: Raspberry Pi display-session, graphics-driver, clock, governor, and throttling evidence from the host. Healthy on a Pi 4 normally means Wayland/X11 is known, vc4/v3d are loaded, clocks are not capped, and current throttle bits are clear. Historical throttle bits mean the Pi has previously hit undervoltage, frequency capping, or thermal limits even if it is healthy now.',
+  'system-health-chromium':'What it is: Chromium process count, GPU/renderer process presence, memory use, and the launch flags that determine the rendering path. For Pi 4 performance, look for a GPU process plus GPU raster, zero-copy, EGL, Canvas OOP rasterization, and the hardware-acceleration profile. GPU DISABLED or a missing GPU process is a strong performance warning.',
   'system-health-connectivity':'What it is: recent browser and server network-request success, failures, retries, timeouts, and latency. Healthy: online with few/no failures. Repeated timeouts or failures can make integrations look stale even when CPU/GPU performance is fine.',
   'system-health-integrity':'What it is: startup verification that required LibreDisplay runtime/frontend pieces are present. Healthy: Verified. A warning suggests missing, mismatched, or unverified application files and should be investigated before blaming a provider or display setting.',
   'system-health-recovery':'What it is: actions taken by LibreDisplay’s watchdog/recovery safeguards, such as browser/server restarts or configuration recovery. Healthy: no repeated recovery actions. Recurring restarts are evidence of an underlying stability problem worth investigating.'

@@ -14,6 +14,7 @@ const {loadCalendars}=calendarApi;
 const weatherApi=LibreDisplayRuntime.getModule('weather');
 const {weatherWindUnitLabel,fetchWeather,fetchWeatherAlerts}=weatherApi;
 const {escHtml,safeHttpUrl,resilientFetch,connectivitySnapshot}=LibreDisplayRuntime.getModule('shared');
+const performanceApi=LibreDisplayRuntime.getModule('performance');
 
 
 let settingsInitializing=false;
@@ -50,6 +51,8 @@ let systemHealthRefreshTimer=null;
 let systemHealthRefreshPromise=null;
 let systemHealthUpdatedAt=0;
 const SYSTEM_HEALTH_REFRESH_MS=15000;
+let lastDisplayPerformanceBenchmark=null;
+let displayPerformanceBenchmarkPromise=null;
 function renderSoftwareUpdateStatus(){
   const current=document.getElementById('software-update-current');
   const status=document.getElementById('software-update-status');
@@ -275,7 +278,7 @@ function renderSystemHealth(){
   const throttledNow=!!(thermal.throttledNow||thermal.frequencyCappedNow||thermal.underVoltageNow||thermal.softTempLimitNow),throttledEver=!!(thermal.throttledOccurred||thermal.frequencyCappedOccurred||thermal.underVoltageOccurred||thermal.softTempLimitOccurred);
   const runtimeParts=[session.xdgSessionType?`session ${session.xdgSessionType}`:'',session.waylandDisplay?`Wayland ${session.waylandDisplay}`:session.display?`DISPLAY ${session.display}`:'',kernel.vc4Loaded?'vc4 loaded':'vc4 missing',kernel.v3dLoaded?'v3d loaded':'v3d missing',Number(thermal.cpuFreqMHz)?`CPU ${Number(thermal.cpuFreqMHz).toFixed(0)} MHz`:'' ,Number(thermal.cpuMaxMHz)?`max ${Number(thermal.cpuMaxMHz).toFixed(0)} MHz`:'',thermal.governor?`governor ${thermal.governor}`:'',Number(thermal.coreFreqMHz)?`core ${Number(thermal.coreFreqMHz).toFixed(0)} MHz`:'',Number(thermal.v3dFreqMHz)?`V3D ${Number(thermal.v3dFreqMHz).toFixed(0)} MHz`:'',thermal.throttledRaw?`throttle ${thermal.throttledRaw}`:''].filter(Boolean);
   const isPiHost=/raspberry pi/i.test(model);set('system-health-pi-runtime',runtimeParts.join(' · ')||'Runtime diagnostics unavailable',throttledNow||(isPiHost&&(kernel.vc4Loaded===false||kernel.v3dLoaded===false))?'bad':throttledEver?'warn':isPiHost?'good':'');
-  const flags=Array.isArray(chrome.flags)?chrome.flags:[],chromeParts=[`${Number(chrome.processCount)||0} processes`,`${Number(chrome.gpuProcesses)||0} GPU`,`${Number(chrome.rendererProcesses)||0} renderer`,Number(chrome.totalRssBytes)?`${formatHealthBytes(chrome.totalRssBytes)} RSS`:'',flags.find(v=>String(v).startsWith('--ozone-platform='))||'',flags.includes('--enable-gpu-rasterization')?'GPU raster on':'',flags.includes('--enable-zero-copy')?'zero-copy on':'',flags.includes('--disable-gpu')?'GPU DISABLED':''].filter(Boolean);
+  const flags=Array.isArray(chrome.flags)?chrome.flags:[],featureFlag=flags.find(v=>String(v).startsWith('--enable-features='))||'',chromeParts=[`${Number(chrome.processCount)||0} processes`,`${Number(chrome.gpuProcesses)||0} GPU`,`${Number(chrome.rendererProcesses)||0} renderer`,Number(chrome.totalRssBytes)?`${formatHealthBytes(chrome.totalRssBytes)} RSS`:'',flags.find(v=>String(v).startsWith('--ozone-platform='))||'',flags.find(v=>String(v).startsWith('--use-gl='))||'',flags.includes('--enable-gpu-rasterization')?'GPU raster on':'',flags.includes('--enable-zero-copy')?'zero-copy on':'',featureFlag.includes('CanvasOopRasterization')?'Canvas OOP raster on':'',flags.includes('--ignore-gpu-blocklist')?'GPU blocklist override':'',flags.includes('--disable-gpu')?'GPU DISABLED':''].filter(Boolean);
   set('system-health-chromium',chromeParts.join(' · ')||'No Chromium process data',!Number(chrome.processCount)?'warn':flags.includes('--disable-gpu')||!Number(chrome.gpuProcesses)?'bad':'good');
   const conn=perf.connectivity||{},requests=Number(conn.requests)||0,failures=Number(conn.failures)||0,timeouts=Number(conn.timeouts)||0,retries=Number(conn.retries)||0,avg=Number(conn.averageLatencyMs)||0;
   const outbound=d.outboundConnectivity||{},serverRequests=Number(outbound.requests)||0,serverFailures=Number(outbound.failures)||0,serverRetries=Number(outbound.retries)||0,serverAvg=Number(outbound.averageLatencyMs)||0,lastKind=String(outbound.lastFailureKind||'');
@@ -290,6 +293,28 @@ function renderSystemHealth(){
   const recoveryParts=[];if(serverRestarts)recoveryParts.push(`${serverRestarts} server restart${serverRestarts===1?'':'s'}`);if(browserRestarts)recoveryParts.push(`${browserRestarts} browser restart${browserRestarts===1?'':'s'}`);if(configRecoveredAt)recoveryParts.push(`config recovered ${healthAgeText(Math.max(0,Date.now()/1000-configRecoveredAt))}`);
   set('system-health-recovery',recoveryParts.length?recoveryParts.join(' · '):'Ready · no recovery actions recorded',recoveryParts.length?'warn':'good');
 }
+function renderDisplayPerformanceBenchmark(result){
+  const box=document.getElementById('system-performance-benchmark-status');if(!box)return;
+  if(!result){box.style.display='none';box.textContent='';return;}
+  const stages=Array.isArray(result.stages)?result.stages:[],lines=[`Diagnosis: ${result.diagnosis?.summary||'Test completed.'}`,''];
+  for(const row of stages){const delta=Number(row.deltaFps)||0;lines.push(`${row.label}: ${Number(row.fps||0).toFixed(1)} FPS${row.key==='baseline'?'':` (${delta>=0?'+':''}${delta.toFixed(1)})`} · p90 ${Number(row.p90Ms||0).toFixed(1)} ms · ${Number(row.droppedPct||0).toFixed(1)}% slow frames`);}
+  lines.push('','This result is also included in Download diagnostics.');box.textContent=lines.join('\n');box.style.display='block';
+}
+async function runSystemDisplayPerformanceBenchmark(){
+  if(displayPerformanceBenchmarkPromise)return displayPerformanceBenchmarkPromise;
+  const button=document.getElementById('system-performance-benchmark-button'),box=document.getElementById('system-performance-benchmark-status');
+  if(button){button.disabled=true;button.textContent='Testing…';}if(box){box.style.display='block';box.textContent='Preparing the local display isolation test. The dashboard will briefly change while layers are measured…';}
+  const run=(async()=>{
+    try{
+      const result=await performanceApi.runDisplayPerformanceBenchmark({onStage:stage=>{if(box&&!stage.result)box.textContent=`Measuring ${stage.index}/${stage.total}: ${stage.label}…`;}});
+      lastDisplayPerformanceBenchmark=result;renderDisplayPerformanceBenchmark(result);await loadSystemHealth();return result;
+    }catch(error){if(box){box.style.display='block';box.textContent=`Performance test could not complete: ${error?.message||error}`;}throw error;
+    }finally{if(button){button.disabled=false;button.textContent='Run performance test';}}
+  })();
+  displayPerformanceBenchmarkPromise=run;
+  try{return await run;}finally{displayPerformanceBenchmarkPromise=null;}
+}
+
 function renderSystemHealthRefreshStatus(refreshing=false){
   const el=document.getElementById('system-health-refresh-status');if(!el)return;
   if(refreshing){el.textContent='Refreshing system health…';return;}
@@ -411,6 +436,7 @@ function buildDiagnosticsPayload(){
     software:softwareUpdateState?.ok?{currentVersion:softwareUpdateState.currentVersion,latestVersion:softwareUpdateState.latestVersion,updateAvailable:softwareUpdateState.updateAvailable,deployment:softwareUpdateState.deployment,canUpdateInApp:softwareUpdateState.canUpdateInApp}:undefined,
     viewport:{width:innerWidth,height:innerHeight,devicePixelRatio:devicePixelRatio||1},
     frontendPerformance:LibreDisplayRuntime.getModule('performance').frontendPerformanceSnapshot(),
+    displayPerformanceBenchmark:lastDisplayPerformanceBenchmark||undefined,
     frontendConnectivity:connectivitySnapshot(),
     fullscreen:!!document.fullscreenElement,
     appearance:{theme:cfg.uiTheme||'libre-night',font:cfg.fontFamily||'Inter'},
@@ -460,6 +486,8 @@ function restorePreviousSettings(){
   }catch(e){alert('Could not restore the previous settings.');}
 }
 
+document.getElementById('system-performance-benchmark-button')?.addEventListener('click',()=>{runSystemDisplayPerformanceBenchmark().catch(()=>{});});
+
 document.getElementById('setup')?.addEventListener('input',e=>{
   if(e.target?.id==='s-settings-search'||e.target?.id==='s-import-file')return;
   markSettingsDirty();
@@ -473,7 +501,7 @@ document.getElementById('setup')?.addEventListener('change',e=>{
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("system", {markSettingsDirty,markSettingsClean,setHealth,renderSoftwareUpdateStatus,checkSoftwareUpdate,settingsPanelOpen,autoDetectSoftwareUpdate,startSoftwareUpdateAutoDetection,stopSoftwareUpdateAutoDetection,setSoftwareUpdateActionStatus,sleepMs,monitorSoftwareUpdate,startSoftwareUpdate,setReleaseRollbackStatus,renderReleaseRollbacks,loadReleaseRollbacks,monitorReleaseRollback,startReleaseRollback,formatHealthBytes,formatHealthUptime,renderSystemHealth,renderSystemHealthRefreshStatus,loadSystemHealth,stopSystemHealthAutoRefresh,startSystemHealthAutoRefresh,providerHealthPill,renderProviderHealth,refreshProviderHealth,updateSettingsOverview,buildDiagnosticsPayload,diagnosticsJson,copyDiagnostics,downloadDiagnostics,restorePreviousSettings}, {
+LibreDisplayRuntime.exposeModule("system", {markSettingsDirty,markSettingsClean,setHealth,renderSoftwareUpdateStatus,checkSoftwareUpdate,settingsPanelOpen,autoDetectSoftwareUpdate,startSoftwareUpdateAutoDetection,stopSoftwareUpdateAutoDetection,setSoftwareUpdateActionStatus,sleepMs,monitorSoftwareUpdate,startSoftwareUpdate,setReleaseRollbackStatus,renderReleaseRollbacks,loadReleaseRollbacks,monitorReleaseRollback,startReleaseRollback,formatHealthBytes,formatHealthUptime,renderSystemHealth,renderSystemHealthRefreshStatus,loadSystemHealth,stopSystemHealthAutoRefresh,startSystemHealthAutoRefresh,providerHealthPill,renderProviderHealth,refreshProviderHealth,updateSettingsOverview,renderDisplayPerformanceBenchmark,runSystemDisplayPerformanceBenchmark,buildDiagnosticsPayload,diagnosticsJson,copyDiagnostics,downloadDiagnostics,restorePreviousSettings}, {
   "settingsInitializing": {configurable:true,get:()=>settingsInitializing,set:(value)=>{settingsInitializing=value;}},
   "settingsDirty": {configurable:true,get:()=>settingsDirty,set:(value)=>{settingsDirty=value;}},
   "calendarHideEmpty": {configurable:true,get:()=>calendarHideEmpty,set:(value)=>{calendarHideEmpty=value;}},
@@ -488,6 +516,8 @@ LibreDisplayRuntime.exposeModule("system", {markSettingsDirty,markSettingsClean,
   "systemHealthRefreshPromise": {configurable:true,get:()=>systemHealthRefreshPromise,set:(value)=>{systemHealthRefreshPromise=value;}},
   "systemHealthUpdatedAt": {configurable:true,get:()=>systemHealthUpdatedAt,set:(value)=>{systemHealthUpdatedAt=value;}},
   "SYSTEM_HEALTH_REFRESH_MS": {configurable:true,get:()=>SYSTEM_HEALTH_REFRESH_MS},
+  "lastDisplayPerformanceBenchmark": {configurable:true,get:()=>lastDisplayPerformanceBenchmark,set:(value)=>{lastDisplayPerformanceBenchmark=value;}},
+  "displayPerformanceBenchmarkPromise": {configurable:true,get:()=>displayPerformanceBenchmarkPromise,set:(value)=>{displayPerformanceBenchmarkPromise=value;}},
   "releaseRollbackState": {configurable:true,get:()=>releaseRollbackState,set:(value)=>{releaseRollbackState=value;}},
   "releaseRollbackMonitorActive": {configurable:true,get:()=>releaseRollbackMonitorActive,set:(value)=>{releaseRollbackMonitorActive=value;}}
 }, {globalFunctions:['markSettingsDirty','markSettingsClean','setHealth','checkSoftwareUpdate','settingsPanelOpen','autoDetectSoftwareUpdate','startSoftwareUpdateAutoDetection','stopSoftwareUpdateAutoDetection','startSoftwareUpdate','loadReleaseRollbacks','startReleaseRollback','loadSystemHealth','stopSystemHealthAutoRefresh','startSystemHealthAutoRefresh','renderProviderHealth','refreshProviderHealth','updateSettingsOverview','copyDiagnostics','downloadDiagnostics','restorePreviousSettings'],globalStates:[]});
