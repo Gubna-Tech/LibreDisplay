@@ -2381,6 +2381,9 @@ def normalize_frontend_performance(value):
         "animation": {
             "mode": str(animation.get("mode") or "")[:24],
             "fps": bounded_float(animation.get("fps"), 0, 240, 1),
+            "dashboardFps": bounded_float(animation.get("dashboardFps"), 0, 240, 1),
+            "settingsFps": bounded_float(animation.get("settingsFps"), 0, 240, 1),
+            "settingsOpen": bool(animation.get("settingsOpen")),
             "targetFps": bounded_float(animation.get("targetFps"), 0, 240, 1),
             "droppedPct": bounded_float(animation.get("droppedPct"), 0, 100, 1),
             "quality": bounded_float(animation.get("quality"), 0, 2, 2),
@@ -2469,6 +2472,98 @@ def runtime_capabilities_payload():
     else:
         tier = "generic"
     return {"ok": True, "hardware": hardware, "hardwareTier": tier}
+
+
+
+def pi_runtime_diagnostics():
+    diagnostics = {
+        "displaySession": {
+            "xdgSessionType": str(os.environ.get("XDG_SESSION_TYPE") or "")[:40],
+            "waylandDisplay": str(os.environ.get("WAYLAND_DISPLAY") or "")[:80],
+            "display": str(os.environ.get("DISPLAY") or "")[:80],
+        },
+        "thermal": {},
+        "chromium": {"processCount": 0, "gpuProcesses": 0, "rendererProcesses": 0, "totalRssBytes": 0},
+        "kernelGraphics": {
+            "vc4Loaded": Path("/sys/module/vc4").exists(),
+            "v3dLoaded": Path("/sys/module/v3d").exists(),
+        },
+    }
+    thermal = diagnostics["thermal"]
+    try:
+        freq_path = Path("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq")
+        if freq_path.exists():
+            thermal["cpuFreqMHz"] = round(int(freq_path.read_text(encoding="utf-8").strip()) / 1000.0, 1)
+        max_path = Path("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq")
+        if max_path.exists():
+            thermal["cpuMaxMHz"] = round(int(max_path.read_text(encoding="utf-8").strip()) / 1000.0, 1)
+        gov_path = Path("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
+        if gov_path.exists():
+            thermal["governor"] = gov_path.read_text(encoding="utf-8").strip()[:40]
+    except Exception:
+        pass
+    vcgencmd = shutil.which("vcgencmd")
+    if vcgencmd:
+        try:
+            result = subprocess.run([vcgencmd, "get_throttled"], capture_output=True, text=True, timeout=1.5, check=False)
+            match = re.search(r"0x([0-9a-fA-F]+)", result.stdout or "")
+            if match:
+                raw = int(match.group(1), 16)
+                thermal.update({
+                    "throttledRaw": f"0x{raw:x}",
+                    "underVoltageNow": bool(raw & (1 << 0)),
+                    "frequencyCappedNow": bool(raw & (1 << 1)),
+                    "throttledNow": bool(raw & (1 << 2)),
+                    "softTempLimitNow": bool(raw & (1 << 3)),
+                    "underVoltageOccurred": bool(raw & (1 << 16)),
+                    "frequencyCappedOccurred": bool(raw & (1 << 17)),
+                    "throttledOccurred": bool(raw & (1 << 18)),
+                    "softTempLimitOccurred": bool(raw & (1 << 19)),
+                })
+        except Exception:
+            pass
+        for name in ("core", "v3d"):
+            try:
+                result = subprocess.run([vcgencmd, "measure_clock", name], capture_output=True, text=True, timeout=1.5, check=False)
+                match = re.search(r"=(\d+)", result.stdout or "")
+                if match:
+                    thermal[f"{name}FreqMHz"] = round(int(match.group(1)) / 1_000_000.0, 1)
+            except Exception:
+                pass
+    chromium = diagnostics["chromium"]
+    browser_flags = set()
+    for proc_dir in Path("/proc").iterdir():
+        if not proc_dir.name.isdigit():
+            continue
+        try:
+            cmd_raw = (proc_dir / "cmdline").read_bytes()
+            if not cmd_raw:
+                continue
+            parts = [part.decode("utf-8", "replace") for part in cmd_raw.split(b"\x00") if part]
+            if not parts:
+                continue
+            command = " ".join(parts).lower()
+            if "chromium" not in command and "chrome" not in command:
+                continue
+            chromium["processCount"] += 1
+            if "--type=gpu-process" in command:
+                chromium["gpuProcesses"] += 1
+            if "--type=renderer" in command:
+                chromium["rendererProcesses"] += 1
+            try:
+                status = (proc_dir / "status").read_text(encoding="utf-8", errors="replace")
+                match = re.search(r"^VmRSS:\s+(\d+)\s+kB", status, re.M)
+                if match:
+                    chromium["totalRssBytes"] += int(match.group(1)) * 1024
+            except Exception:
+                pass
+            for part in parts[1:]:
+                if part.startswith("--ozone-platform=") or part.startswith("--use-gl=") or part in {"--enable-gpu-rasterization", "--enable-zero-copy", "--disable-gpu", "--ignore-gpu-blocklist"}:
+                    browser_flags.add(part[:120])
+        except Exception:
+            continue
+    chromium["flags"] = sorted(browser_flags)[:24]
+    return diagnostics
 
 def system_health_payload():
     try:
@@ -2578,6 +2673,7 @@ def system_health_payload():
         "platform": platform.system(),
         "machine": platform.machine(),
         "hardware": hardware,
+        "piRuntime": pi_runtime_diagnostics(),
         "uptimeSeconds": uptime_seconds,
         "loadAverage": load,
         "disk": disk_payload,

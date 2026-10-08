@@ -3130,3 +3130,9 @@ html.ld-pi4-device .bg-layer{will-change:auto!important}
 html.ld-pi4-device #weather-effects-overlay::before{animation:none!important;transform:none!important;will-change:auto!important}
 html.ld-pi4-device #weather-effects-overlay:not(.show){visibility:hidden}
 html.ld-pi4-device #weather-effects-overlay.show{visibility:visible}
+
+/* Pi-class compositor fallback: retain card geometry and opacity without live backdrop sampling. */
+html.ld-pi4-device #setup{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:color-mix(in srgb,var(--ld-overlay) 98%,#000 2%)}
+html.ld-pi4-device .custom-block-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(8,10,16,.68)}
+html.ld-pi4-device body.custom-layout.layout-surface-glass :is(#top-strip,.wx-main,#clock-block,.wx-details,#wx-forecast,#alert-zone){backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:linear-gradient(145deg,rgba(16,21,29,.76),rgba(7,10,15,.64))}
+html.ld-pi4-device .layout-showcase-placeholder,html.ld-pi4-device #settings-preview-return{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
