@@ -593,7 +593,19 @@ MANIFEST={"id":"grateful-dead",
                            {'value': 'compact', 'label': 'Compact one-line attribution'}],
                'section': 'Quotes'},
               {'key': 'quoteShowMarks', 'label': 'Show quotation marks', 'type': 'checkbox', 'default': True, 'section': 'Quotes'},
-              {'key': 'quoteShowMember', 'label': 'Show member name', 'type': 'checkbox', 'default': True, 'section': 'Quotes'},
+              {'key': 'quoteShowMember', 'label': 'Show member / song name', 'type': 'checkbox', 'default': True, 'section': 'Quotes'},
+              {'key': 'quoteShowContext',
+               'label': 'Show quote / lyric context',
+               'type': 'checkbox',
+               'default': True,
+               'section': 'Quotes',
+               'help': 'Recommended. Adds a short plain-language explanation so brief excerpts are understandable instead of appearing as disconnected fragments.'},
+              {'key': 'quoteShowType',
+               'label': 'Show quote type label',
+               'type': 'checkbox',
+               'default': True,
+               'section': 'Quotes',
+               'help': 'Labels each item as a lyric excerpt or member quote before the text.'},
               {'key': 'quoteShowSource', 'label': 'Show quote source link', 'type': 'checkbox', 'default': True, 'section': 'Quotes'},
               {'key': 'customQuotes',
                'label': 'Personal quote pack',
@@ -747,7 +759,7 @@ MANIFEST={"id":"grateful-dead",
                'step': 5}]}
 MANIFEST.update({'access': 'no-key', 'dataFlow': 'public-internet', 'dataLeavesDevice': True, 'privacyNote': 'LibreDisplay requests public show, archive, setlist, and source material from public Internet services; the optional setlist.fm key is only used if configured.', 'freedomAlternative': 'Already freedom-first by default: core show/listening data works without an account or API key.'})
 
-_DEADHEAD_PRESENTATION_RESPONSE_PATHS = {'showBrowser': ['display.showBrowser', 'showBrowser'], 'showBrowserEnabled': ['display.showBrowserEnabled'], 'browserMaxHeight': ['display.browserMaxHeight'], 'browserAutoScroll': ['display.browserAutoScroll'], 'browserScrollSpeed': ['display.browserScrollSpeed'], 'browserScrollStartDelay': ['display.browserScrollStartDelay'], 'browserScrollLoopPause': ['display.browserScrollLoopPause'], 'browserScrollLoopMode': ['display.browserScrollLoopMode'], 'browserScrollPauseOnHover': ['display.browserScrollPauseOnHover'], 'browserShowScrollbar': ['display.browserShowScrollbar'], 'browserShowVenue': ['display.browserShowVenue'], 'browserShowLocation': ['display.browserShowLocation'], 'autoRotate': ['display.autoRotate', 'autoRotate'], 'rotationSeconds': ['display.rotationSeconds', 'rotationSeconds'], 'pauseOnHover': ['display.pauseOnHover'], 'showHeader': ['display.showHeader'], 'showHeaderIcon': ['display.showHeaderIcon'], 'headerIcon': ['display.headerIcon'], 'headerTitle': ['display.headerTitle', 'title'], 'showHeaderSubtitle': ['display.showHeaderSubtitle'], 'showHeaderDate': ['display.showHeaderDate'], 'showHeaderShowCount': ['display.showHeaderShowCount'], 'headerSubtitle': ['display.headerSubtitle'], 'showUnofficialLabel': ['display.showUnofficialLabel'], 'showShowDetails': ['display.showShowDetails'], 'showShowCounter': ['display.showShowCounter'], 'showRecordingCount': ['display.showRecordingCount'], 'showDate': ['display.showDate'], 'dateStyle': ['display.dateStyle'], 'showVenue': ['display.showVenue'], 'showLocation': ['display.showLocation'], 'showNavigation': ['display.showNavigation'], 'navigationStyle': ['display.navigationStyle'], 'showPosition': ['display.showPosition'], 'showSourceLinks': ['display.showSourceLinks'], 'showJerryBaseLink': ['display.showJerryBaseLink'], 'jerrybaseLabel': ['display.jerrybaseLabel'], 'showArchiveLink': ['display.showArchiveLink'], 'archiveLabel': ['display.archiveLabel'], 'showRelistenLink': ['display.showRelistenLink'], 'relistenLabel': ['display.relistenLabel'], 'sourceLinkOrder': ['display.sourceLinkOrder'], 'linkStyle': ['display.linkStyle'], 'showWeatherPick': ['display.showWeatherPick'], 'weatherLabel': ['display.weatherLabel'], 'weatherClearSong': ['display.weatherClearSong'], 'weatherRainSong': ['display.weatherRainSong'], 'weatherSnowSong': ['display.weatherSnowSong'], 'weatherStormSong': ['display.weatherStormSong'], 'weatherFogSong': ['display.weatherFogSong'], 'weatherFallbackSong': ['display.weatherFallbackSong'], 'setlistSmartLoad': ['display.setlistSmartLoad'], 'setlistPreloadAhead': ['display.setlistPreloadAhead'], 'setlistHeading': ['display.setlistHeading'], 'setlistShowSource': ['display.setlistShowSource'], 'setlistShowMissing': ['display.setlistShowMissing'], 'setlistShowFavoriteHits': ['display.setlistShowFavoriteHits'], 'setlistHighlightFavorites': ['display.setlistHighlightFavorites'], 'setlistMaxSets': ['display.setlistMaxSets'], 'setlistSongsPerSet': ['display.setlistSongsPerSet'], 'setlistMaxHeight': ['display.setlistMaxHeight'], 'setlistAutoScroll': ['display.setlistAutoScroll'], 'setlistScrollSpeed': ['display.setlistScrollSpeed'], 'setlistScrollStartDelay': ['display.setlistScrollStartDelay'], 'setlistScrollLoopPause': ['display.setlistScrollLoopPause'], 'setlistScrollLoopMode': ['display.setlistScrollLoopMode'], 'setlistScrollPauseOnHover': ['display.setlistScrollPauseOnHover'], 'setlistShowScrollbar': ['display.setlistShowScrollbar'], 'quoteRotate': ['display.quoteRotate', 'quoteRotate'], 'quoteSeconds': ['display.quoteSeconds', 'quoteSeconds'], 'quoteStyle': ['display.quoteStyle'], 'quoteShowMarks': ['display.quoteShowMarks'], 'quoteShowMember': ['display.quoteShowMember'], 'quoteShowSource': ['display.quoteShowSource'], 'showFooter': ['display.showFooter'], 'showListenButton': ['display.showListenButton'], 'listenButtonLabel': ['display.listenButtonLabel'], 'listenButtonBehavior': ['display.listenButtonBehavior'], 'showRotationStatus': ['display.showRotationStatus'], 'showSetlistStatus': ['display.showSetlistStatus'], 'sectionOrder': ['display.sectionOrder'], 'density': ['display.density'], 'textAlign': ['display.textAlign'], 'panelSurface': ['display.panelSurface'], 'panelRadius': ['display.panelRadius'], 'panelPadding': ['display.panelPadding'], 'sectionGap': ['display.sectionGap'], 'titleScale': ['display.titleScale'], 'bodyScale': ['display.bodyScale'], 'showDecorations': ['display.showDecorations'], 'visualMode': ['display.visualMode', 'visualMode'], 'accentColor': ['display.accentColor'], 'accentColor2': ['display.accentColor2'], 'panelColor': ['display.panelColor'], 'textColor': ['display.textColor'], 'mutedColor': ['display.mutedColor'], 'accentStrength': ['display.accentStrength'], 'backgroundStrength': ['display.backgroundStrength']}
+_DEADHEAD_PRESENTATION_RESPONSE_PATHS = {'showBrowser': ['display.showBrowser', 'showBrowser'], 'showBrowserEnabled': ['display.showBrowserEnabled'], 'browserMaxHeight': ['display.browserMaxHeight'], 'browserAutoScroll': ['display.browserAutoScroll'], 'browserScrollSpeed': ['display.browserScrollSpeed'], 'browserScrollStartDelay': ['display.browserScrollStartDelay'], 'browserScrollLoopPause': ['display.browserScrollLoopPause'], 'browserScrollLoopMode': ['display.browserScrollLoopMode'], 'browserScrollPauseOnHover': ['display.browserScrollPauseOnHover'], 'browserShowScrollbar': ['display.browserShowScrollbar'], 'browserShowVenue': ['display.browserShowVenue'], 'browserShowLocation': ['display.browserShowLocation'], 'autoRotate': ['display.autoRotate', 'autoRotate'], 'rotationSeconds': ['display.rotationSeconds', 'rotationSeconds'], 'pauseOnHover': ['display.pauseOnHover'], 'showHeader': ['display.showHeader'], 'showHeaderIcon': ['display.showHeaderIcon'], 'headerIcon': ['display.headerIcon'], 'headerTitle': ['display.headerTitle', 'title'], 'showHeaderSubtitle': ['display.showHeaderSubtitle'], 'showHeaderDate': ['display.showHeaderDate'], 'showHeaderShowCount': ['display.showHeaderShowCount'], 'headerSubtitle': ['display.headerSubtitle'], 'showUnofficialLabel': ['display.showUnofficialLabel'], 'showShowDetails': ['display.showShowDetails'], 'showShowCounter': ['display.showShowCounter'], 'showRecordingCount': ['display.showRecordingCount'], 'showDate': ['display.showDate'], 'dateStyle': ['display.dateStyle'], 'showVenue': ['display.showVenue'], 'showLocation': ['display.showLocation'], 'showNavigation': ['display.showNavigation'], 'navigationStyle': ['display.navigationStyle'], 'showPosition': ['display.showPosition'], 'showSourceLinks': ['display.showSourceLinks'], 'showJerryBaseLink': ['display.showJerryBaseLink'], 'jerrybaseLabel': ['display.jerrybaseLabel'], 'showArchiveLink': ['display.showArchiveLink'], 'archiveLabel': ['display.archiveLabel'], 'showRelistenLink': ['display.showRelistenLink'], 'relistenLabel': ['display.relistenLabel'], 'sourceLinkOrder': ['display.sourceLinkOrder'], 'linkStyle': ['display.linkStyle'], 'showWeatherPick': ['display.showWeatherPick'], 'weatherLabel': ['display.weatherLabel'], 'weatherClearSong': ['display.weatherClearSong'], 'weatherRainSong': ['display.weatherRainSong'], 'weatherSnowSong': ['display.weatherSnowSong'], 'weatherStormSong': ['display.weatherStormSong'], 'weatherFogSong': ['display.weatherFogSong'], 'weatherFallbackSong': ['display.weatherFallbackSong'], 'setlistSmartLoad': ['display.setlistSmartLoad'], 'setlistPreloadAhead': ['display.setlistPreloadAhead'], 'setlistHeading': ['display.setlistHeading'], 'setlistShowSource': ['display.setlistShowSource'], 'setlistShowMissing': ['display.setlistShowMissing'], 'setlistShowFavoriteHits': ['display.setlistShowFavoriteHits'], 'setlistHighlightFavorites': ['display.setlistHighlightFavorites'], 'setlistMaxSets': ['display.setlistMaxSets'], 'setlistSongsPerSet': ['display.setlistSongsPerSet'], 'setlistMaxHeight': ['display.setlistMaxHeight'], 'setlistAutoScroll': ['display.setlistAutoScroll'], 'setlistScrollSpeed': ['display.setlistScrollSpeed'], 'setlistScrollStartDelay': ['display.setlistScrollStartDelay'], 'setlistScrollLoopPause': ['display.setlistScrollLoopPause'], 'setlistScrollLoopMode': ['display.setlistScrollLoopMode'], 'setlistScrollPauseOnHover': ['display.setlistScrollPauseOnHover'], 'setlistShowScrollbar': ['display.setlistShowScrollbar'], 'quoteRotate': ['display.quoteRotate', 'quoteRotate'], 'quoteSeconds': ['display.quoteSeconds', 'quoteSeconds'], 'quoteStyle': ['display.quoteStyle'], 'quoteShowMarks': ['display.quoteShowMarks'], 'quoteShowMember': ['display.quoteShowMember'], 'quoteShowContext': ['display.quoteShowContext'], 'quoteShowType': ['display.quoteShowType'], 'quoteShowSource': ['display.quoteShowSource'], 'showFooter': ['display.showFooter'], 'showListenButton': ['display.showListenButton'], 'listenButtonLabel': ['display.listenButtonLabel'], 'listenButtonBehavior': ['display.listenButtonBehavior'], 'showRotationStatus': ['display.showRotationStatus'], 'showSetlistStatus': ['display.showSetlistStatus'], 'sectionOrder': ['display.sectionOrder'], 'density': ['display.density'], 'textAlign': ['display.textAlign'], 'panelSurface': ['display.panelSurface'], 'panelRadius': ['display.panelRadius'], 'panelPadding': ['display.panelPadding'], 'sectionGap': ['display.sectionGap'], 'titleScale': ['display.titleScale'], 'bodyScale': ['display.bodyScale'], 'showDecorations': ['display.showDecorations'], 'visualMode': ['display.visualMode', 'visualMode'], 'accentColor': ['display.accentColor'], 'accentColor2': ['display.accentColor2'], 'panelColor': ['display.panelColor'], 'textColor': ['display.textColor'], 'mutedColor': ['display.mutedColor'], 'accentStrength': ['display.accentStrength'], 'backgroundStrength': ['display.backgroundStrength']}
 for _field in MANIFEST.get("settings") or []:
     _paths = _DEADHEAD_PRESENTATION_RESPONSE_PATHS.get(_field.get("key"))
     if _paths:
@@ -815,7 +827,7 @@ EXTRA_LYRIC_SNIPPETS=[
     {"key":"lyric-high-time","kind":"lyric","member":"High Time","quote":"You told me goodbye","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
     {"key":"lyric-black-peter","kind":"lyric","member":"Black Peter","quote":"See here how everything lead up to this day","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
     {"key":"lyric-cumberland","kind":"lyric","member":"Cumberland Blues","quote":"Make good money, five dollars a day","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
-    {"key":"lyric-easy-wind","kind":"lyric","member":"Easy Wind","quote":"Gotta find a woman be good to me","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
+    {"key":"lyric-easy-wind","kind":"lyric","member":"Easy Wind","quote":"Gotta find a woman to be good to me. Won’t hide my liquor and try to serve me tea.","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
     {"key":"lyric-operator","kind":"lyric","member":"Operator","quote":"Operator, can you help me?","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
     {"key":"lyric-passenger","kind":"lyric","member":"Passenger","quote":"Firefly, can you see me?","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
     {"key":"lyric-ship-fools","kind":"lyric","member":"Ship of Fools","quote":"Ship of fools on a cruel sea","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
@@ -851,6 +863,127 @@ EXTRA_LYRIC_SNIPPETS=[
     {"key":"lyric-golden-road","kind":"lyric","member":"The Golden Road","quote":"See that girl barefootin' along","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
     {"key":"lyric-cream-puff","kind":"lyric","member":"Cream Puff War","quote":"Wait a minute, watch what you're doing","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
 ]
+
+
+LYRIC_CONTEXT={
+    "Althea":"A conversation about attraction, self-deception, and being warned that your own habits may be the biggest problem.",
+    "Black Muddy River":"A late-period meditation on loneliness, endurance, and continuing forward when familiar supports are gone.",
+    "Box of Rain":"A tender reflection on mortality, care, and the limits of what one person can give another in a difficult moment.",
+    "Cassidy":"A layered song about birth, death, mentorship, and carrying someone else's memory into a new generation.",
+    "Days Between":"A reflective look back across years of change, missed chances, love, and the strange distance created by time.",
+    "Estimated Prophet":"A charismatic narrator becomes convinced of his own destiny, mixing spiritual certainty with grandiosity and delusion.",
+    "Fire on the Mountain":"A warning that ambition and motion can become empty if you keep moving without noticing what is burning around you.",
+    "Franklin's Tower":"A cyclical meditation on change, memory, and learning to keep moving when certainty and control are impossible.",
+    "He's Gone":"A song about betrayal and loss that gradually becomes a broader statement about absence and accepting what cannot be restored.",
+    "Help on the Way":"A tense but hopeful meditation on love, freedom, and trusting a path even when it cannot be fully explained.",
+    "Ramble On Rose":"A playful collage of American names and images built around the idea of carrying on despite confusion and contradiction.",
+    "Standing on the Moon":"A distant observer looks back at Earth and realizes that all the world's conflicts matter less than being near the person he misses.",
+    "Stella Blue":"A worn-out musician surveys loss and disappointment, then finds a small measure of consolation in the music that remains.",
+    "Terrapin Station":"A mythic storytelling cycle about inspiration, uncertainty, storytelling itself, and following a mysterious destination you cannot quite define.",
+    "The Music Never Stopped":"A celebration of a band, a dancing crowd, and the way music can make an ordinary place feel transformed.",
+    "The Wheel":"A meditation on momentum and consequence: once events are moving, no one can simply stop the larger cycle at will.",
+    "Uncle John's Band":"A communal invitation to listen, participate, and find your place inside a group that is imperfect but still worth joining.",
+    "Bertha":"A comic, restless narrator trying to stay one step ahead of trouble and consequences.",
+    "Deal":"A gambling warning about knowing when to hold back before the stakes get out of hand.",
+    "Brown-Eyed Women":"A family-memory vignette about hard times, homemade liquor, and survival through the Depression era.",
+    "China Cat Sunflower":"A surreal stream of colorful images where the meaning comes from the dreamlike chain rather than one isolated phrase.",
+    "St. Stephen":"A portrait of a wandering, mysterious figure whose choices attract fascination and complaint in equal measure.",
+    "Casey Jones":"A darkly comic cautionary train story built around danger, speed, and impaired judgment.",
+    "Sugar Magnolia":"An affectionate celebration of a free-spirited partner and the joy of being outdoors together.",
+    "Friend of the Devil":"A fugitive narrator explains the debts, relationships, and bad choices keeping him on the run.",
+    "Dire Wolf":"A frontier-style plea for mercy as danger closes in and the narrator realizes how exposed he is.",
+    "U.S. Blues":"A playful, satirical tour through American symbols, patriotism, commerce, and contradiction.",
+    "New Speedway Boogie":"A response to darkness and disorder that insists the situation eventually has to change.",
+    "Wharf Rat":"A down-and-out character tells his story and still imagines a chance to recover and begin again.",
+    "Brokedown Palace":"A tender farewell about leaving, returning home, and accepting the end of a journey.",
+    "Loser":"A gambler boasts about the one hand that could change everything while sounding increasingly desperate.",
+    "Jack Straw":"A tense outlaw narrative about partners on the road, shared responsibility, and violence catching up with them.",
+    "Morning Dew":"A quiet post-catastrophe conversation where ordinary questions gradually reveal that the familiar world is gone.",
+    "Playing in the Band":"A reflection on intuition, reason, freedom, and the strange logic of making music together.",
+    "China Doll":"A fragile conversation after a fall, centered on guilt, fear, forgiveness, and whether someone can be saved.",
+    "Row Jimmy":"A drifting character sketch about carrying on through uncertainty, setbacks, and emotional distance.",
+    "Shakedown Street":"A challenge to the idea that a place has lost its soul, suggesting life is still there if you know how to look.",
+    "Cosmic Charlie":"A playful send-off to a lovable eccentric whose wandering has finally gone on long enough.",
+    "Candyman":"A dangerous charmer announces himself with gambling, bravado, and the threat of trouble following close behind.",
+    "Doin' That Rag":"A psychedelic invitation full of wordplay, motion, and social performance rather than a literal narrative.",
+    "Dupree's Diamond Blues":"A comic crime ballad about desire, robbery, bad decisions, and the consequences that follow.",
+    "High Time":"A weary breakup conversation where affection remains even though the relationship is clearly failing.",
+    "Black Peter":"A sick man watches friends gather around him and reflects on mortality with dry humor and resignation.",
+    "Cumberland Blues":"A working-class mining song about wages, exhaustion, and having no real choice but to keep working.",
+    "Easy Wind":"A rough-edged worker describes the kind of independent partner he wants: someone who accepts him without trying to domesticate him.",
+    "Operator":"A lonely caller asks an operator for help reconnecting with someone he can no longer easily reach.",
+    "Passenger":"A fast-moving invitation to travel, risk, and surrender to the ride rather than control it.",
+    "Ship of Fools":"A warning about following foolish leaders and realizing too late that everyone aboard shares the consequences.",
+    "Throwing Stones":"A political and social critique about power, conflict, environmental damage, and collective responsibility.",
+    "West L.A. Fadeaway":"A noir-like Los Angeles story about deals, temptation, secrecy, and wanting a quiet place to disappear.",
+    "Hell in a Bucket":"A sarcastic breakup song where the narrator embraces the chaos instead of pretending to be respectable.",
+    "Foolish Heart":"Advice about protecting yourself from reckless love while admitting that the heart rarely follows sensible rules.",
+    "Built to Last":"A meditation on what can endure through uncertainty, loss, and the passage of time.",
+    "Liberty":"A late-period statement of independence about choosing freedom even when it comes with risk and loneliness.",
+    "So Many Roads":"A weary traveler looks back on many paths and keeps searching for one that finally feels like home.",
+    "Lazy River Road":"A nostalgic journey through remembered places, lost connections, and a landscape that feels half real and half dream.",
+    "Corrina":"A hypnotic plea for connection, renewal, and waking a relationship back to life.",
+    "Picasso Moon":"A dense, futuristic collage of technology, nightlife, media overload, and modern anxiety.",
+    "Victim or the Crime":"A morally uneasy argument about blame, identity, and whether someone is suffering from or causing the damage around them.",
+    "Weather Report Suite":"A broad cycle about changing weather, landscape, time, and the human urge to read meaning into natural patterns.",
+    "Let It Grow":"A pastoral meditation on labor, seasons, fertility, and accepting that growth has its own timing.",
+    "Feel Like a Stranger":"A charged encounter where attraction and uncertainty make the familiar world feel increasingly strange.",
+    "Lost Sailor":"A sailor drifts without direction, using navigation imagery to describe uncertainty about purpose and belonging.",
+    "Saint of Circumstance":"The companion to Lost Sailor: uncertainty turns into motion, risk, and deciding to go somewhere even without a clear destination.",
+    "Alabama Getaway":"A sharp, fast-moving dismissal of a troublesome person whose presence brings complications and mistrust.",
+    "Far From Me":"A relationship reaches its breaking point as one person accepts that emotional distance has become permanent.",
+    "Blow Away":"A plea to let anger, pride, and emotional pressure dissipate before they destroy a relationship.",
+    "Just a Little Light":"A hopeful request for enough clarity and warmth to get through confusion and darkness.",
+    "Tons of Steel":"A humorous love song comparing an unpredictable relationship to operating an enormous, temperamental machine.",
+    "My Brother Esau":"A biblical and psychological reflection on rivalry, violence, identity, and the darker impulses people carry.",
+    "Might as Well":"A road-song celebration of embracing the ride, especially when the alternative is simply standing still.",
+    "Crazy Fingers":"A dreamlike meditation on change, impermanence, love, and continuing forward when certainty disappears.",
+    "Comes a Time":"A sober reflection on loneliness and the moment when avoiding emotional truth is no longer possible.",
+    "The Eleven":"A rhythmic, mythic rush about transformation and crossing into a different state of awareness.",
+    "Mountains of the Moon":"An old-world, storybook meditation on distance, mystery, status, and unreachable desire.",
+    "Rosemary":"A miniature gothic scene about beauty, isolation, and a mysterious woman in an enclosed world.",
+    "Alligator":"A comic psychedelic blues built around an unruly character, absurd threats, and escalating chaos.",
+    "The Golden Road":"An invitation into the early counterculture world of dancing, travel, community, and possibility.",
+    "Cream Puff War":"A relationship argument framed as a warning that jealousy and games can turn affection into conflict.",
+    "Scarlet Begonias":"A chance street encounter turns into a reflection on attraction, coincidence, and noticing more than appearances.",
+    "Ripple":"A philosophical reflection on inspiration, choice, and the limits of explaining where meaning comes from.",
+    "Truckin'":"A road chronicle about touring, trouble, exhaustion, and realizing how strange the journey has become.",
+    "Eyes of the World":"A reminder that awareness and renewal are already inside us, framed through images of nature and awakening.",
+    "Touch of Grey":"A resilient, slightly cynical statement that things can be rough and still somehow be survivable.",
+    "Sugaree":"A plea to keep distance from trouble and not let someone else's problems pull both people down.",
+    "Bird Song":"A meditation on loss and remembrance that imagines a departed person continuing through nature and song.",
+    "Attics of My Life":"A deeply grateful reflection on people who carry us when our own strength, language, or direction fails.",
+    "Not Fade Away":"A direct declaration that love is enduring and refuses to disappear."
+}
+
+def _quote_topic(text):
+    q=str(text or '').lower()
+    rules=[
+        (("audience","deadhead","people who play the band","crowd"),"the relationship between the band and its audience"),
+        (("play","music","musical","drum","guitar","sound","rhythm"),"playing music and what makes performance meaningful"),
+        (("improvis","muse","creative","creativity","different"),"improvisation, creativity, and following an idea wherever it leads"),
+        (("internet","record company","technology"),"how technology changes the relationship between artists and listeners"),
+        (("fun","enjoy","love"),"the personal enjoyment and human side of making music"),
+        (("early","warlocks","jerry","met"),"the band's early history and how its members came together"),
+        (("life","whole","world","grow"),"a broader reflection on life and personal growth"),
+        (("depression","dark"),"a difficult personal period and the attempt to move through it"),
+        (("expectation","posing","integrity"),"authenticity and resisting outside expectations"),
+    ]
+    for terms,topic in rules:
+        if any(term in q for term in terms): return topic
+    return "the subject being discussed in the cited interview or archival source"
+
+def _contextualize_quote_row(row):
+    out=dict(row)
+    kind=str(out.get('kind') or 'quote')
+    member=str(out.get('member') or '').strip()
+    if kind=='lyric':
+        out['context']=LYRIC_CONTEXT.get(member) or f"A lyric excerpt from {member}; the song title is shown so the line stays connected to its larger narrative."
+        out['contextLabel']='Song context'
+    else:
+        out['context']=f"{member} on {_quote_topic(out.get('quote'))}." if member else f"Context: {_quote_topic(out.get('quote'))}."
+        out['contextLabel']='Interview context'
+    return out
 
 MEMBER_QUOTES=[{'key': 'jerry',
   'kind': 'quote',
@@ -2047,7 +2180,7 @@ def _balanced_member_quote_rows(items,today,order):
     return out
 
 def _quote_rows(settings,today):
-    rows=QUOTES+EXTRA_LYRIC_SNIPPETS+_custom_quotes(settings.get('customQuotes'))
+    rows=[_contextualize_quote_row(x) for x in (QUOTES+EXTRA_LYRIC_SNIPPETS+_custom_quotes(settings.get('customQuotes')))]
     deduped=[];seen=set()
     for row in rows:
         sig=(str(row.get('kind') or ''),str(row.get('member') or '').casefold(),str(row.get('quote') or '').casefold())
