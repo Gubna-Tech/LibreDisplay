@@ -7,7 +7,7 @@
 const {resilientFetch}=LibreDisplayRuntime.getModule('shared');
 const managedIntervals=new Map();
 const managedRuns=new Map();
-let longTaskCount=0,longTaskTotalMs=0,longTaskMaxMs=0,longTaskObserverActive=false;
+let longTaskCount=0,longTaskTotalMs=0,longTaskMaxMs=0,longTaskObserverActive=false,longTaskEntries=[];
 const ANIMATION_MODES=new Set(['auto','smooth','balanced','fidelity']);
 let animationGovernor={running:false,raf:0,lastSample:0,samples:[],fps:0,targetFps:30,droppedPct:0,quality:.72,lastAdjust:0,frames:0,dropped:0,rescue:false,rescueSince:0,recoverySince:0,dashboardSamples:[],settingsSamples:[],dashboardFps:0,settingsFps:0};
 let runtimeHardware={loaded:false,tier:'',model:'',cpuCount:0,memoryTotalBytes:0,memoryAvailableBytes:0};
@@ -75,6 +75,7 @@ function resetAnimationGovernor(){const caps=frontendCapabilities(),profile=anim
 function animationGovernorTick(now){
   if(!animationGovernor.running)return;
   const stamp=Number(now)||Date.now(),settingsOpen=settingsPerformanceContextOpen();
+  if(displayBenchmarkRunning){animationGovernor.lastSample=stamp;animationGovernor.raf=requestAnimationFrame(animationGovernorTick);return;}
   if(animationGovernor.lastSample){
     const dt=stamp-animationGovernor.lastSample;
     if(dt>2&&dt<250){
@@ -199,46 +200,57 @@ function animationWorkloadSnapshot(force=false){
 }
 
 let displayBenchmarkRunning=false;
-const DISPLAY_BENCHMARK_CLASSES=['ld-bench-pause-css-motion','ld-bench-no-canvas','ld-bench-no-wildlife','ld-bench-no-dog','ld-bench-no-overlay','ld-bench-no-background','ld-bench-no-dashboard-ui','ld-bench-minimal'];
+const DISPLAY_BENCHMARK_CLASSES=['ld-bench-pause-css-motion','ld-bench-no-canvas','ld-bench-no-wildlife','ld-bench-no-dog','ld-bench-no-calendar','ld-bench-no-current','ld-bench-no-clock','ld-bench-no-details','ld-bench-no-forecast','ld-bench-no-alerts-custom','ld-bench-no-overlay','ld-bench-no-background','ld-bench-no-dashboard-ui','ld-bench-minimal'];
 function waitForBenchmarkFrameDelay(ms){return new Promise(resolve=>setTimeout(resolve,Math.max(0,Number(ms)||0)));}
-function sampleDisplayFrameRate(durationMs=1100){
-  const duration=Math.max(500,Number(durationMs)||1100);
+function sampleDisplayFrameRate(durationMs=1800){
+  const duration=Math.max(800,Number(durationMs)||1800);
   return new Promise(resolve=>{
     const deltas=[];let started=0,last=0,frames=0;
     const tick=stamp=>{
       if(!started){started=stamp;last=stamp;requestAnimationFrame(tick);return;}
-      const dt=stamp-last;last=stamp;frames++;if(dt>0&&dt<1000)deltas.push(dt);
-      if(stamp-started<duration){requestAnimationFrame(tick);return;}
-      const usable=deltas.slice(2),avg=usable.length?usable.reduce((a,b)=>a+b,0)/usable.length:0,sorted=[...usable].sort((a,b)=>a-b),pct=p=>sorted.length?sorted[Math.min(sorted.length-1,Math.floor((sorted.length-1)*p))]:0,targetMs=1000/30,dropped=usable.filter(v=>v>targetMs*1.5).length;
-      resolve({fps:avg?1000/avg:0,frameCount:usable.length,p50Ms:pct(.50),p90Ms:pct(.90),p99Ms:pct(.99),droppedPct:usable.length?dropped/usable.length*100:0});
+      const dt=Math.max(0,stamp-last);last=stamp;frames++;if(dt>0)deltas.push(dt);
+      const elapsed=Math.max(1,stamp-started);
+      if(elapsed<duration){requestAnimationFrame(tick);return;}
+      const sorted=[...deltas].sort((a,b)=>a-b),pct=p=>sorted.length?sorted[Math.min(sorted.length-1,Math.floor((sorted.length-1)*p))]:0,targetMs=1000/30,dropped=sorted.filter(v=>v>targetMs*1.5).length;
+      resolve({fps:frames*1000/elapsed,frameCount:frames,elapsedMs:elapsed,p50Ms:pct(.50),p90Ms:pct(.90),p99Ms:pct(.99),droppedPct:sorted.length?dropped/sorted.length*100:0});
     };
     requestAnimationFrame(tick);
   });
 }
+function longTaskWindow(startMs,endMs){const rows=longTaskEntries.filter(row=>row.startTime<=endMs&&row.startTime+row.duration>=startMs),total=rows.reduce((sum,row)=>sum+row.duration,0),max=rows.reduce((value,row)=>Math.max(value,row.duration),0);return {count:rows.length,totalMs:Math.round(total),maxMs:Math.round(max)};}
+function layoutAutoFitSnapshot(){try{return LibreDisplayRuntime.getModule('layout')?.builtInLayoutAutoFitSnapshot?.()||{};}catch{return {};}}
+function layoutAutoFitDelta(before,after){return {runs:Math.max(0,(Number(after?.runs)||0)-(Number(before?.runs)||0)),totalMs:Number(Math.max(0,(Number(after?.totalMs)||0)-(Number(before?.totalMs)||0)).toFixed(1)),maxMs:Number(after?.maxMs)||0};}
 function diagnoseDisplayBenchmark(stages){
   const byKey=Object.fromEntries(stages.map(row=>[row.key,row])),base=Number(byKey.baseline?.fps)||0,ceiling=Number(byKey.minimal?.fps)||0;
   const candidates=stages.filter(row=>!['baseline','minimal'].includes(row.key)).map(row=>({...row,gain:(Number(row.fps)||0)-base})).sort((a,b)=>b.gain-a.gain),best=candidates[0]||{gain:0,label:'No single layer'};
-  if(base>=27)return {kind:'healthy',summary:`The full dashboard is already sustaining ${base.toFixed(1)} FPS and the minimal compositor ceiling is ${ceiling.toFixed(1)} FPS. This run does not reproduce the low-FPS condition; repeat the test on the affected physical display while the usual dashboard scene is active.`,largestSingleGain:best.gain||0,largestSingleStage:best.key||''};
-  if(ceiling<18||ceiling-base<4)return {kind:'platform',summary:`The minimal compositor ceiling is ${ceiling.toFixed(1)} FPS versus ${base.toFixed(1)} FPS with the dashboard visible. The bottleneck is below LibreDisplay's individual visual layers: check Chromium acceleration/EGL, Pi throttling/clocks, display/compositor path, and OS graphics configuration before reducing visual quality.`,largestSingleGain:best.gain||0,largestSingleStage:best.key||''};
+  const longTaskStage=[...stages].sort((a,b)=>(Number(b.longTasks?.totalMs)||0)-(Number(a.longTasks?.totalMs)||0))[0];
+  if(base>=27)return {kind:'healthy',summary:`The full dashboard sustained ${base.toFixed(1)} FPS with a ${ceiling.toFixed(1)} FPS minimal compositor ceiling. This run does not reproduce the low-FPS condition.`,largestSingleGain:best.gain||0,largestSingleStage:best.key||'',longTaskStage:longTaskStage?.key||''};
+  if(ceiling<18||ceiling-base<4)return {kind:'platform',summary:`The minimal compositor ceiling is only ${ceiling.toFixed(1)} FPS versus ${base.toFixed(1)} FPS with the dashboard visible. The bottleneck remains below individual LibreDisplay layers.`,largestSingleGain:best.gain||0,largestSingleStage:best.key||'',longTaskStage:longTaskStage?.key||''};
   if(best.gain>=3){
-    const names={pauseCss:'CSS animation/transition motion',noCanvas:'the shared weather/flora canvas',noWildlife:'detailed birds/owls',noDog:'the dog actor',noOverlay:'the Weather/NatureScape overlay as a whole',noBackground:'background image/video rendering',noDashboardUi:'dashboard widgets/layout'};
-    return {kind:'layer',summary:`The strongest isolated gain came from ${names[best.key]||best.label}: +${best.gain.toFixed(1)} FPS (${base.toFixed(1)} → ${Number(best.fps).toFixed(1)}). The minimal ceiling reaches ${ceiling.toFixed(1)} FPS, so the device has headroom and this layer is the first place to profile.`,largestSingleGain:best.gain,largestSingleStage:best.key};
+    const names={pauseCss:'CSS animation/transition motion',pauseAutoFit:'custom-layout auto-fit work',noCalendar:'calendar rendering',noCurrent:'current-weather rendering',noClock:'clock rendering',noDetails:'weather-details rendering',noForecast:'daily/hourly forecast rendering',noAlertsCustom:'alerts and added/custom blocks',noCanvas:'the shared weather/flora canvas',noOverlay:'the Weather/NatureScape overlay',noBackground:'background image/video rendering',noDashboardUi:'dashboard widgets/layout'};
+    const stall=Number(longTaskStage?.longTasks?.maxMs)||0,stallText=stall>=1000?` Long-task instrumentation also saw up to ${(stall/1000).toFixed(1)} s in ${longTaskStage.label}.`:'';
+    return {kind:'layer',summary:`The strongest isolated gain came from ${names[best.key]||best.label}: +${best.gain.toFixed(1)} FPS (${base.toFixed(1)} → ${Number(best.fps).toFixed(1)}). The minimal ceiling reaches ${ceiling.toFixed(1)} FPS.${stallText}`,largestSingleGain:best.gain,largestSingleStage:best.key,longTaskStage:longTaskStage?.key||''};
   }
-  return {kind:'combined',summary:`No single visual layer recovered at least 3 FPS, but the minimal ceiling reaches ${ceiling.toFixed(1)} FPS from a ${base.toFixed(1)} FPS baseline. The slowdown is cumulative compositor/rendering pressure rather than one obvious effect; compare the stage deltas and prioritize the largest two together.`,largestSingleGain:best.gain||0,largestSingleStage:best.key||''};
+  return {kind:'combined',summary:`No single isolated layer recovered at least 3 FPS, but the minimal ceiling reaches ${ceiling.toFixed(1)} FPS from a ${base.toFixed(1)} FPS baseline. Compare the per-stage long-task and auto-fit timings for cumulative dashboard pressure.`,largestSingleGain:best.gain||0,largestSingleStage:best.key||'',longTaskStage:longTaskStage?.key||''};
 }
 async function runDisplayPerformanceBenchmark(options={}){
   if(displayBenchmarkRunning)throw new Error('Display performance test is already running.');
   displayBenchmarkRunning=true;
-  const root=document.documentElement,startedAt=new Date().toISOString(),initialClasses=DISPLAY_BENCHMARK_CLASSES.filter(name=>root.classList.contains(name)),wasActive=root.classList.contains('ld-performance-benchmark-active'),playingVideos=[...document.querySelectorAll('video')].filter(v=>!v.paused&&!v.ended),stageDuration=Math.max(700,Number(options.stageDurationMs)||1100),settleMs=Math.max(100,Number(options.settleMs)||220);
+  const layout=(()=>{try{return LibreDisplayRuntime.getModule('layout');}catch{return null;}})(),root=document.documentElement,startedAt=new Date().toISOString(),initialClasses=DISPLAY_BENCHMARK_CLASSES.filter(name=>root.classList.contains(name)),wasActive=root.classList.contains('ld-performance-benchmark-active'),playingVideos=[...document.querySelectorAll('video')].filter(v=>!v.paused&&!v.ended),stageDuration=Math.max(800,Number(options.stageDurationMs)||1800),settleMs=Math.max(120,Number(options.settleMs)||280);
   const stages=[
     {key:'baseline',label:'Full dashboard'},
+    {key:'pauseAutoFit',label:'Custom-layout auto-fit paused',pauseAutoFit:true},
     {key:'pauseCss',label:'CSS motion paused',className:'ld-bench-pause-css-motion'},
+    {key:'noCalendar',label:'Calendar hidden',className:'ld-bench-no-calendar'},
+    {key:'noCurrent',label:'Current weather hidden',className:'ld-bench-no-current'},
+    {key:'noClock',label:'Clock hidden',className:'ld-bench-no-clock'},
+    {key:'noDetails',label:'Weather details hidden',className:'ld-bench-no-details'},
+    {key:'noForecast',label:'Daily/hourly forecasts hidden',className:'ld-bench-no-forecast'},
+    {key:'noAlertsCustom',label:'Alerts and added blocks hidden',className:'ld-bench-no-alerts-custom'},
     {key:'noCanvas',label:'Shared weather/flora canvas paused',className:'ld-bench-no-canvas'},
-    {key:'noWildlife',label:'Detailed birds/owls hidden',className:'ld-bench-no-wildlife'},
-    {key:'noDog',label:'Dog hidden',className:'ld-bench-no-dog'},
     {key:'noOverlay',label:'Weather/NatureScape overlay hidden',className:'ld-bench-no-overlay'},
     {key:'noBackground',label:'Background layers and video paused',className:'ld-bench-no-background',pauseVideo:true},
-    {key:'noDashboardUi',label:'Dashboard widgets/layout hidden',className:'ld-bench-no-dashboard-ui'},
+    {key:'noDashboardUi',label:'All dashboard widgets/layout hidden',className:'ld-bench-no-dashboard-ui'},
     {key:'minimal',label:'Minimal compositor ceiling',className:'ld-bench-minimal',pauseVideo:true}
   ];
   const results=[];
@@ -246,17 +258,17 @@ async function runDisplayPerformanceBenchmark(options={}){
   try{
     root.classList.add('ld-performance-benchmark-active');
     for(let index=0;index<stages.length;index++){
-      const stage=stages[index];DISPLAY_BENCHMARK_CLASSES.forEach(name=>root.classList.remove(name));restoreVideos();
+      const stage=stages[index];DISPLAY_BENCHMARK_CLASSES.forEach(name=>root.classList.remove(name));restoreVideos();layout?.setBuiltInLayoutAutoFitSuspended?.(!!stage.pauseAutoFit);
       if(stage.className)root.classList.add(stage.className);if(stage.pauseVideo)for(const video of playingVideos){try{video.pause();}catch{}}
       options.onStage?.({index:index+1,total:stages.length,key:stage.key,label:stage.label});
       await waitForBenchmarkFrameDelay(settleMs);
-      const sample=await sampleDisplayFrameRate(stageDuration),row={key:stage.key,label:stage.label,...sample};results.push(row);
+      const sampleStart=performance.now(),fitBefore=layoutAutoFitSnapshot(),sample=await sampleDisplayFrameRate(stageDuration);await waitForBenchmarkFrameDelay(0);const sampleEnd=performance.now(),fitAfter=layoutAutoFitSnapshot(),row={key:stage.key,label:stage.label,...sample,longTasks:longTaskWindow(sampleStart,sampleEnd),layoutAutoFit:layoutAutoFitDelta(fitBefore,fitAfter)};results.push(row);
       options.onStage?.({index:index+1,total:stages.length,key:stage.key,label:stage.label,result:row});
     }
     const baseline=Number(results[0]?.fps)||0;for(const row of results)row.deltaFps=(Number(row.fps)||0)-baseline;
-    return {startedAt,finishedAt:new Date().toISOString(),stageDurationMs:stageDuration,baselineFps:baseline,ceilingFps:Number(results.find(r=>r.key==='minimal')?.fps)||0,stages:results,diagnosis:diagnoseDisplayBenchmark(results),performance:animationPerformanceSnapshot(),workload:animationWorkloadSnapshot(true),graphics:browserGraphicsSnapshot()};
+    return {startedAt,finishedAt:new Date().toISOString(),stageDurationMs:stageDuration,baselineFps:baseline,ceilingFps:Number(results.find(r=>r.key==='minimal')?.fps)||0,stages:results,diagnosis:diagnoseDisplayBenchmark(results),performance:animationPerformanceSnapshot(),workload:animationWorkloadSnapshot(true),graphics:browserGraphicsSnapshot(),layoutAutoFit:layoutAutoFitSnapshot()};
   }finally{
-    DISPLAY_BENCHMARK_CLASSES.forEach(name=>root.classList.remove(name));for(const name of initialClasses)root.classList.add(name);if(!wasActive)root.classList.remove('ld-performance-benchmark-active');restoreVideos();displayBenchmarkRunning=false;
+    layout?.setBuiltInLayoutAutoFitSuspended?.(false);DISPLAY_BENCHMARK_CLASSES.forEach(name=>root.classList.remove(name));for(const name of initialClasses)root.classList.add(name);if(!wasActive)root.classList.remove('ld-performance-benchmark-active');restoreVideos();displayBenchmarkRunning=false;resetAnimationGovernor();
   }
 }
 
@@ -279,6 +291,7 @@ function frontendPerformanceSnapshot(){
     activeIntervals:managedIntervals.size,
     activeExclusiveRuns:managedRuns.size,
     longTaskObserverActive,
+    layoutAutoFit:layoutAutoFitSnapshot(),
     longTasks:{count:longTaskCount,totalMs:Math.round(longTaskTotalMs),maxMs:Math.round(longTaskMaxMs)},
     ...(heap?{heap}: {})
   };
@@ -290,7 +303,7 @@ function observeFrontendLongTasks(){
     const observer=new PerformanceObserver(list=>{
       for(const entry of list.getEntries()){
         const duration=Math.max(0,Number(entry.duration)||0);
-        longTaskCount++;longTaskTotalMs+=duration;longTaskMaxMs=Math.max(longTaskMaxMs,duration);
+        longTaskCount++;longTaskTotalMs+=duration;longTaskMaxMs=Math.max(longTaskMaxMs,duration);longTaskEntries.push({startTime:Math.max(0,Number(entry.startTime)||0),duration});if(longTaskEntries.length>512)longTaskEntries=longTaskEntries.slice(-384);
       }
     });
     observer.observe({type:'longtask',buffered:true});

@@ -266,12 +266,12 @@ function renderSystemHealth(){
   set('system-health-memory',memText+tempText,Number.isFinite(temp)&&temp>=80?'bad':Number.isFinite(temp)&&temp>=70?'warn':'good');
   const loads=Array.isArray(d.loadAverage)?d.loadAverage.map(Number).filter(Number.isFinite):[],load1=loads[0]||0,loadPerCore=cores?load1/cores:0;
   set('system-health-load',loads.length?`${loads.map(v=>v.toFixed(2)).join(' · ')} (1m · 5m · 15m)${cores?` · ${cores} cores`:''}`:'Unavailable',loadPerCore>=1.15?'bad':loadPerCore>=.80?'warn':loads.length?'good':'');
-  const kiosk=d.kioskHeartbeat||{},perf=kiosk.frontendPerformance||{},longTasks=perf.longTasks||{};
+  const kiosk=d.kioskHeartbeat||{},perf=kiosk.frontendPerformance||{},longTasks=perf.longTasks||{},layoutAutoFit=perf.layoutAutoFit||{};
   const anim=perf.animation||{},workload=perf.animationWorkload||{},graphics=perf.graphics||{},fps=Number(anim.fps)||0,dashboardFps=Number(anim.dashboardFps)||0,settingsFps=Number(anim.settingsFps)||0,targetFps=Number(anim.targetFps)||0,dropped=Number(anim.droppedPct)||0,gpuRenderer=String(graphics.renderer||'').trim(),gpuText=graphics.software?'SOFTWARE graphics path':gpuRenderer?(graphics.webgl2?'GPU/WebGL2':'GPU/WebGL'):(graphics.webgl===false&&graphics.webgl2===false?'WebGL unavailable':'');
   const workloadText=Number(workload.totalAnimations)?`${Number(workload.totalAnimations)} animation tracks · birds ${Number(workload.birds)||0} · dog ${Number(workload.dog)||0} · weather ${Number(workload.weather)||0} · ${Number(workload.weatherNodes)||0} overlay nodes${Number(workload.playingVideos)?` · ${Number(workload.playingVideos)} video`:''}`:'';
   const displayText=kiosk.viewport?`${kiosk.viewport}${Number(kiosk.dpr)&&Number(kiosk.dpr)!==1?` · DPR ${Number(kiosk.dpr).toFixed(2)}`:''}${kiosk.screen&&kiosk.screen!==kiosk.viewport?` · screen ${kiosk.screen}`:''}`:'';
   const fpsText=anim.settingsOpen&&dashboardFps?`dashboard ${dashboardFps.toFixed(1)} FPS · settings ${settingsFps||fps?Number(settingsFps||fps).toFixed(1):'—'} FPS${targetFps?` / ${targetFps} target`:''}`:fps?`${fps.toFixed(1)} FPS${targetFps?` / ${targetFps} target`:''}`:'';
-  const perfText=kiosk.present&&Object.keys(perf).length?[`${perf.tier||'browser'} tier`,perf.hostModel||'',displayText,fpsText,dropped?`${dropped.toFixed(1)}% dropped`:'',gpuText,gpuRenderer&&!graphics.software?gpuRenderer:'',graphics.probeError?`graphics probe: ${graphics.probeError}`:'',workloadText,`${Number(longTasks.count)||0} long tasks`,`${Number(longTasks.maxMs)||0} ms max`,perf.heap?.usedBytes?`${formatHealthBytes(perf.heap.usedBytes)} JS heap`:'' ].filter(Boolean).join(' · '):(kiosk.present?'Waiting for browser metrics':'No local kiosk heartbeat');
+  const perfText=kiosk.present&&Object.keys(perf).length?[`${perf.tier||'browser'} tier`,perf.hostModel||'',displayText,fpsText,dropped?`${dropped.toFixed(1)}% dropped`:'',gpuText,gpuRenderer&&!graphics.software?gpuRenderer:'',graphics.probeError?`graphics probe: ${graphics.probeError}`:'',workloadText,Number(layoutAutoFit.runs)?`layout auto-fit ${Number(layoutAutoFit.runs)} runs · ${Number(layoutAutoFit.maxMs||0).toFixed(0)} ms max`:'',`${Number(longTasks.count)||0} long tasks`,`${Number(longTasks.maxMs)||0} ms max`,perf.heap?.usedBytes?`${formatHealthBytes(perf.heap.usedBytes)} JS heap`:'' ].filter(Boolean).join(' · '):(kiosk.present?'Waiting for browser metrics':'No local kiosk heartbeat');
   const healthFps=dashboardFps||fps;
   set('system-health-browser',perfText,!kiosk.present?'warn':graphics.software||healthFps&&healthFps<15?'bad':healthFps&&healthFps<26?'warn':'good');
   const pi=d.piRuntime||{},thermal=pi.thermal||{},session=pi.displaySession||{},chrome=pi.chromium||{},kernel=pi.kernelGraphics||{};
@@ -307,7 +307,7 @@ function renderDisplayPerformanceBenchmark(value){
   const stages=Array.isArray(result?.stages)?result.stages:[];
   if(!stages.length){box.textContent=state?.state==='requested'?'Waiting for the physical display to start the benchmark…':'No completed physical-display benchmark is available yet.';box.style.display='block';return;}
   const lines=[`Diagnosis: ${result.diagnosis?.summary||'Test completed.'}`,''];
-  for(const row of stages){const delta=Number(row.deltaFps)||0;lines.push(`${row.label}: ${Number(row.fps||0).toFixed(1)} FPS${row.key==='baseline'?'':` (${delta>=0?'+':''}${delta.toFixed(1)})`} · p90 ${Number(row.p90Ms||0).toFixed(1)} ms · ${Number(row.droppedPct||0).toFixed(1)}% slow frames`);}
+  for(const row of stages){const delta=Number(row.deltaFps)||0,long=row.longTasks||{},fit=row.layoutAutoFit||{},extras=[];if(Number(long.count))extras.push(`${Number(long.count)} long task${Number(long.count)===1?'':'s'} / ${Number(long.maxMs||0)} ms max`);if(Number(fit.runs))extras.push(`auto-fit ${Number(fit.runs)} / ${Number(fit.totalMs||0).toFixed(1)} ms`);lines.push(`${row.label}: ${Number(row.fps||0).toFixed(1)} FPS${row.key==='baseline'?'':` (${delta>=0?'+':''}${delta.toFixed(1)})`} · p90 ${Number(row.p90Ms||0).toFixed(1)} ms · ${Number(row.droppedPct||0).toFixed(1)}% slow frames${extras.length?' · '+extras.join(' · '):''}`);}
   lines.push('','Measured on the physical kiosk display. This result is also included in Download diagnostics.');box.textContent=lines.join('\n');box.style.display='block';
 }
 async function runSystemDisplayPerformanceBenchmark(){
@@ -322,7 +322,7 @@ async function runSystemDisplayPerformanceBenchmark(){
       if(box){box.style.display='block';box.textContent='Queueing the benchmark on the physical kiosk display… The request remains available across Chromium graphics-recovery restarts until the kiosk completes it.';}
       const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'performance-benchmark',endpoint:bootstrapApi.ACTIVE_ENDPOINT,requestId}),cache:'no-store'},{timeoutMs:6000,attempts:2});
       const payload=await response.json().catch(()=>({}));if(!response.ok||!payload.ok)throw new Error(payload.error||`HTTP ${response.status}`);
-      const deadline=Date.now()+150000;let seen=false;
+      const deadline=Date.now()+180000;let seen=false;
       while(Date.now()<deadline){
         await sleepMs(seen?850:500);await loadSystemHealth();
         const state=physicalDisplayBenchmarkState();
@@ -331,7 +331,7 @@ async function runSystemDisplayPerformanceBenchmark(){
         if(state.state==='complete'&&state.result){lastDisplayPerformanceBenchmark=state.result;return state.result;}
         if(state.state==='error')throw new Error(state.error||'The physical kiosk benchmark failed.');
       }
-      throw new Error(seen?'The physical display did not finish the benchmark within 150 seconds. It may still be cycling Chromium graphics profiles; check System Health and retry once recovery settles.':'The physical kiosk did not acknowledge the durable benchmark request within 150 seconds. Check the live kiosk heartbeat and browser recovery state.');
+      throw new Error(seen?'The physical display did not finish the benchmark within 180 seconds. It may still be cycling Chromium graphics profiles; check System Health and retry once recovery settles.':'The physical kiosk did not acknowledge the durable benchmark request within 180 seconds. Check the live kiosk heartbeat and browser recovery state.');
     }catch(error){if(box){box.style.display='block';box.textContent=`Performance test could not complete: ${error?.message||error}`;}throw error;
     }finally{if(button){button.disabled=false;button.textContent='Run on physical display';}}
   })();

@@ -236,6 +236,7 @@ body {
   line-height:0.94;
   letter-spacing:-3px;
   white-space:nowrap;
+  font-variant-numeric:tabular-nums;
 }
 .clock-time.wide-time {
   font-size:clamp(62px,5.55vw,94px);
@@ -615,6 +616,8 @@ body.custom-layout #wx-hourly-block {
   overflow:hidden;
 }
 body.custom-layout #wx-hourly-block .wx-hourly { position:absolute;left:0;bottom:0;width:100%; }
+/* Keep fixed Arrange blocks in separate layout/paint containment islands so a clock tick or forecast refresh cannot invalidate the whole dashboard. */
+body.custom-layout :is(#top-strip,.wx-main,#clock-block,.wx-details,#wx-forecast,#wx-hourly-block){contain:layout paint;}
 body.custom-layout #calendar-legend { position:fixed; }
 /* Built-in content is fitted inside its Arrange rectangle without changing the
    rectangle itself. Chromium's zoom participates in layout, so text, gaps,
@@ -1310,6 +1313,12 @@ html.ld-bench-no-wildlife #weather-effects-overlay :is(.weather-fx-bird,.weather
 html.ld-bench-no-dog #weather-effects-overlay .weather-fx-dog-v2 { display:none !important; }
 html.ld-bench-no-overlay #weather-effects-overlay { visibility:hidden !important; }
 html.ld-bench-no-background :is(#bg,#bg-next) { visibility:hidden !important; }
+html.ld-bench-no-calendar :is(#top-strip,#calendar-legend) { visibility:hidden !important; }
+html.ld-bench-no-current .wx-main { visibility:hidden !important; }
+html.ld-bench-no-clock #clock-block { visibility:hidden !important; }
+html.ld-bench-no-details .wx-details { visibility:hidden !important; }
+html.ld-bench-no-forecast :is(#wx-forecast,#wx-hourly-block) { visibility:hidden !important; }
+html.ld-bench-no-alerts-custom :is(#alert-zone,#custom-block-layer,#layout-showcase-layer) { visibility:hidden !important; }
 html.ld-bench-no-dashboard-ui :is(#app,#cog) { visibility:hidden !important; }
 html.ld-bench-minimal :is(#app,#cog,#weather-effects-overlay,#bg,#bg-next) { visibility:hidden !important; }
 .shortcut-note {

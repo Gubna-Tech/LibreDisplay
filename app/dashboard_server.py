@@ -2418,6 +2418,7 @@ def normalize_frontend_performance(value):
     workload = value.get("animationWorkload") if isinstance(value.get("animationWorkload"), dict) else {}
     graphics = value.get("graphics") if isinstance(value.get("graphics"), dict) else {}
     long_tasks = value.get("longTasks") if isinstance(value.get("longTasks"), dict) else {}
+    layout_auto_fit = value.get("layoutAutoFit") if isinstance(value.get("layoutAutoFit"), dict) else {}
     heap = value.get("heap") if isinstance(value.get("heap"), dict) else {}
     connectivity = value.get("connectivity") if isinstance(value.get("connectivity"), dict) else {}
     payload = {
@@ -2466,6 +2467,14 @@ def normalize_frontend_performance(value):
             "totalMs": bounded_int(long_tasks.get("totalMs"), 0, 10**12),
             "maxMs": bounded_int(long_tasks.get("maxMs"), 0, 10**9),
         },
+        "layoutAutoFit": {
+            "runs": bounded_int(layout_auto_fit.get("runs"), 0, 10**9),
+            "totalMs": bounded_float(layout_auto_fit.get("totalMs"), 0, 10**12, 1),
+            "maxMs": bounded_float(layout_auto_fit.get("maxMs"), 0, 10**9, 1),
+            "lastMs": bounded_float(layout_auto_fit.get("lastMs"), 0, 10**9, 1),
+            "lastAt": bounded_int(layout_auto_fit.get("lastAt"), 0, 10**15),
+            "suspended": bool(layout_auto_fit.get("suspended")),
+        } if layout_auto_fit else {},
     }
     if heap:
         payload["heap"] = {
@@ -2536,11 +2545,22 @@ def normalize_display_performance_benchmark(value):
                 "label": str(row.get("label") or "")[:120],
                 "fps": bounded_float(row.get("fps"), 0, 240, 1),
                 "frameCount": bounded_int(row.get("frameCount"), 0, 100000),
-                "p50Ms": bounded_float(row.get("p50Ms"), 0, 10000, 1),
-                "p90Ms": bounded_float(row.get("p90Ms"), 0, 10000, 1),
-                "p99Ms": bounded_float(row.get("p99Ms"), 0, 10000, 1),
+                "elapsedMs": bounded_float(row.get("elapsedMs"), 0, 120000, 1),
+                "p50Ms": bounded_float(row.get("p50Ms"), 0, 120000, 1),
+                "p90Ms": bounded_float(row.get("p90Ms"), 0, 120000, 1),
+                "p99Ms": bounded_float(row.get("p99Ms"), 0, 120000, 1),
                 "droppedPct": bounded_float(row.get("droppedPct"), 0, 100, 1),
                 "deltaFps": bounded_float(row.get("deltaFps"), -240, 240, 1),
+                "longTasks": {
+                    "count": bounded_int((row.get("longTasks") or {}).get("count"), 0, 100000),
+                    "totalMs": bounded_int((row.get("longTasks") or {}).get("totalMs"), 0, 10**9),
+                    "maxMs": bounded_int((row.get("longTasks") or {}).get("maxMs"), 0, 10**9),
+                },
+                "layoutAutoFit": {
+                    "runs": bounded_int((row.get("layoutAutoFit") or {}).get("runs"), 0, 100000),
+                    "totalMs": bounded_float((row.get("layoutAutoFit") or {}).get("totalMs"), 0, 10**9, 1),
+                    "maxMs": bounded_float((row.get("layoutAutoFit") or {}).get("maxMs"), 0, 10**9, 1),
+                },
             })
         diagnosis = result.get("diagnosis") if isinstance(result.get("diagnosis"), dict) else {}
         graphics = result.get("graphics") if isinstance(result.get("graphics"), dict) else {}
@@ -2556,6 +2576,7 @@ def normalize_display_performance_benchmark(value):
                 "summary": str(diagnosis.get("summary") or "")[:1200],
                 "largestSingleGain": bounded_float(diagnosis.get("largestSingleGain"), -240, 240, 1),
                 "largestSingleStage": str(diagnosis.get("largestSingleStage") or "")[:40],
+                "longTaskStage": str(diagnosis.get("longTaskStage") or "")[:40],
             },
             "graphics": {
                 "webgl": bool(graphics.get("webgl")),
@@ -2564,6 +2585,12 @@ def normalize_display_performance_benchmark(value):
                 "renderer": str(graphics.get("renderer") or "")[:180],
                 "vendor": str(graphics.get("vendor") or "")[:120],
                 "probeError": str(graphics.get("probeError") or "")[:240],
+            },
+            "layoutAutoFit": {
+                "runs": bounded_int((result.get("layoutAutoFit") or {}).get("runs"), 0, 10**9),
+                "totalMs": bounded_float((result.get("layoutAutoFit") or {}).get("totalMs"), 0, 10**12, 1),
+                "maxMs": bounded_float((result.get("layoutAutoFit") or {}).get("maxMs"), 0, 10**9, 1),
+                "lastMs": bounded_float((result.get("layoutAutoFit") or {}).get("lastMs"), 0, 10**9, 1),
             },
         }
     return payload
