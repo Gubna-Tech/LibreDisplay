@@ -319,10 +319,10 @@ async function runSystemDisplayPerformanceBenchmark(){
     try{
       await loadSystemHealth();
       if(!systemHealthState?.kioskHeartbeat?.present)throw new Error('The physical kiosk heartbeat is offline. The test cannot run until the target display reconnects.');
-      if(box){box.style.display='block';box.textContent='Sending the benchmark request to the physical kiosk display…';}
+      if(box){box.style.display='block';box.textContent='Queueing the benchmark on the physical kiosk display… The request remains available across Chromium graphics-recovery restarts until the kiosk completes it.';}
       const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'performance-benchmark',endpoint:bootstrapApi.ACTIVE_ENDPOINT,requestId}),cache:'no-store'},{timeoutMs:6000,attempts:2});
       const payload=await response.json().catch(()=>({}));if(!response.ok||!payload.ok)throw new Error(payload.error||`HTTP ${response.status}`);
-      const deadline=Date.now()+45000;let seen=false;
+      const deadline=Date.now()+150000;let seen=false;
       while(Date.now()<deadline){
         await sleepMs(seen?850:500);await loadSystemHealth();
         const state=physicalDisplayBenchmarkState();
@@ -331,7 +331,7 @@ async function runSystemDisplayPerformanceBenchmark(){
         if(state.state==='complete'&&state.result){lastDisplayPerformanceBenchmark=state.result;return state.result;}
         if(state.state==='error')throw new Error(state.error||'The physical kiosk benchmark failed.');
       }
-      throw new Error(seen?'The physical display did not finish the benchmark within 45 seconds.':'The physical kiosk did not acknowledge the benchmark request. Check the live kiosk heartbeat and browser connection.');
+      throw new Error(seen?'The physical display did not finish the benchmark within 150 seconds. It may still be cycling Chromium graphics profiles; check System Health and retry once recovery settles.':'The physical kiosk did not acknowledge the durable benchmark request within 150 seconds. Check the live kiosk heartbeat and browser recovery state.');
     }catch(error){if(box){box.style.display='block';box.textContent=`Performance test could not complete: ${error?.message||error}`;}throw error;
     }finally{if(button){button.disabled=false;button.textContent='Run on physical display';}}
   })();

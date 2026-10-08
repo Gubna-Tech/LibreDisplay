@@ -112,6 +112,9 @@ OUTBOUND_HEALTH = {
 }
 DEVICE_LOCK = threading.Lock()
 DEVICE_STATE = {}
+DEVICE_COMMAND_LOCK = threading.Lock()
+DEVICE_PENDING_COMMANDS = {}
+DEVICE_COMMAND_TTL_SECONDS = 180
 EVENT_LOCK = threading.Lock()
 EVENT_SUBSCRIBERS = {}
 PLUGIN_LOCK = threading.Lock()
@@ -1000,6 +1003,54 @@ def broker_fetch(key, ttl_seconds, fetcher, source="", force=False):
             broker_record(key, source=source, status="fresh", savedAt=cached[2], age=now-cached[2], error="", errorKind="", lastSuccessAt=cached[2], refreshing=False, consecutiveFailures=0, retryAt=0)
             return cached[0], cached[1], "fresh", now-cached[2]
         return broker_refresh_once(key, ttl, fetcher, source, cached)
+
+
+def queue_device_command(endpoint_id, action, payload=None):
+    endpoint_id = endpoint_slug(endpoint_id or "main")
+    now = int(time.time())
+    command = {
+        "action": str(action or "")[:40],
+        "requestedAt": now,
+        "expiresAt": now + DEVICE_COMMAND_TTL_SECONDS,
+    }
+    if isinstance(payload, dict):
+        for key in ("requestId", "requestedAt"):
+            if key in payload:
+                command[key] = payload[key]
+    with DEVICE_COMMAND_LOCK:
+        DEVICE_PENDING_COMMANDS[endpoint_id] = command
+    return dict(command)
+
+
+def pending_device_command(endpoint_id):
+    endpoint_id = endpoint_slug(endpoint_id or "main")
+    now = int(time.time())
+    with DEVICE_COMMAND_LOCK:
+        command = DEVICE_PENDING_COMMANDS.get(endpoint_id)
+        if not isinstance(command, dict):
+            return None
+        if int(command.get("expiresAt") or 0) <= now:
+            DEVICE_PENDING_COMMANDS.pop(endpoint_id, None)
+            return None
+        return dict(command)
+
+
+def acknowledge_device_command(endpoint_id, benchmark_state):
+    endpoint_id = endpoint_slug(endpoint_id or "main")
+    if not isinstance(benchmark_state, dict):
+        return False
+    request_id = str(benchmark_state.get("requestId") or "")
+    state = str(benchmark_state.get("state") or "").lower()
+    if not request_id or state not in {"complete", "error"}:
+        return False
+    with DEVICE_COMMAND_LOCK:
+        command = DEVICE_PENDING_COMMANDS.get(endpoint_id)
+        if not isinstance(command, dict) or command.get("action") != "performance-benchmark":
+            return False
+        if str(command.get("requestId") or "") != request_id:
+            return False
+        DEVICE_PENDING_COMMANDS.pop(endpoint_id, None)
+        return True
 
 
 def publish_event(endpoint_id, event, payload=None):
@@ -4320,10 +4371,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     DEVICE_STATE[endpoint_id + ":" + device_id] = row
                 if bool((body or {}).get("connectivityRecovered")):
                     broker_release_transient_backoff()
+                pending_command = None
                 if row["mode"] == "local" and self.client_is_loopback():
                     previous_kiosk = load_json_path(KIOSK_HEARTBEAT_PATH, {})
                     previous_benchmark = normalize_display_performance_benchmark(previous_kiosk.get("displayPerformanceBenchmark")) if isinstance(previous_kiosk, dict) else {}
                     benchmark = row["displayPerformanceBenchmark"] or previous_benchmark
+                    if row["displayPerformanceBenchmark"]:
+                        acknowledge_device_command(endpoint_id, row["displayPerformanceBenchmark"])
+                    pending_command = pending_device_command(endpoint_id)
                     atomic_write_json_file(KIOSK_HEARTBEAT_PATH, {
                         "lastSeen": row["lastSeen"],
                         "endpoint": endpoint_id,
@@ -4336,7 +4391,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         "frontendPerformance": row["frontendPerformance"],
                         "displayPerformanceBenchmark": benchmark,
                     })
-                return self.json_response(200, {"ok": True})
+                response_payload = {"ok": True}
+                if pending_command:
+                    response_payload["pendingCommand"] = pending_command
+                return self.json_response(200, response_payload)
             except ValueError as exc:
                 return self.json_response(400, {"ok": False, "error": str(exc)})
             except Exception as exc:
@@ -4362,6 +4420,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     if not request_id:
                         request_id = "bench-" + secrets.token_hex(8)
                     event_payload["requestId"] = request_id
+                    queue_device_command(endpoint_id, action, event_payload)
                 publish_event(endpoint_id, action, event_payload)
                 return self.json_response(200, {"ok": True, "endpoint": endpoint_id, "action": action, **({"requestId": event_payload["requestId"]} if action == "performance-benchmark" else {})})
             except ValueError as exc:
