@@ -52,7 +52,7 @@
     "module": "performance",
     "part": "bundle",
     "path": "/js/modules/performance.js",
-    "lines": 172,
+    "lines": 174,
     "functions": 12,
     "bindings": 0,
     "sections": [
@@ -64,7 +64,7 @@
     "module": "weather",
     "part": "bundle",
     "path": "/js/modules/weather.js",
-    "lines": 1403,
+    "lines": 1404,
     "functions": 181,
     "bindings": 14,
     "sections": [

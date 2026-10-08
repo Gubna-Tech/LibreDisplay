@@ -3013,7 +3013,7 @@ body.ld-deadhead-subtle .bg-layer::after{opacity:calc(.5 * var(--ld-deadhead-bg-
 .block-editor-section .integration-field-help{display:none}
 @media(max-width:700px){.block-editor-section-body{grid-template-columns:1fr}.block-editor-section-body>.block-field.full{grid-column:auto}.block-editor-section>summary{min-height:48px;padding:9px 10px}.block-editor-section-copy small{font-size:9px}}
 
-/* v1.10.2 Raspberry Pi frame-budget guardrails. Pi 3-class hardware is static-first;
+/* Raspberry Pi frame-budget guardrails. Pi 3-class hardware is static-first;
    Pi 4 keeps compositor work simple and lets the canvas governor earn higher FPS. */
 html.ld-pi3-device #weather-effects-overlay.weather-fx-pi-static *,
 html.ld-pi3-device .ld-weather-glyph *{animation:none!important;transition:none!important;filter:none!important;-webkit-filter:none!important;box-shadow:none!important}
@@ -3023,3 +3023,29 @@ html.ld-pi3-device #weather-effects-overlay.weather-fx-pi-static .weather-fx-lig
 html.ld-pi3-device #weather-effects-overlay.weather-fx-pi-static .weather-fx-splash{display:none!important}
 html.ld-pi4-device #weather-effects-overlay{contain:strict}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-pi-canvas{transform:translateZ(0)}
+/* Pi 4 clear-weather wildlife compositor budget: keep whole-animal travel and primary wing/stride motion while freezing secondary anatomy. */
+html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-bird,
+html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-bird{filter:none!important;box-shadow:none!important}
+html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-bird-wing-far,
+html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-bird-wing-far,
+html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-bird-tail,
+html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-bird-tail,
+html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-bird-head,
+html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-bird-head,
+html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-bird-mark,
+html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-bird-mark{animation:none!important;filter:none!important}
+html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-bird-wing-near,
+html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-bird-wing-near{filter:none!important;will-change:transform}
+html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-dog-v2 *,
+html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-dog-v2 *{filter:none!important}
+html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-dog-v2.dog-moving .dogv2-leg-front-far,
+html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-dog-v2.dog-moving .dogv2-leg-rear-far,
+html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-dog-v2.dog-moving .dogv2-leg-front-far,
+html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-dog-v2.dog-moving .dogv2-leg-rear-far,
+html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-dog-v2.dog-moving .dogv2-pose-stage,
+html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-dog-v2.dog-moving .dogv2-pose-stage,
+html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-dog-v2 .dogv2-tail,
+html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-dog-v2 .dogv2-tail,
+html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-dog-v2 .dogv2-bandana-cloth,
+html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-dog-v2 .dogv2-bandana-cloth{animation:none!important}
+html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-bird-wing-near{animation-duration:max(.38s,var(--bird-wing-rate,.38s))!important}
