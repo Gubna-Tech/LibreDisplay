@@ -3049,3 +3049,16 @@ html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-dog-v
 html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-dog-v2 .dogv2-bandana-cloth,
 html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-dog-v2 .dogv2-bandana-cloth{animation:none!important}
 html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-bird-wing-near{animation-duration:max(.38s,var(--bird-wing-rate,.38s))!important}
+
+/* Constrained-device weather keeps density on the shared canvas and reserves DOM animation for foreground actors. */
+html.ld-pi3-device:not(.ld-pi3-static) #weather-effects-overlay{contain:strict;transform:translateZ(0);backface-visibility:hidden}
+html.ld-pi3-device:not(.ld-pi3-static) #weather-effects-overlay *{will-change:auto!important}
+html.ld-pi3-device:not(.ld-pi3-static) #weather-effects-overlay .weather-fx-pi-canvas{will-change:contents!important;filter:none!important;box-shadow:none!important;image-rendering:auto;contain:strict}
+html.ld-pi3-device:not(.ld-pi3-static) #weather-effects-overlay :is(.weather-fx-particle,.weather-fx-cloud-mass,.weather-fx-fog-bank,.weather-fx-storm-cloud,.weather-fx-rain-sheet,.weather-fx-blowing-snow,.weather-fx-heavy-snow-cloud,.weather-fx-hazard,.weather-fx-hazard *,.holiday-overlay,.holiday-overlay *){filter:none!important;-webkit-filter:none!important;box-shadow:none!important}
+html.ld-pi3-device:not(.ld-pi3-static) #weather-effects-overlay .weather-fx-dog-v2{will-change:transform!important;filter:none!important}
+html.ld-pi3-device:not(.ld-pi3-static).ld-wildlife-lite #weather-effects-overlay .weather-fx-bird{filter:none!important;box-shadow:none!important}
+html.ld-pi3-device:not(.ld-pi3-static).ld-wildlife-lite #weather-effects-overlay :is(.weather-fx-bird-tail,.weather-fx-bird-head,.weather-fx-bird-mark){animation:none!important;filter:none!important}
+html.ld-pi3-device:not(.ld-pi3-static).ld-wildlife-lite #weather-effects-overlay .weather-fx-bird-wing-near{filter:none!important;will-change:transform}
+html.ld-pi3-device:not(.ld-pi3-static).ld-wildlife-lite #weather-effects-overlay .weather-fx-dog-v2 *{filter:none!important}
+html.ld-pi3-device:not(.ld-pi3-static).ld-wildlife-lite #weather-effects-overlay .weather-fx-dog-v2.dog-moving :is(.dogv2-leg-front-far,.dogv2-leg-rear-far),
+html.ld-pi3-device:not(.ld-pi3-static).ld-wildlife-lite #weather-effects-overlay .weather-fx-dog-v2 :is(.dogv2-tail,.dogv2-bandana-cloth){animation:none!important}

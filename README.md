@@ -16,10 +16,10 @@ Use a current Raspberry Pi OS **with Desktop**.
 For a new installation, paste this single command into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.10.4/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.10.5/scripts/install-one-line.sh)"
 ```
 
-The bootstrap downloads the pinned **v1.10.4** release, validates the archive, then hands off to LibreDisplay's normal installer. It refuses to overwrite an existing `~/libredisplay` installation; existing users should update with `libredisplay update` instead.
+The bootstrap downloads the pinned **v1.10.5** release, validates the archive, then hands off to LibreDisplay's normal installer. It refuses to overwrite an existing `~/libredisplay` installation; existing users should update with `libredisplay update` instead.
 
 Reboot when prompted. LibreDisplay will open automatically.
 
