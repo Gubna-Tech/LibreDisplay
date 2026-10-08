@@ -135,6 +135,8 @@ DISPLAY_MODE_PATH = DATA_ROOT / "display-mode.json"
 WATCHDOG_STATE_PATH = DATA_ROOT / "watchdog-state.json"
 STARTUP_INTEGRITY_PATH = DATA_ROOT / "startup-integrity.json"
 CONFIG_RECOVERY_STATE_PATH = DATA_ROOT / "config-recovery-state.json"
+BROWSER_LAUNCH_STATE_PATH = DATA_ROOT / "browser-launch-state.json"
+BROWSER_STDERR_PATH = DATA_ROOT / "chromium-stderr.log"
 PRIVILEGED_HELPER = Path("/usr/local/libexec/libredisplay-privileged")
 ROLLBACK_RUN_LOCK = threading.Lock()
 ROLLBACK_RUN_STATE = {"state": "idle", "startedAt": 0, "targetVersion": "", "snapshotId": "", "error": ""}
@@ -2406,6 +2408,7 @@ def normalize_frontend_performance(value):
             "software": bool(graphics.get("software")),
             "renderer": str(graphics.get("renderer") or "")[:180],
             "vendor": str(graphics.get("vendor") or "")[:120],
+            "probeError": str(graphics.get("probeError") or "")[:240],
         } if graphics else {},
         "longTasks": {
             "count": bounded_int(long_tasks.get("count"), 0, 10**9),
@@ -2432,6 +2435,85 @@ def normalize_frontend_performance(value):
             "lastSuccessAt": bounded_int(connectivity.get("lastSuccessAt"), 0, 10**13),
             "lastFailureAt": bounded_int(connectivity.get("lastFailureAt"), 0, 10**13),
             "online": bool(connectivity.get("online", True)),
+        }
+    return payload
+
+def normalize_display_performance_benchmark(value):
+    """Bound the remotely reported physical-display benchmark to a compact, safe schema."""
+    if not isinstance(value, dict):
+        return {}
+
+    def bounded_float(raw, low=0.0, high=100000.0, digits=2):
+        try:
+            parsed = float(raw or 0)
+            if not math.isfinite(parsed):
+                return low
+            return round(max(low, min(high, parsed)), digits)
+        except (TypeError, ValueError, OverflowError):
+            return low
+
+    def bounded_int(raw, low=0, high=10**9):
+        try:
+            return max(low, min(high, int(float(raw or 0))))
+        except (TypeError, ValueError, OverflowError):
+            return low
+
+    request_id = re.sub(r"[^A-Za-z0-9_-]+", "-", str(value.get("requestId") or "").strip())[:96]
+    state = str(value.get("state") or "").strip().lower()
+    if state not in {"requested", "running", "complete", "error"}:
+        state = "complete" if isinstance(value.get("result"), dict) else ""
+    payload = {
+        "requestId": request_id,
+        "state": state,
+        "requestedAt": str(value.get("requestedAt") or "")[:48],
+        "startedAt": str(value.get("startedAt") or "")[:48],
+        "finishedAt": str(value.get("finishedAt") or "")[:48],
+        "stageKey": str(value.get("stageKey") or "")[:40],
+        "stageLabel": str(value.get("stageLabel") or "")[:120],
+        "stageIndex": bounded_int(value.get("stageIndex"), 0, 32),
+        "stageTotal": bounded_int(value.get("stageTotal"), 0, 32),
+        "error": str(value.get("error") or "")[:400],
+    }
+    result = value.get("result") if isinstance(value.get("result"), dict) else None
+    if result:
+        stages = []
+        for row in (result.get("stages") if isinstance(result.get("stages"), list) else [])[:16]:
+            if not isinstance(row, dict):
+                continue
+            stages.append({
+                "key": str(row.get("key") or "")[:40],
+                "label": str(row.get("label") or "")[:120],
+                "fps": bounded_float(row.get("fps"), 0, 240, 1),
+                "frameCount": bounded_int(row.get("frameCount"), 0, 100000),
+                "p50Ms": bounded_float(row.get("p50Ms"), 0, 10000, 1),
+                "p90Ms": bounded_float(row.get("p90Ms"), 0, 10000, 1),
+                "p99Ms": bounded_float(row.get("p99Ms"), 0, 10000, 1),
+                "droppedPct": bounded_float(row.get("droppedPct"), 0, 100, 1),
+                "deltaFps": bounded_float(row.get("deltaFps"), -240, 240, 1),
+            })
+        diagnosis = result.get("diagnosis") if isinstance(result.get("diagnosis"), dict) else {}
+        graphics = result.get("graphics") if isinstance(result.get("graphics"), dict) else {}
+        payload["result"] = {
+            "startedAt": str(result.get("startedAt") or "")[:48],
+            "finishedAt": str(result.get("finishedAt") or "")[:48],
+            "stageDurationMs": bounded_int(result.get("stageDurationMs"), 0, 10000),
+            "baselineFps": bounded_float(result.get("baselineFps"), 0, 240, 1),
+            "ceilingFps": bounded_float(result.get("ceilingFps"), 0, 240, 1),
+            "stages": stages,
+            "diagnosis": {
+                "kind": str(diagnosis.get("kind") or "")[:40],
+                "summary": str(diagnosis.get("summary") or "")[:1200],
+                "largestSingleGain": bounded_float(diagnosis.get("largestSingleGain"), -240, 240, 1),
+                "largestSingleStage": str(diagnosis.get("largestSingleStage") or "")[:40],
+            },
+            "graphics": {
+                "webgl": bool(graphics.get("webgl")),
+                "webgl2": bool(graphics.get("webgl2")),
+                "software": bool(graphics.get("software")),
+                "renderer": str(graphics.get("renderer") or "")[:180],
+                "vendor": str(graphics.get("vendor") or "")[:120],
+                "probeError": str(graphics.get("probeError") or "")[:240],
+            },
         }
     return payload
 
@@ -2483,7 +2565,7 @@ def pi_runtime_diagnostics():
             "display": str(os.environ.get("DISPLAY") or "")[:80],
         },
         "thermal": {},
-        "chromium": {"processCount": 0, "gpuProcesses": 0, "rendererProcesses": 0, "totalRssBytes": 0},
+        "chromium": {"processCount": 0, "gpuProcesses": 0, "rendererProcesses": 0, "totalRssBytes": 0, "flags": [], "requestedFlags": [], "missingExpectedFlags": [], "mainCommandFlags": []},
         "kernelGraphics": {
             "vc4Loaded": Path("/sys/module/vc4").exists(),
             "v3dLoaded": Path("/sys/module/v3d").exists(),
@@ -2531,7 +2613,18 @@ def pi_runtime_diagnostics():
             except Exception:
                 pass
     chromium = diagnostics["chromium"]
+    launch_state = load_json_path(BROWSER_LAUNCH_STATE_PATH, {})
+    if isinstance(launch_state, dict):
+        requested = launch_state.get("requestedFlags") if isinstance(launch_state.get("requestedFlags"), list) else []
+        chromium["requestedFlags"] = [str(flag)[:160] for flag in requested if str(flag).startswith("--")][:32]
+        chromium["launchProfile"] = str(launch_state.get("profile") or "")[:40]
+        chromium["launchMode"] = str(launch_state.get("mode") or "")[:40]
+        chromium["browserBinary"] = str(launch_state.get("browser") or "")[:100]
+        chromium["launchStartedAt"] = max(0, int(launch_state.get("startedAt") or 0))
     browser_flags = set()
+    main_command_flags = []
+    graphics_prefixes = ("--ozone-platform=", "--use-gl=", "--use-angle=", "--enable-features=")
+    graphics_exact = {"--enable-gpu-rasterization", "--enable-zero-copy", "--disable-gpu", "--ignore-gpu-blocklist", "--enable-native-gpu-memory-buffers"}
     for proc_dir in Path("/proc").iterdir():
         if not proc_dir.name.isdigit():
             continue
@@ -2557,12 +2650,31 @@ def pi_runtime_diagnostics():
                     chromium["totalRssBytes"] += int(match.group(1)) * 1024
             except Exception:
                 pass
-            for part in parts[1:]:
-                if part.startswith("--ozone-platform=") or part.startswith("--use-gl=") or part.startswith("--enable-features=") or part in {"--enable-gpu-rasterization", "--enable-zero-copy", "--disable-gpu", "--ignore-gpu-blocklist"}:
-                    browser_flags.add(part[:120])
+            process_flags = [part for part in parts[1:] if part.startswith("--")]
+            if "--type=" not in command and not main_command_flags:
+                main_command_flags = [part[:160] for part in process_flags if part.startswith(graphics_prefixes) or part in graphics_exact][:32]
+            for part in process_flags:
+                if part.startswith(graphics_prefixes) or part in graphics_exact:
+                    browser_flags.add(part[:160])
         except Exception:
             continue
-    chromium["flags"] = sorted(browser_flags)[:24]
+    chromium["flags"] = sorted(browser_flags)[:32]
+    chromium["mainCommandFlags"] = main_command_flags
+    requested_graphics = [flag for flag in chromium.get("requestedFlags", []) if flag.startswith(graphics_prefixes) or flag in graphics_exact]
+    chromium["missingExpectedFlags"] = [flag for flag in requested_graphics if flag not in browser_flags][:32]
+    chromium["accelerationFlagsObserved"] = not bool(chromium["missingExpectedFlags"]) if requested_graphics else False
+    try:
+        if BROWSER_STDERR_PATH.is_file():
+            tail = BROWSER_STDERR_PATH.read_text(encoding="utf-8", errors="replace")[-24000:]
+            interesting = []
+            for line in tail.splitlines():
+                clean = re.sub(r"\s+", " ", line).strip()
+                if not clean or not re.search(r"(?:gpu|webgl|angle|egl|gl_|gl\b|viz|gbm|drm|v3d|mesa)", clean, re.I):
+                    continue
+                interesting.append(clean[:300])
+            chromium["recentGpuErrors"] = interesting[-8:]
+    except Exception:
+        chromium["recentGpuErrors"] = []
     return diagnostics
 
 def system_health_payload():
@@ -2634,6 +2746,7 @@ def system_health_payload():
                 "dpr": dpr,
                 "version": str(kiosk.get("version") or "")[:40],
                 "frontendPerformance": normalize_frontend_performance(kiosk.get("frontendPerformance")),
+                "displayPerformanceBenchmark": normalize_display_performance_benchmark(kiosk.get("displayPerformanceBenchmark")),
             }
         except Exception:
             kiosk_payload = {"present": False}
@@ -4192,6 +4305,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     "version": str((body or {}).get("version") or "").strip()[:40],
                     "userAgent": str((body or {}).get("userAgent") or "").strip()[:220],
                     "frontendPerformance": normalize_frontend_performance((body or {}).get("frontendPerformance")),
+                    "displayPerformanceBenchmark": normalize_display_performance_benchmark((body or {}).get("displayPerformanceBenchmark")),
                     "lastSeen": time.time(),
                 }
                 with DEVICE_LOCK:
@@ -4199,13 +4313,20 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 if bool((body or {}).get("connectivityRecovered")):
                     broker_release_transient_backoff()
                 if row["mode"] == "local" and self.client_is_loopback():
+                    previous_kiosk = load_json_path(KIOSK_HEARTBEAT_PATH, {})
+                    previous_benchmark = normalize_display_performance_benchmark(previous_kiosk.get("displayPerformanceBenchmark")) if isinstance(previous_kiosk, dict) else {}
+                    benchmark = row["displayPerformanceBenchmark"] or previous_benchmark
                     atomic_write_json_file(KIOSK_HEARTBEAT_PATH, {
                         "lastSeen": row["lastSeen"],
                         "endpoint": endpoint_id,
                         "viewportWidth": row["layoutWidth"],
                         "viewportHeight": row["layoutHeight"],
+                        "screenWidth": row["screenWidth"],
+                        "screenHeight": row["screenHeight"],
+                        "dpr": row["dpr"],
                         "version": row["version"],
                         "frontendPerformance": row["frontendPerformance"],
+                        "displayPerformanceBenchmark": benchmark,
                     })
                 return self.json_response(200, {"ok": True})
             except ValueError as exc:
@@ -4223,10 +4344,18 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     raise ValueError("Unknown display endpoint")
                 if not principal_allows_endpoint(self.session_principal(), endpoint_id, write=True):
                     return self.json_response(403, {"ok": False, "error": "Editor access to this endpoint is required."})
-                if action not in {"refresh", "reload", "heartbeat"}:
+                if action not in {"refresh", "reload", "heartbeat", "performance-benchmark"}:
                     raise ValueError("Unknown device action")
-                publish_event(endpoint_id, action, {"requestedAt": int(time.time())})
-                return self.json_response(200, {"ok": True, "endpoint": endpoint_id, "action": action})
+                event_payload = {"requestedAt": int(time.time())}
+                if action == "performance-benchmark":
+                    if not self.owner_authorized():
+                        return self.json_response(403, {"ok": False, "error": "Owner access is required to run a display performance benchmark."})
+                    request_id = re.sub(r"[^A-Za-z0-9_-]+", "-", str((body or {}).get("requestId") or "").strip())[:96]
+                    if not request_id:
+                        request_id = "bench-" + secrets.token_hex(8)
+                    event_payload["requestId"] = request_id
+                publish_event(endpoint_id, action, event_payload)
+                return self.json_response(200, {"ok": True, "endpoint": endpoint_id, "action": action, **({"requestId": event_payload["requestId"]} if action == "performance-benchmark" else {})})
             except ValueError as exc:
                 return self.json_response(400, {"ok": False, "error": str(exc)})
         if parsed.path == "/api/scenes":

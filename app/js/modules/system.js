@@ -267,19 +267,19 @@ function renderSystemHealth(){
   const loads=Array.isArray(d.loadAverage)?d.loadAverage.map(Number).filter(Number.isFinite):[],load1=loads[0]||0,loadPerCore=cores?load1/cores:0;
   set('system-health-load',loads.length?`${loads.map(v=>v.toFixed(2)).join(' · ')} (1m · 5m · 15m)${cores?` · ${cores} cores`:''}`:'Unavailable',loadPerCore>=1.15?'bad':loadPerCore>=.80?'warn':loads.length?'good':'');
   const kiosk=d.kioskHeartbeat||{},perf=kiosk.frontendPerformance||{},longTasks=perf.longTasks||{};
-  const anim=perf.animation||{},workload=perf.animationWorkload||{},graphics=perf.graphics||{},fps=Number(anim.fps)||0,dashboardFps=Number(anim.dashboardFps)||0,settingsFps=Number(anim.settingsFps)||0,targetFps=Number(anim.targetFps)||0,dropped=Number(anim.droppedPct)||0,gpuRenderer=String(graphics.renderer||'').trim(),gpuText=graphics.software?'SOFTWARE graphics path':gpuRenderer?(graphics.webgl2?'GPU/WebGL2':'GPU/WebGL'):'';
+  const anim=perf.animation||{},workload=perf.animationWorkload||{},graphics=perf.graphics||{},fps=Number(anim.fps)||0,dashboardFps=Number(anim.dashboardFps)||0,settingsFps=Number(anim.settingsFps)||0,targetFps=Number(anim.targetFps)||0,dropped=Number(anim.droppedPct)||0,gpuRenderer=String(graphics.renderer||'').trim(),gpuText=graphics.software?'SOFTWARE graphics path':gpuRenderer?(graphics.webgl2?'GPU/WebGL2':'GPU/WebGL'):(graphics.webgl===false&&graphics.webgl2===false?'WebGL unavailable':'');
   const workloadText=Number(workload.totalAnimations)?`${Number(workload.totalAnimations)} animation tracks · birds ${Number(workload.birds)||0} · dog ${Number(workload.dog)||0} · weather ${Number(workload.weather)||0} · ${Number(workload.weatherNodes)||0} overlay nodes${Number(workload.playingVideos)?` · ${Number(workload.playingVideos)} video`:''}`:'';
   const displayText=kiosk.viewport?`${kiosk.viewport}${Number(kiosk.dpr)&&Number(kiosk.dpr)!==1?` · DPR ${Number(kiosk.dpr).toFixed(2)}`:''}${kiosk.screen&&kiosk.screen!==kiosk.viewport?` · screen ${kiosk.screen}`:''}`:'';
   const fpsText=anim.settingsOpen&&dashboardFps?`dashboard ${dashboardFps.toFixed(1)} FPS · settings ${settingsFps||fps?Number(settingsFps||fps).toFixed(1):'—'} FPS${targetFps?` / ${targetFps} target`:''}`:fps?`${fps.toFixed(1)} FPS${targetFps?` / ${targetFps} target`:''}`:'';
-  const perfText=kiosk.present&&Object.keys(perf).length?[`${perf.tier||'browser'} tier`,perf.hostModel||'',displayText,fpsText,dropped?`${dropped.toFixed(1)}% dropped`:'',gpuText,gpuRenderer&&!graphics.software?gpuRenderer:'',workloadText,`${Number(longTasks.count)||0} long tasks`,`${Number(longTasks.maxMs)||0} ms max`,perf.heap?.usedBytes?`${formatHealthBytes(perf.heap.usedBytes)} JS heap`:'' ].filter(Boolean).join(' · '):(kiosk.present?'Waiting for browser metrics':'No local kiosk heartbeat');
+  const perfText=kiosk.present&&Object.keys(perf).length?[`${perf.tier||'browser'} tier`,perf.hostModel||'',displayText,fpsText,dropped?`${dropped.toFixed(1)}% dropped`:'',gpuText,gpuRenderer&&!graphics.software?gpuRenderer:'',graphics.probeError?`graphics probe: ${graphics.probeError}`:'',workloadText,`${Number(longTasks.count)||0} long tasks`,`${Number(longTasks.maxMs)||0} ms max`,perf.heap?.usedBytes?`${formatHealthBytes(perf.heap.usedBytes)} JS heap`:'' ].filter(Boolean).join(' · '):(kiosk.present?'Waiting for browser metrics':'No local kiosk heartbeat');
   const healthFps=dashboardFps||fps;
   set('system-health-browser',perfText,!kiosk.present?'warn':graphics.software||healthFps&&healthFps<15?'bad':healthFps&&healthFps<26?'warn':'good');
   const pi=d.piRuntime||{},thermal=pi.thermal||{},session=pi.displaySession||{},chrome=pi.chromium||{},kernel=pi.kernelGraphics||{};
   const throttledNow=!!(thermal.throttledNow||thermal.frequencyCappedNow||thermal.underVoltageNow||thermal.softTempLimitNow),throttledEver=!!(thermal.throttledOccurred||thermal.frequencyCappedOccurred||thermal.underVoltageOccurred||thermal.softTempLimitOccurred);
   const runtimeParts=[session.xdgSessionType?`session ${session.xdgSessionType}`:'',session.waylandDisplay?`Wayland ${session.waylandDisplay}`:session.display?`DISPLAY ${session.display}`:'',kernel.vc4Loaded?'vc4 loaded':'vc4 missing',kernel.v3dLoaded?'v3d loaded':'v3d missing',Number(thermal.cpuFreqMHz)?`CPU ${Number(thermal.cpuFreqMHz).toFixed(0)} MHz`:'' ,Number(thermal.cpuMaxMHz)?`max ${Number(thermal.cpuMaxMHz).toFixed(0)} MHz`:'',thermal.governor?`governor ${thermal.governor}`:'',Number(thermal.coreFreqMHz)?`core ${Number(thermal.coreFreqMHz).toFixed(0)} MHz`:'',Number(thermal.v3dFreqMHz)?`V3D ${Number(thermal.v3dFreqMHz).toFixed(0)} MHz`:'',thermal.throttledRaw?`throttle ${thermal.throttledRaw}`:''].filter(Boolean);
   const isPiHost=/raspberry pi/i.test(model);set('system-health-pi-runtime',runtimeParts.join(' · ')||'Runtime diagnostics unavailable',throttledNow||(isPiHost&&(kernel.vc4Loaded===false||kernel.v3dLoaded===false))?'bad':throttledEver?'warn':isPiHost?'good':'');
-  const flags=Array.isArray(chrome.flags)?chrome.flags:[],featureFlag=flags.find(v=>String(v).startsWith('--enable-features='))||'',chromeParts=[`${Number(chrome.processCount)||0} processes`,`${Number(chrome.gpuProcesses)||0} GPU`,`${Number(chrome.rendererProcesses)||0} renderer`,Number(chrome.totalRssBytes)?`${formatHealthBytes(chrome.totalRssBytes)} RSS`:'',flags.find(v=>String(v).startsWith('--ozone-platform='))||'',flags.find(v=>String(v).startsWith('--use-gl='))||'',flags.includes('--enable-gpu-rasterization')?'GPU raster on':'',flags.includes('--enable-zero-copy')?'zero-copy on':'',featureFlag.includes('CanvasOopRasterization')?'Canvas OOP raster on':'',flags.includes('--ignore-gpu-blocklist')?'GPU blocklist override':'',flags.includes('--disable-gpu')?'GPU DISABLED':''].filter(Boolean);
-  set('system-health-chromium',chromeParts.join(' · ')||'No Chromium process data',!Number(chrome.processCount)?'warn':flags.includes('--disable-gpu')||!Number(chrome.gpuProcesses)?'bad':'good');
+  const flags=Array.isArray(chrome.flags)?chrome.flags:[],requestedFlags=Array.isArray(chrome.requestedFlags)?chrome.requestedFlags:[],missingFlags=Array.isArray(chrome.missingExpectedFlags)?chrome.missingExpectedFlags:[],featureFlag=flags.find(v=>String(v).startsWith('--enable-features='))||'',chromeParts=[`${Number(chrome.processCount)||0} processes`,`${Number(chrome.gpuProcesses)||0} GPU`,`${Number(chrome.rendererProcesses)||0} renderer`,Number(chrome.totalRssBytes)?`${formatHealthBytes(chrome.totalRssBytes)} RSS`:'',chrome.launchProfile?`launch ${chrome.launchProfile}`:'',flags.find(v=>String(v).startsWith('--ozone-platform='))||'',flags.find(v=>String(v).startsWith('--use-gl='))||'',flags.includes('--enable-gpu-rasterization')?'GPU raster on':'',flags.includes('--enable-zero-copy')?'zero-copy on':'',featureFlag.includes('CanvasOopRasterization')?'Canvas OOP raster on':'',flags.includes('--ignore-gpu-blocklist')?'GPU blocklist override':'',flags.includes('--disable-gpu')?'GPU DISABLED':'',requestedFlags.length&&!flags.length?'expected acceleration flags not visible in Chromium command line':'',missingFlags.length?`missing ${missingFlags.join(', ')}`:'',Array.isArray(chrome.recentGpuErrors)&&chrome.recentGpuErrors.length?`GPU log: ${chrome.recentGpuErrors.slice(-2).join(' | ')}`:''].filter(Boolean);
+  set('system-health-chromium',chromeParts.join(' · ')||'No Chromium process data',!Number(chrome.processCount)?'warn':flags.includes('--disable-gpu')||!Number(chrome.gpuProcesses)||missingFlags.length||graphics.webgl===false&&graphics.webgl2===false?'bad':'good');
   const conn=perf.connectivity||{},requests=Number(conn.requests)||0,failures=Number(conn.failures)||0,timeouts=Number(conn.timeouts)||0,retries=Number(conn.retries)||0,avg=Number(conn.averageLatencyMs)||0;
   const outbound=d.outboundConnectivity||{},serverRequests=Number(outbound.requests)||0,serverFailures=Number(outbound.failures)||0,serverRetries=Number(outbound.retries)||0,serverAvg=Number(outbound.averageLatencyMs)||0,lastKind=String(outbound.lastFailureKind||'');
   const browserText=kiosk.present&&requests?`${conn.online===false?'Offline':'Online'} · browser ${failures}/${requests} failed · ${timeouts} timed out · ${retries} retries${avg?' · '+avg+' ms avg':''}`:(kiosk.present?'Browser metrics pending':'No local kiosk heartbeat');
@@ -293,23 +293,46 @@ function renderSystemHealth(){
   const recoveryParts=[];if(serverRestarts)recoveryParts.push(`${serverRestarts} server restart${serverRestarts===1?'':'s'}`);if(browserRestarts)recoveryParts.push(`${browserRestarts} browser restart${browserRestarts===1?'':'s'}`);if(configRecoveredAt)recoveryParts.push(`config recovered ${healthAgeText(Math.max(0,Date.now()/1000-configRecoveredAt))}`);
   set('system-health-recovery',recoveryParts.length?recoveryParts.join(' · '):'Ready · no recovery actions recorded',recoveryParts.length?'warn':'good');
 }
-function renderDisplayPerformanceBenchmark(result){
+function physicalDisplayBenchmarkState(){return systemHealthState?.kioskHeartbeat?.displayPerformanceBenchmark||null;}
+function renderDisplayPerformanceBenchmark(value){
   const box=document.getElementById('system-performance-benchmark-status');if(!box)return;
-  if(!result){box.style.display='none';box.textContent='';return;}
-  const stages=Array.isArray(result.stages)?result.stages:[],lines=[`Diagnosis: ${result.diagnosis?.summary||'Test completed.'}`,''];
+  if(!value){box.style.display='none';box.textContent='';return;}
+  const state=value?.state?value:null,result=state?.result||value;
+  if(state&&state.state==='running'){
+    const progress=Number(state.stageIndex)&&Number(state.stageTotal)?` (${Number(state.stageIndex)}/${Number(state.stageTotal)})`:'';
+    box.textContent=`Running on the physical display${progress}: ${state.stageLabel||'measuring frame pacing'}…\n\nSettings can stay open on this remote computer. The benchmark is executing in the kiosk browser attached to the target display.`;box.style.display='block';return;
+  }
+  if(state&&state.state==='error'){box.textContent=`Physical display performance test failed: ${state.error||'unknown error'}`;box.style.display='block';return;}
+  const stages=Array.isArray(result?.stages)?result.stages:[];
+  if(!stages.length){box.textContent=state?.state==='requested'?'Waiting for the physical display to start the benchmark…':'No completed physical-display benchmark is available yet.';box.style.display='block';return;}
+  const lines=[`Diagnosis: ${result.diagnosis?.summary||'Test completed.'}`,''];
   for(const row of stages){const delta=Number(row.deltaFps)||0;lines.push(`${row.label}: ${Number(row.fps||0).toFixed(1)} FPS${row.key==='baseline'?'':` (${delta>=0?'+':''}${delta.toFixed(1)})`} · p90 ${Number(row.p90Ms||0).toFixed(1)} ms · ${Number(row.droppedPct||0).toFixed(1)}% slow frames`);}
-  lines.push('','This result is also included in Download diagnostics.');box.textContent=lines.join('\n');box.style.display='block';
+  lines.push('','Measured on the physical kiosk display. This result is also included in Download diagnostics.');box.textContent=lines.join('\n');box.style.display='block';
 }
 async function runSystemDisplayPerformanceBenchmark(){
   if(displayPerformanceBenchmarkPromise)return displayPerformanceBenchmarkPromise;
   const button=document.getElementById('system-performance-benchmark-button'),box=document.getElementById('system-performance-benchmark-status');
-  if(button){button.disabled=true;button.textContent='Testing…';}if(box){box.style.display='block';box.textContent='Preparing the local display isolation test. The dashboard will briefly change while layers are measured…';}
+  if(button){button.disabled=true;button.textContent='Testing display…';}
   const run=(async()=>{
+    const requestId=`bench-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,9)}`;
     try{
-      const result=await performanceApi.runDisplayPerformanceBenchmark({onStage:stage=>{if(box&&!stage.result)box.textContent=`Measuring ${stage.index}/${stage.total}: ${stage.label}…`;}});
-      lastDisplayPerformanceBenchmark=result;renderDisplayPerformanceBenchmark(result);await loadSystemHealth();return result;
+      await loadSystemHealth();
+      if(!systemHealthState?.kioskHeartbeat?.present)throw new Error('The physical kiosk heartbeat is offline. The test cannot run until the target display reconnects.');
+      if(box){box.style.display='block';box.textContent='Sending the benchmark request to the physical kiosk display…';}
+      const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'performance-benchmark',endpoint:bootstrapApi.ACTIVE_ENDPOINT,requestId}),cache:'no-store'},{timeoutMs:6000,attempts:2});
+      const payload=await response.json().catch(()=>({}));if(!response.ok||!payload.ok)throw new Error(payload.error||`HTTP ${response.status}`);
+      const deadline=Date.now()+45000;let seen=false;
+      while(Date.now()<deadline){
+        await sleepMs(seen?850:500);await loadSystemHealth();
+        const state=physicalDisplayBenchmarkState();
+        if(!state||state.requestId!==requestId)continue;
+        seen=true;renderDisplayPerformanceBenchmark(state);
+        if(state.state==='complete'&&state.result){lastDisplayPerformanceBenchmark=state.result;return state.result;}
+        if(state.state==='error')throw new Error(state.error||'The physical kiosk benchmark failed.');
+      }
+      throw new Error(seen?'The physical display did not finish the benchmark within 45 seconds.':'The physical kiosk did not acknowledge the benchmark request. Check the live kiosk heartbeat and browser connection.');
     }catch(error){if(box){box.style.display='block';box.textContent=`Performance test could not complete: ${error?.message||error}`;}throw error;
-    }finally{if(button){button.disabled=false;button.textContent='Run performance test';}}
+    }finally{if(button){button.disabled=false;button.textContent='Run on physical display';}}
   })();
   displayPerformanceBenchmarkPromise=run;
   try{return await run;}finally{displayPerformanceBenchmarkPromise=null;}
@@ -331,6 +354,7 @@ async function loadSystemHealth(){
     }catch(e){systemHealthState={ok:false};}
     systemHealthUpdatedAt=Date.now();
     renderSystemHealth();renderDisplayReadiness();renderSystemHealthRefreshStatus(false);
+    const physicalBenchmark=physicalDisplayBenchmarkState();if(!displayPerformanceBenchmarkPromise&&physicalBenchmark?.state){if(physicalBenchmark.state==='complete'&&physicalBenchmark.result)lastDisplayPerformanceBenchmark=physicalBenchmark.result;renderDisplayPerformanceBenchmark(physicalBenchmark);}
     return systemHealthState;
   })();
   try{return await systemHealthRefreshPromise;}finally{systemHealthRefreshPromise=null;}
@@ -436,7 +460,10 @@ function buildDiagnosticsPayload(){
     software:softwareUpdateState?.ok?{currentVersion:softwareUpdateState.currentVersion,latestVersion:softwareUpdateState.latestVersion,updateAvailable:softwareUpdateState.updateAvailable,deployment:softwareUpdateState.deployment,canUpdateInApp:softwareUpdateState.canUpdateInApp}:undefined,
     viewport:{width:innerWidth,height:innerHeight,devicePixelRatio:devicePixelRatio||1},
     frontendPerformance:LibreDisplayRuntime.getModule('performance').frontendPerformanceSnapshot(),
-    displayPerformanceBenchmark:lastDisplayPerformanceBenchmark||undefined,
+    administrationBrowserPerformance:LibreDisplayRuntime.getModule('performance').frontendPerformanceSnapshot(),
+    physicalDisplayPerformance:systemHealthState?.kioskHeartbeat?.frontendPerformance||undefined,
+    displayPerformanceBenchmark:physicalDisplayBenchmarkState()?.result||lastDisplayPerformanceBenchmark||undefined,
+    displayPerformanceBenchmarkState:physicalDisplayBenchmarkState()||undefined,
     frontendConnectivity:connectivitySnapshot(),
     fullscreen:!!document.fullscreenElement,
     appearance:{theme:cfg.uiTheme||'libre-night',font:cfg.fontFamily||'Inter'},
@@ -486,7 +513,7 @@ function restorePreviousSettings(){
   }catch(e){alert('Could not restore the previous settings.');}
 }
 
-document.getElementById('system-performance-benchmark-button')?.addEventListener('click',()=>{runSystemDisplayPerformanceBenchmark().catch(()=>{});});
+if(!window.__ldSystemPerformanceBenchmarkDelegated){window.__ldSystemPerformanceBenchmarkDelegated=true;document.addEventListener('click',event=>{const button=event.target?.closest?.('#system-performance-benchmark-button');if(!button)return;event.preventDefault();runSystemDisplayPerformanceBenchmark().catch(()=>{});});}
 
 document.getElementById('setup')?.addEventListener('input',e=>{
   if(e.target?.id==='s-settings-search'||e.target?.id==='s-import-file')return;
@@ -501,7 +528,7 @@ document.getElementById('setup')?.addEventListener('change',e=>{
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("system", {markSettingsDirty,markSettingsClean,setHealth,renderSoftwareUpdateStatus,checkSoftwareUpdate,settingsPanelOpen,autoDetectSoftwareUpdate,startSoftwareUpdateAutoDetection,stopSoftwareUpdateAutoDetection,setSoftwareUpdateActionStatus,sleepMs,monitorSoftwareUpdate,startSoftwareUpdate,setReleaseRollbackStatus,renderReleaseRollbacks,loadReleaseRollbacks,monitorReleaseRollback,startReleaseRollback,formatHealthBytes,formatHealthUptime,renderSystemHealth,renderSystemHealthRefreshStatus,loadSystemHealth,stopSystemHealthAutoRefresh,startSystemHealthAutoRefresh,providerHealthPill,renderProviderHealth,refreshProviderHealth,updateSettingsOverview,renderDisplayPerformanceBenchmark,runSystemDisplayPerformanceBenchmark,buildDiagnosticsPayload,diagnosticsJson,copyDiagnostics,downloadDiagnostics,restorePreviousSettings}, {
+LibreDisplayRuntime.exposeModule("system", {markSettingsDirty,markSettingsClean,setHealth,renderSoftwareUpdateStatus,checkSoftwareUpdate,settingsPanelOpen,autoDetectSoftwareUpdate,startSoftwareUpdateAutoDetection,stopSoftwareUpdateAutoDetection,setSoftwareUpdateActionStatus,sleepMs,monitorSoftwareUpdate,startSoftwareUpdate,setReleaseRollbackStatus,renderReleaseRollbacks,loadReleaseRollbacks,monitorReleaseRollback,startReleaseRollback,formatHealthBytes,formatHealthUptime,renderSystemHealth,renderSystemHealthRefreshStatus,loadSystemHealth,stopSystemHealthAutoRefresh,startSystemHealthAutoRefresh,providerHealthPill,renderProviderHealth,refreshProviderHealth,updateSettingsOverview,physicalDisplayBenchmarkState,renderDisplayPerformanceBenchmark,runSystemDisplayPerformanceBenchmark,buildDiagnosticsPayload,diagnosticsJson,copyDiagnostics,downloadDiagnostics,restorePreviousSettings}, {
   "settingsInitializing": {configurable:true,get:()=>settingsInitializing,set:(value)=>{settingsInitializing=value;}},
   "settingsDirty": {configurable:true,get:()=>settingsDirty,set:(value)=>{settingsDirty=value;}},
   "calendarHideEmpty": {configurable:true,get:()=>calendarHideEmpty,set:(value)=>{calendarHideEmpty=value;}},

@@ -15,12 +15,15 @@ let graphicsProbeCache=null;
 
 function browserGraphicsSnapshot(){
   if(graphicsProbeCache)return graphicsProbeCache;
-  const result={webgl:false,webgl2:false,renderer:'',vendor:'',software:false};
+  const result={webgl:false,webgl2:false,renderer:'',vendor:'',software:false,probeError:''};
   try{
     const canvas=document.createElement('canvas');canvas.width=8;canvas.height=8;
-    const gl2=canvas.getContext('webgl2',{alpha:false,antialias:false,preserveDrawingBuffer:false,powerPreference:'high-performance'}),gl=gl2||canvas.getContext('webgl',{alpha:false,antialias:false,preserveDrawingBuffer:false,powerPreference:'high-performance'});
-    if(gl){const ext=gl.getExtension('WEBGL_debug_renderer_info'),renderer=String(ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER)||''),vendor=String(ext?gl.getParameter(ext.UNMASKED_VENDOR_WEBGL):gl.getParameter(gl.VENDOR)||'');result.webgl=true;result.webgl2=!!gl2;result.renderer=renderer.slice(0,180);result.vendor=vendor.slice(0,120);result.software=/(swiftshader|llvmpipe|softpipe|software rasterizer|software renderer)/i.test(`${renderer} ${vendor}`);}
-  }catch(_e){}
+    canvas.addEventListener('webglcontextcreationerror',event=>{if(!result.probeError)result.probeError=String(event?.statusMessage||'WebGL context creation failed').slice(0,240);},{once:false});
+    const opts={alpha:false,antialias:false,preserveDrawingBuffer:false,powerPreference:'high-performance'};
+    const gl2=canvas.getContext('webgl2',opts),gl=gl2||canvas.getContext('webgl',opts)||canvas.getContext('experimental-webgl',opts);
+    if(gl){const ext=gl.getExtension('WEBGL_debug_renderer_info'),renderer=String(ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER)||''),vendor=String(ext?gl.getParameter(ext.UNMASKED_VENDOR_WEBGL):gl.getParameter(gl.VENDOR)||'');result.webgl=true;result.webgl2=!!gl2;result.renderer=renderer.slice(0,180);result.vendor=vendor.slice(0,120);result.software=/(swiftshader|llvmpipe|softpipe|software rasterizer|software renderer)/i.test(`${renderer} ${vendor}`);result.probeError='';}
+    else if(!result.probeError)result.probeError='WebGL and WebGL2 context creation returned null';
+  }catch(error){result.probeError=String(error?.message||error||'WebGL probe failed').slice(0,240);}
   graphicsProbeCache=result;return graphicsProbeCache;
 }
 

@@ -52,7 +52,7 @@
     "module": "performance",
     "part": "bundle",
     "path": "/js/modules/performance.js",
-    "lines": 306,
+    "lines": 309,
     "functions": 20,
     "bindings": 1,
     "sections": [
@@ -151,7 +151,7 @@
     "module": "remote",
     "part": "bundle",
     "path": "/js/modules/remote.js",
-    "lines": 357,
+    "lines": 374,
     "functions": 42,
     "bindings": 10,
     "sections": [
@@ -163,7 +163,7 @@
     "module": "system",
     "part": "bundle",
     "path": "/js/modules/system.js",
-    "lines": 657,
+    "lines": 684,
     "functions": 62,
     "bindings": 18,
     "sections": [

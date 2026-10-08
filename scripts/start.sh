@@ -41,6 +41,8 @@ KIOSK_HEARTBEAT_FILE="$DASHBOARD_DATA_DIR/kiosk-heartbeat.json"
 DISPLAY_MODE_FILE="$DASHBOARD_DATA_DIR/display-mode.json"
 WATCHDOG_STATE_FILE="$DASHBOARD_DATA_DIR/watchdog-state.json"
 STARTUP_INTEGRITY_FILE="$DASHBOARD_DATA_DIR/startup-integrity.json"
+BROWSER_LAUNCH_STATE_FILE="$DASHBOARD_DATA_DIR/browser-launch-state.json"
+BROWSER_LOG_FILE="$DASHBOARD_DATA_DIR/chromium-stderr.log"
 
 reset_display_mode() {
   tmp="$DISPLAY_MODE_FILE.tmp.$$"
@@ -149,6 +151,30 @@ clear_chromium_gpu_caches() {
   done
 }
 
+write_browser_launch_state() {
+  now=$(date +%s)
+  python3 - "$BROWSER_LAUNCH_STATE_FILE" "$BROWSER_ACCEL_PROFILE" "$CURRENT_BROWSER_MODE" "$BROWSER" "$BROWSER_FEATURES" "$BROWSER_ACCEL_FLAGS" "$now" <<'PY' 2>/dev/null || true
+import json, os, shlex, sys
+path, profile, mode, browser, features, accel, started = sys.argv[1:]
+flags = ["--ozone-platform=wayland", "--enable-gpu-rasterization", "--enable-zero-copy"]
+flags.extend(shlex.split(accel or ""))
+flags.append("--enable-features=" + features)
+payload = {
+    "profile": profile,
+    "mode": mode,
+    "browser": os.path.basename(browser),
+    "startedAt": int(started),
+    "requestedFlags": flags,
+}
+tmp = path + ".tmp." + str(os.getpid())
+with open(tmp, "w", encoding="utf-8") as fh:
+    json.dump(payload, fh, separators=(",", ":"))
+    fh.write("\n")
+os.chmod(tmp, 0o600)
+os.replace(tmp, path)
+PY
+}
+
 heartbeat_graphics_state() {
   [ -f "$KIOSK_HEARTBEAT_FILE" ] || { printf unknown; return; }
   python3 - "$KIOSK_HEARTBEAT_FILE" <<'PY' 2>/dev/null || printf unknown
@@ -170,8 +196,19 @@ except Exception:
 PY
 }
 
+trim_browser_log() {
+  [ -f "$BROWSER_LOG_FILE" ] || return 0
+  size=$(wc -c <"$BROWSER_LOG_FILE" 2>/dev/null || printf '0')
+  case "$size" in *[!0-9]*|'') size=0 ;; esac
+  if [ "$size" -gt 524288 ]; then
+    tail -n 500 "$BROWSER_LOG_FILE" >"$BROWSER_LOG_FILE.tmp.$$" 2>/dev/null || :
+    mv -f "$BROWSER_LOG_FILE.tmp.$$" "$BROWSER_LOG_FILE" 2>/dev/null || true
+  fi
+}
+
 launch_browser() {
   rm -f "$KIOSK_HEARTBEAT_FILE" 2>/dev/null || true
+  trim_browser_log
   BROWSER_STARTED_AT=$(date +%s)
   BROWSER_ACCEL_FLAGS=""
   BROWSER_FEATURES="OverlayScrollbar"
@@ -182,6 +219,7 @@ launch_browser() {
       ;;
   esac
   CURRENT_BROWSER_MODE=$(read_display_mode)
+  write_browser_launch_state
   if [ "$CURRENT_BROWSER_MODE" = "windowed" ]; then
     SCREEN_RES=$(xrandr --current 2>/dev/null | awk '/\*/{print $1; exit}' || true)
     case "$SCREEN_RES" in
@@ -210,7 +248,7 @@ launch_browser() {
       --overscroll-history-navigation=0 \
       --enable-features="$BROWSER_FEATURES" \
       --user-data-dir="$DATA_DIR/chromium" \
-      "$URL" &
+      "$URL" 2>>"$BROWSER_LOG_FILE" &
   else
     "$BROWSER" \
       --kiosk \
@@ -231,7 +269,7 @@ launch_browser() {
       --overscroll-history-navigation=0 \
       --enable-features="$BROWSER_FEATURES" \
       --user-data-dir="$DATA_DIR/chromium" \
-      "$URL" &
+      "$URL" 2>>"$BROWSER_LOG_FILE" &
   fi
   BROWSER_PID=$!
 }
