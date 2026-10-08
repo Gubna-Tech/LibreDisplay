@@ -2880,7 +2880,6 @@ html.ld-reduce-motion #setup .update-now-btn.update-emphasis{animation:none!impo
 @keyframes ld193DogFloatHead{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-1px) rotate(1.4deg)}}
 @keyframes ld193FloatyRing{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-2px) rotate(1deg)}}
 
-html.ld-pi4-device #weather-effects-overlay{transform:translateZ(0);backface-visibility:hidden}
 html.ld-pi4-device #weather-effects-overlay *{will-change:auto!important}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-dog-v2{will-change:transform!important;filter:none!important}
 html.ld-pi4-device #weather-effects-overlay :is(.weather-fx-particle,.weather-fx-cloud-mass,.weather-fx-fog-bank,.weather-fx-storm-cloud,.weather-fx-rain-sheet,.weather-fx-blowing-snow,.weather-fx-heavy-snow-cloud,.weather-fx-hazard,.weather-fx-hazard *,.holiday-overlay,.holiday-overlay *){filter:none!important;-webkit-filter:none!important;box-shadow:none!important}
@@ -3065,4 +3064,4 @@ html.ld-pi3-device:not(.ld-pi3-static).ld-wildlife-lite #weather-effects-overlay
 /* Pi 4 quality/performance: avoid promoting the full-screen overlay as one giant fading surface; promote only compact moving wildlife. */
 html.ld-pi4-device #weather-effects-overlay{opacity:1!important;transition:none!important}
 html.ld-pi4-device #weather-effects-overlay:not(.show){visibility:hidden}
-html.ld-pi4-device #weather-effects-overlay .weather-fx-bird{will-change:transform!important;contain:layout paint;backface-visibility:hidden}
+html.ld-pi4-device #weather-effects-overlay .weather-fx-bird{will-change:transform!important;contain:layout style;backface-visibility:hidden;filter:none!important;box-shadow:none!important}

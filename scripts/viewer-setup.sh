@@ -196,6 +196,7 @@ while :; do
   "$BROWSER" \
     --kiosk \
     --start-maximized \
+    --ozone-platform=wayland \
     --noerrdialogs \
     --disable-infobars \
     --disable-session-crashed-bubble \

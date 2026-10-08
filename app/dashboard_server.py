@@ -2359,8 +2359,10 @@ def normalize_frontend_performance(value):
             return low
 
     tier = str(value.get("tier") or "").strip().lower()
-    if tier not in {"standard", "constrained"}:
+    if tier not in {"standard", "constrained", "pi3", "pi4", "pi5", "pi-constrained"}:
         tier = "constrained" if bool(value.get("constrained")) else "standard"
+    animation = value.get("animation") if isinstance(value.get("animation"), dict) else {}
+    graphics = value.get("graphics") if isinstance(value.get("graphics"), dict) else {}
     long_tasks = value.get("longTasks") if isinstance(value.get("longTasks"), dict) else {}
     heap = value.get("heap") if isinstance(value.get("heap"), dict) else {}
     connectivity = value.get("connectivity") if isinstance(value.get("connectivity"), dict) else {}
@@ -2375,6 +2377,22 @@ def normalize_frontend_performance(value):
         "activeIntervals": bounded_int(value.get("activeIntervals"), 0, 10000),
         "activeExclusiveRuns": bounded_int(value.get("activeExclusiveRuns"), 0, 10000),
         "longTaskObserverActive": bool(value.get("longTaskObserverActive")),
+        "animation": {
+            "mode": str(animation.get("mode") or "")[:24],
+            "fps": bounded_float(animation.get("fps"), 0, 240, 1),
+            "targetFps": bounded_float(animation.get("targetFps"), 0, 240, 1),
+            "droppedPct": bounded_float(animation.get("droppedPct"), 0, 100, 1),
+            "quality": bounded_float(animation.get("quality"), 0, 2, 2),
+            "renderer": str(animation.get("renderer") or "")[:80],
+            "running": bool(animation.get("running")),
+        } if animation else {},
+        "graphics": {
+            "webgl": bool(graphics.get("webgl")),
+            "webgl2": bool(graphics.get("webgl2")),
+            "software": bool(graphics.get("software")),
+            "renderer": str(graphics.get("renderer") or "")[:180],
+            "vendor": str(graphics.get("vendor") or "")[:120],
+        } if graphics else {},
         "longTasks": {
             "count": bounded_int(long_tasks.get("count"), 0, 10**9),
             "totalMs": bounded_int(long_tasks.get("totalMs"), 0, 10**12),

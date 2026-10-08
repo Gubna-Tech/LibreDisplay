@@ -98,9 +98,21 @@ def safe_nonnegative_int(value):
         return 0
 
 
+def safe_float(value, low=0.0, high=10**9, digits=1):
+    try:
+        number = float(value or 0)
+        if not math.isfinite(number):
+            return low
+        return round(max(low, min(high, number)), digits)
+    except (TypeError, ValueError, OverflowError):
+        return low
+
+
 def sanitize_frontend_performance(value):
     src = value if isinstance(value, dict) else {}
     connectivity = src.get("connectivity") if isinstance(src.get("connectivity"), dict) else {}
+    animation = src.get("animation") if isinstance(src.get("animation"), dict) else {}
+    graphics = src.get("graphics") if isinstance(src.get("graphics"), dict) else {}
     long_tasks = src.get("longTasks") if isinstance(src.get("longTasks"), dict) else {}
     heap = src.get("heap") if isinstance(src.get("heap"), dict) else {}
     return {
@@ -109,6 +121,21 @@ def sanitize_frontend_performance(value):
         "activeIntervals": safe_nonnegative_int(src.get("activeIntervals")),
         "activeExclusiveRuns": safe_nonnegative_int(src.get("activeExclusiveRuns")),
         "longTaskObserverActive": bool(src.get("longTaskObserverActive")),
+        "animation": {
+            "mode": str(animation.get("mode") or "")[:24],
+            "fps": safe_float(animation.get("fps"), 0, 240, 1),
+            "targetFps": safe_float(animation.get("targetFps"), 0, 240, 1),
+            "droppedPct": safe_float(animation.get("droppedPct"), 0, 100, 1),
+            "renderer": str(animation.get("renderer") or "")[:80],
+            "running": bool(animation.get("running")),
+        } if animation else {},
+        "graphics": {
+            "webgl": bool(graphics.get("webgl")),
+            "webgl2": bool(graphics.get("webgl2")),
+            "software": bool(graphics.get("software")),
+            "renderer": str(graphics.get("renderer") or "")[:180],
+            "vendor": str(graphics.get("vendor") or "")[:120],
+        } if graphics else {},
         "longTasks": {
             "count": safe_nonnegative_int(long_tasks.get("count")),
             "totalMs": safe_nonnegative_int(long_tasks.get("totalMs")),
@@ -384,6 +411,11 @@ def summarize_samples(samples, expected=""):
     heartbeat_ages = [row.get("ageSeconds") for row in kiosk_present]
     perf_rows = [row.get("frontendPerformance") for row in kiosk_present if isinstance(row.get("frontendPerformance"), dict) and row.get("frontendPerformance")]
 
+    animation_rows = [row.get("animation") or {} for row in perf_rows if isinstance(row.get("animation"), dict)]
+    animation_fps = [row.get("fps") for row in animation_rows]
+    animation_dropped = [row.get("droppedPct") for row in animation_rows]
+    graphics_rows = [row.get("graphics") or {} for row in perf_rows if isinstance(row.get("graphics"), dict)]
+    software_graphics = [row for row in graphics_rows if row.get("software")]
     long_counts = [row.get("longTasks", {}).get("count") for row in perf_rows]
     long_totals = [row.get("longTasks", {}).get("totalMs") for row in perf_rows]
     long_max = [row.get("longTasks", {}).get("maxMs") for row in perf_rows]
@@ -468,6 +500,13 @@ def summarize_samples(samples, expected=""):
         observations.append("The local kiosk heartbeat was at least 90 seconds old during one or more samples.")
     if kiosk_present and not perf_rows:
         observations.append("Kiosk heartbeat data was present, but browser performance telemetry was not yet available.")
+    if software_graphics:
+        renderer = str(software_graphics[-1].get("renderer") or "software renderer")
+        observations.append(f"The kiosk browser reported a software graphics path ({renderer}); fix Chromium/Wayland GPU acceleration before reducing visual quality.")
+    if finite_numbers(animation_fps) and min(finite_numbers(animation_fps)) < 15:
+        observations.append(f"Kiosk animation pacing fell below 15 FPS (minimum {min(finite_numbers(animation_fps)):.1f}); this is a physical-display/browser performance blocker.")
+    elif finite_numbers(animation_fps) and min(finite_numbers(animation_fps)) < 27:
+        observations.append(f"Kiosk animation pacing fell below the 30 FPS-class floor (minimum {min(finite_numbers(animation_fps)):.1f}).")
     if reloads:
         observations.append(f"Browser page uptime reset {reloads} time(s), indicating a reload or kiosk restart during the sampled window.")
     if host_reboots:
@@ -553,6 +592,10 @@ def summarize_samples(samples, expected=""):
             "heartbeatAgeSeconds": stats(heartbeat_ages, 1),
             "browserMetricSamples": len(perf_rows),
             "tiers": tiers,
+            "animationFps": stats(animation_fps, 1),
+            "animationDroppedPercent": stats(animation_dropped, 1),
+            "graphics": graphics_rows[-1] if graphics_rows else {},
+            "softwareGraphicsSamples": len(software_graphics),
             "pageReloadsObserved": reloads,
             "longTasks": {
                 "latestCount": int(finite_numbers(long_counts)[-1]) if finite_numbers(long_counts) else 0,

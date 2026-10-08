@@ -11,6 +11,18 @@ let longTaskCount=0,longTaskTotalMs=0,longTaskMaxMs=0,longTaskObserverActive=fal
 const ANIMATION_MODES=new Set(['auto','smooth','balanced','fidelity']);
 let animationGovernor={running:false,raf:0,lastSample:0,samples:[],fps:0,targetFps:30,droppedPct:0,quality:.72,lastAdjust:0,frames:0,dropped:0};
 let runtimeHardware={loaded:false,tier:'',model:'',cpuCount:0,memoryTotalBytes:0,memoryAvailableBytes:0};
+let graphicsProbeCache=null;
+
+function browserGraphicsSnapshot(){
+  if(graphicsProbeCache)return graphicsProbeCache;
+  const result={webgl:false,webgl2:false,renderer:'',vendor:'',software:false};
+  try{
+    const canvas=document.createElement('canvas');canvas.width=8;canvas.height=8;
+    const gl2=canvas.getContext('webgl2',{alpha:false,antialias:false,preserveDrawingBuffer:false,powerPreference:'high-performance'}),gl=gl2||canvas.getContext('webgl',{alpha:false,antialias:false,preserveDrawingBuffer:false,powerPreference:'high-performance'});
+    if(gl){const ext=gl.getExtension('WEBGL_debug_renderer_info'),renderer=String(ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER)||''),vendor=String(ext?gl.getParameter(ext.UNMASKED_VENDOR_WEBGL):gl.getParameter(gl.VENDOR)||'');result.webgl=true;result.webgl2=!!gl2;result.renderer=renderer.slice(0,180);result.vendor=vendor.slice(0,120);result.software=/(swiftshader|llvmpipe|softpipe|software rasterizer|software renderer)/i.test(`${renderer} ${vendor}`);}
+  }catch(_e){}
+  graphicsProbeCache=result;return graphicsProbeCache;
+}
 
 function hardwareTierFromModel(model=''){const value=String(model||'').toLowerCase();if(value.includes('raspberry pi 3')||value.includes('raspberry pi zero'))return 'pi3';if(value.includes('raspberry pi 4'))return 'pi4';if(value.includes('raspberry pi 5'))return 'pi5';if(value.includes('raspberry pi'))return 'pi-constrained';return '';}
 async function hydrateRuntimeHardware(){try{const bootstrap=LibreDisplayRuntime.getModule('bootstrap'),path=bootstrap?.serverPath?.('/api/runtime-capabilities')||'/api/runtime-capabilities',response=await resilientFetch(path,{cache:'no-store'});if(!response.ok)return runtimeHardware;const payload=await response.json(),hardware=payload?.hardware||{},tier=String(payload?.hardwareTier||hardwareTierFromModel(hardware.model)||'');runtimeHardware={loaded:true,tier,model:String(hardware.model||''),cpuCount:Math.max(0,Number(hardware.cpuCount)||0),memoryTotalBytes:Math.max(0,Number(hardware.memoryTotalBytes)||0),memoryAvailableBytes:Math.max(0,Number(hardware.memoryAvailableBytes)||0)};resetAnimationGovernor();applyFrontendPerformanceClass();return runtimeHardware;}catch{return runtimeHardware;}}
@@ -139,6 +151,7 @@ function frontendPerformanceSnapshot(){
     pixelLoad:frontendPixelLoad(),
     visualBudget:visualPerformanceBudget(),
     animation:animationPerformanceSnapshot(),
+    graphics:browserGraphicsSnapshot(),
     pageUptimeMs:Math.max(0,Math.round(Number(performance?.now?.())||0)),
     hidden:!!document.hidden,
     reducedMotion:document.documentElement.classList.contains('ld-reduce-motion'),
@@ -170,6 +183,6 @@ queueMicrotask(hydrateRuntimeHardware);
 observeFrontendLongTasks();
 startAnimationGovernor();
 
-LibreDisplayRuntime.exposeModule('performance',{hardwareTierFromModel,hydrateRuntimeHardware,frontendCapabilities,frontendPixelLoad,baseVisualPerformanceBudget,visualPerformanceBudget,animationPerformanceMode:currentAnimationPerformanceMode,animationModeProfile,animationPerformanceFrameMs,animationPerformanceSnapshot,startAnimationGovernor,refreshAnimationPerformanceMode,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,frontendPerformanceSnapshot,observeFrontendLongTasks},{},{globals:false});
+LibreDisplayRuntime.exposeModule('performance',{hardwareTierFromModel,hydrateRuntimeHardware,frontendCapabilities,frontendPixelLoad,baseVisualPerformanceBudget,visualPerformanceBudget,animationPerformanceMode:currentAnimationPerformanceMode,animationModeProfile,animationPerformanceFrameMs,animationPerformanceSnapshot,browserGraphicsSnapshot,startAnimationGovernor,refreshAnimationPerformanceMode,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,frontendPerformanceSnapshot,observeFrontendLongTasks},{},{globals:false});
 }
 // End source section: /js/core/performance.js

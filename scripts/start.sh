@@ -151,6 +151,7 @@ launch_browser() {
       --new-window \
       --window-size="$WINDOW_W,$WINDOW_H" \
       --window-position="$WINDOW_X,$WINDOW_Y" \
+      --ozone-platform=wayland \
       --noerrdialogs \
       --disable-session-crashed-bubble \
       --disable-background-timer-throttling \
@@ -167,6 +168,7 @@ launch_browser() {
     "$BROWSER" \
       --kiosk \
       --start-maximized \
+      --ozone-platform=wayland \
       --noerrdialogs \
       --disable-infobars \
       --disable-session-crashed-bubble \
