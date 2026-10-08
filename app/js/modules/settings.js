@@ -505,7 +505,7 @@ const SETTINGS_CONTROL_HELP={
   's-bg-startup-priority':'Starts weather, air quality, calendars, and the dashboard shell before refreshing the background source. The last displayed background can be reused immediately while source discovery runs.',
   's-bg-startup-delay':'Sets the short delay before background-source discovery begins when startup prioritization is enabled.',
   's-weather-animations':'Master switch for optional decorative motion based on the current weather.',
-  's-weather-widget-animations':'Adds gentle motion to current and forecast weather icons without changing weather data.',
+  's-weather-widget-animations':'Adds gentle motion to weather icons without changing weather data. On Raspberry Pi 4 in Auto, Smooth, or Balanced performance modes, the compact Daily/Hourly strips use lightweight static weather symbols to protect frame rate while Current Weather keeps its richer icon treatment; Fidelity mode restores the full animated forecast glyphs.',
   's-weather-fullscreen-effects':'Adds lightweight weather atmosphere over the background while keeping dashboard content above it.',
   's-weather-bird-habitat':'Guides regional bird selection toward the habitat around the display. Auto is deliberately inland-safe so wetland and coastal specialists are not shown unless a matching habitat is selected.',
   's-weather-effect-mode':'Choose automatic atmosphere, precipitation-only effects, or all ambient weather effects.',

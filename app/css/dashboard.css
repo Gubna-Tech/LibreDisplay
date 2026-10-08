@@ -325,6 +325,7 @@ body {
   align-items:center;
   gap:4px;
   min-width:0;
+  contain:layout paint style;
 }
 .fc-col .fc-day-name {
   font-size:clamp(13px,0.95vw,18px);
@@ -364,6 +365,7 @@ body {
   align-items:center;
   gap:5px;
   min-width:0;
+  contain:layout paint style;
 }
 .hr-col .hr-time {
   font-size:clamp(14px,1vw,19px);
@@ -1317,6 +1319,8 @@ html.ld-bench-no-calendar :is(#top-strip,#calendar-legend) { visibility:hidden !
 html.ld-bench-no-current .wx-main { visibility:hidden !important; }
 html.ld-bench-no-clock #clock-block { visibility:hidden !important; }
 html.ld-bench-no-details .wx-details { visibility:hidden !important; }
+html.ld-bench-no-daily #wx-forecast { visibility:hidden !important; }
+html.ld-bench-no-hourly #wx-hourly-block { visibility:hidden !important; }
 html.ld-bench-no-forecast :is(#wx-forecast,#wx-hourly-block) { visibility:hidden !important; }
 html.ld-bench-no-alerts-custom :is(#alert-zone,#custom-block-layer,#layout-showcase-layer) { visibility:hidden !important; }
 html.ld-bench-no-dashboard-ui :is(#app,#cog) { visibility:hidden !important; }
@@ -1981,6 +1985,15 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 @keyframes ldWxBolt{0%,72%,78%,100%{opacity:0}73%,76%{opacity:1}74%,77%{opacity:.18}}
 @keyframes ldWxFog{from{transform:translateX(-.10em);opacity:.55}to{transform:translateX(.10em);opacity:.95}}
 
+/* Forecast strips are the dominant Pi 4 dashboard compositor load. In Auto,
+   Smooth, and Balanced modes keep the same vector glyph artwork but render it
+   as a static snapshot; Fidelity mode intentionally keeps the full motion. */
+html.ld-pi4-device.ld-pi-smooth :is(.wx-forecast,.wx-hourly) .ld-weather-emoji-fallback.ld-weather-emoji-hidden{display:inline!important;}
+html.ld-pi4-device.ld-pi-smooth :is(.wx-forecast,.wx-hourly) .ld-weather-glyph{display:none!important;filter:none!important;}
+html.ld-bench-pause-forecast-motion :is(.wx-forecast,.wx-hourly) .ld-weather-glyph{filter:none!important;}
+html.ld-bench-pause-forecast-motion :is(.wx-forecast,.wx-hourly) .ld-weather-glyph *,
+html.ld-bench-pause-forecast-motion :is(.wx-forecast,.wx-hourly) .ld-weather-glyph *::before,
+html.ld-bench-pause-forecast-motion :is(.wx-forecast,.wx-hourly) .ld-weather-glyph *::after{animation:none!important;transition:none!important;filter:none!important;}
 
 body.ld-weather-no-precip .ld-wx-precip{display:none!important}
 body.ld-weather-no-clouds .ld-wx-cloud{display:none!important}

@@ -2419,6 +2419,7 @@ def normalize_frontend_performance(value):
     graphics = value.get("graphics") if isinstance(value.get("graphics"), dict) else {}
     long_tasks = value.get("longTasks") if isinstance(value.get("longTasks"), dict) else {}
     layout_auto_fit = value.get("layoutAutoFit") if isinstance(value.get("layoutAutoFit"), dict) else {}
+    forecast_rendering = value.get("forecastRendering") if isinstance(value.get("forecastRendering"), dict) else {}
     heap = value.get("heap") if isinstance(value.get("heap"), dict) else {}
     connectivity = value.get("connectivity") if isinstance(value.get("connectivity"), dict) else {}
     payload = {
@@ -2475,6 +2476,18 @@ def normalize_frontend_performance(value):
             "lastAt": bounded_int(layout_auto_fit.get("lastAt"), 0, 10**15),
             "suspended": bool(layout_auto_fit.get("suspended")),
         } if layout_auto_fit else {},
+        "forecastRendering": {
+            key: {
+                "calls": bounded_int((forecast_rendering.get(key) or {}).get("calls"), 0, 10**9),
+                "renders": bounded_int((forecast_rendering.get(key) or {}).get("renders"), 0, 10**9),
+                "skips": bounded_int((forecast_rendering.get(key) or {}).get("skips"), 0, 10**9),
+                "totalMs": bounded_float((forecast_rendering.get(key) or {}).get("totalMs"), 0, 10**12, 1),
+                "maxMs": bounded_float((forecast_rendering.get(key) or {}).get("maxMs"), 0, 10**9, 1),
+                "lastMs": bounded_float((forecast_rendering.get(key) or {}).get("lastMs"), 0, 10**9, 1),
+                "lastAt": bounded_int((forecast_rendering.get(key) or {}).get("lastAt"), 0, 10**15),
+                "cells": bounded_int((forecast_rendering.get(key) or {}).get("cells"), 0, 100),
+            } for key in ("daily", "hourly") if isinstance(forecast_rendering.get(key), dict)
+        } if forecast_rendering else {},
     }
     if heap:
         payload["heap"] = {
@@ -2537,7 +2550,7 @@ def normalize_display_performance_benchmark(value):
     result = value.get("result") if isinstance(value.get("result"), dict) else None
     if result:
         stages = []
-        for row in (result.get("stages") if isinstance(result.get("stages"), list) else [])[:16]:
+        for row in (result.get("stages") if isinstance(result.get("stages"), list) else [])[:24]:
             if not isinstance(row, dict):
                 continue
             stages.append({
@@ -2591,6 +2604,18 @@ def normalize_display_performance_benchmark(value):
                 "totalMs": bounded_float((result.get("layoutAutoFit") or {}).get("totalMs"), 0, 10**12, 1),
                 "maxMs": bounded_float((result.get("layoutAutoFit") or {}).get("maxMs"), 0, 10**9, 1),
                 "lastMs": bounded_float((result.get("layoutAutoFit") or {}).get("lastMs"), 0, 10**9, 1),
+            },
+            "forecastRendering": {
+                key: {
+                    "calls": bounded_int(((result.get("forecastRendering") or {}).get(key) or {}).get("calls"), 0, 10**9),
+                    "renders": bounded_int(((result.get("forecastRendering") or {}).get(key) or {}).get("renders"), 0, 10**9),
+                    "skips": bounded_int(((result.get("forecastRendering") or {}).get(key) or {}).get("skips"), 0, 10**9),
+                    "totalMs": bounded_float(((result.get("forecastRendering") or {}).get(key) or {}).get("totalMs"), 0, 10**12, 1),
+                    "maxMs": bounded_float(((result.get("forecastRendering") or {}).get(key) or {}).get("maxMs"), 0, 10**9, 1),
+                    "lastMs": bounded_float(((result.get("forecastRendering") or {}).get(key) or {}).get("lastMs"), 0, 10**9, 1),
+                    "lastAt": bounded_int(((result.get("forecastRendering") or {}).get(key) or {}).get("lastAt"), 0, 10**15),
+                    "cells": bounded_int(((result.get("forecastRendering") or {}).get(key) or {}).get("cells"), 0, 100),
+                } for key in ("daily", "hourly") if isinstance((result.get("forecastRendering") or {}).get(key), dict)
             },
         }
     return payload

@@ -286,6 +286,7 @@ async function pollServerConfig(){
 }
 let liveEventSource=null,heartbeatTimer=null,heartbeatResizeTimer=null;
 let physicalDisplayBenchmarkState=null;
+const PHYSICAL_DISPLAY_BENCHMARK_STAGE_TOTAL=17;
 function displayDeviceId(){let id='';try{id=localStorage.getItem('libredisplay_device_id')||'';}catch(e){}if(!/^[A-Za-z0-9_-]{12,80}$/.test(id)){id='d'+Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem('libredisplay_device_id',id);}catch(e){}}return id;}
 function displayViewportMetrics(){
   const root=document.documentElement,app=document.getElementById('app'),appRect=app?.getBoundingClientRect?.(),vv=window.visualViewport,fontProbe=measureDashboardFontProbe(cfg?.fontFamily||'Inter');
@@ -306,13 +307,13 @@ async function runPhysicalDisplayBenchmarkRequest(event){
   if(!bootstrapApi.LOCAL_CLIENT_MODE)return;
   const request=parseDisplayBenchmarkEvent(event),requestId=String(request.requestId||'').replace(/[^A-Za-z0-9_-]+/g,'-').slice(0,96)||('bench-'+Date.now().toString(36));
   const requestedAt=Number(request.requestedAt)||Math.floor(Date.now()/1000),startedAt=new Date().toISOString(),performance=LibreDisplayRuntime.getModule('performance');
-  physicalDisplayBenchmarkState={requestId,state:'running',requestedAt:new Date(requestedAt*1000).toISOString(),startedAt,stageKey:'preparing',stageLabel:'Preparing physical display benchmark',stageIndex:0,stageTotal:9};
+  physicalDisplayBenchmarkState={requestId,state:'running',requestedAt:new Date(requestedAt*1000).toISOString(),startedAt,stageKey:'preparing',stageLabel:'Preparing physical display benchmark',stageIndex:0,stageTotal:PHYSICAL_DISPLAY_BENCHMARK_STAGE_TOTAL};
   await sendDisplayHeartbeat(false);
   try{
-    const result=await performance.runDisplayPerformanceBenchmark({onStage:stage=>{physicalDisplayBenchmarkState={...physicalDisplayBenchmarkState,state:'running',stageKey:stage.key||'',stageLabel:stage.label||'',stageIndex:Number(stage.index)||0,stageTotal:Number(stage.total)||9};}});
-    physicalDisplayBenchmarkState={requestId,state:'complete',requestedAt:physicalDisplayBenchmarkState.requestedAt,startedAt,resultStartedAt:result.startedAt||startedAt,finishedAt:result.finishedAt||new Date().toISOString(),stageKey:'complete',stageLabel:'Completed',stageIndex:9,stageTotal:9,result};
+    const result=await performance.runDisplayPerformanceBenchmark({onStage:stage=>{physicalDisplayBenchmarkState={...physicalDisplayBenchmarkState,state:'running',stageKey:stage.key||'',stageLabel:stage.label||'',stageIndex:Number(stage.index)||0,stageTotal:Number(stage.total)||PHYSICAL_DISPLAY_BENCHMARK_STAGE_TOTAL};}});
+    physicalDisplayBenchmarkState={requestId,state:'complete',requestedAt:physicalDisplayBenchmarkState.requestedAt,startedAt,resultStartedAt:result.startedAt||startedAt,finishedAt:result.finishedAt||new Date().toISOString(),stageKey:'complete',stageLabel:'Completed',stageIndex:PHYSICAL_DISPLAY_BENCHMARK_STAGE_TOTAL,stageTotal:PHYSICAL_DISPLAY_BENCHMARK_STAGE_TOTAL,result};
   }catch(error){
-    physicalDisplayBenchmarkState={requestId,state:'error',requestedAt:physicalDisplayBenchmarkState?.requestedAt||new Date(requestedAt*1000).toISOString(),startedAt,finishedAt:new Date().toISOString(),stageKey:'error',stageLabel:'Failed',stageIndex:0,stageTotal:9,error:String(error?.message||error||'Display benchmark failed').slice(0,400)};
+    physicalDisplayBenchmarkState={requestId,state:'error',requestedAt:physicalDisplayBenchmarkState?.requestedAt||new Date(requestedAt*1000).toISOString(),startedAt,finishedAt:new Date().toISOString(),stageKey:'error',stageLabel:'Failed',stageIndex:0,stageTotal:PHYSICAL_DISPLAY_BENCHMARK_STAGE_TOTAL,error:String(error?.message||error||'Display benchmark failed').slice(0,400)};
   }
   await sendDisplayHeartbeat(false);
 }

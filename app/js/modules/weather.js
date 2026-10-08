@@ -168,6 +168,22 @@ async function fetchWeather(){
   }
 }
 
+const forecastRenderState={daily:{signature:'',calls:0,renders:0,skips:0,totalMs:0,maxMs:0,lastMs:0,lastAt:0,cells:0},hourly:{signature:'',calls:0,renders:0,skips:0,totalMs:0,maxMs:0,lastMs:0,lastAt:0,cells:0}};
+function forecastRenderSnapshot(){return Object.fromEntries(Object.entries(forecastRenderState).map(([key,row])=>[key,{calls:row.calls,renders:row.renders,skips:row.skips,totalMs:Number(row.totalMs.toFixed(1)),maxMs:Number(row.maxMs.toFixed(1)),lastMs:Number(row.lastMs.toFixed(1)),lastAt:row.lastAt,cells:row.cells}]));}
+function updateForecastRegion(key,host,signature,build){
+  const state=forecastRenderState[key];state.calls++;
+  if(!host)return false;
+  if(state.signature===signature&&host.childElementCount){state.skips++;return false;}
+  const started=performance.now(),frag=document.createDocumentFragment(),cells=build(frag)||0;host.replaceChildren(frag);
+  const elapsed=performance.now()-started;state.signature=signature;state.renders++;state.totalMs+=elapsed;state.maxMs=Math.max(state.maxMs,elapsed);state.lastMs=elapsed;state.lastAt=Date.now();state.cells=cells;return true;
+}
+function dailyForecastSignature(dl,ui,count){return JSON.stringify([count,!!ui.showPrecip,!!ui.weatherAnimationsEnabled,!!ui.weatherWidgetAnimations,...dl.time.slice(0,count),...dl.weather_code.slice(0,count),...dl.temperature_2m_max.slice(0,count),...dl.temperature_2m_min.slice(0,count),...(dl.precipitation_probability_max||[]).slice(0,count)]);}
+function hourlyForecastRows(d,dl,hr,ui){
+  const rows=[],nowH=new Date();nowH.setMinutes(0,0,0);const limit=Math.min(24,Math.max(3,Number(ui.hourlyForecastHours)||12));
+  for(let i=0;i<hr.time.length&&rows.length<limit;i++){const t=new Date(hr.time[i]);if(t<nowH)continue;rows.push({i,t,isDay:weatherTimeIsDay(hr.time[i],dl)});}return rows;
+}
+function hourlyForecastSignature(d,dl,hr,ui,rows){return JSON.stringify([rows.map(row=>row.i),!!ui.showPrecip,!!ui.weatherAnimationsEnabled,!!ui.weatherWidgetAnimations,Number(d.latitude)||0,Number(d.utc_offset_seconds)||0,...(dl.sunrise||[]),...(dl.sunset||[]),...rows.flatMap(row=>[hr.time[row.i],hr.weather_code[row.i],hr.temperature_2m[row.i],(hr.precipitation_probability||[])[row.i]])]);}
+
 function renderWeather(d){
   setTimeout(updateSettingsOverview,0);
   const ui=uiCfg();
@@ -183,41 +199,20 @@ function renderWeather(d){
   document.getElementById('wx-cond').textContent=wd(c.weather_code);
   renderBuiltInWeatherDetails(d,ui);
 
-  const fc=document.getElementById('wx-forecast');
-  fc.innerHTML='';
-  const fcDays=Math.min(Math.max(3,Number(ui.dailyForecastDays)||12),14,dl.time.length);
-  for(let i=0;i<fcDays;i++){
-    const dt=new Date(dl.time[i]+'T12:00:00');
-    const pp=dl.precipitation_probability_max[i]||0;
-    const el=document.createElement('div');
-    el.className='fc-col';
-    el.innerHTML=`<div class="fc-day-name">${i===0?'Today':DNS[dt.getDay()]}</div>
-      <div class="fc-icon" data-weather-code="${dl.weather_code[i]}">${effects.weatherIconMarkup(dl.weather_code[i],wi(dl.weather_code[i]),ui)}</div>
-      ${ui.showPrecip?`<div class="fc-rain">💧${pp}%</div>`:''}
-      <div class="fc-temps"><span class="fc-hi">${C(dl.temperature_2m_max[i])}°</span> <span class="fc-lo">${C(dl.temperature_2m_min[i])}°</span></div>`;
-    fc.appendChild(el);
-  }
+  const fc=document.getElementById('wx-forecast'),fcDays=Math.min(Math.max(3,Number(ui.dailyForecastDays)||12),14,dl.time.length);
+  updateForecastRegion('daily',fc,dailyForecastSignature(dl,ui,fcDays),frag=>{
+    for(let i=0;i<fcDays;i++){
+      const dt=new Date(dl.time[i]+'T12:00:00'),pp=dl.precipitation_probability_max[i]||0,el=document.createElement('div');el.className='fc-col';
+      el.innerHTML=`<div class="fc-day-name">${i===0?'Today':DNS[dt.getDay()]}</div><div class="fc-icon" data-weather-code="${dl.weather_code[i]}">${effects.weatherIconMarkup(dl.weather_code[i],wi(dl.weather_code[i]),ui)}</div>${ui.showPrecip?`<div class="fc-rain">💧${pp}%</div>`:''}<div class="fc-temps"><span class="fc-hi">${C(dl.temperature_2m_max[i])}°</span> <span class="fc-lo">${C(dl.temperature_2m_min[i])}°</span></div>`;frag.appendChild(el);
+    }return fcDays;
+  });
 
-  const hrDiv=document.getElementById('wx-hourly');
-  hrDiv.innerHTML='';
-  const nowH=new Date();
-  nowH.setMinutes(0,0,0);
-  let count=0;
-  for(let i=0;i<hr.time.length&&count<Math.min(24,Math.max(3,Number(ui.hourlyForecastHours)||12));i++){
-    const t=new Date(hr.time[i]);
-    if(t<nowH) continue;
-    count++;
-    const h12=t.getHours()%12||12;
-    const ampm=t.getHours()<12?'am':'pm';
-    const pp=hr.precipitation_probability[i]||0;
-    const el=document.createElement('div');
-    el.className='hr-col';
-    el.innerHTML=`<div class="hr-time">${h12}${ampm}</div>
-      <div class="hr-icon" data-weather-code="${hr.weather_code[i]}">${effects.weatherIconMarkup(hr.weather_code[i],wi(hr.weather_code[i],weatherTimeIsDay(hr.time[i],dl),hr.time[i],d.latitude??ui.lat,d.utc_offset_seconds??0),ui,weatherTimeIsDay(hr.time[i],dl))}</div>
-      ${ui.showPrecip?`<div class="hr-rain">💧${pp}%</div>`:''}
-      <div class="hr-temp">${C(hr.temperature_2m[i])}°</div>`;
-    hrDiv.appendChild(el);
-  }
+  const hrDiv=document.getElementById('wx-hourly'),hourlyRows=hourlyForecastRows(d,dl,hr,ui);
+  updateForecastRegion('hourly',hrDiv,hourlyForecastSignature(d,dl,hr,ui,hourlyRows),frag=>{
+    for(const row of hourlyRows){const i=row.i,t=row.t,h12=t.getHours()%12||12,ampm=t.getHours()<12?'am':'pm',pp=hr.precipitation_probability[i]||0,el=document.createElement('div');el.className='hr-col';
+      el.innerHTML=`<div class="hr-time">${h12}${ampm}</div><div class="hr-icon" data-weather-code="${hr.weather_code[i]}">${effects.weatherIconMarkup(hr.weather_code[i],wi(hr.weather_code[i],row.isDay,hr.time[i],d.latitude??ui.lat,d.utc_offset_seconds??0),ui,row.isDay)}</div>${ui.showPrecip?`<div class="hr-rain">💧${pp}%</div>`:''}<div class="hr-temp">${C(hr.temperature_2m[i])}°</div>`;frag.appendChild(el);
+    }return hourlyRows.length;
+  });
   refreshCustomDataBlocks(['weatherview','suntimes']);
   try{effects.applyWeatherEffects(d,ui);requestAnimationFrame(()=>effects.ensureWeatherOverlayLive(d,ui));}catch(_e){}
 }
@@ -276,7 +271,7 @@ function resetWeatherDetails(){mutateWeatherDetails(s=>{s.order=['sunset','wind'
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("weather", {activeLocale,formatClockDate,tick,clockTickDelay,startClock,wi,wd,C,u,weatherLocationKey,weatherPayloadMatchesRequest,showWeatherWaitingState,invalidateWeatherIfLocationChanged,weatherWindUnitParam,weatherWindUnitLabel,weatherWindUnitMatches,validateWeatherPayload,fetchWeather,renderWeather,weatherDetailsConfig,weatherDetailColumnCount,weatherDetailValue,renderBuiltInWeatherDetails,weatherDetailsFromForm,setWeatherDetailsForm,renderWeatherDetailsSettings,mutateWeatherDetails,toggleWeatherDetailSetting,moveWeatherDetailSetting,weatherDetailDragStart,weatherDetailDrop,enableRecommendedWeatherDetails,enableAllWeatherDetails,resetWeatherDetails}, {
+LibreDisplayRuntime.exposeModule("weather", {activeLocale,formatClockDate,tick,clockTickDelay,startClock,wi,wd,C,u,weatherLocationKey,weatherPayloadMatchesRequest,showWeatherWaitingState,invalidateWeatherIfLocationChanged,weatherWindUnitParam,weatherWindUnitLabel,weatherWindUnitMatches,validateWeatherPayload,fetchWeather,renderWeather,forecastRenderSnapshot,weatherDetailsConfig,weatherDetailColumnCount,weatherDetailValue,renderBuiltInWeatherDetails,weatherDetailsFromForm,setWeatherDetailsForm,renderWeatherDetailsSettings,mutateWeatherDetails,toggleWeatherDetailSetting,moveWeatherDetailSetting,weatherDetailDragStart,weatherDetailDrop,enableRecommendedWeatherDetails,enableAllWeatherDetails,resetWeatherDetails}, {
   "DN": {configurable:true,get:()=>DN},
   "MN": {configurable:true,get:()=>MN},
   "MNS": {configurable:true,get:()=>MNS},
