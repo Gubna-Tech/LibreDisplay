@@ -149,7 +149,7 @@
   </div>
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.10.7</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.10.8</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
   <div class="s-section" id="settings-endpoints" data-settings-tab="displays">
    <h3>Displays</h3>
@@ -583,14 +583,14 @@
   </div>
   <div class="s-section" id="settings-naturescape-owls" data-settings-tab="wildlife">
    <h3>Owls</h3>
-   <div class="howto">Optional region-aware owl naturescape. Owl Mode is off by default. When enabled, species vary by region and daylight, with ground-oriented, gliding, and swooping behavior where appropriate.</div>
+   <div class="howto">Optional full-catalog owl naturescape. Owl Mode is off by default. When enabled, owls replace normal birds, regional species are favored without hiding the wider owl catalog, and each fly-through rotates species to avoid repetitive loops.</div>
    <div class="settings-grid">
     <label class="checkline"><input id="s-weather-season-owls" type="checkbox" data-ld-onchange="h068"> Owl Mode</label>
     <div class="s-row"><label>Owl activity <span id="s-weather-owl-intensity-value" class="range-value">45%</span></label><input id="s-weather-owl-intensity" type="range" min="0" max="180" step="5" value="45" data-ld-oninput="h075"></div>
     <div class="s-row"><label>Owl size <span id="s-weather-owl-size-value" class="range-value">110%</span></label><input id="s-weather-owl-size" type="range" min="30" max="200" step="5" value="110" data-ld-oninput="h075"></div>
     <div class="s-row"><label>Owl flight speed <span id="s-weather-owl-speed-value" class="range-value">85%</span></label><input id="s-weather-owl-speed" type="range" min="30" max="200" step="5" value="85" data-ld-oninput="h075"></div>
     <div class="s-row"><label>Owl opacity <span id="s-weather-owl-opacity-value" class="range-value">100%</span></label><input id="s-weather-owl-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
-    <div class="s-row"><label>Owl species diversity <span id="s-weather-owl-diversity-value" class="range-value">75%</span></label><input id="s-weather-owl-diversity" type="range" min="0" max="100" step="5" value="75" data-ld-oninput="h075"><div class="settings-note">Higher values broaden the region-appropriate owl pool. Owl Mode remains completely independent from normal birds.</div></div>
+    <div class="s-row"><label>Owl species diversity <span id="s-weather-owl-diversity-value" class="range-value">75%</span></label><input id="s-weather-owl-diversity" type="range" min="0" max="100" step="5" value="75" data-ld-oninput="h075"><div class="settings-note">Higher values broaden the owl catalog. Owl Mode overrides normal birds while it is enabled.</div></div>
    </div>
   </div>
   <div class="s-section" id="settings-naturescape-winter" data-settings-tab="nature">
@@ -946,7 +946,7 @@
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.10.7</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.10.8</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
