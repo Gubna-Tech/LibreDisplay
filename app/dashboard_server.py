@@ -2362,6 +2362,7 @@ def normalize_frontend_performance(value):
     if tier not in {"standard", "constrained", "pi3", "pi4", "pi5", "pi-constrained"}:
         tier = "constrained" if bool(value.get("constrained")) else "standard"
     animation = value.get("animation") if isinstance(value.get("animation"), dict) else {}
+    workload = value.get("animationWorkload") if isinstance(value.get("animationWorkload"), dict) else {}
     graphics = value.get("graphics") if isinstance(value.get("graphics"), dict) else {}
     long_tasks = value.get("longTasks") if isinstance(value.get("longTasks"), dict) else {}
     heap = value.get("heap") if isinstance(value.get("heap"), dict) else {}
@@ -2386,6 +2387,16 @@ def normalize_frontend_performance(value):
             "renderer": str(animation.get("renderer") or "")[:80],
             "running": bool(animation.get("running")),
         } if animation else {},
+        "animationWorkload": {
+            "totalAnimations": bounded_int(workload.get("totalAnimations"), 0, 10000),
+            "birds": bounded_int(workload.get("birds"), 0, 10000),
+            "dog": bounded_int(workload.get("dog"), 0, 10000),
+            "weather": bounded_int(workload.get("weather"), 0, 10000),
+            "deadhead": bounded_int(workload.get("deadhead"), 0, 10000),
+            "other": bounded_int(workload.get("other"), 0, 10000),
+            "weatherNodes": bounded_int(workload.get("weatherNodes"), 0, 100000),
+            "playingVideos": bounded_int(workload.get("playingVideos"), 0, 1000),
+        } if workload else {},
         "graphics": {
             "webgl": bool(graphics.get("webgl")),
             "webgl2": bool(graphics.get("webgl2")),
@@ -2513,11 +2524,19 @@ def system_health_payload():
             last_seen = float(kiosk.get("lastSeen") or 0)
             width = max(0, int(kiosk.get("viewportWidth") or 0))
             height = max(0, int(kiosk.get("viewportHeight") or 0))
+            screen_width = max(0, int(kiosk.get("screenWidth") or 0))
+            screen_height = max(0, int(kiosk.get("screenHeight") or 0))
+            try:
+                dpr = round(max(0.25, min(8.0, float(kiosk.get("dpr") or 1))), 2)
+            except (TypeError, ValueError, OverflowError):
+                dpr = 1.0
             kiosk_payload = {
                 "present": True,
                 "ageSeconds": max(0, round(time.time() - last_seen, 1)),
                 "endpoint": endpoint_slug(kiosk.get("endpoint") or "main"),
                 "viewport": f"{width}×{height}" if width and height else "",
+                "screen": f"{screen_width}×{screen_height}" if screen_width and screen_height else "",
+                "dpr": dpr,
                 "version": str(kiosk.get("version") or "")[:40],
                 "frontendPerformance": normalize_frontend_performance(kiosk.get("frontendPerformance")),
             }

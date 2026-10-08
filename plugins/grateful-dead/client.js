@@ -20,7 +20,7 @@
   const sourceLinks=(show,d)=>{if(!enabled(d,'showSourceLinks'))return '';const factories={archive:()=>enabled(d,'showArchiveLink')?sourceLink(show?.archiveUrl,d.archiveLabel||'Internet Archive'):'',relisten:()=>enabled(d,'showRelistenLink')?sourceLink(show?.relistenUrl,d.relistenLabel||'Listen on Relisten'):'',jerrybase:()=>enabled(d,'showJerryBaseLink')?sourceLink(show?.jerrybaseUrl,d.jerrybaseLabel||'JerryBase'):''},allowed=['archive','relisten','jerrybase'],requested=String(d.sourceLinkOrder||'archive,relisten,jerrybase').toLowerCase().split(',').map(x=>x.trim()).filter(x=>allowed.includes(x)),order=[],seen=new Set();for(const key of [...requested,...allowed])if(!seen.has(key)){seen.add(key);order.push(key);}return order.map(key=>factories[key]()).filter(Boolean).join('');};
   const renderShow=(show,index,total,d)=>{if(!enabled(d,'showShowDetails'))return '';if(!show)return '<div class="deadhead-section deadhead-empty">No historical show was found for this date and era.</div>';const where=showWhere(show,d),links=sourceLinks(show,d),top=[];if(enabled(d,'showShowCounter'))top.push(`<span class="deadhead-show-kicker">Show ${index+1} of ${total}</span>`);if(enabled(d,'showRecordingCount'))top.push(`<span class="deadhead-recordings">${Number(show.recordings)||0} recording${Number(show.recordings)===1?'':'s'}</span>`);return `<section class="deadhead-section deadhead-show" data-show-index="${index}">${top.length?`<div class="deadhead-show-topline">${top.join('')}</div>`:''}${enabled(d,'showDate')?`<div class="deadhead-show-date">${esc(formatShowDate(show.date,d.dateStyle||'iso'))}</div>`:''}${where?`<div class="deadhead-show-venue">${esc(where)}</div>`:''}${links?`<div class="deadhead-show-actions">${links}</div>`:''}</section>`;};
   const renderSetlist=(data,show,d,state)=>{if(!enabled(d,'setlistsEnabled'))return '';const date=String(show?.date||''),row=data?.setlists?.[date]||null,heading=esc(d.setlistHeading||'Setlist'),showSource=enabled(d,'setlistShowSource'),maxHeight=num(d.setlistMaxHeight,0,600,100);if(!row?.sets?.length){if(!enabled(d,'setlistShowMissing'))return '';const pending=state?.setlistPending?.has(date),retrying=state?.setlistRetrying?.has(date),unavailable=state?.setlistUnavailable?.has(date),smart=enabled(d,'setlistSmartLoad',true),url=showSource?safeUrl(show?.jerrybaseUrl):'',message=pending?'Finding setlist · JerryBase → Relisten → Internet Archive…':(retrying?'Setlist lookup was delayed · retrying automatically…':(unavailable?'No setlist was found in JerryBase, Relisten, or Internet Archive.':(smart?'Setlist lookup queued…':'Setlist was not preloaded for this show.')));return `<section class="deadhead-section deadhead-setlist deadhead-setlist-missing"><div class="deadhead-mini-title deadhead-setlist-heading">${heading}</div><div class="deadhead-setlist-note">${esc(message)}${unavailable&&url?` · <a href="${esc(url)}" target="_blank" rel="noopener">Check JerryBase</a>`:''}</div></section>`;}const maxSets=Math.round(num(d.setlistMaxSets,1,8,5)),songLimit=Math.round(num(d.setlistSongsPerSet,3,35,35)),hits=new Set((row.favoriteSongHits||[]).map(x=>String(x).toLowerCase())),sets=row.sets.slice(0,maxSets).map(group=>`<div class="deadhead-set"><b>${esc(group.name||'Set')}</b><span>${(group.songs||[]).slice(0,songLimit).map(song=>`<span class="${enabled(d,'setlistHighlightFavorites')&&hits.has(String(song).toLowerCase())?'deadhead-favorite-song-inline':''}">${esc(song)}</span>`).join('<span class="deadhead-song-sep"> · </span>')}</span></div>`).join(''),favorites=enabled(d,'setlistShowFavoriteHits')?(row.favoriteSongHits||[]).map(x=>`<span class="deadhead-favorite-song">${esc(x)}</span>`).join(''):'',url=showSource?safeUrl(row.url):'',source=showSource?` · ${esc(row.attribution||'source')}${url?` · <a href="${esc(url)}" target="_blank" rel="noopener">open source</a>`:''}`:'';return `<section class="deadhead-section deadhead-setlist${maxHeight===0?' deadhead-setlist-unlimited':''}" style="--dead-setlist-max:${Math.round(maxHeight)}px"><div class="deadhead-mini-title deadhead-setlist-heading">${heading}${source}</div><div class="deadhead-setlist-scroll"><div class="deadhead-reel-track deadhead-setlist-track"><div class="deadhead-setlist-body">${sets}</div>${favorites?`<div class="deadhead-favorites">Favorites in this show: ${favorites}</div>`:''}</div></div></section>`;};
-    const renderQuote=(quote,d)=>{if(!enabled(d,'quotesEnabled')||!quote)return '';const member=enabled(d,'quoteShowMember')?esc(quote.member):'',url=enabled(d,'quoteShowSource')?safeUrl(quote.url):'',source=url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(quote.source||'Source')}</a>`:(enabled(d,'quoteShowSource')?esc(quote.source||''):''),attribution=[member,source].filter(Boolean).join(' · '),marks=enabled(d,'quoteShowMarks'),text=`${marks?'“':''}${esc(quote.quote)}${marks?'”':''}`,typeLabel=quote.kind==='lyric'?'Lyric excerpt':'Member quote',kicker=enabled(d,'quoteShowType')?`<div class="deadhead-quote-kicker">${esc(typeLabel)}${member?` · ${member}`:''}</div>`:'',context=enabled(d,'quoteShowContext')&&quote.context?`<div class="deadhead-quote-context"><span>${esc(quote.contextLabel||'Context')}</span>${esc(quote.context)}</div>`:'';return `<figure class="deadhead-section deadhead-quote deadhead-quote-${esc(d.quoteStyle||'card')}">${kicker}<blockquote>${text}</blockquote>${context}${attribution?`<figcaption>— ${attribution}</figcaption>`:''}</figure>`;};
+    const renderQuote=(quote,d)=>{if(!enabled(d,'quotesEnabled')||!quote)return '';const member=enabled(d,'quoteShowMember')?esc(quote.member):'',url=enabled(d,'quoteShowSource')?safeUrl(quote.url):'',source=url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(quote.source||'Source')}</a>`:(enabled(d,'quoteShowSource')?esc(quote.source||''):''),attribution=[member,source].filter(Boolean).join(' · '),marks=enabled(d,'quoteShowMarks'),text=`${marks?'“':''}${esc(quote.quote)}${marks?'”':''}`,typeLabel=quote.kind==='lyric'?'Lyric passage':'Member quote',kicker=enabled(d,'quoteShowType')?`<div class="deadhead-quote-kicker">${esc(typeLabel)}${member?` · ${member}`:''}</div>`:'',context=enabled(d,'quoteShowContext')&&quote.context?`<div class="deadhead-quote-context"><span>${esc(quote.contextLabel||'Context')}</span>${esc(quote.context)}</div>`:'';return `<figure class="deadhead-section deadhead-quote deadhead-quote-${esc(d.quoteStyle||'card')}">${kicker}<blockquote>${text}</blockquote>${context}${attribution?`<figcaption>— ${attribution}</figcaption>`:''}</figure>`;};
   const yearStrip=(shows,current,d)=>`<div class="deadhead-section deadhead-year-strip" role="list" aria-label="Shows played on this date"><div class="deadhead-reel-track deadhead-browser-track">${shows.map((show,i)=>`<button type="button" class="deadhead-year${i===current?' active':''}" data-dead-show="${i}" title="${esc([show?.venue,show?.location].filter(Boolean).join(' · '))}">${esc(show.year||show.date?.slice(0,4)||'?')}</button>`).join('')}</div></div>`;
   const compactList=(shows,current,d)=>`<div class="deadhead-section deadhead-show-list" role="list"><div class="deadhead-reel-track deadhead-browser-track">${shows.map((show,i)=>{const venue=enabled(d,'browserShowVenue')?show.venue||'Unknown venue':'',location=enabled(d,'browserShowLocation')?show.location||'':'';return `<button type="button" class="deadhead-show-row${i===current?' active':''}" data-dead-show="${i}"><b>${esc(show.year||'')}</b>${venue?`<span>${esc(venue)}</span>`:''}${location?`<small>${esc(location)}</small>`:''}</button>`;}).join('')}</div></div>`;
   const renderBrowser=(d,shows,current)=>!enabled(d,'showBrowserEnabled')||d.showBrowser==='minimal'?'':d.showBrowser==='list'?compactList(shows,current,d):yearStrip(shows,current,d);
@@ -48,6 +48,7 @@
     showScrollbar:enabled(d,`${prefix}ShowScrollbar`,false)
   });
   const reelPaused=(el,options,state)=>document.hidden||(options.pauseOnHover&&(typeof el.matches==='function'?el.matches(':hover'):state.hovered));
+  const visualFrameMs=()=>{try{return Math.max(28,Number(LibreDisplayRuntime.getModule('performance')?.visualPerformanceBudget?.()?.targetFrameMs)||33);}catch{return 33;}};
   const reelTrack=el=>el?.querySelector?.(':scope > .deadhead-reel-track')||el;
   const reelContentExtent=(el,axis)=>{const track=reelTrack(el);return axis==='x'?Math.max(track?.scrollWidth||0,track?.offsetWidth||0):Math.max(track?.scrollHeight||0,track?.offsetHeight||0);};
   const reelOverflows=(el,axis)=>reelContentExtent(el,axis)>(axis==='x'?el.clientWidth:el.clientHeight)+2;
@@ -60,7 +61,7 @@
     const loopExtent=Math.max(0,(firstClone&&firstOriginal)?offset(firstClone)-offset(firstOriginal):0);
     if(loopExtent<=2){for(const clone of clones)clone.remove();return ()=>{};}
     state.reelPositions=state.reelPositions||{};state.reelStarted=state.reelStarted||{};
-    let frame=0,stopped=false,last=0,position=Number(state.reelPositions[key])||0,phaseUntil=performance.now()+(state.reelStarted[key]?0:options.startDelay);
+    let frame=0,stopped=false,last=0,lastPaint=-Infinity,position=Number(state.reelPositions[key])||0,phaseUntil=performance.now()+(state.reelStarted[key]?0:options.startDelay),paintInterval=visualFrameMs();
     position=((position%loopExtent)+loopExtent)%loopExtent;state.reelStarted[key]=true;
     el.scrollTop=0;el.scrollLeft=0;const trackStyle=track.style||{};trackStyle.willChange='transform';trackStyle.transform=axis==='x'?`translate3d(${-position}px,0,0)`:`translate3d(0,${-position}px,0)`;el.classList.add('deadhead-autoscroll-active');
     const tick=now=>{
@@ -70,7 +71,7 @@
       if(now<phaseUntil){last=now;frame=requestAnimationFrame(tick);return;}
       const dt=last?Math.min(80,now-last):0;last=now;position+=options.speed*dt/1000;
       while(position>=loopExtent)position-=loopExtent;
-      state.reelPositions[key]=position;trackStyle.transform=axis==='x'?`translate3d(${-position}px,0,0)`:`translate3d(0,${-position}px,0)`;frame=requestAnimationFrame(tick);
+      state.reelPositions[key]=position;if(now-lastPaint>=paintInterval){lastPaint=now;trackStyle.transform=axis==='x'?`translate3d(${-position}px,0,0)`:`translate3d(0,${-position}px,0)`;}frame=requestAnimationFrame(tick);
     };
     frame=requestAnimationFrame(tick);
     return ()=>{stopped=true;if(frame)cancelAnimationFrame(frame);state.reelPositions[key]=position;trackStyle.transform='';trackStyle.willChange='';for(const clone of clones)clone.remove();el.classList.remove('deadhead-autoscroll-active');};
@@ -83,8 +84,8 @@
     // Keep a floating-point accumulator independent of scrollTop/scrollLeft. Chromium can
     // quantize very small per-frame writes on low-power displays; re-reading that rounded
     // value each frame made slow speed settings appear identical or completely stalled.
-    let frame=0,stopped=false,last=0,phase='start',phaseUntil=performance.now()+options.startDelay,direction=1,position=scrollPosition(el,axis);
-    const write=value=>{position=Math.max(0,Math.min(scrollMax(el,axis),value));setScrollPosition(el,axis,position);};
+    let frame=0,stopped=false,last=0,lastPaint=-Infinity,phase='start',phaseUntil=performance.now()+options.startDelay,direction=1,position=scrollPosition(el,axis),paintInterval=visualFrameMs();
+    const write=(value,force=false,now=performance.now())=>{position=Math.max(0,Math.min(scrollMax(el,axis),value));if(force||now-lastPaint>=paintInterval){lastPaint=now;setScrollPosition(el,axis,position);}};
     const tick=now=>{
       if(stopped||!el.isConnected)return;
       const max=scrollMax(el,axis);
@@ -93,17 +94,17 @@
       if(reelPaused(el,options,state)){position=Math.max(0,Math.min(max,scrollPosition(el,axis)));last=now;frame=requestAnimationFrame(tick);return;}
       if(now<phaseUntil){position=Math.max(0,Math.min(max,scrollPosition(el,axis)));last=now;frame=requestAnimationFrame(tick);return;}
       if(phase==='end'){
-        if(options.loopMode==='once'){write(max);return;}
+        if(options.loopMode==='once'){write(max,true,now);return;}
         if(options.loopMode==='bounce'){direction*=-1;phase='move';last=now;position=scrollPosition(el,axis);}
-        else{write(0);direction=1;phase='start';phaseUntil=now+options.startDelay;last=now;}
+        else{write(0,true,now);direction=1;phase='start';phaseUntil=now+options.startDelay;last=now;}
         frame=requestAnimationFrame(tick);return;
       }
       phase='move';
       const dt=last?Math.min(64,now-last):0;last=now;
       const next=position+(options.speed*dt/1000*direction);
-      if(direction>0&&next>=max-0.001){write(max);phase='end';phaseUntil=now+options.loopPause;}
-      else if(direction<0&&next<=0.001){write(0);phase='end';phaseUntil=now+options.loopPause;}
-      else write(next);
+      if(direction>0&&next>=max-0.001){write(max,true,now);phase='end';phaseUntil=now+options.loopPause;}
+      else if(direction<0&&next<=0.001){write(0,true,now);phase='end';phaseUntil=now+options.loopPause;}
+      else write(next,false,now);
       frame=requestAnimationFrame(tick);
     };
     frame=requestAnimationFrame(tick);

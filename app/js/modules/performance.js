@@ -140,6 +140,30 @@ function runWhenIdle(task,timeout=1200){
   return setTimeout(task,16);
 }
 
+let animationWorkloadCache={sampledAt:0,totalAnimations:0,birds:0,dog:0,weather:0,deadhead:0,other:0,weatherNodes:0,playingVideos:0};
+function animationWorkloadSnapshot(force=false){
+  const now=Number(performance?.now?.())||Date.now();
+  if(!force&&now-Number(animationWorkloadCache.sampledAt||0)<3000)return animationWorkloadCache;
+  const out={sampledAt:Math.round(now),totalAnimations:0,birds:0,dog:0,weather:0,deadhead:0,other:0,weatherNodes:0,playingVideos:0};
+  try{
+    const animations=typeof document.getAnimations==='function'?document.getAnimations():[];
+    for(const animation of animations){
+      if(animation?.playState!=='running')continue;
+      out.totalAnimations++;
+      const target=animation?.effect?.target;
+      if(!(target instanceof Element)){out.other++;continue;}
+      if(target.closest('.weather-fx-bird,.weather-fx-owl'))out.birds++;
+      else if(target.closest('.weather-fx-dog-v2'))out.dog++;
+      else if(target.closest('#weather-effects-overlay'))out.weather++;
+      else if(target.closest('.deadhead-panel'))out.deadhead++;
+      else out.other++;
+    }
+    out.weatherNodes=document.querySelectorAll('#weather-effects-overlay *').length;
+    out.playingVideos=[...document.querySelectorAll('video')].filter(v=>!v.paused&&!v.ended&&v.readyState>=2).length;
+  }catch{}
+  animationWorkloadCache=out;return out;
+}
+
 function frontendPerformanceSnapshot(){
   const heap=performance?.memory?{
     usedBytes:Math.max(0,Number(performance.memory.usedJSHeapSize)||0),
@@ -151,6 +175,7 @@ function frontendPerformanceSnapshot(){
     pixelLoad:frontendPixelLoad(),
     visualBudget:visualPerformanceBudget(),
     animation:animationPerformanceSnapshot(),
+    animationWorkload:animationWorkloadSnapshot(),
     graphics:browserGraphicsSnapshot(),
     pageUptimeMs:Math.max(0,Math.round(Number(performance?.now?.())||0)),
     hidden:!!document.hidden,
@@ -183,6 +208,6 @@ queueMicrotask(hydrateRuntimeHardware);
 observeFrontendLongTasks();
 startAnimationGovernor();
 
-LibreDisplayRuntime.exposeModule('performance',{hardwareTierFromModel,hydrateRuntimeHardware,frontendCapabilities,frontendPixelLoad,baseVisualPerformanceBudget,visualPerformanceBudget,animationPerformanceMode:currentAnimationPerformanceMode,animationModeProfile,animationPerformanceFrameMs,animationPerformanceSnapshot,browserGraphicsSnapshot,startAnimationGovernor,refreshAnimationPerformanceMode,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,frontendPerformanceSnapshot,observeFrontendLongTasks},{},{globals:false});
+LibreDisplayRuntime.exposeModule('performance',{hardwareTierFromModel,hydrateRuntimeHardware,frontendCapabilities,frontendPixelLoad,baseVisualPerformanceBudget,visualPerformanceBudget,animationPerformanceMode:currentAnimationPerformanceMode,animationModeProfile,animationPerformanceFrameMs,animationPerformanceSnapshot,browserGraphicsSnapshot,startAnimationGovernor,refreshAnimationPerformanceMode,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,frontendPerformanceSnapshot,animationWorkloadSnapshot,observeFrontendLongTasks},{},{globals:false});
 }
 // End source section: /js/core/performance.js

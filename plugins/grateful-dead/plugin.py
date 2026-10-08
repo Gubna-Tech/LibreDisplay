@@ -956,7 +956,41 @@ LYRIC_CONTEXT={
     "Not Fade Away":"A direct declaration that love is enduring and refuses to disappear."
 }
 
-def _quote_topic(text):
+def _source_quote_context(source, member=''):
+    src=str(source or '').lower()
+    patterns=[
+        ('howard rheingold', "a long-form conversation about improvisation, identity, technology, risk, the audience, and how the Dead's musical and social world worked"),
+        ("europe '72 denmark", "the band's countercultural community, independence from mainstream institutions, and the reality that grew around the music"),
+        ('bill kreutzmann interview', "drumming, group interplay, touring, authenticity, and how the band found a collective pulse without over-planning it"),
+        ('phil lesh interview on kpfa', "composition, listening, music education, improvisation, and what the Dead learned by treating the ensemble as a conversation"),
+        ('rolling stone', "the band's history, changing relationships, public expectations, and what life inside the Grateful Dead felt like"),
+        ('adventures of pigpen', "Pigpen's blues roots, personality, early role in the band, and the chemistry of the pre-fame Grateful Dead"),
+        ('deadcast · donna jean', "Donna Jean's singing, entry into the band, touring years, and the human experience of joining the Grateful Dead family"),
+        ("talkin' with donna jean", "Donna Jean's memories of joining, performing, and traveling with the Grateful Dead during the 1970s"),
+        ('tom constanten', "the experimental late-1960s period, keyboards, composition, and the band's expanding psychedelic musical vocabulary"),
+        ('enter keith godchaux', "Keith Godchaux's arrival, piano style, and the musical transition that reshaped the band in the early 1970s"),
+        ('sfgate', "the member's experience inside the Grateful Dead and the personal consequences of life around the band"),
+        ('jambands', "touring, musicianship, group chemistry, and the practical reality of making improvised music night after night"),
+        ('grateful dead hour', "the member's own account of the band's music, history, and the experiences surrounding a particular period"),
+        ('guitar player', "Garcia's approach to guitar, improvisation, musical responsibility, and the way the ensemble listens to one another"),
+        ('deadcast · phil', "Phil Lesh's memories of the band's musical development, listening habits, and the choices behind particular eras and performances"),
+        ('cincy groove', "Kreutzmann's perspective on communication, drumming, and the interpersonal chemistry required for improvised group music"),
+        ('phoenix new times', "Vince Welnick's experience joining the Grateful Dead, adapting to the band, and living with the intensity of that role"),
+        ('dead.net', "a first-person recollection of life, music, relationships, and events from inside the Grateful Dead's history"),
+    ]
+    for token,context in patterns:
+        if token in src:
+            return context
+    if 'grateful dead sources' in src:
+        detail=str(source or '').replace('Grateful Dead Sources ·','').strip(' ·')
+        return f"an archival {detail or 'Grateful Dead'} conversation about the music, decisions, and circumstances of that period"
+    who=member or 'the band member'
+    label=str(source or '').strip()
+    if label:
+        return f"{who}'s first-person perspective in {label}, with the surrounding interview kept visible so the remark is not treated as an isolated slogan"
+    return f"{who}'s first-person recollection, presented with enough surrounding framing to make the point understandable on its own"
+
+def _quote_topic(text, source='', member=''):
     q=str(text or '').lower()
     rules=[
         (("audience","deadhead","people who play the band","crowd"),"the relationship between the band and its audience"),
@@ -971,18 +1005,22 @@ def _quote_topic(text):
     ]
     for terms,topic in rules:
         if any(term in q for term in terms): return topic
-    return "the subject being discussed in the cited interview or archival source"
+    return _source_quote_context(source,member)
 
 def _contextualize_quote_row(row):
     out=dict(row)
     kind=str(out.get('kind') or 'quote')
     member=str(out.get('member') or '').strip()
     if kind=='lyric':
-        out['context']=LYRIC_CONTEXT.get(member) or f"A lyric excerpt from {member}; the song title is shown so the line stays connected to its larger narrative."
-        out['contextLabel']='Song context'
+        out['context']=LYRIC_CONTEXT.get(member) or f"This passage comes from {member}; the song title is kept visible so the excerpt stays connected to the larger narrative rather than reading like an isolated phrase."
+        out['contextLabel']='Passage context'
     else:
-        out['context']=f"{member} on {_quote_topic(out.get('quote'))}." if member else f"Context: {_quote_topic(out.get('quote'))}."
-        out['contextLabel']='Interview context'
+        topic=_quote_topic(out.get('quote'),out.get('source'),member)
+        if topic.startswith(member) or topic.startswith('the band member'):
+            out['context']=topic[0].upper()+topic[1:]+'.'
+        else:
+            out['context']=f"{member} on {topic}." if member else f"Context: {topic}."
+        out['contextLabel']='Passage context'
     return out
 
 MEMBER_QUOTES=[{'key': 'jerry',
@@ -2142,7 +2180,7 @@ def _custom_quotes(value):
         parts=[x.strip() for x in line.split('|',2)]
         if len(parts)<2 or not parts[0] or not parts[1]: continue
         url=parts[2] if len(parts)>2 and re.match(r'^https?://',parts[2],re.I) else ''
-        out.append({"key":"custom","kind":"quote","member":plain_text(parts[0],60),"quote":plain_text(parts[1],220),"source":"Personal quote pack","url":url})
+        out.append({"key":"custom","kind":"quote","member":plain_text(parts[0],60),"quote":plain_text(parts[1],800),"source":"Personal quote pack","url":url})
     return out
 
 def _balanced_member_quote_rows(items,today,order):
@@ -2179,8 +2217,21 @@ def _balanced_member_quote_rows(items,today,order):
         depth+=1
     return out
 
+def _quote_word_count(value):
+    return len(re.findall(r"\b[\w’'-]+\b",str(value or '')))
+
+def _quote_has_standalone_context(row):
+    # Do not impose an upper word limit. The old <=10-word ceiling was an
+    # artificial test constraint, not a product requirement. Instead, keep
+    # tiny built-in fragments out of the unattended reel unless the user
+    # supplied them explicitly.
+    if str(row.get('source') or '')=='Personal quote pack' or str(row.get('key') or '')=='custom':
+        return True
+    words=_quote_word_count(row.get('quote'))
+    return words >= (7 if str(row.get('kind') or 'quote')=='lyric' else 8)
+
 def _quote_rows(settings,today):
-    rows=[_contextualize_quote_row(x) for x in (QUOTES+EXTRA_LYRIC_SNIPPETS+_custom_quotes(settings.get('customQuotes')))]
+    rows=[_contextualize_quote_row(x) for x in (QUOTES+EXTRA_LYRIC_SNIPPETS+_custom_quotes(settings.get('customQuotes'))) if _quote_has_standalone_context(x)]
     deduped=[];seen=set()
     for row in rows:
         sig=(str(row.get('kind') or ''),str(row.get('member') or '').casefold(),str(row.get('quote') or '').casefold())
