@@ -2895,8 +2895,8 @@ html.ld-pi4-device #weather-effects-overlay .dogv2-shadow{filter:none!important;
 html.ld-pi4-4k #weather-effects-overlay .weather-fx-splash,
 html.ld-pi4-4k #weather-effects-overlay .hazard-fire-ember:nth-of-type(even),
 html.ld-pi4-4k #weather-effects-overlay .holiday-sparkle:nth-of-type(even){display:none!important}
-.weather-fx-pi-canvas{position:absolute;inset:0;display:block;width:100%;height:100%;z-index:2;pointer-events:none;contain:strict;transform:translateZ(0)}
-html.ld-pi4-device #weather-effects-overlay .weather-fx-pi-canvas{will-change:contents!important;filter:none!important;box-shadow:none!important}
+.weather-fx-pi-canvas{position:absolute;inset:0;display:block;width:100%;height:100%;z-index:2;pointer-events:none;contain:strict}
+html.ld-pi4-device #weather-effects-overlay .weather-fx-pi-canvas{filter:none!important;box-shadow:none!important}
 
 html.ld-pi-steady #weather-effects-overlay :is(.weather-fx-grass-blade,.weather-fx-season-grass,.weather-fx-cloud-mass,.weather-fx-fog-bank,.holiday-foundation,.holiday-overlay .holiday-sparkle,.holiday-overlay .holiday-confetti){animation-duration:calc(var(--weather-speed-factor,1) * 18s)!important}
 html.ld-pi-smooth #weather-effects-overlay :is(.weather-fx-grass-blade,.weather-fx-season-grass,.holiday-foundation,.holiday-overlay .holiday-sparkle,.holiday-overlay .holiday-confetti,.holiday-overlay .holiday-heart,.holiday-overlay .holiday-bat,.holiday-overlay .holiday-ghost){animation:none!important}
@@ -3022,7 +3022,7 @@ html.ld-pi3-static #weather-effects-overlay .weather-fx-lightning-bolt,
 html.ld-pi3-static #weather-effects-overlay .weather-fx-splash{display:none!important}
 html.ld-pi3-device:not(.ld-pi3-static) #weather-effects-overlay :is(.weather-fx-bird,.weather-fx-dog-v2,.weather-fx-cloud-mass,.weather-fx-fog-bank){filter:none!important;box-shadow:none!important}
 html.ld-pi4-device #weather-effects-overlay{contain:strict}
-html.ld-pi4-device #weather-effects-overlay .weather-fx-pi-canvas{transform:translateZ(0)}
+
 /* Pi 4 clear-weather wildlife compositor budget: keep whole-animal travel and primary wing/stride motion while freezing secondary anatomy. */
 html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-bird,
 html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-bird{filter:none!important;box-shadow:none!important}
@@ -3062,3 +3062,7 @@ html.ld-pi3-device:not(.ld-pi3-static).ld-wildlife-lite #weather-effects-overlay
 html.ld-pi3-device:not(.ld-pi3-static).ld-wildlife-lite #weather-effects-overlay .weather-fx-dog-v2 *{filter:none!important}
 html.ld-pi3-device:not(.ld-pi3-static).ld-wildlife-lite #weather-effects-overlay .weather-fx-dog-v2.dog-moving :is(.dogv2-leg-front-far,.dogv2-leg-rear-far),
 html.ld-pi3-device:not(.ld-pi3-static).ld-wildlife-lite #weather-effects-overlay .weather-fx-dog-v2 :is(.dogv2-tail,.dogv2-bandana-cloth){animation:none!important}
+/* Pi 4 quality/performance: avoid promoting the full-screen overlay as one giant fading surface; promote only compact moving wildlife. */
+html.ld-pi4-device #weather-effects-overlay{opacity:1!important;transition:none!important}
+html.ld-pi4-device #weather-effects-overlay:not(.show){visibility:hidden}
+html.ld-pi4-device #weather-effects-overlay .weather-fx-bird{will-change:transform!important;contain:layout paint;backface-visibility:hidden}
