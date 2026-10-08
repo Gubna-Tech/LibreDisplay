@@ -78,13 +78,15 @@ BROWSER_RECOVERY_COUNT=0
 SERVER_RESTART_DELAY=3
 BROWSER_RESTART_DELAY=2
 SERVER_STARTED_AT=0
+BROWSER_ACCEL_PROFILE=normal
+BROWSER_ACCEL_RECOVERY_TRIED=0
 
 write_watchdog_state() {
   reason=${1:-}
   now=$(date +%s)
   tmp="$WATCHDOG_STATE_FILE.tmp.$$"
-  printf '{"serverRestarts":%s,"browserRestarts":%s,"lastReason":"%s","lastRecoveryAt":%s}\n' \
-    "$SERVER_RECOVERY_COUNT" "$BROWSER_RECOVERY_COUNT" "$reason" "$now" >"$tmp"
+  printf '{"serverRestarts":%s,"browserRestarts":%s,"lastReason":"%s","lastRecoveryAt":%s,"browserAccelProfile":"%s"}\n' \
+    "$SERVER_RECOVERY_COUNT" "$BROWSER_RECOVERY_COUNT" "$reason" "$now" "$BROWSER_ACCEL_PROFILE" >"$tmp"
   chmod 600 "$tmp" 2>/dev/null || true
   mv -f "$tmp" "$WATCHDOG_STATE_FILE"
 }
@@ -134,9 +136,40 @@ for candidate in chromium chromium-browser; do
 done
 [ -n "$BROWSER" ] || { printf 'Chromium was not found.\n' >&2; exit 1; }
 
+clear_chromium_gpu_caches() {
+  for name in GPUCache GrShaderCache ShaderCache DawnCache; do
+    rm -rf "$DATA_DIR/chromium/$name" 2>/dev/null || true
+  done
+}
+
+heartbeat_graphics_state() {
+  [ -f "$KIOSK_HEARTBEAT_FILE" ] || { printf unknown; return; }
+  python3 - "$KIOSK_HEARTBEAT_FILE" <<'PY' 2>/dev/null || printf unknown
+import json, sys
+try:
+    with open(sys.argv[1], 'r', encoding='utf-8') as fh:
+        row=json.load(fh)
+    graphics=((row.get('frontendPerformance') or {}).get('graphics') or {})
+    if graphics.get('software') is True:
+        print('software', end='')
+    elif graphics.get('webgl') is True or graphics.get('webgl2') is True:
+        print('hardware', end='')
+    elif graphics:
+        print('software', end='')
+    else:
+        print('unknown', end='')
+except Exception:
+    print('unknown', end='')
+PY
+}
+
 launch_browser() {
   rm -f "$KIOSK_HEARTBEAT_FILE" 2>/dev/null || true
   BROWSER_STARTED_AT=$(date +%s)
+  BROWSER_ACCEL_FLAGS=""
+  if [ "$BROWSER_ACCEL_PROFILE" = "recovery" ]; then
+    BROWSER_ACCEL_FLAGS="--ignore-gpu-blocklist --enable-features=CanvasOopRasterization --use-gl=egl"
+  fi
   CURRENT_BROWSER_MODE=$(read_display_mode)
   if [ "$CURRENT_BROWSER_MODE" = "windowed" ]; then
     SCREEN_RES=$(xrandr --current 2>/dev/null | awk '/\*/{print $1; exit}' || true)
@@ -152,6 +185,9 @@ launch_browser() {
       --window-size="$WINDOW_W,$WINDOW_H" \
       --window-position="$WINDOW_X,$WINDOW_Y" \
       --ozone-platform=wayland \
+      --enable-gpu-rasterization \
+      --enable-zero-copy \
+      $BROWSER_ACCEL_FLAGS \
       --noerrdialogs \
       --disable-session-crashed-bubble \
       --disable-background-timer-throttling \
@@ -169,6 +205,9 @@ launch_browser() {
       --kiosk \
       --start-maximized \
       --ozone-platform=wayland \
+      --enable-gpu-rasterization \
+      --enable-zero-copy \
+      $BROWSER_ACCEL_FLAGS \
       --noerrdialogs \
       --disable-infobars \
       --disable-session-crashed-bubble \
@@ -235,6 +274,24 @@ while :; do
       [ "$BROWSER_RESTART_DELAY" -le 30 ] || BROWSER_RESTART_DELAY=30
       launch_browser
     elif [ "$DASHBOARD_KIOSK_WATCHDOG" = "1" ]; then
+      NOW=$(date +%s)
+      if [ "$BROWSER_ACCEL_RECOVERY_TRIED" = "0" ] && [ $((NOW - BROWSER_STARTED_AT)) -ge 30 ]; then
+        GRAPHICS_STATE=$(heartbeat_graphics_state)
+        if [ "$GRAPHICS_STATE" = "software" ]; then
+          BROWSER_ACCEL_RECOVERY_TRIED=1
+          BROWSER_ACCEL_PROFILE=recovery
+          BROWSER_RECOVERY_COUNT=$((BROWSER_RECOVERY_COUNT + 1))
+          write_watchdog_state "browser-software-graphics"
+          printf 'LibreDisplay detected software Chromium graphics; clearing GPU caches and retrying with the Pi acceleration recovery profile.\n' >&2
+          kill "$BROWSER_PID" 2>/dev/null || true
+          wait "$BROWSER_PID" 2>/dev/null || true
+          BROWSER_PID=""
+          clear_chromium_gpu_caches
+          launch_browser
+          sleep 2
+          continue
+        fi
+      fi
       NOW=$(date +%s)
       TIMEOUT=$DASHBOARD_KIOSK_HEARTBEAT_TIMEOUT
       case "$TIMEOUT" in *[!0-9]*|'') TIMEOUT=150 ;; esac

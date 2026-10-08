@@ -197,6 +197,8 @@ while :; do
     --kiosk \
     --start-maximized \
     --ozone-platform=wayland \
+    --enable-gpu-rasterization \
+    --enable-zero-copy \
     --noerrdialogs \
     --disable-infobars \
     --disable-session-crashed-bubble \
