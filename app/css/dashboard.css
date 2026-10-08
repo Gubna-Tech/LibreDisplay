@@ -3013,14 +3013,14 @@ body.ld-deadhead-subtle .bg-layer::after{opacity:calc(.5 * var(--ld-deadhead-bg-
 .block-editor-section .integration-field-help{display:none}
 @media(max-width:700px){.block-editor-section-body{grid-template-columns:1fr}.block-editor-section-body>.block-field.full{grid-column:auto}.block-editor-section>summary{min-height:48px;padding:9px 10px}.block-editor-section-copy small{font-size:9px}}
 
-/* Raspberry Pi frame-budget guardrails. Pi 3-class hardware is static-first;
-   Pi 4 keeps compositor work simple and lets the canvas governor earn higher FPS. */
-html.ld-pi3-device #weather-effects-overlay.weather-fx-pi-static *,
-html.ld-pi3-device .ld-weather-glyph *{animation:none!important;transition:none!important;filter:none!important;-webkit-filter:none!important;box-shadow:none!important}
-html.ld-pi3-device #weather-effects-overlay.weather-fx-pi-static::before,
-html.ld-pi3-device #weather-effects-overlay.weather-fx-pi-static::after{animation:none!important;filter:none!important}
-html.ld-pi3-device #weather-effects-overlay.weather-fx-pi-static .weather-fx-lightning-bolt,
-html.ld-pi3-device #weather-effects-overlay.weather-fx-pi-static .weather-fx-splash{display:none!important}
+/* Raspberry Pi frame-budget guardrails reduce compositor cost without overriding an explicit animation enable. */
+html.ld-pi3-static #weather-effects-overlay *,
+html.ld-pi3-static .ld-weather-glyph *{animation:none!important;transition:none!important;filter:none!important;-webkit-filter:none!important;box-shadow:none!important}
+html.ld-pi3-static #weather-effects-overlay::before,
+html.ld-pi3-static #weather-effects-overlay::after{animation:none!important;filter:none!important}
+html.ld-pi3-static #weather-effects-overlay .weather-fx-lightning-bolt,
+html.ld-pi3-static #weather-effects-overlay .weather-fx-splash{display:none!important}
+html.ld-pi3-device:not(.ld-pi3-static) #weather-effects-overlay :is(.weather-fx-bird,.weather-fx-dog-v2,.weather-fx-cloud-mass,.weather-fx-fog-bank){filter:none!important;box-shadow:none!important}
 html.ld-pi4-device #weather-effects-overlay{contain:strict}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-pi-canvas{transform:translateZ(0)}
 /* Pi 4 clear-weather wildlife compositor budget: keep whole-animal travel and primary wing/stride motion while freezing secondary anatomy. */
