@@ -1480,6 +1480,12 @@ const DASHBOARD_EVENT_HANDLERS=Object.freeze({
   h253:function(event){filterBlockCatalog(this.value)},
   h254:function(event){closeBlockConfig()},
   h255:function(event){saveBlockConfig()},
+  h256:function(event){LibreDisplayRuntime.getModule('layout').setCurrentWeatherPartGeometry('x',this.value)},
+  h257:function(event){LibreDisplayRuntime.getModule('layout').setCurrentWeatherPartGeometry('y',this.value)},
+  h258:function(event){LibreDisplayRuntime.getModule('layout').setCurrentWeatherPartGeometry('w',this.value)},
+  h259:function(event){LibreDisplayRuntime.getModule('layout').setCurrentWeatherPartGeometry('z',this.value)},
+  h260:function(event){LibreDisplayRuntime.getModule('layout').resetCurrentWeatherPartArrangement()},
+  h261:function(event){LibreDisplayRuntime.getModule('layout').resetCurrentWeatherArrangement()},
 });
 const DASHBOARD_DELEGATED_EVENTS=Object.freeze(['click','input','change','keydown','dragstart','dragend','dragover','drop']);
 function delegatedEventElement(event,attr){const target=event?.target;return target&&typeof target.closest==='function'?target.closest('['+attr+']'):null;}

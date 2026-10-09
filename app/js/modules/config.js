@@ -82,7 +82,7 @@ let cfg = {
   calendarScrollMode:'off',
   calendarScrollSpeed:12,
   layoutMode:'default',layoutSurfaceStyle:'clean',layoutPresetStyle:'',
-  currentWeatherLayout:'stacked',currentWeatherGapPx:10,currentWeatherMoonWidthPx:184,
+  currentWeatherLayout:'stacked',currentWeatherGapPx:10,currentWeatherMoonWidthPx:184,currentWeatherPartLayout:{},
   layoutGridPx:20,
   layoutSnap:true,
   layoutBlocks:{},
@@ -292,10 +292,11 @@ function ensureCfgDefaults(){
   if(!cfg.layoutBlocks||typeof cfg.layoutBlocks!=='object'||Array.isArray(cfg.layoutBlocks))cfg.layoutBlocks={};
   if(!cfg.layoutContentScale||typeof cfg.layoutContentScale!=='object'||Array.isArray(cfg.layoutContentScale))cfg.layoutContentScale={};
   for(const key of ['calendar','current','clock','details','daily','hourly','alerts'])cfg.layoutContentScale[key]=Math.min(200,Math.max(50,Number(cfg.layoutContentScale[key])||100));
-  cfg.currentWeatherLayout=['stacked','split','split-reverse','compact'].includes(cfg.currentWeatherLayout)?cfg.currentWeatherLayout:'stacked';
+  cfg.currentWeatherLayout=['stacked','split','split-reverse','compact','free'].includes(cfg.currentWeatherLayout)?cfg.currentWeatherLayout:'stacked';
   const currentWeatherGap=Number(cfg.currentWeatherGapPx),currentWeatherMoonWidth=Number(cfg.currentWeatherMoonWidthPx);
   cfg.currentWeatherGapPx=Number.isFinite(currentWeatherGap)?Math.min(28,Math.max(0,currentWeatherGap)):10;
   cfg.currentWeatherMoonWidthPx=Number.isFinite(currentWeatherMoonWidth)?Math.min(260,Math.max(112,currentWeatherMoonWidth)):184;
+  const currentPartKeys=new Set(['locationLabel','icon','temperature','feelsLike','condition','moonIcon','moonIllumination','moonPhase','moonEvent']);const currentPartRaw=cfg.currentWeatherPartLayout&&typeof cfg.currentWeatherPartLayout==='object'&&!Array.isArray(cfg.currentWeatherPartLayout)?cfg.currentWeatherPartLayout:{};const currentPartOut={};for(const [key,row] of Object.entries(currentPartRaw)){if(!currentPartKeys.has(key)||!row||typeof row!=='object'||Array.isArray(row))continue;const x=Math.min(100,Math.max(0,Number(row.x)||0)),y=Math.min(100,Math.max(0,Number(row.y)||0)),w=Math.min(100,Math.max(4,Number(row.w)||20)),z=Math.min(99,Math.max(0,Math.round(Number(row.z)||1)));currentPartOut[key]={x,y,w,z};}cfg.currentWeatherPartLayout=currentPartOut;if(cfg.currentWeatherLayout==='free'&&!Object.keys(currentPartOut).length)cfg.currentWeatherLayout='stacked';
   if(!cfg.layoutElementStyle||typeof cfg.layoutElementStyle!=='object'||Array.isArray(cfg.layoutElementStyle))cfg.layoutElementStyle={};
   const layoutStyleKeys=['calendar','current','clock','details','daily','hourly','alerts'];
   for(const key of layoutStyleKeys){
