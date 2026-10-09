@@ -227,8 +227,12 @@ function applySettings(){
     else backgrounds.disableBackgroundSource();
   };
   if(cfg.backgroundSource!=='none'&&cfg.backgroundStartupPriority!==false){
-    const backgroundStartAt=Date.now()+Math.max(0,Number(cfg.backgroundStartupDelayMs)||0);
-    void (async()=>{try{await backgrounds.restoreLastBackground(true);}catch(_e){}setTimeout(loadBackgroundSource,Math.max(0,backgroundStartAt-Date.now()));})();
+    const backgroundDelay=Math.max(0,Number(cfg.backgroundStartupDelayMs)||0);
+    // Cached restore is a visual head start only. Never make the live source wait on
+    // CacheStorage/image decode: slower Pi 3 browsers can otherwise sit indefinitely
+    // with no background when a cache operation stalls.
+    setTimeout(loadBackgroundSource,backgroundDelay);
+    void backgrounds.restoreLastBackground(true).catch(()=>false);
   }else{
     if(cfg.backgroundSource!=='none')void backgrounds.restoreLastBackground(true);
     loadBackgroundSource();

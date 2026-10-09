@@ -540,7 +540,7 @@ MANIFEST={"id":"grateful-dead",
                'type': 'checkbox',
                'default': True,
                'section': 'Quotes',
-               'sectionHelp': 'Rotate a large mix of band-member quotes and short fan-favorite lyric snippets. Mixed mode deliberately gives member quotes and lyrics equal airtime, with ordering, member filter, timing, and attribution controlled independently.'},
+               'sectionHelp': 'Rotate the full sourced quote and lyric catalog without repeating an item until the active pool is exhausted. Ordering, member filter, timing, and attribution are controlled independently.'},
               {'key': 'quoteContent',
                'label': 'Quote reel content',
                'type': 'select',
@@ -770,7 +770,7 @@ BASE_LYRIC_SNIPPETS=[
     {"key":"lyrics","kind":"lyric","member":"Franklin's Tower","quote":"May the four winds blow you safely home","source":"Dead.net lyrics","url":"https://www.dead.net/song/franklins-tower"},
     {"key":"lyrics","kind":"lyric","member":"Terrapin Station","quote":"Some rise, some fall, some climb to get to Terrapin","source":"Dead.net lyrics","url":"https://www.dead.net/song/terrapin-station"},
     {"key":"lyrics","kind":"lyric","member":"Scarlet Begonias","quote":"The sky was yellow and the sun was blue","source":"Dead.net lyrics","url":"https://www.dead.net/song/scarlet-begonias"},
-    {"key":"lyrics","kind":"lyric","member":"Ramble On Rose","quote":"The grass ain't greener on either side of the hill","source":"Fan-favorite line · Ramble On Rose","url":"https://www.dead.net/song/ramble-rose"},
+    {"key":"lyrics","kind":"lyric","member":"Ramble On Rose","quote":"The grass ain't green, the wine ain't sweeter, either side of the hill","source":"Fan-favorite line · Ramble On Rose","url":"https://www.dead.net/song/ramble-rose"},
     {"key":"lyrics","kind":"lyric","member":"Ripple","quote":"Let there be songs to fill the air","source":"Dead.net lyrics","url":"https://www.dead.net/song/ripple"},
     {"key":"lyrics","kind":"lyric","member":"Touch of Grey","quote":"I will get by, I will survive","source":"Dead.net lyrics","url":"https://www.dead.net/song/touch-grey"},
     {"key":"lyrics","kind":"lyric","member":"He's Gone","quote":"Nothing left to do but smile, smile, smile","source":"Dead.net lyrics","url":"https://www.dead.net/song/hes-gone"},
@@ -2189,7 +2189,7 @@ def _fallback_today(today):
 
 def _custom_quotes(value):
     out=[]
-    for line in str(value or '').splitlines()[:30]:
+    for line in str(value or '').splitlines()[:1000]:
         parts=[x.strip() for x in line.split('|',2)]
         if len(parts)<2 or not parts[0] or not parts[1]: continue
         url=parts[2] if len(parts)>2 and re.match(r'^https?://',parts[2],re.I) else ''
@@ -2234,24 +2234,13 @@ def _quote_word_count(value):
     return len(re.findall(r"\b[\w’'-]+\b",str(value or '')))
 
 def _quote_has_standalone_context(row):
-    # Keep the unattended built-in reel passage-first: favor excerpts with
-    # enough surrounding wording to make sense without a long explanatory lens.
-    # User-supplied passages remain unrestricted by this minimum.
+    # Keep the complete sourced catalog available for unattended variety. Longer
+    # passages remain preferable, but excluding the short sourced excerpts shrank
+    # the real rotation to only a few dozen cards and caused constant repeats.
     if str(row.get('source') or '')=='Personal quote pack' or str(row.get('key') or '')=='custom':
         return True
     words=_quote_word_count(row.get('quote'))
-    if str(row.get('kind') or 'quote')=='lyric':
-        return words >= 10
-    if words >= 10:
-        return True
-    # Keep every represented band member in the unattended quote cycle. If a
-    # member has no 10-word built-in quote, admit only that member's longest
-    # available quote (and only when it is still a substantial 9-word passage).
-    key=str(row.get('key') or '').lower()
-    if key in MEMBER_ORDER and words >= 9:
-        longest=max((_quote_word_count(x.get('quote')) for x in MEMBER_QUOTES if str(x.get('key') or '').lower()==key),default=0)
-        return words==longest
-    return False
+    return words >= (5 if str(row.get('kind') or 'quote')=='lyric' else 5)
 
 def _quote_rows(settings,today):
     rows=[_contextualize_quote_row(x) for x in (QUOTES+EXTRA_LYRIC_SNIPPETS+_custom_quotes(settings.get('customQuotes'))) if _quote_has_standalone_context(x)]
@@ -2285,14 +2274,15 @@ def _quote_rows(settings,today):
     if member=='all': quote_rows=_balanced_member_quote_rows(quote_rows,today,order)
     if content=='quotes': return quote_rows
     if content=='lyrics': return lyric_rows
-    # Mixed deliberately alternates categories so member quotes and lyric snippets
-    # receive equal unattended-display airtime regardless of the pool sizes.
+    # Mixed alternates while both categories have material, then exhausts the
+    # larger category exactly once. No source passage is duplicated just to make
+    # the categories numerically equal.
     if not quote_rows: return lyric_rows
     if not lyric_rows: return quote_rows
-    mixed=[];count=min(len(quote_rows),len(lyric_rows))
+    mixed=[];count=max(len(quote_rows),len(lyric_rows))
     for i in range(count):
-        mixed.append(quote_rows[i%len(quote_rows)])
-        mixed.append(lyric_rows[i%len(lyric_rows)])
+        if i < len(quote_rows): mixed.append(quote_rows[i])
+        if i < len(lyric_rows): mixed.append(lyric_rows[i])
     return mixed
 
 def _favorite_score(show, favorites):

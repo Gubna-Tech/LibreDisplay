@@ -273,8 +273,8 @@ function loadBackgroundMedia(layer,remoteUrl,priority='low'){
   if(layer.dataset.remoteUrl===remoteUrl&&layer.dataset.mediaKind===kind&&backgroundMediaHasVisual(layer))return Promise.resolve(true);
   deactivateBackgroundLayerMedia(layer,false);if(kind==='video')img.removeAttribute('src');else{video.removeAttribute('src');video.load?.();}
   layer.dataset.remoteUrl=remoteUrl;layer.dataset.mediaKind=kind;
-  if(kind==='video')return new Promise(resolve=>{let settled=false;const done=ok=>{if(settled)return;settled=true;video.onloadeddata=video.onerror=null;resolve(!!ok&&video.readyState>=2&&video.videoWidth>0);};video.style.display='block';img.style.display='none';video.muted=true;video.loop=true;video.playsInline=true;video.autoplay=false;video.preload='auto';video.onloadeddata=()=>done(true);video.onerror=()=>done(false);video.src=assetUrl;video.load();if(video.readyState>=2)setTimeout(()=>done(true),0);});
-  return new Promise(resolve=>{let settled=false;const done=async ok=>{if(settled)return;settled=true;img.onload=img.onerror=null;if(ok&&kind==='image'&&typeof img.decode==='function'){try{await img.decode();}catch(_e){}}resolve(!!ok&&img.naturalWidth>0);};video.style.display='none';img.style.display='block';try{img.fetchPriority=priority;}catch(_e){}img.onload=()=>done(true);img.onerror=()=>done(false);img.src=assetUrl;if(img.complete)setTimeout(()=>done(img.naturalWidth>0),0);});
+  if(kind==='video')return new Promise(resolve=>{let settled=false,timeout=0;const done=ok=>{if(settled)return;settled=true;if(timeout)clearTimeout(timeout);video.onloadeddata=video.onerror=null;resolve(!!ok&&video.readyState>=2&&video.videoWidth>0);};video.style.display='block';img.style.display='none';video.muted=true;video.loop=true;video.playsInline=true;video.autoplay=false;video.preload='auto';video.onloadeddata=()=>done(true);video.onerror=()=>done(false);timeout=setTimeout(()=>done(backgroundMediaHasVisual(layer)),20000);video.src=assetUrl;video.load();if(video.readyState>=2)setTimeout(()=>done(true),0);});
+  return new Promise(resolve=>{let settled=false,timeout=0;const done=async ok=>{if(settled)return;settled=true;if(timeout)clearTimeout(timeout);img.onload=img.onerror=null;if(ok&&kind==='image'&&typeof img.decode==='function'){try{await Promise.race([img.decode(),new Promise(r=>setTimeout(r,2500))]);}catch(_e){}}resolve(!!ok&&img.naturalWidth>0);};video.style.display='none';img.style.display='block';try{img.fetchPriority=priority;}catch(_e){}img.onload=()=>done(true);img.onerror=()=>done(false);timeout=setTimeout(()=>done(backgroundMediaHasVisual(layer)),20000);img.src=assetUrl;if(img.complete)setTimeout(()=>done(img.naturalWidth>0),0);});
 }
 LibreDisplayRuntime.exposeModule('backgrounds',{VIDEO_EXTENSIONS,MJPEG_EXTENSIONS,MOTION_IMAGE_EXTENSIONS,backgroundMediaPath,backgroundMediaKind,backgroundMediaIsMotion,backgroundMediaAssetUrl,backgroundLayerMedia,backgroundMediaHasVisual,resetBackgroundLayerMedia,activateBackgroundLayerMedia,deactivateBackgroundLayerMedia,loadBackgroundMedia},{},{globalFunctions:[],globalStates:[]});
 }
@@ -310,7 +310,7 @@ function backgroundRuntimeEvent(kind,detail={}){const row={kind:String(kind||'ev
 function backgroundRuntimeSnapshot(){return {...backgroundRuntime,recentEvents:backgroundRuntime.recentEvents.slice(-16)};}
 function pi4BackgroundRuntime(){try{return LibreDisplayRuntime.getModule('performance')?.frontendCapabilities?.().pi4Class===true;}catch(_e){return false;}}
 function runBackgroundIdleTask(task,{timeout=4500,delay=0}={}){const invoke=()=>{if(typeof requestIdleCallback==='function')requestIdleCallback(()=>task(),{timeout});else setTimeout(task,0);};if(delay>0)setTimeout(invoke,delay);else invoke();}
-function backgroundSourceFingerprint(source=cfg){
+function backgroundAwait(promise,timeoutMs=3500,fallback=null){return Promise.race([Promise.resolve(promise).catch(()=>fallback),new Promise(resolve=>setTimeout(()=>resolve(fallback),timeoutMs))]);}function backgroundSourceFingerprint(source=cfg){
   const kind=String(source?.backgroundSource||'none');
   if(kind==='stock')return ['stock',String(source?.stockCategory||''),String(source?.stockQuery||''),String(source?.stockResolution||'')].join('|');
   if(kind==='google')return ['google',String(source?.photosUrl||'').trim()].join('|');
@@ -336,13 +336,13 @@ async function clearLastBackgroundAsset(){
 async function loadCachedLastBackground(layer,remoteUrl){
   if(!layer||!remoteUrl||!('caches' in globalThis))return false;
   try{
-    if(backgroundMediaKind(remoteUrl)!=='image')return false;const assetUrl=backgroundAssetUrl(remoteUrl),cache=await caches.open(LAST_BACKGROUND_CACHE),res=await cache.match(assetUrl);
+    if(backgroundMediaKind(remoteUrl)!=='image')return false;const assetUrl=backgroundAssetUrl(remoteUrl),cache=await backgroundAwait(caches.open(LAST_BACKGROUND_CACHE),2200,null);if(!cache)return false;const res=await backgroundAwait(cache.match(assetUrl),2200,null);
     if(!res||!res.ok)return false;
-    const blob=await res.blob();if(!blob.size||!String(blob.type||'image/').startsWith('image/'))return false;
+    const blob=await backgroundAwait(res.blob(),2500,null);if(!blob?.size||!String(blob.type||'image/').startsWith('image/'))return false;
     const img=backgroundLayerImage(layer);if(!img)return false;
     if(lastBackgroundObjectUrl){try{URL.revokeObjectURL(lastBackgroundObjectUrl);}catch(_e){}}
     lastBackgroundObjectUrl=URL.createObjectURL(blob);
-    const ok=await new Promise(resolve=>{let settled=false;const finish=async good=>{if(settled)return;settled=true;img.onload=null;img.onerror=null;if(good&&typeof img.decode==='function'){try{await img.decode();}catch(_e){}}resolve(!!good&&img.naturalWidth>0);};img.onload=()=>finish(true);img.onerror=()=>finish(false);layer.dataset.remoteUrl=remoteUrl;img.src=lastBackgroundObjectUrl;if(img.complete)setTimeout(()=>finish(img.naturalWidth>0),0);});
+    const ok=await new Promise(resolve=>{let settled=false,timeout=0;const finish=async good=>{if(settled)return;settled=true;if(timeout)clearTimeout(timeout);img.onload=null;img.onerror=null;if(good&&typeof img.decode==='function'){try{await backgroundAwait(img.decode(),1800,null);}catch(_e){}}resolve(!!good&&img.naturalWidth>0);};img.onload=()=>finish(true);img.onerror=()=>finish(false);timeout=setTimeout(()=>finish(backgroundMediaHasVisual(layer)),4200);layer.dataset.remoteUrl=remoteUrl;img.src=lastBackgroundObjectUrl;if(img.complete)setTimeout(()=>finish(img.naturalWidth>0),0);});
     return ok;
   }catch(_e){return false;}
 }
@@ -353,7 +353,9 @@ async function restoreLastBackground(cacheOnly=false){
   if(saved.sourceKey&&saved.sourceKey!==backgroundSourceFingerprint(cfg))return false;
   const layer=activeBackgroundLayer();if(!layer)return false;
   let ok=await loadCachedLastBackground(layer,saved.url);
+  if(configApi.bgLastUrl)return false;
   if(!ok&&!cacheOnly)ok=await loadBackgroundIntoLayer(layer,saved.url,'high');
+  if(configApi.bgLastUrl)return false;
   if(ok){layer.style.zIndex='0';await activateBackgroundLayerMedia(layer);layer.classList.add('show');configApi.bgActiveLayerId=layer.id;configApi.bgLastUrl=saved.url;rememberLastBackground(saved.url,false);return true;}
   return false;
 }

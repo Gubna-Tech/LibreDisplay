@@ -1955,18 +1955,11 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 .ld-wx-sun{position:absolute;width:.68em;height:.68em;left:.03em;top:-.01em}
 .ld-wx-sun::before{content:"";position:absolute;inset:-.15em;border-radius:50%;background:repeating-conic-gradient(from 0deg,#ffe38a 0 9deg,transparent 9deg 27deg);-webkit-mask:radial-gradient(circle,transparent 0 45%,#000 47% 69%,transparent 71%);mask:radial-gradient(circle,transparent 0 45%,#000 47% 69%,transparent 71%);animation:ldWxSunRays 14s linear infinite}
 .ld-wx-sun i{position:absolute;inset:.075em;border-radius:50%;background:radial-gradient(circle at 36% 31%,#fff8cc 0 12%,#ffdc62 36%,#f3a51c 100%);box-shadow:0 0 .16em rgba(255,198,54,.42);animation:ldWxSunPulse 4.8s ease-in-out infinite alternate}
-.ld-wx-moon-phase{position:absolute;left:.00em;top:.00em;width:.72em;height:.72em;border-radius:50%;overflow:hidden;z-index:2;background:#eef4ff;border:.035em solid rgba(226,237,255,.92);box-sizing:border-box;box-shadow:inset -.06em -.04em .10em rgba(82,101,128,.22),0 0 .14em rgba(218,232,255,.40)}
-.ld-wx-moon-phase::after{content:"";position:absolute;inset:-.02em;border-radius:50%;background:#273343}
-.ld-wx-moon-phase i{position:absolute;left:.16em;top:.18em;width:.09em;height:.09em;border-radius:50%;background:rgba(124,143,169,.26);box-shadow:.25em .14em 0 -.015em rgba(124,143,169,.20);z-index:3}
-.ld-wx-moon-phase-0{background:#273343;border-color:rgba(183,202,226,.55);box-shadow:inset -.04em -.03em .09em rgba(0,0,0,.35),0 0 .12em rgba(199,218,244,.26)}.ld-wx-moon-phase-0::after,.ld-wx-moon-phase-2::after,.ld-wx-moon-phase-4::after,.ld-wx-moon-phase-6::after{display:none}
-.ld-wx-moon-phase-1{background:#273343}.ld-wx-moon-phase-1::after{background:#eef4ff;transform:translateX(.30em)}
-.ld-wx-moon-phase-2{background:linear-gradient(90deg,#273343 0 49%,#eef4ff 51% 100%)}
-.ld-wx-moon-phase-3{background:#eef4ff}.ld-wx-moon-phase-3::after{transform:translateX(-.30em)}
-.ld-wx-moon-phase-4{background:#eef4ff}
-.ld-wx-moon-phase-5{background:#eef4ff}.ld-wx-moon-phase-5::after{transform:translateX(.30em)}
-.ld-wx-moon-phase-6{background:linear-gradient(90deg,#eef4ff 0 49%,#273343 51% 100%)}
-.ld-wx-moon-phase-7{background:#273343}.ld-wx-moon-phase-7::after{background:#eef4ff;transform:translateX(-.30em)}
-.ld-weather-partly.ld-weather-night .ld-wx-moon-phase{left:-.01em;top:-.02em;width:.74em;height:.74em}.ld-weather-partly.ld-weather-night .ld-wx-cloud{left:.47em;top:.43em;width:.66em;height:.27em}
+.ld-wx-moon-phase{position:absolute;left:-.01em;top:-.03em;width:.80em;height:.80em;border-radius:50%;overflow:hidden;z-index:2;background:#eef4ff;border:.035em solid rgba(226,237,255,.96);box-sizing:border-box;box-shadow:inset -.06em -.04em .10em rgba(82,101,128,.20),0 0 .17em rgba(218,232,255,.48)}
+.ld-wx-moon-phase::after{content:"";position:absolute;inset:-.018em;border-radius:50%;background:#243142;transform:translateX(var(--moon-shadow-x,0%));box-shadow:inset .04em 0 .08em rgba(0,0,0,.20);z-index:2}
+.ld-wx-moon-phase i{position:absolute;left:.18em;top:.20em;width:.09em;height:.09em;border-radius:50%;background:rgba(124,143,169,.22);box-shadow:.27em .15em 0 -.015em rgba(124,143,169,.18);z-index:3}
+.ld-weather-partly.ld-weather-night .ld-wx-moon-phase{left:-.03em;top:-.05em;width:.82em;height:.82em}.ld-weather-partly.ld-weather-night .ld-wx-cloud{left:.50em;top:.45em;width:.64em;height:.26em}
+.ld-wx-cloud{left:.47em;top:.43em;width:.66em;height:.27em}
 .ld-wx-cloud{position:absolute;width:.84em;height:.35em;left:.25em;top:.33em;border-radius:.22em;background:linear-gradient(#eef4f6,#c9d4db);box-shadow:inset 0 -.07em .08em rgba(92,111,124,.18);animation:ldWxCloudDrift 5.5s ease-in-out infinite alternate}
 .ld-wx-cloud::before,.ld-wx-cloud::after,.ld-wx-cloud i{content:"";position:absolute;border-radius:50%;background:inherit}
 .ld-wx-cloud::before{width:.40em;height:.40em;left:.09em;bottom:.08em}
@@ -1979,7 +1972,11 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 .ld-wx-precip{position:absolute;left:.18em;right:.02em;top:.56em;height:.40em;overflow:hidden}
 .ld-wx-precip i{position:absolute;top:-.04em;left:calc(.05em + var(--i)*.13em)}
 .ld-wx-drop{width:.065em;height:.28em;border-radius:999px;background:linear-gradient(#e7f7ff 0%,#74ccff 42%,#2ca8ec 100%);transform:rotate(9deg);opacity:.96;animation:ldWxDrop 1.05s linear infinite;animation-delay:calc(var(--i)*-.18s)}
+.ld-weather-light .ld-wx-drop{width:.052em;height:.20em;opacity:.88}.ld-weather-heavy .ld-wx-drop{width:.078em;height:.34em;opacity:1}
 .ld-wx-flake{width:.075em;height:.075em;border-radius:50%;background:#fff;box-shadow:0 0 .06em rgba(255,255,255,.65);animation:ldWxSnow 2.6s linear infinite;animation-delay:calc(var(--i)*-.36s)}
+.ld-weather-light .ld-wx-flake{width:.065em;height:.065em}.ld-weather-heavy .ld-wx-flake{width:.090em;height:.090em}
+.ld-wx-hail{top:.61em}.ld-wx-hail .ld-wx-hailstone{position:absolute;top:calc(.02em + (var(--i) % 2)*.08em);left:calc(.08em + var(--i)*.17em);width:.095em;height:.095em;border-radius:50%;background:radial-gradient(circle at 34% 28%,#fff 0 28%,#d8efff 52%,#92bfd8 100%);box-shadow:0 .02em .04em rgba(30,58,78,.32)}
+.ld-wx-wind{position:absolute;left:.03em;top:.67em;width:.48em;height:.24em;z-index:7}.ld-wx-wind i{position:absolute;left:0;height:.045em;border-radius:999px;background:linear-gradient(90deg,transparent,rgba(225,246,255,.96) 24%,rgba(155,215,244,.95));box-shadow:0 .02em .04em rgba(24,78,112,.25)}.ld-wx-wind i:nth-child(1){top:0;width:.46em}.ld-wx-wind i:nth-child(2){top:.085em;left:.08em;width:.34em}.ld-wx-wind i:nth-child(3){top:.17em;left:.02em;width:.27em}
 .ld-wx-bolt{position:absolute;left:.55em;top:.55em;width:.18em;height:.34em;background:linear-gradient(#fff4a2,#ffc928);clip-path:polygon(55% 0,100% 0,72% 42%,100% 42%,23% 100%,42% 55%,10% 55%);filter:drop-shadow(0 0 .08em rgba(255,226,90,.65));animation:ldWxBolt 3.2s steps(1,end) infinite}
 .ld-wx-fog{position:absolute;inset:.18em .04em .06em .04em;display:flex;flex-direction:column;justify-content:center;gap:.11em}
 .ld-wx-fog i{display:block;height:.06em;border-radius:999px;background:linear-gradient(90deg,transparent,#d9e4e8 18%,#f4f8f9 50%,#d9e4e8 82%,transparent);animation:ldWxFog 3.8s ease-in-out infinite alternate}
@@ -2015,7 +2012,7 @@ body.ld-weather-no-clouds .ld-wx-cloud{display:none!important}
 body.ld-weather-no-fog .ld-wx-fog{display:none!important}
 body.ld-weather-no-sun .ld-wx-sun,body.ld-weather-no-sun .ld-wx-moon-phase{display:none!important}
 body.ld-weather-no-lightning .ld-wx-bolt{display:none!important}
-body.ld-weather-no-wind .ld-wx-cloud,body.ld-weather-no-wind .ld-wx-fog i{animation-play-state:paused!important}
+body.ld-weather-no-wind .ld-wx-cloud,body.ld-weather-no-wind .ld-wx-fog i{animation-play-state:paused!important}body.ld-weather-no-wind .ld-wx-wind{display:none!important}
 .weather-fx-no-wind.weather-fx-cloud .weather-fx-particle,.weather-fx-no-wind.weather-fx-fog .weather-fx-particle{animation-play-state:paused!important}
 .weather-fx-no-wind.weather-fx-cloud::before,.weather-fx-no-wind.weather-fx-partly::before,.weather-fx-no-wind.weather-fx-rain::before,.weather-fx-no-wind.weather-fx-snow::before,.weather-fx-no-wind.weather-fx-storm::before,.weather-fx-no-wind.weather-fx-fog::before{animation-play-state:paused!important}
 html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-overlay,html.ld-reduce-motion body.ld-weather-respect-reduced-motion .ld-weather-glyph *{animation:none!important}
@@ -3587,3 +3584,39 @@ html.ld-pi4-device .weather-fx-owl .weather-fx-bird-art{will-change:auto}
 .weather-fx-leaf-oval{border-radius:92% 18% 86% 22%}
 .weather-fx-leaf-pointed{border-radius:85% 12% 88% 14%;clip-path:polygon(0 51%,18% 18%,58% 4%,100% 48%,64% 93%,22% 82%)}
 .weather-fx-leaf-lobed{border-radius:35%;clip-path:polygon(0 52%,14% 34%,9% 15%,31% 24%,43% 4%,55% 26%,78% 14%,74% 36%,100% 49%,76% 62%,82% 86%,57% 76%,44% 97%,34% 74%,12% 84%,17% 63%)}
+
+.weather-fx-dog-v2.dog-state-rest .dogv2-pose-stage{transform:translateY(6px) rotate(-.6deg)!important;animation:none!important}
+.weather-fx-dog-v2.dog-state-rest .dogv2-body-group{transform:translateY(5px) rotate(-.5deg)!important}
+.weather-fx-dog-v2.dog-state-rest .dogv2-rest-limbs{transform:translate(4px,3px) rotate(1deg)!important}
+.weather-fx-dog-v2.dog-state-rest .dogv2-rest-limbs-far{transform:translate(0,5px) rotate(-2deg)!important}
+.weather-fx-dog-v2.dog-state-rest .dogv2-head-group{transform:translate(-3px,10px) rotate(9deg)!important}
+.weather-fx-dog-v2.dog-state-sleep .dogv2-pose-stage{transform:translateY(8px) rotate(-1deg)!important;animation:none!important}
+.weather-fx-dog-v2.dog-state-sleep .dogv2-body-group{transform:translateY(7px) rotate(-1deg)!important;animation:ld11031DogBreath 5.8s ease-in-out infinite!important}
+.weather-fx-dog-v2.dog-state-sleep .dogv2-rest-limbs{transform:translate(5px,5px) rotate(2deg)!important}
+.weather-fx-dog-v2.dog-state-sleep .dogv2-rest-limbs-far{transform:translate(0,7px) rotate(-3deg)!important}
+.weather-fx-dog-v2.dog-state-sleep .dogv2-head-group{transform:translate(-14px,17px) rotate(17deg)!important}
+@keyframes ld11031DogBreath{0%,100%{transform:translateY(7px) rotate(-1deg) scaleY(1)}50%{transform:translateY(7.5px) rotate(-.8deg) scaleY(1.014)}}
+
+.weather-fx-dog-v2.dog-state-stretch .dogv2-body-group{transform:translate(-2px,-2px) rotate(-5deg)}
+.weather-fx-dog-v2.dog-state-stretch .dogv2-head-group{transform:translate(10px,16px) rotate(17deg)}
+.weather-fx-dog-v2.dog-state-stretch .dogv2-leg-front-near,.weather-fx-dog-v2.dog-state-stretch .dogv2-leg-front-far{transform:translate(9px,8px) rotate(28deg)}
+.weather-fx-dog-v2.dog-state-stretch .dogv2-leg-rear-near,.weather-fx-dog-v2.dog-state-stretch .dogv2-leg-rear-far{transform:translate(-3px,-3px) rotate(-8deg)}
+.weather-fx-dog-v2.dog-state-stretch .dogv2-tail{animation-duration:.95s}
+.weather-fx-dog-v2.dog-state-scratch .dogv2-body-group{transform:translateY(8px) rotate(3deg)}
+.weather-fx-dog-v2.dog-state-scratch .dogv2-head-group{transform:translate(-2px,1px) rotate(-10deg)}
+.weather-fx-dog-v2.dog-state-scratch .dogv2-leg-rear-near{transform-origin:50% 10%;animation:ld11031DogScratch .42s ease-in-out infinite alternate}
+@keyframes ld11031DogScratch{from{transform:translate(-8px,2px) rotate(48deg)}to{transform:translate(-1px,-7px) rotate(88deg)}}
+.weather-fx-dog-v2.dog-state-survey .dogv2-head-group{animation:ld11031DogSurvey 4.2s ease-in-out infinite}
+.weather-fx-dog-v2.dog-state-survey .dogv2-tail{animation-duration:1.6s}
+@keyframes ld11031DogSurvey{0%,100%{transform:translateY(-3px) rotate(-4deg)}35%{transform:translate(2px,-7px) rotate(-12deg)}70%{transform:translate(-2px,-5px) rotate(7deg)}}
+
+.weather-fx-dog-v2.dog-state-ball-throw .dogv2-ball{opacity:1;animation:ld11031DogBallThrow var(--dog-ball-duration,1.2s) cubic-bezier(.22,.65,.34,1) 1 forwards;transform-origin:50% 82%}
+.weather-fx-dog-v2.dog-state-ball-chase .dogv2-ball{opacity:0!important;animation:none!important}
+.weather-fx-dog-v2.dog-state-ball-carry .dogv2-ball{opacity:1;animation:none!important;width:12px;height:12px;right:7px;left:auto;bottom:67px;transform:rotate(10deg)}
+.weather-fx-dog-v2.dog-facing-left.dog-state-ball-carry .dogv2-ball{left:7px;right:auto;transform:rotate(-10deg)}
+.weather-fx-dog-v2.dog-state-ball-throw .dogv2-head-group{transform:translate(2px,-3px) rotate(-8deg)}
+.weather-fx-dog-v2.dog-state-ball-chase .dogv2-head-group{transform:translate(4px,-2px) rotate(-8deg)}
+.weather-fx-dog-v2.dog-state-ball-chase .dogv2-tail{animation-duration:.65s}
+.weather-fx-dog-v2.dog-state-ball-carry .dogv2-head-group{transform:translate(2px,-1px) rotate(-4deg)}
+.weather-fx-dog-v2.dog-state-ball-carry .dogv2-tail{animation-duration:.85s}
+@keyframes ld11031DogBallThrow{0%{transform:translate3d(0,0,0) rotate(0) scale(1.08,.90)}18%{transform:translate3d(var(--dog-ball-mid-x,42px),-30px,0) rotate(95deg) scale(1)}42%{transform:translate3d(var(--dog-ball-three-quarter-x,66px),0,0) rotate(205deg) scale(1.10,.88)}61%{transform:translate3d(var(--dog-ball-three-quarter-x,66px),-17px,0) rotate(276deg) scale(1)}79%{transform:translate3d(var(--dog-ball-x,82px),0,0) rotate(337deg) scale(1.07,.91)}90%{transform:translate3d(var(--dog-ball-x,82px),-7px,0) rotate(372deg) scale(1)}100%{transform:translate3d(var(--dog-ball-x,82px),0,0) rotate(410deg) scale(1.06,.92)}}
