@@ -64,7 +64,7 @@
     "module": "weather",
     "part": "bundle",
     "path": "/js/modules/weather.js",
-    "lines": 1457,
+    "lines": 1481,
     "functions": 182,
     "bindings": 14,
     "sections": [
@@ -94,8 +94,8 @@
     "module": "backgrounds",
     "part": "bundle",
     "path": "/js/modules/backgrounds.js",
-    "lines": 873,
-    "functions": 70,
+    "lines": 877,
+    "functions": 71,
     "bindings": 3,
     "sections": [
       "/js/backgrounds/google-photos.js",
