@@ -601,6 +601,7 @@ def main(argv=None):
     p = sub.add_parser("restore", help="restore a rollback snapshot")
     p.add_argument("id")
     p.add_argument("--no-reboot", action="store_true")
+    p.add_argument("--start-delay", type=float, default=0.0, help=argparse.SUPPRESS)
     p = sub.add_parser("delete", help="delete a rollback snapshot")
     p.add_argument("id")
     p = sub.add_parser("record-update", help=argparse.SUPPRESS)
@@ -630,6 +631,9 @@ def main(argv=None):
         elif args.command == "verify":
             raw = verify_snapshot(rollback_root / safe_id(args.id)); print(f"Rollback snapshot verified: v{raw.get('fromVersion','unknown')}")
         elif args.command == "restore":
+            delay = max(0.0, min(5.0, float(args.start_delay or 0.0)))
+            if delay:
+                time.sleep(delay)
             return restore_snapshot(args.id, install_dir, rollback_root, no_reboot=args.no_reboot)
         elif args.command == "delete":
             delete_snapshot(args.id, rollback_root)

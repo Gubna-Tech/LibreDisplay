@@ -2353,18 +2353,18 @@ def start_release_rollback(snapshot_id):
     if not capable:
         raise RuntimeError(reason)
     script = PROJECT_ROOT / "scripts" / "release-rollback.py"
-    verify = subprocess.run([sys.executable, str(script), "verify", snapshot_id], cwd=str(PROJECT_ROOT), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60, check=False)
-    if verify.returncode != 0:
-        raise RuntimeError("The selected rollback snapshot failed integrity verification.")
     with ROLLBACK_RUN_LOCK:
-        if ROLLBACK_RUN_STATE.get("state") in {"starting", "running"}:
+        if ROLLBACK_RUN_STATE.get("state") in {"starting", "verifying", "running"}:
             return {"ok": True, **dict(ROLLBACK_RUN_STATE)}
         ROLLBACK_RUN_STATE.clear()
-        ROLLBACK_RUN_STATE.update({"state": "starting", "startedAt": int(time.time()), "targetVersion": row.get("fromVersion") or "", "snapshotId": snapshot_id, "error": ""})
+        ROLLBACK_RUN_STATE.update({"state": "verifying", "startedAt": int(time.time()), "targetVersion": row.get("fromVersion") or "", "snapshotId": snapshot_id, "error": ""})
     ROLLBACK_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     log = ROLLBACK_LOG_PATH.open("w", encoding="utf-8")
     try:
-        proc = subprocess.Popen([sys.executable, str(script), "restore", snapshot_id], cwd=str(PROJECT_ROOT), stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, start_new_session=True, close_fds=True)
+        # The restore command verifies the selected snapshot before it stops the live
+        # runtime or changes files. Keep that potentially expensive integrity pass in
+        # the detached worker so the HTTP request can acknowledge the rollback at once.
+        proc = subprocess.Popen([sys.executable, str(script), "restore", snapshot_id, "--start-delay", "1"], cwd=str(PROJECT_ROOT), stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, start_new_session=True, close_fds=True)
     except Exception:
         log.close()
         with ROLLBACK_RUN_LOCK:
@@ -2372,7 +2372,7 @@ def start_release_rollback(snapshot_id):
         raise
     log.close()
     with ROLLBACK_RUN_LOCK:
-        ROLLBACK_RUN_STATE.update({"state": "running", "pid": int(proc.pid)})
+        ROLLBACK_RUN_STATE.update({"pid": int(proc.pid)})
     threading.Thread(target=_watch_rollback_process, args=(proc,), daemon=True).start()
     return {"ok": True, **rollback_run_status()}
 

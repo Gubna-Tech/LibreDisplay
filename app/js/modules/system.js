@@ -223,7 +223,7 @@ async function monitorReleaseRollback(targetVersion){
         if(versionResponse.status===403&&sawOffline){setReleaseRollbackStatus(`LibreDisplay restarted during rollback to v${targetVersion}, but this remote Owner session expired. Reopen Settings with a fresh pairing link to verify the restored version.`,'warn');return;}
         if(versionResponse.ok){const info=await versionResponse.json().catch(()=>({}));if(info.currentVersion===targetVersion){setReleaseRollbackStatus(`Rollback to v${targetVersion} completed. Reloading Settings…`,'good');await sleepMs(1200);location.reload();return;}if(sawOffline)setReleaseRollbackStatus('LibreDisplay is back online. Verifying the restored version…','warn');}
         const runResponse=await resilientFetch(serverPath('/api/release-rollback-run-status'),{cache:'no-store'});
-        if(runResponse.ok){const run=await runResponse.json().catch(()=>({}));if(run.state==='failed'){setReleaseRollbackStatus(run.error||'Rollback did not complete. Review data/rollback.log.','bad');return;}}
+        if(runResponse.ok){const run=await runResponse.json().catch(()=>({}));if(run.state==='verifying'){setReleaseRollbackStatus(`Verifying the rollback snapshot for v${targetVersion}…`,'warn');}else if(run.state==='failed'){setReleaseRollbackStatus(run.error||'Rollback did not complete. Review data/rollback.log.','bad');return;}}
       }catch(e){sawOffline=true;setReleaseRollbackStatus(`LibreDisplay is restoring v${targetVersion} and restarting. This page will reconnect automatically…`,'warn');}
     }
     setReleaseRollbackStatus('Rollback is taking longer than expected. The device may still be restarting; reload this page in a moment.','warn');
@@ -234,7 +234,7 @@ async function startReleaseRollback(snapshotId,targetVersion){
   const warning=`Restore LibreDisplay v${targetVersion}?\n\nThis is a full pre-update rollback: application files, settings, media, plugins, and project .env return to the state captured before that update. LibreDisplay first creates a new private safety snapshot of the current state so it remains recoverable. The device will restart.${bootstrapApi.REMOTE_SETTINGS_MODE?'\n\nYour remote Owner session may expire during the restart.':''}`;
   if(!confirm(warning))return;
   setReleaseRollbackStatus(`Preparing rollback to v${targetVersion}…`,'warn');
-  try{const r=await resilientFetch(serverPath('/api/release-rollback'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:snapshotId}),cache:'no-store'}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||`HTTP ${r.status}`);setReleaseRollbackStatus(`Restoring v${targetVersion}… A recovery snapshot of the current installation is being created first.`,'warn');monitorReleaseRollback(targetVersion);}catch(e){setReleaseRollbackStatus('Could not start rollback: '+(e?.message||e),'bad');}
+  try{const r=await resilientFetch(serverPath('/api/release-rollback'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:snapshotId}),cache:'no-store'},{timeoutMs:15000,retry:false}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||`HTTP ${r.status}`);setReleaseRollbackStatus(`Restoring v${targetVersion}… A recovery snapshot of the current installation is being created first.`,'warn');monitorReleaseRollback(targetVersion);}catch(e){setReleaseRollbackStatus('Could not start rollback: '+(e?.message||e),'bad');}
 }
 
 function formatHealthBytes(bytes){
