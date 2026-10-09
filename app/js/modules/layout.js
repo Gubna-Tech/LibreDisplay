@@ -172,15 +172,18 @@ let builtInLayoutAutoFitDeferredTimer=0;
 let builtInLayoutAutoFitObserver=null;
 let builtInLayoutAutoFitResizeObserver=null;
 let builtInLayoutAutoFitSuspended=false;
+let builtInLayoutAutoFitProcessing=false;
 const builtInLayoutAutoFitPending=new Set();
+const builtInLayoutAutoFitQueue=[];
+let builtInLayoutAutoFitBatchWorkMs=0;
 let builtInLayoutAutoFitStats={runs:0,totalMs:0,maxMs:0,lastMs:0,lastAt:0,keys:{}};
 const BUILTIN_LAYOUT_AUTOFIT_KEYS=['calendar','current','clock','details','daily','hourly'];
 function builtInLayoutAutoFitElement(key){return key==='calendar'?document.getElementById('top-strip'):key==='current'?document.querySelector('.wx-main'):key==='clock'?document.getElementById('clock-block'):key==='details'?document.querySelector('.wx-details'):key==='daily'?document.getElementById('wx-forecast'):key==='hourly'?document.getElementById('wx-hourly-block'):null;}
 function builtInLayoutAutoFitKeyForNode(node){const el=node instanceof Element?node:node?.parentElement;if(!el)return '';if(el.closest('#top-strip'))return 'calendar';if(el.closest('.wx-main'))return 'current';if(el.closest('#clock-block'))return 'clock';if(el.closest('.wx-details'))return 'details';if(el.closest('#wx-forecast'))return 'daily';if(el.closest('#wx-hourly-block'))return 'hourly';return '';}
-function builtInLayoutAutoFitSnapshot(){return {runs:builtInLayoutAutoFitStats.runs,totalMs:Number(builtInLayoutAutoFitStats.totalMs.toFixed(1)),maxMs:Number(builtInLayoutAutoFitStats.maxMs.toFixed(1)),lastMs:Number(builtInLayoutAutoFitStats.lastMs.toFixed(1)),lastAt:builtInLayoutAutoFitStats.lastAt,suspended:builtInLayoutAutoFitSuspended,deferredPending:!!builtInLayoutAutoFitDeferredTimer,pending:[...builtInLayoutAutoFitPending],keys:Object.fromEntries(Object.entries(builtInLayoutAutoFitStats.keys).map(([key,value])=>[key,{runs:value.runs,totalMs:Number(value.totalMs.toFixed(1)),maxMs:Number(value.maxMs.toFixed(1))}]))};}
+function builtInLayoutAutoFitSnapshot(){return {runs:builtInLayoutAutoFitStats.runs,totalMs:Number(builtInLayoutAutoFitStats.totalMs.toFixed(1)),maxMs:Number(builtInLayoutAutoFitStats.maxMs.toFixed(1)),lastMs:Number(builtInLayoutAutoFitStats.lastMs.toFixed(1)),lastAt:builtInLayoutAutoFitStats.lastAt,suspended:builtInLayoutAutoFitSuspended,processing:builtInLayoutAutoFitProcessing,deferredPending:!!builtInLayoutAutoFitDeferredTimer,pending:[...builtInLayoutAutoFitQueue,...builtInLayoutAutoFitPending],keys:Object.fromEntries(Object.entries(builtInLayoutAutoFitStats.keys).map(([key,value])=>[key,{runs:value.runs,totalMs:Number(value.totalMs.toFixed(1)),maxMs:Number(value.maxMs.toFixed(1))}]))};}
 function setBuiltInLayoutAutoFitSuspended(value,options={}){const next=!!value;if(next===builtInLayoutAutoFitSuspended)return next;builtInLayoutAutoFitSuspended=next;if(!next&&options.reschedule!==false&&document.body.classList.contains('custom-layout'))scheduleBuiltInLayoutAutoFit();return next;}
 function clearBuiltInLayoutAutoFit(){
-  if(builtInLayoutAutoFitRaf){cancelAnimationFrame(builtInLayoutAutoFitRaf);builtInLayoutAutoFitRaf=0;}if(builtInLayoutAutoFitDeferredTimer){clearTimeout(builtInLayoutAutoFitDeferredTimer);builtInLayoutAutoFitDeferredTimer=0;}builtInLayoutAutoFitPending.clear();
+  if(builtInLayoutAutoFitRaf){cancelAnimationFrame(builtInLayoutAutoFitRaf);builtInLayoutAutoFitRaf=0;}if(builtInLayoutAutoFitDeferredTimer){clearTimeout(builtInLayoutAutoFitDeferredTimer);builtInLayoutAutoFitDeferredTimer=0;}builtInLayoutAutoFitPending.clear();builtInLayoutAutoFitQueue.length=0;builtInLayoutAutoFitBatchWorkMs=0;builtInLayoutAutoFitProcessing=false;
   const calendar=document.getElementById('top-strip'),current=document.querySelector('.wx-main'),clock=document.getElementById('clock-block'),details=document.querySelector('.wx-details'),daily=document.getElementById('wx-forecast'),hourly=document.getElementById('wx-hourly-block');
   calendar?.style.removeProperty('--ld-layout-calendar-row');calendar?.style.removeProperty('--ld-layout-fit-calendar');
   current?.style.removeProperty('--ld-layout-fit-current');clock?.style.removeProperty('--ld-layout-fit-clock');details?.style.removeProperty('--ld-layout-fit-details');
@@ -240,25 +243,25 @@ function weatherDetailsFitScale(el){
 function resetBuiltInLayoutFitForKey(key){const el=builtInLayoutAutoFitElement(key);if(!el)return null;if(key==='calendar'){el.style.setProperty('--ld-layout-fit-calendar','1');el.style.removeProperty('--ld-layout-calendar-row');}else el.style.setProperty(`--ld-layout-fit-${key}`,'1');return el;}
 function measureBuiltInLayoutFitForKey(key,el){if(!el)return 1;if(!layoutFrameFitContentEnabled(key))return 1;if(key==='calendar')return calendarFitScale(el);if(key==='current')return currentWeatherFitScale(el);if(key==='clock')return clockFitScale(el);if(key==='details')return weatherDetailsFitScale(el);if(key==='daily')return forecastFitScale(el,null,':scope > .fc-col');if(key==='hourly')return forecastFitScale(el,'.wx-hourly',':scope > .hr-col');return 1;}
 function updateBuiltInLayoutAutoFit(){
-  builtInLayoutAutoFitRaf=0;
-  if(!document.body.classList.contains('custom-layout')){clearBuiltInLayoutAutoFit();return;}
-  if(builtInLayoutAutoFitSuspended)return;
-  const keys=builtInLayoutAutoFitPending.size?[...builtInLayoutAutoFitPending]:BUILTIN_LAYOUT_AUTOFIT_KEYS.slice();builtInLayoutAutoFitPending.clear();
-  const details=keys.includes('details')?builtInLayoutAutoFitElement('details'):null;
-  if(details)syncWeatherDetailsArrangeGrid(details);
-  const started=performance.now(),targets=new Map();
-  for(const key of keys){const el=resetBuiltInLayoutFitForKey(key);if(el)targets.set(key,el);}
-  const first=targets.values().next().value;if(first)void first.offsetHeight;
-  for(const [key,el] of targets){const keyStarted=performance.now(),scale=measureBuiltInLayoutFitForKey(key,el),prop=`--ld-layout-fit-${key}`,next=scale.toFixed(4);if(el.style.getPropertyValue(prop)!==next)el.style.setProperty(prop,next);const elapsed=performance.now()-keyStarted,stats=builtInLayoutAutoFitStats.keys[key]||(builtInLayoutAutoFitStats.keys[key]={runs:0,totalMs:0,maxMs:0});stats.runs++;stats.totalMs+=elapsed;stats.maxMs=Math.max(stats.maxMs,elapsed);}
-  const elapsed=performance.now()-started;builtInLayoutAutoFitStats.runs++;builtInLayoutAutoFitStats.totalMs+=elapsed;builtInLayoutAutoFitStats.maxMs=Math.max(builtInLayoutAutoFitStats.maxMs,elapsed);builtInLayoutAutoFitStats.lastMs=elapsed;builtInLayoutAutoFitStats.lastAt=Date.now();
+  builtInLayoutAutoFitRaf=0;if(builtInLayoutAutoFitProcessing)return;builtInLayoutAutoFitProcessing=true;
+  try{
+    if(!document.body.classList.contains('custom-layout')){clearBuiltInLayoutAutoFit();return;}
+    if(builtInLayoutAutoFitSuspended)return;
+    if(!builtInLayoutAutoFitQueue.length){const keys=builtInLayoutAutoFitPending.size?[...builtInLayoutAutoFitPending]:BUILTIN_LAYOUT_AUTOFIT_KEYS.slice();builtInLayoutAutoFitPending.clear();const details=keys.includes('details')?builtInLayoutAutoFitElement('details'):null;if(details)syncWeatherDetailsArrangeGrid(details);builtInLayoutAutoFitQueue.push(...keys);builtInLayoutAutoFitBatchWorkMs=0;}
+    const key=builtInLayoutAutoFitQueue.shift();if(!key)return;
+    const started=performance.now(),el=resetBuiltInLayoutFitForKey(key);
+    if(el){void el.offsetHeight;const keyStarted=performance.now(),scale=measureBuiltInLayoutFitForKey(key,el),prop=`--ld-layout-fit-${key}`,next=scale.toFixed(4);if(el.style.getPropertyValue(prop)!==next)el.style.setProperty(prop,next);const elapsed=performance.now()-keyStarted,stats=builtInLayoutAutoFitStats.keys[key]||(builtInLayoutAutoFitStats.keys[key]={runs:0,totalMs:0,maxMs:0});stats.runs++;stats.totalMs+=elapsed;stats.maxMs=Math.max(stats.maxMs,elapsed);}
+    builtInLayoutAutoFitBatchWorkMs+=performance.now()-started;
+    if(!builtInLayoutAutoFitQueue.length){const elapsed=builtInLayoutAutoFitBatchWorkMs;builtInLayoutAutoFitStats.runs++;builtInLayoutAutoFitStats.totalMs+=elapsed;builtInLayoutAutoFitStats.maxMs=Math.max(builtInLayoutAutoFitStats.maxMs,elapsed);builtInLayoutAutoFitStats.lastMs=elapsed;builtInLayoutAutoFitStats.lastAt=Date.now();builtInLayoutAutoFitBatchWorkMs=0;}
+  }finally{builtInLayoutAutoFitProcessing=false;if(!builtInLayoutAutoFitSuspended&&(builtInLayoutAutoFitQueue.length||builtInLayoutAutoFitPending.size)&&!builtInLayoutAutoFitRaf)builtInLayoutAutoFitRaf=requestAnimationFrame(updateBuiltInLayoutAutoFit);}
 }
 function queueBuiltInLayoutAutoFitKeys(keys){const list=Array.isArray(keys)?keys:[keys];for(const key of list){if(BUILTIN_LAYOUT_AUTOFIT_KEYS.includes(key))builtInLayoutAutoFitPending.add(key);}if(!keys)for(const key of BUILTIN_LAYOUT_AUTOFIT_KEYS)builtInLayoutAutoFitPending.add(key);}
 function scheduleBuiltInLayoutAutoFit(keys){
   queueBuiltInLayoutAutoFitKeys(keys);if(builtInLayoutAutoFitDeferredTimer){clearTimeout(builtInLayoutAutoFitDeferredTimer);builtInLayoutAutoFitDeferredTimer=0;}
-  if(builtInLayoutAutoFitSuspended||builtInLayoutAutoFitRaf)return;builtInLayoutAutoFitRaf=requestAnimationFrame(updateBuiltInLayoutAutoFit);
+  if(builtInLayoutAutoFitSuspended||builtInLayoutAutoFitRaf||builtInLayoutAutoFitProcessing)return;builtInLayoutAutoFitRaf=requestAnimationFrame(updateBuiltInLayoutAutoFit);
 }
 function scheduleBuiltInLayoutAutoFitDeferred(keys,delay=96){
-  queueBuiltInLayoutAutoFitKeys(keys);if(builtInLayoutAutoFitSuspended)return;if(builtInLayoutAutoFitDeferredTimer)clearTimeout(builtInLayoutAutoFitDeferredTimer);builtInLayoutAutoFitDeferredTimer=setTimeout(()=>{builtInLayoutAutoFitDeferredTimer=0;if(!builtInLayoutAutoFitSuspended&&!builtInLayoutAutoFitRaf)builtInLayoutAutoFitRaf=requestAnimationFrame(updateBuiltInLayoutAutoFit);},Math.max(40,Number(delay)||96));
+  queueBuiltInLayoutAutoFitKeys(keys);if(builtInLayoutAutoFitSuspended)return;if(builtInLayoutAutoFitDeferredTimer)clearTimeout(builtInLayoutAutoFitDeferredTimer);builtInLayoutAutoFitDeferredTimer=setTimeout(()=>{builtInLayoutAutoFitDeferredTimer=0;if(!builtInLayoutAutoFitSuspended&&!builtInLayoutAutoFitRaf&&!builtInLayoutAutoFitProcessing)builtInLayoutAutoFitRaf=requestAnimationFrame(updateBuiltInLayoutAutoFit);},Math.max(40,Number(delay)||96));
 }
 function bindBuiltInLayoutAutoFitObserver(){
   const targets=BUILTIN_LAYOUT_AUTOFIT_KEYS.map(key=>builtInLayoutAutoFitElement(key)).filter(Boolean);

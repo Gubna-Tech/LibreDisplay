@@ -3135,6 +3135,7 @@ html.ld-pi3-static #weather-effects-overlay .weather-fx-lightning-bolt,
 html.ld-pi3-static #weather-effects-overlay .weather-fx-splash{display:none!important}
 html.ld-pi3-device:not(.ld-pi3-static) #weather-effects-overlay :is(.weather-fx-bird,.weather-fx-dog-v2,.weather-fx-cloud-mass,.weather-fx-fog-bank){filter:none!important;box-shadow:none!important}
 html.ld-pi4-device #weather-effects-overlay{contain:layout style}
+html.ld-pi4-device #weather-effects-overlay{isolation:isolate;transform:translateZ(0);backface-visibility:hidden}
 
 /* Pi 4 clear-weather wildlife compositor budget: keep whole-animal travel and primary wing/stride motion while freezing secondary anatomy. */
 html.ld-pi4-device.ld-wildlife-lite #weather-effects-overlay .weather-fx-bird,
