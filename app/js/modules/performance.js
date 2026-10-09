@@ -236,7 +236,7 @@ function diagnoseDisplayBenchmark(stages){
 async function runDisplayPerformanceBenchmark(options={}){
   if(displayBenchmarkRunning)throw new Error('Display performance test is already running.');
   displayBenchmarkRunning=true;
-  const layout=(()=>{try{return LibreDisplayRuntime.getModule('layout');}catch{return null;}})(),root=document.documentElement,startedAt=new Date().toISOString(),initialClasses=DISPLAY_BENCHMARK_CLASSES.filter(name=>root.classList.contains(name)),wasActive=root.classList.contains('ld-performance-benchmark-active'),playingVideos=[...document.querySelectorAll('video')].filter(v=>!v.paused&&!v.ended),stageDuration=Math.max(800,Number(options.stageDurationMs)||1800),settleMs=Math.max(120,Number(options.settleMs)||280);
+  const layout=(()=>{try{return LibreDisplayRuntime.getModule('layout');}catch{return null;}})(),root=document.documentElement,startedAt=new Date().toISOString(),initialClasses=DISPLAY_BENCHMARK_CLASSES.filter(name=>root.classList.contains(name)),wasActive=root.classList.contains('ld-performance-benchmark-active'),playingVideos=[...document.querySelectorAll('video')].filter(v=>!v.paused&&!v.ended),stageDuration=Math.max(800,Number(options.stageDurationMs)||1800),settleMs=Math.max(120,Number(options.settleMs)||280),warmupMs=Math.max(600,Number(options.warmupMs)||1200);
   const stages=[
     {key:'baseline',label:'Full dashboard'},
     {key:'pauseAutoFit',label:'Custom-layout auto-fit paused',pauseAutoFit:true},
@@ -259,9 +259,9 @@ async function runDisplayPerformanceBenchmark(options={}){
   const results=[];
   const restoreVideos=()=>{for(const video of playingVideos){try{if(video.paused)video.play().catch(()=>{});}catch{}}};
   try{
-    root.classList.add('ld-performance-benchmark-active');
+    root.classList.add('ld-performance-benchmark-active');DISPLAY_BENCHMARK_CLASSES.forEach(name=>root.classList.remove(name));layout?.setBuiltInLayoutAutoFitSuspended?.(false,{reschedule:false});await waitForBenchmarkFrameDelay(settleMs);await sampleDisplayFrameRate(warmupMs);await waitForBenchmarkFrameDelay(0);
     for(let index=0;index<stages.length;index++){
-      const stage=stages[index];DISPLAY_BENCHMARK_CLASSES.forEach(name=>root.classList.remove(name));restoreVideos();layout?.setBuiltInLayoutAutoFitSuspended?.(!!stage.pauseAutoFit);
+      const stage=stages[index];DISPLAY_BENCHMARK_CLASSES.forEach(name=>root.classList.remove(name));restoreVideos();layout?.setBuiltInLayoutAutoFitSuspended?.(!!stage.pauseAutoFit,{reschedule:false});
       if(stage.className)root.classList.add(stage.className);if(stage.pauseVideo)for(const video of playingVideos){try{video.pause();}catch{}}
       options.onStage?.({index:index+1,total:stages.length,key:stage.key,label:stage.label});
       await waitForBenchmarkFrameDelay(settleMs);
@@ -269,9 +269,9 @@ async function runDisplayPerformanceBenchmark(options={}){
       options.onStage?.({index:index+1,total:stages.length,key:stage.key,label:stage.label,result:row});
     }
     const baseline=Number(results[0]?.fps)||0;for(const row of results)row.deltaFps=(Number(row.fps)||0)-baseline;
-    return {startedAt,finishedAt:new Date().toISOString(),stageDurationMs:stageDuration,baselineFps:baseline,ceilingFps:Number(results.find(r=>r.key==='minimal')?.fps)||0,stages:results,diagnosis:diagnoseDisplayBenchmark(results),performance:animationPerformanceSnapshot(),workload:animationWorkloadSnapshot(true),graphics:browserGraphicsSnapshot(),layoutAutoFit:layoutAutoFitSnapshot(),forecastRendering:forecastRenderTelemetrySnapshot()};
+    return {startedAt,finishedAt:new Date().toISOString(),stageDurationMs:stageDuration,warmupMs,baselineFps:baseline,ceilingFps:Number(results.find(r=>r.key==='minimal')?.fps)||0,stages:results,diagnosis:diagnoseDisplayBenchmark(results),performance:animationPerformanceSnapshot(),workload:animationWorkloadSnapshot(true),graphics:browserGraphicsSnapshot(),layoutAutoFit:layoutAutoFitSnapshot(),forecastRendering:forecastRenderTelemetrySnapshot()};
   }finally{
-    layout?.setBuiltInLayoutAutoFitSuspended?.(false);DISPLAY_BENCHMARK_CLASSES.forEach(name=>root.classList.remove(name));for(const name of initialClasses)root.classList.add(name);if(!wasActive)root.classList.remove('ld-performance-benchmark-active');restoreVideos();displayBenchmarkRunning=false;resetAnimationGovernor();
+    layout?.setBuiltInLayoutAutoFitSuspended?.(false,{reschedule:false});DISPLAY_BENCHMARK_CLASSES.forEach(name=>root.classList.remove(name));for(const name of initialClasses)root.classList.add(name);if(!wasActive)root.classList.remove('ld-performance-benchmark-active');restoreVideos();displayBenchmarkRunning=false;resetAnimationGovernor();
   }
 }
 
