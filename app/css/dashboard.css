@@ -1947,15 +1947,26 @@ html.ld-reduce-motion #setup .update-now-btn{animation:none!important}
 body.ld-weather-test-mode #weather-effect-live-status{border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.07)}
 html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-overlay .weather-fx-seasonal{animation:none!important}
 
-/* Animated vector weather glyphs. Emoji remain as a no-motion/fallback representation. */
-.ld-weather-glyph{display:none;position:relative;width:1.18em;height:.92em;vertical-align:-.12em;overflow:visible;filter:drop-shadow(0 .06em .09em rgba(0,0,0,.28))}
+/* Clear weather glyphs are always vector-first; animation is optional and never required for readability. */
+.ld-weather-glyph{display:none;position:relative;width:1.22em;height:.96em;vertical-align:-.12em;overflow:visible;filter:drop-shadow(0 .06em .09em rgba(0,0,0,.28))}
 .ld-weather-emoji-fallback{display:inline}
 .ld-weather-emoji-fallback.ld-weather-emoji-hidden{display:none}
 .ld-weather-glyph.ld-weather-glyph-active{display:inline-block}
-.ld-wx-sun{position:absolute;width:.60em;height:.60em;left:.06em;top:.02em}
-.ld-wx-sun::before{content:"";position:absolute;inset:-.14em;border-radius:50%;background:repeating-conic-gradient(from 0deg,#ffe38a 0 8deg,transparent 8deg 28deg);-webkit-mask:radial-gradient(circle,transparent 0 46%,#000 48% 68%,transparent 70%);mask:radial-gradient(circle,transparent 0 46%,#000 48% 68%,transparent 70%);animation:ldWxSunRays 14s linear infinite}
-.ld-wx-sun i{position:absolute;inset:.08em;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff3b4 0 10%,#ffd85c 34%,#f6a91d 100%);box-shadow:0 0 .18em rgba(255,198,54,.45);animation:ldWxSunPulse 4.8s ease-in-out infinite alternate}
-.ld-wx-moon-emoji{position:absolute;left:-.03em;top:-.20em;width:1.00em;height:1.00em;display:grid;place-items:center;font-family:"Noto Color Emoji","Segoe UI Emoji","Apple Color Emoji",sans-serif;font-size:.98em;line-height:1;z-index:2;text-shadow:0 0 .18em rgba(224,236,255,.94),0 .05em .09em rgba(0,0,0,.64);filter:none}.ld-weather-partly.ld-weather-night .ld-wx-moon-emoji{left:-.07em;top:-.22em;font-size:1.00em}.ld-weather-partly.ld-weather-night .ld-wx-cloud{left:.43em;top:.40em;width:.70em;height:.28em}
+.ld-wx-sun{position:absolute;width:.68em;height:.68em;left:.03em;top:-.01em}
+.ld-wx-sun::before{content:"";position:absolute;inset:-.15em;border-radius:50%;background:repeating-conic-gradient(from 0deg,#ffe38a 0 9deg,transparent 9deg 27deg);-webkit-mask:radial-gradient(circle,transparent 0 45%,#000 47% 69%,transparent 71%);mask:radial-gradient(circle,transparent 0 45%,#000 47% 69%,transparent 71%);animation:ldWxSunRays 14s linear infinite}
+.ld-wx-sun i{position:absolute;inset:.075em;border-radius:50%;background:radial-gradient(circle at 36% 31%,#fff8cc 0 12%,#ffdc62 36%,#f3a51c 100%);box-shadow:0 0 .16em rgba(255,198,54,.42);animation:ldWxSunPulse 4.8s ease-in-out infinite alternate}
+.ld-wx-moon-phase{position:absolute;left:.00em;top:.00em;width:.72em;height:.72em;border-radius:50%;overflow:hidden;z-index:2;background:#eef4ff;border:.035em solid rgba(226,237,255,.92);box-sizing:border-box;box-shadow:inset -.06em -.04em .10em rgba(82,101,128,.22),0 0 .14em rgba(218,232,255,.40)}
+.ld-wx-moon-phase::after{content:"";position:absolute;inset:-.02em;border-radius:50%;background:#273343}
+.ld-wx-moon-phase i{position:absolute;left:.16em;top:.18em;width:.09em;height:.09em;border-radius:50%;background:rgba(124,143,169,.26);box-shadow:.25em .14em 0 -.015em rgba(124,143,169,.20);z-index:3}
+.ld-wx-moon-phase-0{background:#273343;border-color:rgba(183,202,226,.55);box-shadow:inset -.04em -.03em .09em rgba(0,0,0,.35),0 0 .12em rgba(199,218,244,.26)}.ld-wx-moon-phase-0::after,.ld-wx-moon-phase-2::after,.ld-wx-moon-phase-4::after,.ld-wx-moon-phase-6::after{display:none}
+.ld-wx-moon-phase-1{background:#273343}.ld-wx-moon-phase-1::after{background:#eef4ff;transform:translateX(.30em)}
+.ld-wx-moon-phase-2{background:linear-gradient(90deg,#273343 0 49%,#eef4ff 51% 100%)}
+.ld-wx-moon-phase-3{background:#eef4ff}.ld-wx-moon-phase-3::after{transform:translateX(-.30em)}
+.ld-wx-moon-phase-4{background:#eef4ff}
+.ld-wx-moon-phase-5{background:#eef4ff}.ld-wx-moon-phase-5::after{transform:translateX(.30em)}
+.ld-wx-moon-phase-6{background:linear-gradient(90deg,#eef4ff 0 49%,#273343 51% 100%)}
+.ld-wx-moon-phase-7{background:#273343}.ld-wx-moon-phase-7::after{background:#eef4ff;transform:translateX(-.30em)}
+.ld-weather-partly.ld-weather-night .ld-wx-moon-phase{left:-.01em;top:-.02em;width:.74em;height:.74em}.ld-weather-partly.ld-weather-night .ld-wx-cloud{left:.47em;top:.43em;width:.66em;height:.27em}
 .ld-wx-cloud{position:absolute;width:.84em;height:.35em;left:.25em;top:.33em;border-radius:.22em;background:linear-gradient(#eef4f6,#c9d4db);box-shadow:inset 0 -.07em .08em rgba(92,111,124,.18);animation:ldWxCloudDrift 5.5s ease-in-out infinite alternate}
 .ld-wx-cloud::before,.ld-wx-cloud::after,.ld-wx-cloud i{content:"";position:absolute;border-radius:50%;background:inherit}
 .ld-wx-cloud::before{width:.40em;height:.40em;left:.09em;bottom:.08em}
@@ -2002,7 +2013,7 @@ html.ld-bench-pause-forecast-motion :is(.wx-forecast,.wx-hourly) .ld-weather-gly
 body.ld-weather-no-precip .ld-wx-precip{display:none!important}
 body.ld-weather-no-clouds .ld-wx-cloud{display:none!important}
 body.ld-weather-no-fog .ld-wx-fog{display:none!important}
-body.ld-weather-no-sun .ld-wx-sun,body.ld-weather-no-sun .ld-wx-moon-emoji{display:none!important}
+body.ld-weather-no-sun .ld-wx-sun,body.ld-weather-no-sun .ld-wx-moon-phase{display:none!important}
 body.ld-weather-no-lightning .ld-wx-bolt{display:none!important}
 body.ld-weather-no-wind .ld-wx-cloud,body.ld-weather-no-wind .ld-wx-fog i{animation-play-state:paused!important}
 .weather-fx-no-wind.weather-fx-cloud .weather-fx-particle,.weather-fx-no-wind.weather-fx-fog .weather-fx-particle{animation-play-state:paused!important}
@@ -2412,11 +2423,12 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 .weather-fx-dog-v2.dog-state-rest .dogv2-pose-stage{transform:translateY(10px) scaleY(.92)}.weather-fx-dog-v2.dog-state-rest .dogv2-body-group{transform:translateY(6px) scaleY(.95)}.weather-fx-dog-v2.dog-state-rest .dogv2-leg-front-near,.weather-fx-dog-v2.dog-state-rest .dogv2-leg-front-far{transform:translate(-5px,12px) rotate(18deg)}.weather-fx-dog-v2.dog-state-rest .dogv2-leg-rear-near,.weather-fx-dog-v2.dog-state-rest .dogv2-leg-rear-far{transform:translate(-10px,11px) rotate(34deg)}.weather-fx-dog-v2.dog-state-rest .dogv2-head-group{transform:translate(-1px,8px) rotate(7deg)}
 .weather-fx-dog-v2.dog-state-sleep .dogv2-pose-stage{transform:translateY(15px) scaleY(.84);animation:ld1822Breath 5.8s ease-in-out infinite}.weather-fx-dog-v2.dog-state-sleep .dogv2-body-group{transform:translateY(8px) scaleY(.92)}.weather-fx-dog-v2.dog-state-sleep .dogv2-leg-front-near,.weather-fx-dog-v2.dog-state-sleep .dogv2-leg-front-far{transform:translate(-7px,15px) rotate(26deg)}.weather-fx-dog-v2.dog-state-sleep .dogv2-leg-rear-near,.weather-fx-dog-v2.dog-state-sleep .dogv2-leg-rear-far{transform:translate(-12px,14px) rotate(42deg)}.weather-fx-dog-v2.dog-state-sleep .dogv2-head-group{transform:translate(-9px,12px) rotate(13deg)}.weather-fx-dog-v2.dog-state-sleep .dogv2-tail{animation:none!important;transform:rotate(8deg)}
 .weather-fx-dog-v2.dog-state-dig .dogv2-head-group{transform:translate(5px,8px) rotate(17deg)}
-.weather-fx-dog-v2.dog-state-roll .dogv2-pose-stage{animation:ld1822PlayFlop 3.8s ease-in-out 1}.weather-fx-dog-v2.dog-state-bird .dogv2-head-group{transform:translateY(-5px) rotate(-12deg)}
+.weather-fx-dog-v2.dog-state-roll .dogv2-pose-stage{animation:ld1822PlayFlop 3.8s ease-in-out 1}.weather-fx-dog-v2.dog-state-bird .dogv2-head-group,.weather-fx-dog-v2.dog-state-watch-bird .dogv2-head-group{transform:translate(1px,-6px) rotate(-14deg)}.weather-fx-dog-v2.dog-state-chase-bird .dogv2-head-group{transform:translate(3px,-3px) rotate(-9deg)}.weather-fx-dog-v2.dog-state-watch-bird .dogv2-tail{animation-duration:1.15s}.weather-fx-dog-v2.dog-state-chase-bird .dogv2-tail{animation-duration:.72s}.weather-fx-dog-v2.dog-state-chase-bird .dogv2-pose-stage{animation:ld1822ChaseBob var(--dog-step-duration,.40s) ease-in-out infinite}
 .weather-fx-dog-v2.dog-state-shelter .dogv2-pose-stage{transform:translateY(9px) scale(.94)}.weather-fx-dog-v2.dog-state-shelter .dogv2-head-group{transform:translateY(5px) rotate(9deg)}.weather-fx-dog-v2.dog-state-shelter .dogv2-tail{transform:rotate(18deg)}
 .weather-fx-dog-v2 .dogv2-tail{animation:ld1822Tail 2.4s ease-in-out infinite alternate}.weather-fx-dog-v2.dog-state-sleep .dogv2-tail,.weather-fx-dog-v2.dog-state-shelter .dogv2-tail{animation:none}
-@keyframes ld1822Stride{from{transform:rotate(15deg)}to{transform:rotate(-15deg)}}
-@keyframes ld1822WalkBob{from{transform:translateY(0)}to{transform:translateY(-2.4px)}}
+@keyframes ld1822Stride{0%{transform:rotate(17deg) translateY(0)}45%{transform:rotate(-16deg) translateY(-1px)}100%{transform:rotate(-18deg) translateY(0)}}
+@keyframes ld1822WalkBob{0%,100%{transform:translateY(0) rotate(.2deg)}50%{transform:translateY(-2.2px) rotate(-.35deg)}}
+@keyframes ld1822ChaseBob{0%,100%{transform:translateY(0) rotate(.6deg)}50%{transform:translateY(-3px) rotate(-.8deg)}}
 @keyframes ld1822Tail{from{transform:rotate(-5deg)}to{transform:rotate(8deg)}}
 @keyframes ld1822SleepZ{0%{transform:translate(0,5px) scale(.7);opacity:0}32%{opacity:.9}100%{transform:translate(var(--dog-sleep-x,20px),-30px) scale(1.25);opacity:0}}
 @keyframes ld1822Dirt{from{transform:translate(0,0) scale(.7);opacity:.9}to{transform:translate(var(--dog-dirt-x,-17px),-14px) scale(1.15);opacity:0}}
