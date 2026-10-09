@@ -162,6 +162,8 @@ body {
   width:470px;
   text-shadow:0 2px 8px rgba(0,0,0,0.8);
 }
+#wx-left[data-current-weather-layout="split"],#wx-left[data-current-weather-layout="split-reverse"],#wx-left[data-current-weather-layout="compact"]{grid-template-columns:minmax(250px,1.35fr) minmax(170px,.9fr)}
+body.custom-layout #wx-left[data-current-weather-layout="split"],body.custom-layout #wx-left[data-current-weather-layout="split-reverse"],body.custom-layout #wx-left[data-current-weather-layout="compact"]{grid-template-columns:180px minmax(0,1fr)}
 .wx-main {
   grid-column:1;
   grid-row:1;
@@ -241,6 +243,27 @@ body {
 .wx-moon-pct{font-size:clamp(14px,1vw,17px);font-weight:720;letter-spacing:.1px;color:rgba(255,255,255,.98)}
 .wx-moon-phase-name{font-size:clamp(12.5px,.86vw,15px);font-weight:600;color:rgba(236,243,251,.90)}
 .wx-moon-next{font-size:clamp(11.5px,.75vw,13px);line-height:1.16;font-weight:560;color:rgba(210,226,241,.84)}
+
+/* Current Weather is deliberately composable: Settings chooses a stable internal
+   flow, while Arrange keeps the outer block and every lunar text part editable. */
+.wx-main{--ld-current-weather-gap:10px;--ld-current-moon-width:184px}
+.wx-main[data-weather-layout="split"],.wx-main[data-weather-layout="split-reverse"],.wx-main[data-weather-layout="compact"]{display:grid;column-gap:var(--ld-current-weather-gap);row-gap:4px;align-items:end;min-width:0}
+.wx-main[data-weather-layout="split"]{grid-template-columns:minmax(0,1fr) minmax(112px,min(var(--ld-current-moon-width),45%));grid-template-rows:auto auto auto}
+.wx-main[data-weather-layout="split"] .wx-current{grid-column:1;grid-row:1}
+.wx-main[data-weather-layout="split"] .wx-feels{grid-column:1;grid-row:2}
+.wx-main[data-weather-layout="split"] .wx-cond{grid-column:1;grid-row:3}
+.wx-main[data-weather-layout="split"] .wx-moon-info{grid-column:2;grid-row:1 / span 3;align-self:end;width:100%;max-width:none;margin:0;padding:0 0 0 var(--ld-current-weather-gap);border-top:0;border-left:1px solid rgba(228,238,250,.24)}
+.wx-main[data-weather-layout="split-reverse"]{grid-template-columns:minmax(112px,min(var(--ld-current-moon-width),45%)) minmax(0,1fr);grid-template-rows:auto auto auto}
+.wx-main[data-weather-layout="split-reverse"] .wx-current{grid-column:2;grid-row:1}
+.wx-main[data-weather-layout="split-reverse"] .wx-feels{grid-column:2;grid-row:2}
+.wx-main[data-weather-layout="split-reverse"] .wx-cond{grid-column:2;grid-row:3}
+.wx-main[data-weather-layout="split-reverse"] .wx-moon-info{grid-column:1;grid-row:1 / span 3;align-self:end;width:100%;max-width:none;margin:0;padding:0 var(--ld-current-weather-gap) 0 0;border-top:0;border-right:1px solid rgba(228,238,250,.24)}
+.wx-main[data-weather-layout="compact"]{grid-template-columns:minmax(0,1fr) minmax(112px,min(var(--ld-current-moon-width),45%));grid-template-rows:auto auto}
+.wx-main[data-weather-layout="compact"] .wx-current{grid-column:1;grid-row:1}
+.wx-main[data-weather-layout="compact"] .wx-moon-info{grid-column:2;grid-row:1;align-self:end;width:100%;max-width:none;margin:0;padding:0 0 0 var(--ld-current-weather-gap);border-top:0;border-left:1px solid rgba(228,238,250,.24)}
+.wx-main[data-weather-layout="compact"] .wx-feels{grid-column:1;grid-row:2;margin-top:4px}
+.wx-main[data-weather-layout="compact"] .wx-cond{grid-column:2;grid-row:2;margin-top:4px;padding-left:var(--ld-current-weather-gap);min-width:0}
+@media (max-width:760px){.wx-main[data-weather-layout="split"],.wx-main[data-weather-layout="split-reverse"],.wx-main[data-weather-layout="compact"]{display:block}.wx-main[data-weather-layout="split"] .wx-moon-info,.wx-main[data-weather-layout="split-reverse"] .wx-moon-info,.wx-main[data-weather-layout="compact"] .wx-moon-info{width:100%;max-width:184px;margin-top:9px;padding:8px 2px 0;border-left:0;border-right:0;border-top:1px solid rgba(228,238,250,.24)}}
 
 
 #clock-block {
@@ -3655,3 +3678,6 @@ html.ld-pi4-device .weather-fx-owl .weather-fx-bird-art{will-change:auto}
 .weather-fx-dog-v2.dog-state-ball-carry .dogv2-head-group{transform:translate(2px,-1px) rotate(-4deg)}
 .weather-fx-dog-v2.dog-state-ball-carry .dogv2-tail{animation-duration:.85s}
 @keyframes ld11031DogBallThrow{0%{transform:translate3d(0,0,0) rotate(0) scale(1.08,.90)}18%{transform:translate3d(var(--dog-ball-mid-x,42px),-30px,0) rotate(95deg) scale(1)}42%{transform:translate3d(var(--dog-ball-three-quarter-x,66px),0,0) rotate(205deg) scale(1.10,.88)}61%{transform:translate3d(var(--dog-ball-three-quarter-x,66px),-17px,0) rotate(276deg) scale(1)}79%{transform:translate3d(var(--dog-ball-x,82px),0,0) rotate(337deg) scale(1.07,.91)}90%{transform:translate3d(var(--dog-ball-x,82px),-7px,0) rotate(372deg) scale(1)}100%{transform:translate3d(var(--dog-ball-x,82px),0,0) rotate(410deg) scale(1.06,.92)}}
+
+/* Preserve the user's Current Weather composition inside free Arrange layouts. */
+body.custom-layout .wx-main[data-weather-layout="split"],body.custom-layout .wx-main[data-weather-layout="split-reverse"],body.custom-layout .wx-main[data-weather-layout="compact"]{display:grid!important}

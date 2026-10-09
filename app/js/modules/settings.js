@@ -548,6 +548,9 @@ const SETTINGS_CONTROL_HELP={
   's-calendar-scroll-speed':'Sets the calendar auto-scroll speed and is used only when Calendar overflow is set to Slow auto-scroll.',
   's-calendar-max-events':'Limits the number of calendar entries shown in each day cell before the remaining events are omitted from that cell.',
   's-layout-grid':'Sets the movement/resizing grid used by Arrange when Snap is enabled. Smaller values allow finer placement.',
+  's-current-weather-layout':'Changes the internal composition of Current Weather without changing its outer Arrange position. Choose stacked or place lunar information beside the temperature.',
+  's-current-weather-gap':'Controls the spacing between temperature/condition content and the Moon section in side-by-side Current Weather layouts.',
+  's-current-weather-moon-width':'Controls how much horizontal room the lunar summary receives when Current Weather uses a two-column arrangement.',
   's-settings-search':'Searches setting names, section summaries, aliases and context-help text across every Settings category.'
 };
 

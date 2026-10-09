@@ -18,7 +18,7 @@ const LAYOUT_BLOCK_DEFS={
 
 const LAYOUT_PART_DEFS={
   calendar:[{key:'dayNumber',label:'Day number'},{key:'dayLabel',label:'Day / date label'},{key:'eventText',label:'All event text'},{key:'eventTitle',label:'Event titles'},{key:'eventTime',label:'Event times'},{key:'emptyText',label:'No events text'}],
-  current:[{key:'locationLabel',label:'Location / display label'},{key:'temperature',label:'Temperature'},{key:'icon',label:'Weather icon'},{key:'condition',label:'Condition'},{key:'feelsLike',label:'Feels like'}],
+  current:[{key:'locationLabel',label:'Location / display label'},{key:'temperature',label:'Temperature'},{key:'icon',label:'Weather icon'},{key:'condition',label:'Condition'},{key:'feelsLike',label:'Feels like'},{key:'moonSummary',label:'Moon summary'},{key:'moonIllumination',label:'Moon illumination'},{key:'moonPhase',label:'Moon phase name'},{key:'moonEvent',label:'Next lunar event'}],
   clock:[{key:'time',label:'Main time'},{key:'seconds',label:'Seconds / AM-PM'},{key:'date',label:'Date'}],
   details:[{key:'icon',label:'Detail icons'},{key:'label',label:'Detail labels'},{key:'value',label:'Detail values'}],
   daily:[{key:'day',label:'Day names'},{key:'icon',label:'Forecast icons'},{key:'precip',label:'Rain chance'},{key:'temperature',label:'Temperatures'}],
@@ -207,7 +207,7 @@ function forecastFitScale(block,gridSelector,itemSelector){
 function currentWeatherFitScale(el){
   if(!el||el.clientWidth<2||el.clientHeight<2)return 1;
   const kids=[...el.children].filter(x=>x instanceof HTMLElement&&getComputedStyle(x).display!=='none');if(!kids.length)return 1;
-  const needW=Math.max(1,...kids.map(x=>Math.max(x.scrollWidth,x.getBoundingClientRect().width)));
+  const needW=Math.max(1,el.scrollWidth,...kids.map(x=>Math.max(x.scrollWidth,x.getBoundingClientRect().width)));
   const needH=Math.max(1,el.scrollHeight);
   return clampLayoutFit(Math.min((el.clientWidth-2)/needW,(el.clientHeight-2)/needH));
 }

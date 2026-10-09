@@ -40,7 +40,7 @@
     "module": "config",
     "part": "bundle",
     "path": "/js/modules/config.js",
-    "lines": 554,
+    "lines": 559,
     "functions": 17,
     "bindings": 53,
     "sections": [
@@ -136,7 +136,7 @@
     "module": "appearance",
     "part": "bundle",
     "path": "/js/modules/appearance.js",
-    "lines": 1023,
+    "lines": 1030,
     "functions": 63,
     "bindings": 12,
     "sections": [
@@ -188,7 +188,7 @@
     "module": "settings",
     "part": "bundle",
     "path": "/js/modules/settings.js",
-    "lines": 1493,
+    "lines": 1496,
     "functions": 82,
     "bindings": 18,
     "sections": [
