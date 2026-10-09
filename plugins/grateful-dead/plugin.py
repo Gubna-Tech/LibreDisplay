@@ -536,7 +536,7 @@ MANIFEST={"id":"grateful-dead",
                'required': False,
                'help': 'Optional. Automatic setlists try JerryBase first, Relisten second, Internet Archive third, and setlist.fm only as a final fallback when a key is present.'},
               {'key': 'quotesEnabled',
-               'label': 'Show quotes & lyric snippets',
+               'label': 'Show quotes & lyric passages',
                'type': 'checkbox',
                'default': True,
                'section': 'Quotes',
@@ -545,9 +545,9 @@ MANIFEST={"id":"grateful-dead",
                'label': 'Quote reel content',
                'type': 'select',
                'default': 'mixed',
-               'options': [{'value': 'mixed', 'label': 'Member quotes + lyric snippets'},
+               'options': [{'value': 'mixed', 'label': 'Member quotes + lyric passages'},
                            {'value': 'quotes', 'label': 'Member quotes only'},
-                           {'value': 'lyrics', 'label': 'Lyric snippets only'}],
+                           {'value': 'lyrics', 'label': 'Lyric passages only'}],
                'section': 'Quotes'},
               {'key': 'quoteOrder',
                'label': 'Quote reel order',
@@ -574,7 +574,7 @@ MANIFEST={"id":"grateful-dead",
                            {'value': 'brent', 'label': 'Brent Mydland'},
                            {'value': 'vince', 'label': 'Vince Welnick'}],
                'section': 'Quotes'},
-              {'key': 'quoteRotate', 'label': 'Rotate quotes / lyric snippets', 'type': 'checkbox', 'default': True, 'section': 'Quotes'},
+              {'key': 'quoteRotate', 'label': 'Rotate quotes / lyric passages', 'type': 'checkbox', 'default': True, 'section': 'Quotes'},
               {'key': 'quoteSeconds',
                'label': 'Quote rotation interval',
                'type': 'select',
@@ -605,7 +605,7 @@ MANIFEST={"id":"grateful-dead",
                'type': 'checkbox',
                'default': True,
                'section': 'Quotes',
-               'help': 'Labels each item as a lyric excerpt or member quote before the text.'},
+               'help': 'Labels each item as a lyric passage or member quote before the text.'},
               {'key': 'quoteShowSource', 'label': 'Show quote source link', 'type': 'checkbox', 'default': True, 'section': 'Quotes'},
               {'key': 'customQuotes',
                'label': 'Personal quote pack',
@@ -765,8 +765,8 @@ for _field in MANIFEST.get("settings") or []:
     if _paths:
         _field.update({"cacheKey": False, "responsePaths": _paths})
 
-# Quotes are intentionally short sourced excerpts. Lyric snippets stay short and link to Dead.net song pages.
-BASE_LYRIC_SNIPPETS=[
+# Keep only sourced passages that read coherently on their own. Fragmentary built-in lyric rows remain in the source catalog for provenance, but the unattended reel filters them out instead of inventing missing words.
+BASE_LYRIC_PASSAGES=[
     {"key":"lyrics","kind":"lyric","member":"Franklin's Tower","quote":"May the four winds blow you safely home","source":"Dead.net lyrics","url":"https://www.dead.net/song/franklins-tower"},
     {"key":"lyrics","kind":"lyric","member":"Terrapin Station","quote":"Some rise, some fall, some climb to get to Terrapin","source":"Dead.net lyrics","url":"https://www.dead.net/song/terrapin-station"},
     {"key":"lyrics","kind":"lyric","member":"Scarlet Begonias","quote":"The sky was yellow and the sun was blue","source":"Dead.net lyrics","url":"https://www.dead.net/song/scarlet-begonias"},
@@ -796,10 +796,10 @@ BASE_LYRIC_SNIPPETS=[
 
 ]
 
-# The built-in reel intentionally keeps direct lyric excerpts very short.  The larger
-# rotation is achieved with many lyric snippets plus sourced member quotes, so an
-# unattended display can stay fresh without bundling long copyrighted lyric passages.
-EXTRA_LYRIC_SNIPPETS=[
+# The source catalog retains short direct excerpts for provenance, but the runtime
+# reel now favors standalone lyric passages that make sense without the missing
+# neighboring line. Fragmentary rows are kept out of unattended rotation.
+EXTRA_LYRIC_PASSAGES=[
     {"key":"lyric-bertha","kind":"lyric","member":"Bertha","quote":"Why don't you arrest me?","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
     {"key":"lyric-deal","kind":"lyric","member":"Deal","quote":"Don't you let that deal go down","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
     {"key":"lyric-brown-eyed-women","kind":"lyric","member":"Brown-Eyed Women","quote":"The bottle was dusty but the liquor was clean","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
@@ -2086,7 +2086,7 @@ MEMBER_QUOTES=[{'key': 'jerry',
   'source': "SFGATE · Dead's Welnick Out of the Dark · 1996",
   'url': 'https://www.sfgate.com/bayarea/article/lively-arts-nightlife-dead-s-welnick-out-of-2963995.php',
   'provenance': 'contemporary-interview'}]
-QUOTES=MEMBER_QUOTES+BASE_LYRIC_SNIPPETS
+QUOTES=MEMBER_QUOTES+BASE_LYRIC_PASSAGES
 
 MEMBER_ORDER=['jerry','bob','phil','mickey','bill','pigpen','tom','keith','donna','brent','vince']
 
@@ -2233,17 +2233,32 @@ def _balanced_member_quote_rows(items,today,order):
 def _quote_word_count(value):
     return len(re.findall(r"\b[\w’'-]+\b",str(value or '')))
 
+LYRIC_COMPLETE_SHORT_ALLOWLIST={
+    'Touch of Grey',
+    "Truckin'",
+    'Deal',
+    'St. Stephen',
+    'Not Fade Away',
+    'Row Jimmy',
+    'Cosmic Charlie',
+    'Cream Puff War',
+    'Victim or the Crime',
+}
+
 def _quote_has_standalone_context(row):
-    # Keep the complete sourced catalog available for unattended variety. Longer
-    # passages remain preferable, but excluding the short sourced excerpts shrank
-    # the real rotation to only a few dozen cards and caused constant repeats.
+    # Personal packs are user-authored and should not be second-guessed. Built-in
+    # lyric material is held to a stronger standard: prefer full standalone lines
+    # and exclude tiny half-lines/fragments rather than padding them with invented
+    # words. A small explicit allowlist preserves short, complete iconic lines.
     if str(row.get('source') or '')=='Personal quote pack' or str(row.get('key') or '')=='custom':
         return True
     words=_quote_word_count(row.get('quote'))
-    return words >= (5 if str(row.get('kind') or 'quote')=='lyric' else 5)
+    if str(row.get('kind') or 'quote')=='lyric':
+        return words >= 8 or (words >= 7 and str(row.get('member') or '') in LYRIC_COMPLETE_SHORT_ALLOWLIST)
+    return words >= 5
 
 def _quote_rows(settings,today):
-    rows=[_contextualize_quote_row(x) for x in (QUOTES+EXTRA_LYRIC_SNIPPETS+_custom_quotes(settings.get('customQuotes'))) if _quote_has_standalone_context(x)]
+    rows=[_contextualize_quote_row(x) for x in (QUOTES+EXTRA_LYRIC_PASSAGES+_custom_quotes(settings.get('customQuotes'))) if _quote_has_standalone_context(x)]
     # Keep one concise contextual card per source passage. Non-catalog rotation adds
     # only a stable rotation key; it no longer multiplies each excerpt into lens essays.
     if str(settings.get('quoteOrder') or 'daily-shuffle').lower()!='catalog':

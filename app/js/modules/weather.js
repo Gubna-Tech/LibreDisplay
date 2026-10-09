@@ -78,7 +78,30 @@ function lunarPhaseDetails(time,latitude=cfg.lat,utcOffsetSeconds=0){
 }
 function lunarPhaseIndex(time,utcOffsetSeconds=0){return lunarPhaseDetails(time,cfg.lat,utcOffsetSeconds).index;}
 function moonPhaseEmoji(time,latitude=cfg.lat,utcOffsetSeconds=0){const details=lunarPhaseDetails(time,latitude,utcOffsetSeconds);return (details.south?MOON_PHASE_SOUTH:MOON_PHASE_NORTH)[details.index]||'🌙';}
-function moonShadowOffsetPercent(illumination){const lit=Math.max(0,Math.min(1,Number(illumination)||0));if(lit<=.001)return 0;if(lit>=.999)return 100;const target=1-lit;let lo=0,hi=2;for(let i=0;i<14;i++){const d=(lo+hi)/2,root=Math.sqrt(Math.max(0,4-d*d)),overlap=(2*Math.acos(d/2)-.5*d*root)/Math.PI;if(overlap>target)lo=d;else hi=d;}return ((lo+hi)/4)*100;}
+function lunarPhaseName(details){
+  const phase=((Number(details?.phase)||0)%1+1)%1,illumination=Math.max(0,Math.min(1,Number(details?.illumination)||0));
+  if(illumination<=.005)return 'New Moon';if(illumination>=.995)return 'Full Moon';
+  if(Math.abs(phase-.25)<=.018)return 'First Quarter';if(Math.abs(phase-.75)<=.018)return 'Last Quarter';
+  if(phase<.25)return 'Waxing Crescent';if(phase<.5)return 'Waxing Gibbous';if(phase<.75)return 'Waning Gibbous';return 'Waning Crescent';
+}
+function moonIlluminatedPath(details,steps=28){
+  const lit=Math.max(0,Math.min(1,Number(details?.illumination)||0));if(lit<=.005)return '';
+  const r=46,c=50;if(lit>=.9995)return `M ${c} ${c-r} A ${r} ${r} 0 1 1 ${c} ${c+r} A ${r} ${r} 0 1 1 ${c} ${c-r} Z`;
+  const k=2*lit-1,dir=details?.visualWaxing===false?-1:1,n=Math.max(16,Math.min(48,Math.round(Number(steps)||28))),pts=[];
+  for(let i=0;i<=n;i++){const y=-1+2*i/n,arc=Math.sqrt(Math.max(0,1-y*y));pts.push([c+r*dir*arc,c+r*y]);}
+  for(let i=n;i>=0;i--){const y=-1+2*i/n,arc=Math.sqrt(Math.max(0,1-y*y));pts.push([c-r*dir*k*arc,c+r*y]);}
+  return pts.map((pt,i)=>`${i?'L':'M'} ${pt[0].toFixed(2)} ${pt[1].toFixed(2)}`).join(' ')+' Z';
+}
+function moonGlyphMarkup(details){
+  if(!details)return '';const illumination=Math.round(Math.max(0,Math.min(1,Number(details.illumination)||0))*100),path=moonIlluminatedPath(details),phase=lunarPhaseName(details);
+  return `<svg class="ld-wx-moon-phase" viewBox="0 0 100 100" role="img" aria-label="${phase}, Moon ${illumination}% illuminated" data-moon-illumination="${illumination}" data-moon-phase="${phase}"><circle class="ld-wx-moon-dark" cx="50" cy="50" r="46"></circle>${path?`<path class="ld-wx-moon-lit" d="${path}"></path>`:''}<circle class="ld-wx-moon-rim" cx="50" cy="50" r="46"></circle></svg>`;
+}
+function moonDailySummary(data,source=cfg){
+  const dates=Array.isArray(data?.daily?.time)?data.daily.time.slice(0,4):[],latitude=data?.latitude??source?.lat??cfg.lat,offset=data?.utc_offset_seconds??0;if(!dates.length)return '';
+  const rows=dates.map(date=>({date,details:lunarPhaseDetails(date+'T12:00',latitude,offset)})),today=rows[0],pct=Math.round(today.details.illumination*100),phase=lunarPhaseName(today.details);
+  let extra='';const candidates=rows.slice(0,3).map((row,index)=>({index,row})).filter(x=>x.row.details.illumination<=.03);if(candidates.length){const nearest=candidates.reduce((best,x)=>x.row.details.illumination<best.row.details.illumination?x:best,candidates[0]);if(nearest.row.details.illumination<=.012){const npct=Math.round(nearest.row.details.illumination*100);extra=nearest.index===0?' · New Moon today':nearest.index===1?` · New Moon tomorrow (${npct}%)`:` · New Moon in ${nearest.index} days (${npct}%)`;}}
+  return `Moon ${pct}% · ${phase}${extra}`;
+}
 
 function wi(c,isDay=true,time='',latitude=cfg.lat,utcOffsetSeconds=0){if(isDay!==false)return WI[c]||'🌡️';const moon=moonPhaseEmoji(time,latitude,utcOffsetSeconds);if(Number(c)===0)return moon;if([1,2].includes(Number(c)))return moon+'☁️';return WIN[c]||WI[c]||'🌡️';}
 function wd(c){return WD[c]||'';}
@@ -110,7 +133,7 @@ function weatherPayloadMatchesRequest(data,source){
 function showWeatherWaitingState(message='Waiting for fresh weather…'){
   const ui=uiCfg(),locationEl=document.getElementById('wx-location'),label=String(ui.locName??cfg.locName??'').trim();
   if(locationEl){locationEl.textContent=label;locationEl.classList.toggle('show',!!label);}const set=(id,text)=>{const el=document.getElementById(id);if(el)el.textContent=text;};
-  set('wx-icon','🌡️');set('wx-temp','--°');set('wx-feels',message);set('wx-cond','Updating conditions…');
+  set('wx-icon','🌡️');set('wx-temp','--°');set('wx-feels',message);set('wx-cond','Updating conditions…');set('wx-moon-info','');
   for(const id of ['wx-details','wx-forecast','wx-hourly'])document.getElementById(id)?.replaceChildren();
   try{LibreDisplayRuntime.getModule('weatherEffects').applyWeatherEffects(null,ui);}catch(_e){}
   try{refreshCustomDataBlocks(['weatherview','suntimes']);}catch(_e){}
@@ -209,6 +232,7 @@ function renderWeather(d){
   currentIcon.style.display=ui.showCurrentIcon?'':'none';
   document.getElementById('wx-feels').textContent='Feels like '+C(c.apparent_temperature)+'°';
   document.getElementById('wx-cond').textContent=wd(c.weather_code);
+  const moonInfo=document.getElementById('wx-moon-info'),moonSummary=moonDailySummary(d,ui);if(moonInfo){moonInfo.textContent=moonSummary;moonInfo.classList.toggle('show',!!moonSummary);}
   renderBuiltInWeatherDetails(d,ui);
 
   const fc=document.getElementById('wx-forecast'),fcDays=Math.min(Math.max(3,Number(ui.dailyForecastDays)||12),14,dl.time.length);
@@ -283,7 +307,7 @@ function resetWeatherDetails(){mutateWeatherDetails(s=>{s.order=['sunset','wind'
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("weather", {activeLocale,formatClockDate,tick,clockTickDelay,startClock,lunarPhaseDetails,moonShadowOffsetPercent,wi,wd,C,u,weatherLocationKey,weatherPayloadMatchesRequest,showWeatherWaitingState,invalidateWeatherIfLocationChanged,weatherWindUnitParam,weatherWindUnitLabel,weatherWindUnitMatches,validateWeatherPayload,fetchWeather,renderWeather,forecastRenderSnapshot,weatherDetailsConfig,weatherDetailColumnCount,weatherDetailValue,renderBuiltInWeatherDetails,weatherDetailsFromForm,setWeatherDetailsForm,renderWeatherDetailsSettings,mutateWeatherDetails,toggleWeatherDetailSetting,moveWeatherDetailSetting,weatherDetailDragStart,weatherDetailDrop,enableRecommendedWeatherDetails,enableAllWeatherDetails,resetWeatherDetails}, {
+LibreDisplayRuntime.exposeModule("weather", {activeLocale,formatClockDate,tick,clockTickDelay,startClock,lunarPhaseDetails,lunarPhaseName,moonIlluminatedPath,moonGlyphMarkup,moonDailySummary,wi,wd,C,u,weatherLocationKey,weatherPayloadMatchesRequest,showWeatherWaitingState,invalidateWeatherIfLocationChanged,weatherWindUnitParam,weatherWindUnitLabel,weatherWindUnitMatches,validateWeatherPayload,fetchWeather,renderWeather,forecastRenderSnapshot,weatherDetailsConfig,weatherDetailColumnCount,weatherDetailValue,renderBuiltInWeatherDetails,weatherDetailsFromForm,setWeatherDetailsForm,renderWeatherDetailsSettings,mutateWeatherDetails,toggleWeatherDetailSetting,moveWeatherDetailSetting,weatherDetailDragStart,weatherDetailDrop,enableRecommendedWeatherDetails,enableAllWeatherDetails,resetWeatherDetails}, {
   "DN": {configurable:true,get:()=>DN},
   "MN": {configurable:true,get:()=>MN},
   "MNS": {configurable:true,get:()=>MNS},
@@ -617,7 +641,7 @@ const performanceApi=LibreDisplayRuntime.getModule('performance');
 const sceneryApi=LibreDisplayRuntime.getModule('weatherScenery');
 const canvasApi=LibreDisplayRuntime.getModule('weatherCanvas');
 const {DOG_BREEDS,appendDogCompanion}=sceneryApi;
-const {uiCfg}=LibreDisplayRuntime.getModule('shared');const {lunarPhaseDetails,moonShadowOffsetPercent}=LibreDisplayRuntime.getModule('weather');
+const {uiCfg}=LibreDisplayRuntime.getModule('shared');const {lunarPhaseDetails,moonGlyphMarkup}=LibreDisplayRuntime.getModule('weather');
 const WEATHER_MOON_PHASES=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
 
 let lastSignature='';
@@ -737,8 +761,8 @@ function weatherIconMarkup(code,fallback='',source=null,isDay=true,details={}){
   source=weatherEffectSource(source);details=details&&typeof details==='object'?details:{};
   const descriptor=weatherVisualDescriptor(code,details.windSpeed,source),condition=descriptor.condition,safeFallback=String(fallback||''),widgetOn=!!source?.weatherAnimationsEnabled&&!!source?.weatherWidgetAnimations&&!effectPaused(source),glyphActive=weatherGlyphEnabled(condition,source||{}),daylight=isDay!==false;
   const fallbackClass='ld-weather-emoji-fallback'+(glyphActive?' ld-weather-emoji-hidden':''),glyphClass=['ld-weather-glyph','ld-weather-'+condition,'ld-weather-'+descriptor.intensity,descriptor.hail?'ld-weather-hail':'',descriptor.windy?'ld-weather-windy':'',daylight?'ld-weather-day':'ld-weather-night',glyphActive?'ld-weather-glyph-active':'',widgetOn?'':'ld-weather-glyph-static'].filter(Boolean).join(' ');
-  const moonDetails=!daylight&&['clear','partly'].includes(condition)?lunarPhaseDetails(details.time||'',details.latitude??source.lat??cfg.lat,details.utcOffsetSeconds??0):null,displayIllumination=moonDetails&&moonDetails.illumination>.01&&moonDetails.illumination<.12?.12:moonDetails?.illumination||0,shadow=moonDetails?moonShadowOffsetPercent(displayIllumination):0,shadowSigned=moonDetails?(moonDetails.visualWaxing?-shadow:shadow):0,illumination=moonDetails?Math.round(moonDetails.illumination*100):0;
-  const sun=daylight&&['clear','partly'].includes(condition)?'<span class="ld-wx-sun"><i></i></span>':'',moon=moonDetails?`<span class="ld-wx-moon-phase" style="--moon-shadow-x:${shadowSigned.toFixed(2)}%" data-moon-illumination="${illumination}" aria-label="Moon ${illumination}% illuminated"><i></i></span>`:'',cloud=['partly','cloud','rain','snow','storm'].includes(condition)?'<span class="ld-wx-cloud"><i></i><b></b></span>':'';
+  const moonDetails=!daylight&&['clear','partly'].includes(condition)?lunarPhaseDetails(details.time||'',details.latitude??source.lat??cfg.lat,details.utcOffsetSeconds??0):null;
+  const sun=daylight&&['clear','partly'].includes(condition)?'<span class="ld-wx-sun"><i></i></span>':'',moon=moonDetails?moonGlyphMarkup(moonDetails):'',cloud=['partly','cloud','rain','snow','storm'].includes(condition)?'<span class="ld-wx-cloud"><i></i><b></b></span>':'';
   const rainCount=descriptor.intensity==='light'?3:descriptor.intensity==='heavy'?7:5,snowCount=descriptor.intensity==='light'?4:descriptor.intensity==='heavy'?8:6,rain=['rain','storm'].includes(condition)?`<span class="ld-wx-precip ld-wx-rain">${precipitationMarkup('rain',rainCount)}</span>`:'',snow=condition==='snow'?`<span class="ld-wx-precip ld-wx-snow">${precipitationMarkup('snow',snowCount)}</span>`:'',hail=descriptor.hail?`<span class="ld-wx-precip ld-wx-hail">${precipitationMarkup('hail',descriptor.intensity==='heavy'?5:4)}</span>`:'',bolt=condition==='storm'?'<span class="ld-wx-bolt"></span>':'',wind=descriptor.windy?'<span class="ld-wx-wind"><i></i><i></i><i></i></span>':'',fog=condition==='fog'?'<span class="ld-wx-fog"><i></i><i></i><i></i></span>':'',unknown=condition==='none'?'<span class="ld-wx-unknown">•</span>':'';
   return `<span class="${fallbackClass}">${safeFallback}</span><span class="${glyphClass}" data-weather-visual="${condition}" data-weather-intensity="${descriptor.intensity}" aria-hidden="true">${sun}${moon}${cloud}${rain}${snow}${hail}${bolt}${wind}${fog}${unknown}</span>`;
 }
@@ -1121,7 +1145,7 @@ observer.observe(document.body,{attributes:true,attributeFilter:['class'],attrib
 
 sceneryApi.registerHolidayRefresh(()=>{lastSignature='';applyWeatherEffects(configApi.wxData,window.__uiPreviewCfg||null);});
 window.addEventListener('libredisplay:performancechange',()=>{lastSignature='';applyWeatherEffects(configApi.wxData);});
-LibreDisplayRuntime.exposeModule('weatherEffects',{WEATHER_TEST_PROFILES,weatherVisualCondition,weatherVisualDescriptor,lunarPhaseDetails,moonShadowOffsetPercent,weatherEffectCondition,weatherEffectSource,effectAllowed,weatherGlyphEnabled,syncWeatherGlyphVisibility,liveIntensityMultiplier,weatherEffectIntensityForData,weatherPhenomenonProfile,particleCount,DOG_BREEDS,appendDogCompanion,weatherHazardAlerts,weatherReducedMotionActive,fullscreenPauseReason,effectPauseReason,weatherIconMarkup,decorateWeatherIcon,weatherWindProfile,weatherSeasonContextForData,weatherSeasonForData,weatherIsDay,weatherEcologyRegion,birdSpeciesPool,birdSpeciesForIndex,owlSpeciesPool,owlSpeciesForIndex,owlBehavior,butterflySpeciesPool,butterflySpeciesForIndex,birdMorphology,weatherWildlifeWeatherFactors,visibleWildlifeCount,weatherWildlifeProfile,weatherWorldState,weatherWorldAdjustedCounts,weatherWorldClassList,seasonalEffectCounts,seasonalParticleCount,weatherTestData,weatherEffectTestState,weatherHazardTestState,setWeatherHazardTestProfile,weatherHazardTestProfileChanged,stopWeatherHazardTest,previewWeatherHazardTestFullScreen,setWeatherEffectTestProfile,handleWeatherEffectTestModeChange,weatherEffectTestProfileChanged,stopWeatherEffectTest,previewWeatherTestFullScreen,weatherEffectRuntimeState,weatherWildlifeStatusText,weatherEffectStatusText,applyWeatherEffects,refreshWeatherEffects,precipitationAnimationHealthy,weatherOverlayCompositionHealthy,weatherOverlayNeedsRepair,ensureWeatherOverlayLive,weatherPauseClassSignature},{},{globalFunctions:['handleWeatherEffectTestModeChange','weatherEffectTestProfileChanged','stopWeatherEffectTest','previewWeatherTestFullScreen','weatherHazardTestProfileChanged','stopWeatherHazardTest','previewWeatherHazardTestFullScreen'],globalStates:[]});
+LibreDisplayRuntime.exposeModule('weatherEffects',{WEATHER_TEST_PROFILES,weatherVisualCondition,weatherVisualDescriptor,lunarPhaseDetails,moonGlyphMarkup,weatherEffectCondition,weatherEffectSource,effectAllowed,weatherGlyphEnabled,syncWeatherGlyphVisibility,liveIntensityMultiplier,weatherEffectIntensityForData,weatherPhenomenonProfile,particleCount,DOG_BREEDS,appendDogCompanion,weatherHazardAlerts,weatherReducedMotionActive,fullscreenPauseReason,effectPauseReason,weatherIconMarkup,decorateWeatherIcon,weatherWindProfile,weatherSeasonContextForData,weatherSeasonForData,weatherIsDay,weatherEcologyRegion,birdSpeciesPool,birdSpeciesForIndex,owlSpeciesPool,owlSpeciesForIndex,owlBehavior,butterflySpeciesPool,butterflySpeciesForIndex,birdMorphology,weatherWildlifeWeatherFactors,visibleWildlifeCount,weatherWildlifeProfile,weatherWorldState,weatherWorldAdjustedCounts,weatherWorldClassList,seasonalEffectCounts,seasonalParticleCount,weatherTestData,weatherEffectTestState,weatherHazardTestState,setWeatherHazardTestProfile,weatherHazardTestProfileChanged,stopWeatherHazardTest,previewWeatherHazardTestFullScreen,setWeatherEffectTestProfile,handleWeatherEffectTestModeChange,weatherEffectTestProfileChanged,stopWeatherEffectTest,previewWeatherTestFullScreen,weatherEffectRuntimeState,weatherWildlifeStatusText,weatherEffectStatusText,applyWeatherEffects,refreshWeatherEffects,precipitationAnimationHealthy,weatherOverlayCompositionHealthy,weatherOverlayNeedsRepair,ensureWeatherOverlayLive,weatherPauseClassSignature},{},{globalFunctions:['handleWeatherEffectTestModeChange','weatherEffectTestProfileChanged','stopWeatherEffectTest','previewWeatherTestFullScreen','weatherHazardTestProfileChanged','stopWeatherHazardTest','previewWeatherHazardTestFullScreen'],globalStates:[]});
 }
 // End source section: /js/weather/effects.js
 
