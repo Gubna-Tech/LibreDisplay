@@ -16,10 +16,10 @@ Use a current Raspberry Pi OS **with Desktop**.
 For a new installation, paste this single command into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.10.36/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.10.37/scripts/install-one-line.sh)"
 ```
 
-The bootstrap downloads the pinned **v1.10.36** release, validates the archive, then hands off to LibreDisplay's normal installer. It refuses to overwrite an existing `~/libredisplay` installation; existing users should update with `libredisplay update` instead.
+The bootstrap downloads the pinned **v1.10.37** release, validates the archive, then hands off to LibreDisplay's normal installer. It refuses to overwrite an existing `~/libredisplay` installation; existing users should update with `libredisplay update` instead.
 
 Reboot when prompted. LibreDisplay will open automatically.
 
@@ -42,7 +42,7 @@ Most day-to-day setup happens from **Settings**:
 - **Integrations** — connect supported services and custom data sources
 - **Personalization** — themes, typography, accessibility, and layout
 - **OLED / always-on display care** — optional dimming, quiet-hours scheduling, deep protection, and pixel shifting for static-display wear reduction
-- **Layout** — choose a layout or use Arrange to move and resize dashboard blocks
+- **Layout** — choose a layout or use Arrange to independently trim block frames, resize their contents, and fine-tune editable internal weather/integration parts
 
 For local photo folders or NAS shares, use the included setup helpers:
 

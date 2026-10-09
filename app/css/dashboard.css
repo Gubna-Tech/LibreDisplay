@@ -235,9 +235,9 @@ body.custom-layout #wx-left[data-current-weather-layout="split"],body.custom-lay
   overflow:visible;
   text-overflow:clip;
 }
-.wx-moon-info.show { display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:8px; }
-.wx-moon-mini{position:relative;display:block;width:34px;height:34px}
-.wx-moon-mini .ld-wx-moon-phase{position:relative!important;left:auto!important;top:auto!important;width:34px!important;height:34px!important;display:block}
+.wx-moon-info.show { display:grid;grid-template-columns:calc(34px * var(--ld-moon-user-scale,1)) minmax(0,1fr);align-items:center;gap:8px; }
+.wx-moon-mini{position:relative;display:block;width:calc(34px * var(--ld-moon-user-scale,1));height:calc(34px * var(--ld-moon-user-scale,1))}
+.wx-moon-mini .ld-wx-moon-phase{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:100%!important;display:block}
 .wx-moon-copy{display:flex;min-width:0;flex-direction:column;gap:1px}
 .wx-moon-main{display:flex;min-width:0;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.08}
 .wx-moon-pct{font-size:clamp(14px,1vw,17px);font-weight:720;letter-spacing:.1px;color:rgba(255,255,255,.98)}
@@ -267,8 +267,8 @@ body.custom-layout #wx-left[data-current-weather-layout="split"],body.custom-lay
 .wx-main[data-weather-layout="free"] .wx-current,.wx-main[data-weather-layout="free"] .wx-moon-info,.wx-main[data-weather-layout="free"] .wx-moon-copy,.wx-main[data-weather-layout="free"] .wx-moon-main{display:contents}
 .wx-main[data-weather-layout="free"] [data-free-weather-part]{box-sizing:border-box;margin:0!important;padding-left:0!important;padding-right:0!important;align-self:auto;justify-self:auto;max-width:none}
 .wx-main[data-weather-layout="free"] .wx-location{white-space:nowrap}
-.wx-main[data-weather-layout="free"] .wx-moon-mini{height:auto;aspect-ratio:1/1}
-.wx-main[data-weather-layout="free"] .wx-moon-mini .ld-wx-moon-phase{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:100%!important;display:block}
+.wx-main[data-weather-layout="free"] .wx-moon-mini{min-width:0;min-height:0;aspect-ratio:auto}
+.wx-main[data-weather-layout="free"] .wx-moon-mini .ld-wx-moon-phase{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:100%!important;display:block;transform:scale(var(--ld-moon-user-scale,1));transform-origin:left top}
 .wx-main[data-weather-layout="free"] .wx-moon-next,.wx-main[data-weather-layout="free"] .wx-moon-phase-name,.wx-main[data-weather-layout="free"] .wx-moon-pct{display:block}
 @media (max-width:760px){.wx-main[data-weather-layout="split"],.wx-main[data-weather-layout="split-reverse"],.wx-main[data-weather-layout="compact"]{display:block}.wx-main[data-weather-layout="split"] .wx-moon-info,.wx-main[data-weather-layout="split-reverse"] .wx-moon-info,.wx-main[data-weather-layout="compact"] .wx-moon-info{width:100%;max-width:184px;margin-top:9px;padding:8px 2px 0;border-left:0;border-right:0;border-top:1px solid rgba(228,238,250,.24)}}
 
@@ -787,7 +787,7 @@ body.remote-layout-proxy #layout-editor-layer{display:none!important}
 }
 .layout-edit-box.selected:not(.primary-selected){border-style:dashed;opacity:.92}.layout-current-part-box{position:fixed;z-index:10031;border:1px dashed rgba(151,218,255,.88);background:rgba(44,143,206,.08);box-shadow:0 0 0 1px rgba(0,0,0,.28);pointer-events:auto;cursor:move;border-radius:4px;min-width:8px;min-height:8px}
 .layout-current-part-box.selected{border-style:solid;border-color:#b6ecff;background:rgba(58,171,231,.15);box-shadow:0 0 0 2px rgba(182,236,255,.16)}
-.layout-current-part-box .layout-current-part-label{position:absolute;left:2px;top:-18px;padding:1px 5px;border-radius:4px;background:rgba(7,18,28,.88);color:#e9f8ff;font-size:9px;line-height:14px;white-space:nowrap;pointer-events:none}
+.layout-current-part-box .layout-current-part-label{position:absolute;left:2px;top:-18px;padding:1px 5px;border-radius:4px;background:rgba(7,18,28,.88);color:#e9f8ff;font-size:9px;line-height:14px;white-space:nowrap;pointer-events:none}.layout-current-part-resize-handle{position:absolute;right:-6px;bottom:-6px;width:13px;height:13px;border:2px solid rgba(8,23,36,.95);border-radius:4px;background:#9be4ff;box-shadow:0 0 0 1px rgba(255,255,255,.35);cursor:nwse-resize;touch-action:none}.layout-current-part-box.selected .layout-current-part-resize-handle{background:#d9f6ff}
 .layout-edit-box.primary-selected{z-index:3}.layout-edit-box.selected:not(.primary-selected) .layout-resize-handle{display:none}
 .layout-edit-label {
   position:absolute;

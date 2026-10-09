@@ -1486,6 +1486,8 @@ const DASHBOARD_EVENT_HANDLERS=Object.freeze({
   h259:function(event){LibreDisplayRuntime.getModule('layout').setCurrentWeatherPartGeometry('z',this.value)},
   h260:function(event){LibreDisplayRuntime.getModule('layout').resetCurrentWeatherPartArrangement()},
   h261:function(event){LibreDisplayRuntime.getModule('layout').resetCurrentWeatherArrangement()},
+  h262:function(event){LibreDisplayRuntime.getModule('layout').setCurrentWeatherPartGeometry('h',this.value)},
+  h263:function(event){LibreDisplayRuntime.getModule('layout').setSelectedFrameFitContent(this.checked)},
 });
 const DASHBOARD_DELEGATED_EVENTS=Object.freeze(['click','input','change','keydown','dragstart','dragend','dragover','drop']);
 function delegatedEventElement(event,attr){const target=event?.target;return target&&typeof target.closest==='function'?target.closest('['+attr+']'):null;}

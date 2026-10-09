@@ -262,8 +262,8 @@ function applyCurrentWeatherPartLayout(main,source=cfg){
   if(!main)return;
   const free=source?.currentWeatherLayout==='free',rows=source?.currentWeatherPartLayout&&typeof source.currentWeatherPartLayout==='object'?source.currentWeatherPartLayout:{};
   for(const [key,selector] of Object.entries(CURRENT_WEATHER_PART_SELECTORS)){
-    const el=main.querySelector(selector);if(!el)continue;el.removeAttribute('data-free-weather-part');for(const prop of ['position','left','top','width','zIndex'])el.style.removeProperty(prop);
-    if(!free)continue;const row=rows[key];if(!row)continue;const x=Math.min(100,Math.max(0,Number(row.x)||0)),y=Math.min(100,Math.max(0,Number(row.y)||0)),w=Math.min(100,Math.max(4,Number(row.w)||20)),z=Math.min(99,Math.max(0,Math.round(Number(row.z)||1)));el.dataset.freeWeatherPart=key;el.style.position='absolute';el.style.left=`${x}%`;el.style.top=`${y}%`;el.style.width=`${w}%`;el.style.zIndex=String(z);
+    const el=main.querySelector(selector);if(!el)continue;el.removeAttribute('data-free-weather-part');for(const prop of ['position','left','top','width','height','zIndex'])el.style.removeProperty(prop);
+    if(!free)continue;const row=rows[key];if(!row)continue;const x=Math.min(100,Math.max(0,Number(row.x)||0)),y=Math.min(100,Math.max(0,Number(row.y)||0)),w=Math.min(100,Math.max(4,Number(row.w)||20)),hRaw=Number(row.h),h=Number.isFinite(hRaw)&&hRaw>0?Math.min(100,Math.max(2,hRaw)):0,z=Math.min(99,Math.max(0,Math.round(Number(row.z)||1)));el.dataset.freeWeatherPart=key;el.style.position='absolute';el.style.left=`${x}%`;el.style.top=`${y}%`;el.style.width=`${w}%`;if(h>0)el.style.height=`${h}%`;el.style.zIndex=String(z);
   }
 }
 
@@ -328,7 +328,7 @@ function applyUiCustomization(source=cfg){
     .wx-icon-big{font-size:${scaledClamp(36,3.4,54,cur*ps('current','icon'))};${pe('current','icon')}}
     .wx-feels{font-size:${scaledClamp(17,1.25,23,cur*ps('current','feelsLike'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('current','feelsLike')}}
     .wx-cond{font-size:${scaledClamp(17,1.25,23,cur*ps('current','condition'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('current','condition')}}
-    .wx-moon-info{${pe('current','moonSummary')}}
+    .wx-moon-info{--ld-moon-user-scale:${ps('current','moonIcon').toFixed(4)};${pe('current','moonSummary')}}
     .wx-moon-mini{${pe('current','moonIcon')}}
     .wx-moon-pct{font-size:${scaledClamp(14,1,17,cur*ps('current','moonIllumination'))};${pe('current','moonIllumination')}}
     .wx-moon-phase-name{font-size:${scaledClamp(12.5,.86,15,cur*ps('current','moonPhase'))};${pe('current','moonPhase')}}
