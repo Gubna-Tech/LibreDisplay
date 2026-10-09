@@ -61,17 +61,18 @@
     const loopExtent=Math.max(0,(firstClone&&firstOriginal)?offset(firstClone)-offset(firstOriginal):0);
     if(loopExtent<=2){for(const clone of clones)clone.remove();return ()=>{};}
     state.reelPositions=state.reelPositions||{};state.reelStarted=state.reelStarted||{};
-    let frame=0,stopped=false,last=0,lastPaint=-Infinity,position=Number(state.reelPositions[key])||0,phaseUntil=performance.now()+(state.reelStarted[key]?0:options.startDelay),paintInterval=visualFrameMs();
+    let frame=0,stopped=false,last=0,lastPaint=-Infinity,nextWork=0,position=Number(state.reelPositions[key])||0,phaseUntil=performance.now()+(state.reelStarted[key]?0:options.startDelay),paintInterval=visualFrameMs();
     position=((position%loopExtent)+loopExtent)%loopExtent;state.reelStarted[key]=true;
     el.scrollTop=0;el.scrollLeft=0;const trackStyle=track.style||{};trackStyle.willChange='transform';trackStyle.transform=axis==='x'?`translate3d(${-position}px,0,0)`:`translate3d(0,${-position}px,0)`;el.classList.add('deadhead-autoscroll-active');
     const tick=now=>{
       if(stopped||!el.isConnected)return;
-      if(!reelOverflows(el,axis)){last=now;frame=requestAnimationFrame(tick);return;}
-      if(reelPaused(el,options,state)){last=now;frame=requestAnimationFrame(tick);return;}
-      if(now<phaseUntil){last=now;frame=requestAnimationFrame(tick);return;}
+      if(now<nextWork){frame=requestAnimationFrame(tick);return;}
+      if(!reelOverflows(el,axis)){last=now;nextWork=now+500;frame=requestAnimationFrame(tick);return;}
+      if(reelPaused(el,options,state)){last=now;nextWork=now+250;frame=requestAnimationFrame(tick);return;}
+      if(now<phaseUntil){last=now;nextWork=Math.min(phaseUntil,now+250);frame=requestAnimationFrame(tick);return;}
       const dt=last?Math.min(80,now-last):0;last=now;position+=options.speed*dt/1000;
       while(position>=loopExtent)position-=loopExtent;
-      state.reelPositions[key]=position;if(now-lastPaint>=paintInterval){lastPaint=now;trackStyle.transform=axis==='x'?`translate3d(${-position}px,0,0)`:`translate3d(0,${-position}px,0)`;}frame=requestAnimationFrame(tick);
+      state.reelPositions[key]=position;if(now-lastPaint>=paintInterval){lastPaint=now;trackStyle.transform=axis==='x'?`translate3d(${-position}px,0,0)`:`translate3d(0,${-position}px,0)`;}nextWork=now+paintInterval;frame=requestAnimationFrame(tick);
     };
     frame=requestAnimationFrame(tick);
     return ()=>{stopped=true;if(frame)cancelAnimationFrame(frame);state.reelPositions[key]=position;trackStyle.transform='';trackStyle.willChange='';for(const clone of clones)clone.remove();el.classList.remove('deadhead-autoscroll-active');};
@@ -84,20 +85,21 @@
     // Keep a floating-point accumulator independent of scrollTop/scrollLeft. Chromium can
     // quantize very small per-frame writes on low-power displays; re-reading that rounded
     // value each frame made slow speed settings appear identical or completely stalled.
-    let frame=0,stopped=false,last=0,lastPaint=-Infinity,phase='start',phaseUntil=performance.now()+options.startDelay,direction=1,position=scrollPosition(el,axis),paintInterval=visualFrameMs();
+    let frame=0,stopped=false,last=0,lastPaint=-Infinity,nextWork=0,phase='start',phaseUntil=performance.now()+options.startDelay,direction=1,position=scrollPosition(el,axis),paintInterval=visualFrameMs();
     const write=(value,force=false,now=performance.now())=>{position=Math.max(0,Math.min(scrollMax(el,axis),value));if(force||now-lastPaint>=paintInterval){lastPaint=now;setScrollPosition(el,axis,position);}};
     const tick=now=>{
       if(stopped||!el.isConnected)return;
+      if(now<nextWork){frame=requestAnimationFrame(tick);return;}
       const max=scrollMax(el,axis);
       el.classList.toggle('deadhead-autoscroll-active',max>2);
-      if(max<=2){position=0;last=now;frame=requestAnimationFrame(tick);return;}
-      if(reelPaused(el,options,state)){position=Math.max(0,Math.min(max,scrollPosition(el,axis)));last=now;frame=requestAnimationFrame(tick);return;}
-      if(now<phaseUntil){position=Math.max(0,Math.min(max,scrollPosition(el,axis)));last=now;frame=requestAnimationFrame(tick);return;}
+      if(max<=2){position=0;last=now;nextWork=now+500;frame=requestAnimationFrame(tick);return;}
+      if(reelPaused(el,options,state)){position=Math.max(0,Math.min(max,scrollPosition(el,axis)));last=now;nextWork=now+250;frame=requestAnimationFrame(tick);return;}
+      if(now<phaseUntil){position=Math.max(0,Math.min(max,scrollPosition(el,axis)));last=now;nextWork=Math.min(phaseUntil,now+250);frame=requestAnimationFrame(tick);return;}
       if(phase==='end'){
         if(options.loopMode==='once'){write(max,true,now);return;}
         if(options.loopMode==='bounce'){direction*=-1;phase='move';last=now;position=scrollPosition(el,axis);}
         else{write(0,true,now);direction=1;phase='start';phaseUntil=now+options.startDelay;last=now;}
-        frame=requestAnimationFrame(tick);return;
+        nextWork=now+paintInterval;frame=requestAnimationFrame(tick);return;
       }
       phase='move';
       const dt=last?Math.min(64,now-last):0;last=now;
@@ -105,7 +107,7 @@
       if(direction>0&&next>=max-0.001){write(max,true,now);phase='end';phaseUntil=now+options.loopPause;}
       else if(direction<0&&next<=0.001){write(0,true,now);phase='end';phaseUntil=now+options.loopPause;}
       else write(next,false,now);
-      frame=requestAnimationFrame(tick);
+      nextWork=now+paintInterval;frame=requestAnimationFrame(tick);
     };
     frame=requestAnimationFrame(tick);
     return ()=>{stopped=true;if(frame)cancelAnimationFrame(frame);};
@@ -127,7 +129,7 @@
     data.setlists=data?.setlists&&typeof data.setlists==='object'?data.setlists:{};
     const quoteSeconds=Math.max(30,Number(data?.quoteSeconds)||60),quoteSlot=Math.floor(Date.now()/(quoteSeconds*1000)),quoteSeed=stableHash(`${block?.id||'deadhead'}|${data?.date||''}|${data?.quoteOrder||d.quoteOrder||'daily-shuffle'}`),initialQuote=quotes.length?(quoteSeed+quoteSlot)%quotes.length:0;
     const state={current:initial,quoteIndex:initialQuote,showTimer:0,quoteTimer:0,hovered:false,autoScrollers:[],autoScrollRaf:0,browserScroll:null,setlistScroll:null,lastShowKey:'',reelPositions:{},reelStarted:{},setlistPending:new Set(),setlistRetrying:new Set(),setlistUnavailable:new Set(),setlistQueue:[],setlistWorker:false,setlistRetryTimers:[],resizeObserver:null};states.set(target,state);
-    let draw=()=>{};
+    let draw=()=>{},refreshQuote=()=>{};
     const queueSetlist=(index,priority=false)=>{if(!enabled(d,'setlistSmartLoad',true)||!enabled(d,'setlistsEnabled')||!block?.id||!shows.length)return;index=(index+shows.length)%shows.length;const show=shows[index],date=String(show?.date||'');if(!date||data.setlists[date]?.sets?.length||state.setlistPending.has(date)||state.setlistRetrying.has(date)||state.setlistUnavailable.has(date)||state.setlistQueue.some(x=>x.date===date))return;const item={index,date,identifier:String(show?.identifier||'')};if(priority)state.setlistQueue.unshift(item);else state.setlistQueue.push(item);runSetlistQueue();};
     const scheduleSetlistRetry=item=>{if(state.setlistRetrying.has(item.date))return;state.setlistRetrying.add(item.date);const timer=setTimeout(()=>{state.setlistRetrying.delete(item.date);if(target.isConnected)queueSetlist(item.index,true);},60000);state.setlistRetryTimers.push(timer);};
     const runSetlistQueue=async()=>{if(state.setlistWorker||!state.setlistQueue.length||!target.isConnected)return;state.setlistWorker=true;const item=state.setlistQueue.shift();state.setlistPending.add(item.date);if(shows[state.current]?.date===item.date)draw();try{const bootstrap=LibreDisplayRuntime.getModule('bootstrap'),shared=LibreDisplayRuntime.getModule('shared'),url=bootstrap?.serverPath?bootstrap.serverPath('/api/integration-action'):'/api/integration-action',request=shared?.resilientFetch||fetch,res=await request(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({block:block.id,action:'load-setlist',payload:{date:item.date,identifier:item.identifier}}),cache:'no-store'},{timeoutMs:24000,retry:false}),body=await res.json().catch(()=>({})),result=body?.result||{};if(!res.ok||!body?.ok)throw new Error(body?.error||('HTTP '+res.status));if(result?.available&&result?.setlist?.sets?.length){data.setlists[item.date]=result.setlist;state.setlistUnavailable.delete(item.date);state.setlistRetrying.delete(item.date);}else if(Array.isArray(result?.errors)&&result.errors.length)scheduleSetlistRetry(item);else state.setlistUnavailable.add(item.date);}catch(_e){scheduleSetlistRetry(item);}finally{state.setlistPending.delete(item.date);state.setlistWorker=false;if(shows[state.current]?.date===item.date)draw();if(state.setlistQueue.length)runSetlistQueue();}};
@@ -145,9 +147,15 @@
       target.querySelector('.deadhead-next')?.addEventListener('click',()=>{state.current=nextIndex(state.current,shows.length,1);draw();queueSetlistCoverage();});
       target.querySelector('.deadhead-another')?.addEventListener('click',()=>{state.current=jumpIndex(state.current,shows,d.listenButtonBehavior||'surprise');draw();queueSetlistCoverage();});
     };
+    refreshQuote=()=>{
+      const quote=quotes[state.quoteIndex%Math.max(1,quotes.length)],markup=renderQuote(quote,d),current=target.querySelector('.deadhead-quote');
+      if(!markup){current?.remove();return;}
+      const template=document.createElement('template');template.innerHTML=markup.trim();const next=template.content.firstElementChild;if(!next)return;
+      if(current)current.replaceWith(next);else draw();
+    };
     draw();queueSetlistCoverage();
     target.onmouseenter=()=>{state.hovered=true;};target.onmouseleave=()=>{state.hovered=false;};
     if(data?.autoRotate!==false&&shows.length>1){const ms=Math.max(15,Number(data?.rotationSeconds)||30)*1000;state.showTimer=setInterval(()=>{if((state.hovered&&enabled(d,'pauseOnHover'))||!target.isConnected)return;state.current=nextIndex(state.current,shows.length,1);draw();queueSetlistCoverage();},ms);}
-    if(enabled(d,'quotesEnabled')&&data?.quoteRotate!==false&&quotes.length>1){const ms=quoteSeconds*1000;state.quoteTimer=setInterval(()=>{if((state.hovered&&enabled(d,'pauseOnHover'))||!target.isConnected)return;state.quoteIndex=(state.quoteIndex+1)%quotes.length;draw();},ms);}
+    if(enabled(d,'quotesEnabled')&&data?.quoteRotate!==false&&quotes.length>1){const ms=quoteSeconds*1000;state.quoteTimer=setInterval(()=>{if((state.hovered&&enabled(d,'pauseOnHover'))||!target.isConnected)return;state.quoteIndex=(state.quoteIndex+1)%quotes.length;refreshQuote();},ms);}
   };
 })();

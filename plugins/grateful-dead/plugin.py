@@ -959,36 +959,36 @@ LYRIC_CONTEXT={
 def _source_quote_context(source, member=''):
     src=str(source or '').lower()
     patterns=[
-        ('howard rheingold', "a long-form conversation about improvisation, identity, technology, risk, the audience, and how the Dead's musical and social world worked"),
-        ("europe '72 denmark", "the band's countercultural community, independence from mainstream institutions, and the reality that grew around the music"),
-        ('bill kreutzmann interview', "drumming, group interplay, touring, authenticity, and how the band found a collective pulse without over-planning it"),
-        ('phil lesh interview on kpfa', "composition, listening, music education, improvisation, and what the Dead learned by treating the ensemble as a conversation"),
-        ('rolling stone', "the band's history, changing relationships, public expectations, and what life inside the Grateful Dead felt like"),
-        ('adventures of pigpen', "Pigpen's blues roots, personality, early role in the band, and the chemistry of the pre-fame Grateful Dead"),
-        ('deadcast · donna jean', "Donna Jean's singing, entry into the band, touring years, and the human experience of joining the Grateful Dead family"),
-        ("talkin' with donna jean", "Donna Jean's memories of joining, performing, and traveling with the Grateful Dead during the 1970s"),
-        ('tom constanten', "the experimental late-1960s period, keyboards, composition, and the band's expanding psychedelic musical vocabulary"),
-        ('enter keith godchaux', "Keith Godchaux's arrival, piano style, and the musical transition that reshaped the band in the early 1970s"),
-        ('sfgate', "the member's experience inside the Grateful Dead and the personal consequences of life around the band"),
-        ('jambands', "touring, musicianship, group chemistry, and the practical reality of making improvised music night after night"),
-        ('grateful dead hour', "the member's own account of the band's music, history, and the experiences surrounding a particular period"),
-        ('guitar player', "Garcia's approach to guitar, improvisation, musical responsibility, and the way the ensemble listens to one another"),
-        ('deadcast · phil', "Phil Lesh's memories of the band's musical development, listening habits, and the choices behind particular eras and performances"),
-        ('cincy groove', "Kreutzmann's perspective on communication, drumming, and the interpersonal chemistry required for improvised group music"),
-        ('phoenix new times', "Vince Welnick's experience joining the Grateful Dead, adapting to the band, and living with the intensity of that role"),
-        ('dead.net', "a first-person recollection of life, music, relationships, and events from inside the Grateful Dead's history"),
+        ('howard rheingold', "improvisation, identity, technology, and the audience"),
+        ("europe '72 denmark", "counterculture, independence, and the community around the music"),
+        ('bill kreutzmann interview', "drumming, group interplay, touring, and authenticity"),
+        ('phil lesh interview on kpfa', "composition, listening, education, and ensemble improvisation"),
+        ('rolling stone', "band history, relationships, and public expectations"),
+        ('adventures of pigpen', "Pigpen's blues roots and early role in the band"),
+        ('deadcast · donna jean', "Donna Jean's singing, arrival, and touring years"),
+        ("talkin' with donna jean", "Donna Jean's memories of performing and touring"),
+        ('tom constanten', "the experimental late-1960s period and expanding musical vocabulary"),
+        ('enter keith godchaux', "Keith Godchaux's arrival and the band's early-1970s transition"),
+        ('sfgate', "life inside the band and its personal consequences"),
+        ('jambands', "touring, musicianship, and improvised group chemistry"),
+        ('grateful dead hour', "the band's music, history, and the period being discussed"),
+        ('guitar player', "guitar, improvisation, responsibility, and ensemble listening"),
+        ('deadcast · phil', "Phil Lesh's memories of musical development and key eras"),
+        ('cincy groove', "communication, drumming, and improvised group chemistry"),
+        ('phoenix new times', "joining the band and adapting to its intensity"),
+        ('dead.net', "a first-person recollection from the band's history"),
     ]
     for token,context in patterns:
         if token in src:
             return context
     if 'grateful dead sources' in src:
         detail=str(source or '').replace('Grateful Dead Sources ·','').strip(' ·')
-        return f"an archival {detail or 'Grateful Dead'} conversation about the music, decisions, and circumstances of that period"
+        return f"an archival {detail or 'Grateful Dead'} conversation"
     who=member or 'the band member'
     label=str(source or '').strip()
     if label:
-        return f"{who}'s first-person perspective in {label}, with the surrounding interview kept visible so the remark is not treated as an isolated slogan"
-    return f"{who}'s first-person recollection, presented with enough surrounding framing to make the point understandable on its own"
+        return f"{who}'s first-person perspective in the cited source"
+    return f"{who}'s first-person recollection"
 
 def _quote_topic(text, source='', member=''):
     q=str(text or '').lower()
@@ -1024,24 +1024,17 @@ def _contextualize_quote_row(row):
     return out
 
 
-_CONTEXT_LENSES = [
-    ("story", "Story lens", "Read this as part of the song or interview's larger story: {base}"),
-    ("performance", "Performance lens", "On a live-performance display, this lands as a moment about delivery, pacing, and the feeling around the words. {base}"),
-    ("theme", "Theme lens", "The surrounding theme is more important than the isolated line: {base}"),
-    ("history", "History lens", "Placed back in its period and source, the line works as a small window into the band's evolving language and outlook. {base}"),
-    ("reflection", "Reflection lens", "As a longer-form dashboard card, this excerpt is paired with a reflection on why the idea still resonates instead of being shown as a disconnected slogan. {base}"),
-]
+# Context stays deliberately compact. The quote/lyric itself should carry the card;
+# this one-sentence context is only a short orientation aid, not a second essay.
+_CONTEXT_LENSES = [("context", "Context", "{base}")]
 
 def _expand_contextual_rotation(rows):
     out=[]
     for row in rows:
-        base=_contextualize_quote_row(row)
-        for lens,label,template in _CONTEXT_LENSES:
-            item=dict(base)
-            item['rotationKey']=f"{item.get('kind','quote')}|{item.get('member','')}|{item.get('key','')}|{lens}|{item.get('quote','')}"
-            item['contextLabel']=label
-            item['context']=template.format(base=str(base.get('context') or '').rstrip('.'))
-            out.append(item)
+        item=_contextualize_quote_row(row)
+        item['rotationKey']=f"{item.get('kind','quote')}|{item.get('member','')}|{item.get('key','')}|context|{item.get('quote','')}"
+        item['contextLabel']='Context'
+        out.append(item)
     return out
 MEMBER_QUOTES=[{'key': 'jerry',
   'kind': 'quote',
@@ -2241,18 +2234,31 @@ def _quote_word_count(value):
     return len(re.findall(r"\b[\w’'-]+\b",str(value or '')))
 
 def _quote_has_standalone_context(row):
-    # Do not impose an upper word limit. The old <=10-word ceiling was an
-    # artificial test constraint, not a product requirement. Instead, keep
-    # tiny built-in fragments out of the unattended reel unless the user
-    # supplied them explicitly.
+    # Keep the unattended built-in reel passage-first: favor excerpts with
+    # enough surrounding wording to make sense without a long explanatory lens.
+    # User-supplied passages remain unrestricted by this minimum.
     if str(row.get('source') or '')=='Personal quote pack' or str(row.get('key') or '')=='custom':
         return True
     words=_quote_word_count(row.get('quote'))
-    return words >= (7 if str(row.get('kind') or 'quote')=='lyric' else 8)
+    if str(row.get('kind') or 'quote')=='lyric':
+        return words >= 10
+    if words >= 10:
+        return True
+    # Keep every represented band member in the unattended quote cycle. If a
+    # member has no 10-word built-in quote, admit only that member's longest
+    # available quote (and only when it is still a substantial 9-word passage).
+    key=str(row.get('key') or '').lower()
+    if key in MEMBER_ORDER and words >= 9:
+        longest=max((_quote_word_count(x.get('quote')) for x in MEMBER_QUOTES if str(x.get('key') or '').lower()==key),default=0)
+        return words==longest
+    return False
 
 def _quote_rows(settings,today):
     rows=[_contextualize_quote_row(x) for x in (QUOTES+EXTRA_LYRIC_SNIPPETS+_custom_quotes(settings.get('customQuotes'))) if _quote_has_standalone_context(x)]
-    if str(settings.get('quoteOrder') or 'daily-shuffle').lower()!='catalog': rows=_expand_contextual_rotation(rows)
+    # Keep one concise contextual card per source passage. Non-catalog rotation adds
+    # only a stable rotation key; it no longer multiplies each excerpt into lens essays.
+    if str(settings.get('quoteOrder') or 'daily-shuffle').lower()!='catalog':
+        rows=_expand_contextual_rotation(rows)
     deduped=[];seen=set()
     for row in rows:
         sig=(str(row.get('rotationKey') or ''),str(row.get('kind') or ''),str(row.get('member') or '').casefold(),str(row.get('quote') or '').casefold(),str(row.get('context') or '').casefold())
@@ -2283,7 +2289,7 @@ def _quote_rows(settings,today):
     # receive equal unattended-display airtime regardless of the pool sizes.
     if not quote_rows: return lyric_rows
     if not lyric_rows: return quote_rows
-    mixed=[];count=max(len(quote_rows),len(lyric_rows))
+    mixed=[];count=min(len(quote_rows),len(lyric_rows))
     for i in range(count):
         mixed.append(quote_rows[i%len(quote_rows)])
         mixed.append(lyric_rows[i%len(lyric_rows)])
