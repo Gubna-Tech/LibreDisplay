@@ -82,7 +82,7 @@ const ORDINARY_BLOCK_LAYOUT_PARTS={
   ],
 };
 function blockLayoutParts(block){return (ORDINARY_BLOCK_LAYOUT_PARTS[String(block?.type||'')]||[]).map(row=>({...row}));}
-function blockSupportsInternalLayout(block){return block?.type==='integration'||blockLayoutParts(block).length>0;}
+function blockSupportsInternalLayout(block){return !!block;}
 
 function makeBlockId(){return 'b'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function simpleMarkdown(src){
