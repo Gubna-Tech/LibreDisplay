@@ -92,15 +92,28 @@ function moonIlluminatedPath(details,steps=28){
   for(let i=n;i>=0;i--){const y=-1+2*i/n,arc=Math.sqrt(Math.max(0,1-y*y));pts.push([c-r*dir*k*arc,c+r*y]);}
   return pts.map((pt,i)=>`${i?'L':'M'} ${pt[0].toFixed(2)} ${pt[1].toFixed(2)}`).join(' ')+' Z';
 }
+let moonGlyphSequence=0;
 function moonGlyphMarkup(details){
-  if(!details)return '';const illumination=Math.round(Math.max(0,Math.min(1,Number(details.illumination)||0))*100),path=moonIlluminatedPath(details),phase=lunarPhaseName(details);
-  return `<svg class="ld-wx-moon-phase" viewBox="0 0 100 100" role="img" aria-label="${phase}, Moon ${illumination}% illuminated" data-moon-illumination="${illumination}" data-moon-phase="${phase}"><circle class="ld-wx-moon-dark" cx="50" cy="50" r="46"></circle>${path?`<path class="ld-wx-moon-lit" d="${path}"></path>`:''}<circle class="ld-wx-moon-rim" cx="50" cy="50" r="46"></circle></svg>`;
+  if(!details)return '';
+  const illumination=Math.round(Math.max(0,Math.min(1,Number(details.illumination)||0))*100),path=moonIlluminatedPath(details),phase=lunarPhaseName(details),clipId=`ld-moon-lit-${++moonGlyphSequence}`;
+  const litClip=path?`<defs><clipPath id="${clipId}"><path d="${path}"></path></clipPath></defs>`:'';
+  const litDetail=path?`<g class="ld-wx-moon-surface" clip-path="url(#${clipId})"><circle class="ld-wx-moon-mare" cx="34" cy="31" r="8"></circle><circle class="ld-wx-moon-mare" cx="62" cy="39" r="5.6"></circle><circle class="ld-wx-moon-mare" cx="53" cy="67" r="9"></circle><circle class="ld-wx-moon-crater" cx="73" cy="62" r="4.1"></circle><circle class="ld-wx-moon-crater" cx="38" cy="73" r="3.6"></circle><circle class="ld-wx-moon-highlight" cx="43" cy="22" r="3.4"></circle></g>`:'';
+  return `<svg class="ld-wx-moon-phase" viewBox="0 0 100 100" role="img" aria-label="${phase}, Moon ${illumination}% illuminated" data-moon-illumination="${illumination}" data-moon-phase="${phase}">${litClip}<circle class="ld-wx-moon-glow" cx="50" cy="50" r="49"></circle><circle class="ld-wx-moon-dark" cx="50" cy="50" r="46"></circle><g class="ld-wx-moon-earthshine"><circle cx="31" cy="35" r="7"></circle><circle cx="65" cy="31" r="4.8"></circle><circle cx="56" cy="67" r="8"></circle></g>${path?`<path class="ld-wx-moon-lit" d="${path}"></path>`:''}${litDetail}<circle class="ld-wx-moon-rim" cx="50" cy="50" r="46"></circle></svg>`;
 }
-function moonDailySummary(data,source=cfg){
-  const dates=Array.isArray(data?.daily?.time)?data.daily.time.slice(0,4):[],latitude=data?.latitude??source?.lat??cfg.lat,offset=data?.utc_offset_seconds??0;if(!dates.length)return '';
+function moonDailySummaryDetails(data,source=cfg){
+  const dates=Array.isArray(data?.daily?.time)?data.daily.time.slice(0,4):[],latitude=data?.latitude??source?.lat??cfg.lat,offset=data?.utc_offset_seconds??0;if(!dates.length)return null;
   const rows=dates.map(date=>({date,details:lunarPhaseDetails(date+'T12:00',latitude,offset)})),today=rows[0],pct=Math.round(today.details.illumination*100),phase=lunarPhaseName(today.details);
-  let extra='';const candidates=rows.slice(0,3).map((row,index)=>({index,row})).filter(x=>x.row.details.illumination<=.03);if(candidates.length){const nearest=candidates.reduce((best,x)=>x.row.details.illumination<best.row.details.illumination?x:best,candidates[0]);if(nearest.row.details.illumination<=.012){const npct=Math.round(nearest.row.details.illumination*100);extra=nearest.index===0?' · New Moon today':nearest.index===1?` · New Moon tomorrow (${npct}%)`:` · New Moon in ${nearest.index} days (${npct}%)`;}}
-  return `Moon ${pct}% · ${phase}${extra}`;
+  let nextLabel='',nextPct=null,extra='';const candidates=rows.slice(0,3).map((row,index)=>({index,row})).filter(x=>x.row.details.illumination<=.03);if(candidates.length){const nearest=candidates.reduce((best,x)=>x.row.details.illumination<best.row.details.illumination?x:best,candidates[0]);if(nearest.row.details.illumination<=.012){nextPct=Math.round(nearest.row.details.illumination*100);nextLabel=nearest.index===0?'New Moon today':nearest.index===1?'New Moon tomorrow':`New Moon in ${nearest.index} days`;extra=` · ${nextLabel}${nearest.index===0?'':` (${nextPct}%)`}`;}}
+  return {pct,phase,details:today.details,nextLabel,nextPct,text:`Moon ${pct}% · ${phase}${extra}`};
+}
+function moonDailySummary(data,source=cfg){return moonDailySummaryDetails(data,source)?.text||'';}
+function renderMoonDailySummary(el,data,source=cfg){
+  if(!el)return '';
+  const summary=moonDailySummaryDetails(data,source);if(!summary){el.replaceChildren();el.classList.remove('show');el.removeAttribute('aria-label');return '';}
+  const icon=document.createElement('span'),copy=document.createElement('span'),main=document.createElement('span'),pct=document.createElement('strong'),phase=document.createElement('span');
+  icon.className='wx-moon-mini';icon.innerHTML=moonGlyphMarkup(summary.details);copy.className='wx-moon-copy';main.className='wx-moon-main';pct.className='wx-moon-pct';pct.textContent=`Moon ${summary.pct}%`;phase.className='wx-moon-phase-name';phase.textContent=summary.phase;main.append(pct,phase);copy.append(main);
+  if(summary.nextLabel){const next=document.createElement('span');next.className='wx-moon-next';next.textContent=summary.nextPct===null?summary.nextLabel:`${summary.nextLabel} · ${summary.nextPct}%`;copy.append(next);}
+  el.replaceChildren(icon,copy);el.classList.add('show');el.setAttribute('aria-label',summary.text);return summary.text;
 }
 
 function wi(c,isDay=true,time='',latitude=cfg.lat,utcOffsetSeconds=0){if(isDay!==false)return WI[c]||'🌡️';const moon=moonPhaseEmoji(time,latitude,utcOffsetSeconds);if(Number(c)===0)return moon;if([1,2].includes(Number(c)))return moon+'☁️';return WIN[c]||WI[c]||'🌡️';}
@@ -232,7 +245,7 @@ function renderWeather(d){
   currentIcon.style.display=ui.showCurrentIcon?'':'none';
   document.getElementById('wx-feels').textContent='Feels like '+C(c.apparent_temperature)+'°';
   document.getElementById('wx-cond').textContent=wd(c.weather_code);
-  const moonInfo=document.getElementById('wx-moon-info'),moonSummary=moonDailySummary(d,ui);if(moonInfo){moonInfo.textContent=moonSummary;moonInfo.classList.toggle('show',!!moonSummary);}
+  renderMoonDailySummary(document.getElementById('wx-moon-info'),d,ui);
   renderBuiltInWeatherDetails(d,ui);
 
   const fc=document.getElementById('wx-forecast'),fcDays=Math.min(Math.max(3,Number(ui.dailyForecastDays)||12),14,dl.time.length);
@@ -307,7 +320,7 @@ function resetWeatherDetails(){mutateWeatherDetails(s=>{s.order=['sunset','wind'
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("weather", {activeLocale,formatClockDate,tick,clockTickDelay,startClock,lunarPhaseDetails,lunarPhaseName,moonIlluminatedPath,moonGlyphMarkup,moonDailySummary,wi,wd,C,u,weatherLocationKey,weatherPayloadMatchesRequest,showWeatherWaitingState,invalidateWeatherIfLocationChanged,weatherWindUnitParam,weatherWindUnitLabel,weatherWindUnitMatches,validateWeatherPayload,fetchWeather,renderWeather,forecastRenderSnapshot,weatherDetailsConfig,weatherDetailColumnCount,weatherDetailValue,renderBuiltInWeatherDetails,weatherDetailsFromForm,setWeatherDetailsForm,renderWeatherDetailsSettings,mutateWeatherDetails,toggleWeatherDetailSetting,moveWeatherDetailSetting,weatherDetailDragStart,weatherDetailDrop,enableRecommendedWeatherDetails,enableAllWeatherDetails,resetWeatherDetails}, {
+LibreDisplayRuntime.exposeModule("weather", {activeLocale,formatClockDate,tick,clockTickDelay,startClock,lunarPhaseDetails,lunarPhaseName,moonIlluminatedPath,moonGlyphMarkup,moonDailySummaryDetails,moonDailySummary,renderMoonDailySummary,wi,wd,C,u,weatherLocationKey,weatherPayloadMatchesRequest,showWeatherWaitingState,invalidateWeatherIfLocationChanged,weatherWindUnitParam,weatherWindUnitLabel,weatherWindUnitMatches,validateWeatherPayload,fetchWeather,renderWeather,forecastRenderSnapshot,weatherDetailsConfig,weatherDetailColumnCount,weatherDetailValue,renderBuiltInWeatherDetails,weatherDetailsFromForm,setWeatherDetailsForm,renderWeatherDetailsSettings,mutateWeatherDetails,toggleWeatherDetailSetting,moveWeatherDetailSetting,weatherDetailDragStart,weatherDetailDrop,enableRecommendedWeatherDetails,enableAllWeatherDetails,resetWeatherDetails}, {
   "DN": {configurable:true,get:()=>DN},
   "MN": {configurable:true,get:()=>MN},
   "MNS": {configurable:true,get:()=>MNS},
