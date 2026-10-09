@@ -3568,3 +3568,22 @@ html.ld-pi4-device .weather-fx-owl .weather-fx-bird-art{will-change:auto}
 .weather-fx-bird-species-burrowing-owl .owl-art-legs{opacity:1}
 .weather-fx-bird-species-spectacled-owl .owl-art-spectacles{opacity:1}
 .weather-fx-bird-species-great-horned-owl .owl-art-tufts,.weather-fx-bird-species-eagle-owl .owl-art-tufts,.weather-fx-bird-species-spotted-eagle-owl .owl-art-tufts,.weather-fx-bird-species-verreaux-eagle-owl .owl-art-tufts{opacity:1}
+
+/* Keep cloud layers directional and visible while seasonal accents stay grounded. */
+#weather-effects-overlay.weather-fx-wind-reverse .weather-fx-cloud-mass{left:auto;right:-48vw}
+#weather-effects-overlay.weather-fx-static .weather-fx-cloud-mass,#weather-effects-overlay.weather-fx-pi-static .weather-fx-cloud-mass{left:var(--cloud-static-x,18vw);right:auto;opacity:var(--cloud-alpha,.52)!important;transform:none!important;animation:none!important}
+#weather-effects-overlay.weather-fx-no-wind .weather-fx-cloud-mass{animation-play-state:paused}
+#weather-effects-overlay.weather-fx-cloud .weather-fx-fog-bank,#weather-effects-overlay.weather-fx-partly .weather-fx-fog-bank{display:none!important}
+
+.weather-fx-grass{width:4px;border-radius:100% 0 100% 0;background:linear-gradient(to top,hsl(var(--grass-hue,112) 48% 29% / .82),hsl(var(--grass-hue,112) 56% 49% / .94));box-shadow:none}
+.weather-fx-grass::before,.weather-fx-grass::after{content:"";position:absolute;bottom:0;width:2px;border-radius:100% 0 100% 0;background:inherit;transform-origin:50% 100%}
+.weather-fx-grass::before{left:-4px;height:78%;transform:rotate(-18deg)}
+.weather-fx-grass::after{right:-4px;height:66%;transform:rotate(22deg)}
+.weather-fx-summer-grass{filter:saturate(1.06) brightness(.94)}
+
+.weather-fx-leaf{width:18px;height:11px;background:hsl(var(--leaf-hue,34) var(--leaf-sat,76%) var(--leaf-light,48%) / .94);box-shadow:inset -3px -2px 4px rgba(88,38,8,.24),0 2px 3px rgba(0,0,0,.14);transform-origin:44% 52%}
+.weather-fx-leaf::before{content:"";position:absolute;left:12%;top:49%;width:76%;height:1px;border-radius:999px;background:rgba(96,50,20,.46);transform:rotate(-3deg)}
+.weather-fx-leaf::after{content:"";position:absolute;left:-3px;top:50%;width:5px;height:1.5px;border-radius:999px;background:rgba(86,52,27,.70);transform:rotate(10deg);transform-origin:right center}
+.weather-fx-leaf-oval{border-radius:92% 18% 86% 22%}
+.weather-fx-leaf-pointed{border-radius:85% 12% 88% 14%;clip-path:polygon(0 51%,18% 18%,58% 4%,100% 48%,64% 93%,22% 82%)}
+.weather-fx-leaf-lobed{border-radius:35%;clip-path:polygon(0 52%,14% 34%,9% 15%,31% 24%,43% 4%,55% 26%,78% 14%,74% 36%,100% 49%,76% 62%,82% 86%,57% 76%,44% 97%,34% 74%,12% 84%,17% 63%)}
