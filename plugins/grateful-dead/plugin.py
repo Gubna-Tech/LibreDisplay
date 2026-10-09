@@ -1023,6 +1023,26 @@ def _contextualize_quote_row(row):
         out['contextLabel']='Passage context'
     return out
 
+
+_CONTEXT_LENSES = [
+    ("story", "Story lens", "Read this as part of the song or interview's larger story: {base}"),
+    ("performance", "Performance lens", "On a live-performance display, this lands as a moment about delivery, pacing, and the feeling around the words. {base}"),
+    ("theme", "Theme lens", "The surrounding theme is more important than the isolated line: {base}"),
+    ("history", "History lens", "Placed back in its period and source, the line works as a small window into the band's evolving language and outlook. {base}"),
+    ("reflection", "Reflection lens", "As a longer-form dashboard card, this excerpt is paired with a reflection on why the idea still resonates instead of being shown as a disconnected slogan. {base}"),
+]
+
+def _expand_contextual_rotation(rows):
+    out=[]
+    for row in rows:
+        base=_contextualize_quote_row(row)
+        for lens,label,template in _CONTEXT_LENSES:
+            item=dict(base)
+            item['rotationKey']=f"{item.get('kind','quote')}|{item.get('member','')}|{item.get('key','')}|{lens}|{item.get('quote','')}"
+            item['contextLabel']=label
+            item['context']=template.format(base=str(base.get('context') or '').rstrip('.'))
+            out.append(item)
+    return out
 MEMBER_QUOTES=[{'key': 'jerry',
   'kind': 'quote',
   'member': 'Jerry Garcia',
@@ -2232,9 +2252,10 @@ def _quote_has_standalone_context(row):
 
 def _quote_rows(settings,today):
     rows=[_contextualize_quote_row(x) for x in (QUOTES+EXTRA_LYRIC_SNIPPETS+_custom_quotes(settings.get('customQuotes'))) if _quote_has_standalone_context(x)]
+    if str(settings.get('quoteOrder') or 'daily-shuffle').lower()!='catalog': rows=_expand_contextual_rotation(rows)
     deduped=[];seen=set()
     for row in rows:
-        sig=(str(row.get('kind') or ''),str(row.get('member') or '').casefold(),str(row.get('quote') or '').casefold())
+        sig=(str(row.get('rotationKey') or ''),str(row.get('kind') or ''),str(row.get('member') or '').casefold(),str(row.get('quote') or '').casefold(),str(row.get('context') or '').casefold())
         if sig in seen: continue
         seen.add(sig);deduped.append(row)
     rows=deduped

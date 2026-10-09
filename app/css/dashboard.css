@@ -1988,8 +1988,14 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 /* Forecast strips are the dominant Pi 4 dashboard compositor load. In Auto,
    Smooth, and Balanced modes keep the same vector glyph artwork but render it
    as a static snapshot; Fidelity mode intentionally keeps the full motion. */
-html.ld-pi4-device.ld-pi-smooth :is(.wx-forecast,.wx-hourly) .ld-weather-emoji-fallback.ld-weather-emoji-hidden{display:inline!important;}
-html.ld-pi4-device.ld-pi-smooth :is(.wx-forecast,.wx-hourly) .ld-weather-glyph{display:none!important;filter:none!important;}
+html:is(.ld-pi3-device,.ld-pi4-device) .ld-weather-glyph,
+html:is(.ld-pi3-device,.ld-pi4-device) .ld-weather-glyph *,
+html:is(.ld-pi3-device,.ld-pi4-device) .ld-weather-glyph *::before,
+html:is(.ld-pi3-device,.ld-pi4-device) .ld-weather-glyph *::after,
+.ld-weather-glyph-static,
+.ld-weather-glyph-static *,
+.ld-weather-glyph-static *::before,
+.ld-weather-glyph-static *::after{animation:none!important;transition:none!important;filter:none!important;}
 html.ld-bench-pause-forecast-motion :is(.wx-forecast,.wx-hourly) .ld-weather-glyph{filter:none!important;}
 html.ld-bench-pause-forecast-motion :is(.wx-forecast,.wx-hourly) .ld-weather-glyph *,
 html.ld-bench-pause-forecast-motion :is(.wx-forecast,.wx-hourly) .ld-weather-glyph *::before,
@@ -2941,14 +2947,6 @@ html.ld-pi-smooth #weather-effects-overlay :is(.weather-fx-grass-blade,.weather-
 html.ld-pi-smooth #weather-effects-overlay :is(.weather-fx-cloud-mass,.weather-fx-fog-bank){animation-duration:36s!important}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-pi-canvas{image-rendering:auto;contain:strict}
 
-.integration-render-host .deadhead-panel{position:relative;overflow:hidden;min-height:0;padding:14px;border-radius:14px;background:linear-gradient(145deg,rgba(20,25,31,.96),rgba(35,24,46,.92));border:1px solid rgba(214,179,82,.35);color:var(--ld-text);isolation:isolate}
-.integration-render-host .deadhead-panel header{display:flex;align-items:center;gap:10px;position:relative;z-index:2}.integration-render-host .deadhead-panel header b{display:block;font-size:1.02rem}.integration-render-host .deadhead-panel header small{display:block;color:var(--ld-subtle);margin-top:2px}.deadhead-mark{font-size:1.65rem;color:#e7c65e;text-shadow:0 0 14px rgba(231,198,94,.35)}
-.deadhead-show{position:relative;z-index:2;margin:12px 0 8px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08)}.deadhead-show-kicker,.deadhead-mini-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ld-subtle)}.deadhead-show-date{font-size:1.1rem;font-weight:750;margin-top:2px}.deadhead-show-venue{margin-top:3px}.deadhead-show-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:7px}.deadhead-show-actions a,.deadhead-setlist a,.deadhead-quote a{color:#e7c65e;text-decoration:none}.deadhead-listen-prompt{position:relative;z-index:2;font-size:.84rem;color:var(--ld-subtle);margin:8px 2px}.deadhead-listen-prompt b{color:var(--ld-text)}
-.deadhead-quote{position:relative;z-index:2;margin:10px 0;padding:10px 12px;border-left:3px solid rgba(214,179,82,.7);background:rgba(255,255,255,.035)}.deadhead-quote blockquote{margin:0;font-size:.92rem;line-height:1.4}.deadhead-quote figcaption{margin-top:6px;font-size:.74rem;color:var(--ld-subtle)}.deadhead-setlist{position:relative;z-index:2;font-size:.78rem;margin-top:9px}.deadhead-set{display:grid;gap:2px;margin-top:5px}.deadhead-set span{color:var(--ld-subtle);line-height:1.35}.deadhead-favorites{margin-top:6px;color:#e7c65e}.deadhead-panel footer{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:.72rem;color:var(--ld-subtle)}.deadhead-another{border:1px solid rgba(214,179,82,.4);background:rgba(214,179,82,.10);color:var(--ld-text);border-radius:999px;padding:6px 10px;cursor:pointer}.deadhead-another:disabled{opacity:.45;cursor:default}
-.deadhead-orbit{position:absolute;border-radius:50%;filter:blur(1px);opacity:.2;pointer-events:none;z-index:0}.deadhead-orbit-a{width:150px;height:150px;right:-58px;top:-55px;background:conic-gradient(from 20deg,#e75858,#f3c65f,#70c685,#5a8fe8,#ad6bd4,#e75858)}.deadhead-orbit-b{width:120px;height:120px;left:-60px;bottom:-62px;background:conic-gradient(from 180deg,#56a8a4,#d66b8e,#e5bd55,#56a8a4)}
-body.ld-deadhead-subtle #dashboard{background-image:radial-gradient(circle at 12% 82%,rgba(86,168,164,.09),transparent 24%),radial-gradient(circle at 86% 12%,rgba(214,107,142,.08),transparent 26%)}body.ld-deadhead-psychedelic #dashboard{background-image:radial-gradient(circle at 12% 78%,rgba(86,168,164,.16),transparent 27%),radial-gradient(circle at 83% 15%,rgba(214,107,142,.15),transparent 29%),radial-gradient(circle at 53% 92%,rgba(229,189,85,.11),transparent 28%)}body.ld-deadhead-psychedelic .deadhead-orbit{opacity:.34;animation:ldDeadheadOrbit 18s linear infinite}body.ld-deadhead-psychedelic .deadhead-orbit-b{animation-direction:reverse;animation-duration:23s}@keyframes ldDeadheadOrbit{to{transform:rotate(360deg)}}
-html.ld-pi4-device body.ld-deadhead-psychedelic .deadhead-orbit{animation:none!important;filter:none!important}
-
 /* Deadhead integration card uses original abstract geometry; no third-party artwork is bundled. */
 .integration-render-host .deadhead-panel{position:relative;height:100%;min-height:0;overflow:hidden;padding:16px;border-radius:18px;background:linear-gradient(145deg,rgba(20,19,32,.94),rgba(36,19,42,.91) 48%,rgba(19,41,43,.92));color:#f8f2e7;box-sizing:border-box;isolation:isolate}
 .deadhead-panel>*:not(.deadhead-orbit){position:relative;z-index:2}.deadhead-panel header{display:flex;align-items:center;gap:10px;margin-bottom:10px}.deadhead-panel header b{font-size:1.05rem}.deadhead-panel header small{display:block;color:rgba(248,242,231,.68);margin-top:2px}.deadhead-mark{display:grid;place-items:center;width:35px;height:35px;border:1px solid rgba(255,218,139,.6);border-radius:50%;font-size:23px;background:rgba(255,255,255,.06)}
@@ -3539,7 +3537,7 @@ html.ld-pi4-device .weather-fx-owl .weather-fx-bird-art{will-change:auto}
 .weather-fx-bird-species-white-breasted-nuthatch{--bird-body:#607a91;--bird-belly:#eee8dc;--bird-wing:#485f72;--bird-head:#30373d;--bird-tail:#3c4f5e;--bird-accent:#f1eadc;--bird-beak:#454441}.weather-fx-bird-species-white-breasted-nuthatch .bird-art-cap{opacity:1;fill:#30373d}
 .weather-fx-bird-vector .bird-art-primary-feathers path{fill:color-mix(in srgb,var(--bird-wing) 76%,var(--bird-accent));stroke:color-mix(in srgb,var(--bird-wing) 65%,#191512);stroke-width:.45;opacity:.68}.weather-fx-bird-vector .bird-art-back-feathers{fill:none;stroke:color-mix(in srgb,var(--bird-body) 70%,var(--bird-accent));stroke-width:.65;stroke-linecap:round;opacity:.42}
 .weather-fx-owl .owl-art-primary-feathers path{fill:color-mix(in srgb,var(--bird-wing) 78%,var(--owl-wing-mark,var(--bird-accent)));stroke:color-mix(in srgb,var(--bird-wing) 66%,#191512);stroke-width:.48;opacity:.72}.weather-fx-owl .owl-art-back-feathers{fill:none;stroke:color-mix(in srgb,var(--bird-body) 70%,var(--owl-mark,#67513d));stroke-width:.72;stroke-linecap:round;opacity:.5}.weather-fx-owl .owl-art-face-ring{opacity:.26}.weather-fx-owl .owl-art-face-disc{opacity:.88}.weather-fx-owl-profile-barn .owl-art-face-ring{opacity:.18}.weather-fx-owl-profile-spectacled .owl-art-face-ring{opacity:.32}
-/* v1.10.25 real-flight vector wildlife repair.
+/* Restored CSS-flight wildlife renderer.
    Wildlife is built from inline SVG anatomy again: no raster atlas, no image cutouts.
    Whole actors travel across the scene while near/far wing groups flap independently.
    Heads, tails, facial discs and species marks remain static. */
@@ -3548,7 +3546,7 @@ html.ld-pi4-device .weather-fx-owl .weather-fx-bird-art{will-change:auto}
 .weather-fx-real-flight-vector :is(.bird-art-head,.bird-art-tail,.owl-art-head-group,.owl-art-tail,.owl-art-face-disc,.owl-art-heart,.owl-art-spectacles,.owl-art-eye-patches,.owl-art-beak,.bird-art-beak,.bird-art-crest,.bird-art-mask,.bird-art-throat){animation:none!important}
 
 
-/* v1.10.25 species realism finishing pass. */
+/* Species realism finishing pass. */
 .weather-fx-owl .owl-art-eyes circle:not(.owl-art-pupil):not(.owl-art-eye-glint){transform:scale(.86);transform-origin:center}
 .weather-fx-owl .owl-art-face-disc{filter:none}
 .weather-fx-owl .owl-art-primary-feathers path{opacity:.82}

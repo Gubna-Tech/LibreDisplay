@@ -500,12 +500,19 @@ def replace_release_code(snapshot_dir: Path, install_dir: Path):
 
 
 def apply_snapshot_payload(snapshot_dir: Path, install_dir: Path):
+    raw = verify_snapshot(snapshot_dir)
     replace_release_code(snapshot_dir, install_dir)
     restore_script = install_dir / "scripts" / "restore.sh"
     backup = snapshot_dir / "pre-update.ldbackup"
-    result = subprocess.run([str(restore_script), str(backup), "--yes"], cwd=str(install_dir), check=False)
+    if not restore_script.is_file():
+        raise RuntimeError("The rollback release is missing scripts/restore.sh")
+    # Run through /bin/sh so rollback does not depend on historical executable-bit state.
+    result = subprocess.run(["/bin/sh", str(restore_script), str(backup), "--yes"], cwd=str(install_dir), check=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     if result.returncode != 0:
-        raise RuntimeError("The snapshot data backup could not be restored")
+        detail = " ".join((result.stdout or "").splitlines()[-4:])[:700]
+        raise RuntimeError("The snapshot data backup could not be restored" + (f": {detail}" if detail else ""))
+    if not installed_matches_snapshot(snapshot_dir, install_dir):
+        raise RuntimeError(f"Rollback restored data but application files do not match v{raw.get('fromVersion','unknown')}")
 
 
 def restore_snapshot(snapshot_id: str, install_dir: Path, rollback_root: Path, no_reboot: bool = False):
