@@ -3055,6 +3055,10 @@ html.ld-pi4-4k #weather-effects-overlay .hazard-fire-ember:nth-of-type(even),
 html.ld-pi4-4k #weather-effects-overlay .holiday-sparkle:nth-of-type(even){display:none!important}
 .weather-fx-pi-canvas{position:absolute;inset:0;display:block;width:100%;height:100%;z-index:2;pointer-events:none;contain:strict}
 .weather-fx-pi-cloud-canvas{position:absolute;left:0;top:0;display:block;width:100%;height:auto;z-index:1;pointer-events:none;contain:strict;image-rendering:auto}
+.weather-fx-pi-sprite-layer{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:visible;contain:layout style;isolation:isolate}
+.weather-fx-pi-sprite-layer :is(.weather-fx-pi-leaf-actor,.weather-fx-pi-cloud-actor){position:absolute;left:0;top:0;display:block;pointer-events:none;image-rendering:auto;backface-visibility:hidden;transform-origin:50% 50%}
+.weather-fx-pi-cloud-actor{z-index:1}
+.weather-fx-pi-leaf-actor{z-index:2}
 html.ld-pi4-device #weather-effects-overlay :is(.weather-fx-pi-canvas,.weather-fx-pi-cloud-canvas){filter:none!important;box-shadow:none!important}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-overcast-deck{animation:none!important;transform:none!important}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-bird{z-index:3}
@@ -3735,3 +3739,5 @@ html.ld-pi4-device .weather-fx-owl .weather-fx-bird-art{will-change:auto}
 
 /* Preserve the user's Current Weather composition inside free Arrange layouts. */
 body.custom-layout .wx-main[data-weather-layout="split"],body.custom-layout .wx-main[data-weather-layout="split-reverse"],body.custom-layout .wx-main[data-weather-layout="compact"]{display:grid!important}
+
+html.ld-bench-no-canvas #weather-effects-overlay .weather-fx-pi-sprite-layer{display:none!important}
