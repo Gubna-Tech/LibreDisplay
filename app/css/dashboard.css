@@ -3740,7 +3740,4 @@ html.ld-pi4-device .weather-fx-owl .weather-fx-bird-art{will-change:auto}
 /* Preserve the user's Current Weather composition inside free Arrange layouts. */
 body.custom-layout .wx-main[data-weather-layout="split"],body.custom-layout .wx-main[data-weather-layout="split-reverse"],body.custom-layout .wx-main[data-weather-layout="compact"]{display:grid!important}
 
-/* Pi 4 wildlife motion consolidation keeps full anatomy while reducing independent compositor timelines. */
-html.ld-pi4-device.ld-pi4-shared-wings #weather-effects-overlay :is(.weather-fx-bird-wing-far,.weather-fx-bird-wing-near){animation:none!important;will-change:transform!important}
-html.ld-pi4-device #weather-effects-overlay .weather-fx-dog-v2.dog-moving.dog-pi4-shared-gait :is(.dogv2-leg,.dogv2-leg .dogv2-upper-limb,.dogv2-leg .dogv2-lower-limb,.dogv2-pose-stage){animation:none!important}
 html.ld-bench-no-canvas #weather-effects-overlay .weather-fx-pi-sprite-layer{display:none!important}
