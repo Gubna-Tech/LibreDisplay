@@ -32,7 +32,7 @@ body {
 .bg-layer {
   position:fixed; inset:0; z-index:0;
   transition:opacity 1.5s ease; opacity:0; pointer-events:none; overflow:hidden;
-  will-change:opacity;
+  will-change:opacity; transform:translateZ(0); backface-visibility:hidden; contain:paint;
 }
 .bg-layer.show { opacity:1; }
 .bg-layer > img,.bg-layer > video {
@@ -3172,6 +3172,9 @@ body.ld-deadhead-subtle .bg-layer::after{opacity:calc(.5 * var(--ld-deadhead-bg-
 @media(max-width:700px){.block-editor-section-body{grid-template-columns:1fr}.block-editor-section-body>.block-field.full{grid-column:auto}.block-editor-section>summary{min-height:48px;padding:9px 10px}.block-editor-section-copy small{font-size:9px}}
 
 /* Raspberry Pi frame-budget guardrails reduce compositor cost without overriding an explicit animation enable. */
+
+html.ld-pi3-static .bg-layer{transition:none!important}
+html.ld-pi3-static .bg-layer > video{display:none!important}
 html.ld-pi3-static #weather-effects-overlay *,
 html.ld-pi3-static .ld-weather-glyph *{animation:none!important;transition:none!important;filter:none!important;-webkit-filter:none!important;box-shadow:none!important}
 html.ld-pi3-static #weather-effects-overlay::before,

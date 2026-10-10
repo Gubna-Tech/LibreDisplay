@@ -599,25 +599,17 @@ function deferBackgroundLayerCleanup(layer){if(!layer)return;if(backgroundCleanu
 
 async function revealBackgroundLayer(layer,remoteUrl){
   const transitionStarted=performance.now();backgroundRuntimeEvent('transition-start');
-  const active=activeBackgroundLayer();
-  const hasCurrent=!!(active&&active.classList.contains('show')&&backgroundMediaHasVisual(active));
-  layer.style.zIndex='1';
-  if(active&&active!==layer)active.style.zIndex='0';
-  layer.classList.remove('show');
-  await nextAnimationFrame();
-  await activateBackgroundLayerMedia(layer);layer.classList.add('show');
-  await waitForBackgroundLayerVisible(layer);
-  if(active&&active!==layer){
-    active.style.transition='none';
-    active.classList.remove('show');
-    active.style.transition='';
-    deferBackgroundLayerCleanup(active);
+  const layoutApi=LibreDisplayRuntime.getModule('layout'),fitWasSuspended=layoutApi?.builtInLayoutAutoFitSnapshot?.().suspended===true;if(!fitWasSuspended)layoutApi?.setBuiltInLayoutAutoFitSuspended?.(true,{reschedule:false});
+  try{
+    const active=activeBackgroundLayer(),hasCurrent=!!(active&&active.classList.contains('show')&&backgroundMediaHasVisual(active));
+    layer.style.zIndex='1';if(active&&active!==layer)active.style.zIndex='0';layer.classList.remove('show');
+    await nextAnimationFrame();await activateBackgroundLayerMedia(layer);layer.classList.add('show');await waitForBackgroundLayerVisible(layer);
+    if(active&&active!==layer){active.style.transition='none';active.classList.remove('show');active.style.transition='';deferBackgroundLayerCleanup(active);}
+    layer.style.zIndex='0';configApi.bgActiveLayerId=layer.id;configApi.bgLastUrl=remoteUrl;rememberLastBackground(remoteUrl);
+  }finally{
+    if(!fitWasSuspended){layoutApi?.setBuiltInLayoutAutoFitSuspended?.(false,{reschedule:false});layoutApi?.scheduleBuiltInLayoutAutoFitDeferred?.(null,650);}
+    const elapsed=performance.now()-transitionStarted;backgroundRuntime.transitions++;backgroundRuntime.lastTransitionMs=Number(elapsed.toFixed(1));backgroundRuntime.maxTransitionMs=Math.max(backgroundRuntime.maxTransitionMs,backgroundRuntime.lastTransitionMs);backgroundRuntimeEvent('transition-end',{ms:backgroundRuntime.lastTransitionMs});
   }
-  layer.style.zIndex='0';
-  configApi.bgActiveLayerId=layer.id;
-  configApi.bgLastUrl=remoteUrl;
-  rememberLastBackground(remoteUrl);
-  const elapsed=performance.now()-transitionStarted;backgroundRuntime.transitions++;backgroundRuntime.lastTransitionMs=Number(elapsed.toFixed(1));backgroundRuntime.maxTransitionMs=Math.max(backgroundRuntime.maxTransitionMs,backgroundRuntime.lastTransitionMs);backgroundRuntimeEvent('transition-end',{ms:backgroundRuntime.lastTransitionMs});
 }
 
 function scheduleBackgroundRotation(){
@@ -633,6 +625,7 @@ function scheduleBackgroundRotation(){
     const tick=async()=>{
       bgTimer=null;
       if(sourceSerial!==configApi.bgSourceSerial)return;
+      if(pi4BackgroundRuntime())await new Promise(resolve=>runBackgroundIdleTask(resolve,{timeout:2200}));
       await showBg(nextBackgroundIndex(),0,sourceSerial);
       if(sourceSerial===configApi.bgSourceSerial&&Math.max(0,Number(cfg.photoIntervalSec)||0)>0)bgTimer=setTimeout(tick,Math.max(1000,Number(cfg.photoIntervalSec)*1000));
     };
