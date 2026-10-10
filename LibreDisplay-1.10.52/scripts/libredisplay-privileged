@@ -1,0 +1,34 @@
+#!/bin/sh
+set -eu
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+
+CALLER=${SUDO_USER:-}
+[ -n "$CALLER" ] || { printf 'LibreDisplay privileged helper must be called through sudo.\n' >&2; exit 1; }
+
+HOME_DIR=$(getent passwd "$CALLER" | awk -F: 'NR==1{print $6}')
+[ -n "$HOME_DIR" ] || { printf 'Could not resolve the LibreDisplay user home directory.\n' >&2; exit 1; }
+INSTALL_DIR="$HOME_DIR/libredisplay"
+CLI_SRC="$INSTALL_DIR/scripts/libredisplay"
+
+case "${1:-}" in
+  probe)
+    [ -f "$INSTALL_DIR/VERSION" ] && [ -f "$CLI_SRC" ] || exit 1
+    printf 'ok\n'
+    ;;
+  install-cli)
+    [ -f "$INSTALL_DIR/VERSION" ] || { printf 'LibreDisplay installation was not found.\n' >&2; exit 1; }
+    [ -f "$CLI_SRC" ] && [ ! -L "$CLI_SRC" ] || { printf 'LibreDisplay CLI source is missing or unsafe.\n' >&2; exit 1; }
+    install -o root -g root -m 755 "$CLI_SRC" /usr/local/bin/libredisplay
+    ;;
+  reboot)
+    [ -f "$INSTALL_DIR/VERSION" ] || { printf 'LibreDisplay installation was not found.\n' >&2; exit 1; }
+    if command -v systemctl >/dev/null 2>&1; then
+      exec systemctl reboot
+    fi
+    exec /sbin/reboot
+    ;;
+  *)
+    printf 'Usage: libredisplay-privileged {probe|install-cli|reboot}\n' >&2
+    exit 2
+    ;;
+esac

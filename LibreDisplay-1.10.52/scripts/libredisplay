@@ -1,0 +1,292 @@
+#!/usr/bin/env python3
+import argparse
+import hashlib
+import json
+import os
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+import urllib.error
+import urllib.request
+import urllib.parse
+import zipfile
+from pathlib import Path, PurePosixPath
+
+REPOSITORY = "Gubna-Tech/LibreDisplay"
+API_URL = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"
+MAX_ARCHIVE_BYTES = 300 * 1024 * 1024
+MAX_MEMBER_BYTES = 150 * 1024 * 1024
+MAX_TOTAL_UNPACKED_BYTES = 700 * 1024 * 1024
+
+
+def fail(message, code=1):
+    print(message, file=sys.stderr)
+    raise SystemExit(code)
+
+
+def install_dir():
+    return Path.home() / "libredisplay"
+
+
+def current_version():
+    path = install_dir() / "VERSION"
+    try:
+        value = path.read_text(encoding="utf-8").strip()
+    except OSError:
+        fail(f"LibreDisplay does not appear to be installed at {install_dir()}.\nRun install.sh for the first installation.")
+    if not re.fullmatch(r"\d+\.\d+\.\d+", value):
+        fail("The installed LibreDisplay VERSION file is invalid.")
+    return value
+
+
+def version_tuple(value):
+    match = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)", str(value or "").strip())
+    if not match:
+        raise ValueError("Invalid release version")
+    return tuple(int(part) for part in match.groups())
+
+
+def github_request(url, timeout=20):
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": f"LibreDisplay/{current_version()} updater",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return response.read()
+
+
+def latest_release():
+    try:
+        payload = json.loads(github_request(API_URL, timeout=15).decode("utf-8"))
+    except (OSError, urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError) as exc:
+        fail(f"Could not check GitHub for LibreDisplay updates: {exc}")
+
+    release_tag = str(payload.get("tag_name") or "").strip()
+    try:
+        parts = version_tuple(release_tag)
+    except ValueError:
+        fail("GitHub returned an invalid LibreDisplay release version.")
+    latest = ".".join(str(part) for part in parts)
+
+    alternate_tag = release_tag[1:] if release_tag.lower().startswith("v") else "v" + release_tag
+    return {
+        "version": latest,
+        "tag": release_tag,
+        "url": f"https://github.com/{REPOSITORY}/archive/refs/tags/{urllib.parse.quote(release_tag, safe='')}.zip",
+        "alternate_url": f"https://github.com/{REPOSITORY}/archive/refs/tags/{urllib.parse.quote(alternate_tag, safe='')}.zip",
+        "digest": "",
+        "size": 0,
+    }
+
+
+def print_check():
+    installed = current_version()
+    release = latest_release()
+    newest = release["version"]
+    if version_tuple(newest) > version_tuple(installed):
+        print(f"Update available: LibreDisplay v{installed} -> v{newest}")
+        print("Run: libredisplay update")
+        return 10
+    if version_tuple(newest) == version_tuple(installed):
+        print(f"LibreDisplay v{installed} is up to date.")
+        return 0
+    print(f"Installed LibreDisplay v{installed} is newer than the latest published release v{newest}.")
+    return 0
+
+
+def download_release(release, destination):
+    urls = [release["url"]]
+    if release.get("alternate_url") and release["alternate_url"] not in urls:
+        urls.append(release["alternate_url"])
+    last_exc = None
+    hasher = hashlib.sha256()
+    total = 0
+    for attempt_url in urls:
+        request = urllib.request.Request(attempt_url, headers={"User-Agent": f"LibreDisplay/{current_version()} updater"})
+        hasher = hashlib.sha256(); total = 0
+        try:
+            with urllib.request.urlopen(request, timeout=45) as response, destination.open("wb") as output:
+                while True:
+                    chunk = response.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > MAX_ARCHIVE_BYTES:
+                        fail("Downloaded release archive exceeded the safety size limit.")
+                    hasher.update(chunk); output.write(chunk)
+            last_exc = None; break
+        except (OSError, urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
+            last_exc = exc; destination.unlink(missing_ok=True)
+    if last_exc is not None:
+        fail(f"Could not download the LibreDisplay release using either supported tag style: {last_exc}")
+
+    if release["size"] and total != release["size"]:
+        fail("The downloaded release size does not match GitHub's asset metadata.")
+    actual = hasher.hexdigest()
+    expected = release["digest"].split(":", 1)[1] if release["digest"] else ""
+    if expected and actual != expected:
+        fail("The downloaded release failed its SHA-256 verification.")
+    return actual
+
+
+def safe_extract(archive, destination):
+    seen = set()
+    total = 0
+    try:
+        with zipfile.ZipFile(archive) as bundle:
+            for info in bundle.infolist():
+                raw = info.filename.replace("\\", "/")
+                path = PurePosixPath(raw)
+                if not raw or raw.startswith("/") or ".." in path.parts:
+                    fail("The release archive contains an unsafe path.")
+                if raw in seen:
+                    fail("The release archive contains duplicate entries.")
+                seen.add(raw)
+                mode = (info.external_attr >> 16) & 0xFFFF
+                if stat.S_ISLNK(mode):
+                    fail("The release archive contains a symbolic link.")
+                if info.file_size > MAX_MEMBER_BYTES:
+                    fail("The release archive contains an unexpectedly large file.")
+                total += info.file_size
+                if total > MAX_TOTAL_UNPACKED_BYTES:
+                    fail("The release archive exceeds LibreDisplay's unpacked-size safety limit.")
+            bundle.extractall(destination)
+            # Python's zipfile extraction does not restore Unix execute bits.
+            # Normalize trusted release entries so scripts remain runnable after
+            # an in-app update, while never carrying special/world-writable bits.
+            for info in bundle.infolist():
+                raw = info.filename.replace("\\", "/")
+                path = PurePosixPath(raw)
+                target = destination.joinpath(*path.parts)
+                if not target.exists():
+                    continue
+                source_mode = (info.external_attr >> 16) & 0o777
+                if target.is_dir():
+                    os.chmod(target, 0o755)
+                elif target.is_file():
+                    os.chmod(target, 0o755 if source_mode & 0o111 else 0o644)
+    except zipfile.BadZipFile:
+        fail("The downloaded release is not a valid ZIP archive.")
+
+
+def update(no_reboot=False):
+    installed = current_version()
+    release = latest_release()
+    newest = release["version"]
+    if version_tuple(newest) <= version_tuple(installed):
+        if newest == installed:
+            print(f"LibreDisplay v{installed} is already up to date.")
+        else:
+            print(f"Installed LibreDisplay v{installed} is newer than the latest published release v{newest}; nothing was changed.")
+        return 0
+
+    print(f"LibreDisplay update available: v{installed} -> v{newest}")
+    print("Downloading the official GitHub release...")
+    with tempfile.TemporaryDirectory(prefix="libredisplay-update-") as temp_name:
+        temp = Path(temp_name)
+        archive = temp / f"LibreDisplay-v{newest}.zip"
+        download_release(release, archive)
+        release_dir = temp / "release"
+        release_dir.mkdir()
+        safe_extract(archive, release_dir)
+
+        release_root = release_dir
+        if not (release_root / "VERSION").is_file():
+            children = [item for item in release_dir.iterdir() if item.is_dir()]
+            if len(children) == 1 and (children[0] / "VERSION").is_file():
+                release_root = children[0]
+
+        version_path = release_root / "VERSION"
+        updater = release_root / "update.sh"
+        required = (
+            version_path, updater,
+            release_root / "app" / "dashboard.html",
+            release_root / "app" / "dashboard_server.py",
+            release_root / "app" / "js" / "app.js",
+            release_root / "app" / "css" / "dashboard.css",
+        )
+        if any(not path.is_file() for path in required):
+            fail("The downloaded release is missing required LibreDisplay files.")
+        packaged_version = version_path.read_text(encoding="utf-8").strip()
+        if packaged_version != newest:
+            fail("The downloaded release VERSION does not match the GitHub release tag.")
+
+        command = ["/bin/sh", str(updater)]
+        if no_reboot:
+            command.append("--no-reboot")
+        result = subprocess.run(command, cwd=str(release_root), check=False)
+        return int(result.returncode)
+
+
+def run_field_check(duration_minutes=None, interval_seconds=None, once=False, release_gate=False, resume=False, label="", output=""):
+    candidates = [
+        install_dir() / "scripts" / "field-readiness.py",
+        Path(__file__).resolve().with_name("field-readiness.py"),
+    ]
+    script = next((path for path in candidates if path.is_file()), None)
+    if script is None:
+        fail("LibreDisplay field-readiness tooling is missing. Reinstall or update LibreDisplay.")
+    command = [sys.executable, str(script)]
+    if once:
+        command.append("--once")
+    elif duration_minutes is not None:
+        command.extend(["--duration-minutes", str(duration_minutes)])
+    if release_gate:
+        command.append("--release-gate")
+    if resume:
+        command.append("--resume")
+    if interval_seconds is not None:
+        command.extend(["--interval-seconds", str(interval_seconds)])
+    if label:
+        command.extend(["--label", label])
+    if output:
+        command.extend(["--output", output])
+    return int(subprocess.run(command, check=False).returncode)
+
+
+def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "-update":
+        sys.argv[1] = "update"
+
+    parser = argparse.ArgumentParser(
+        prog="libredisplay",
+        description="Manage a native LibreDisplay installation.",
+    )
+    sub = parser.add_subparsers(dest="command")
+    sub.add_parser("check", help="Check GitHub for a newer LibreDisplay release.")
+    update_parser = sub.add_parser("update", help="Back up and update LibreDisplay to the newest GitHub release.")
+    update_parser.add_argument("--no-reboot", action="store_true", help="Install the update without rebooting afterward.")
+    field_parser = sub.add_parser("field-check", help="Collect a privacy-safe Pi/browser field-readiness soak report.")
+    field_parser.add_argument("--duration-minutes", type=float, default=None, help="How long to sample. Default: 30 minutes, or 720 minutes with --release-gate.")
+    field_parser.add_argument("--interval-seconds", type=float, default=None, help="Seconds between samples. Default: 15; --resume preserves the original interval.")
+    field_parser.add_argument("--once", action="store_true", help="Collect one sample immediately.")
+    field_parser.add_argument("--release-gate", action="store_true", help="Run the strict resumable 12-hour release field gate for the installed LibreDisplay version.")
+    field_parser.add_argument("--resume", action="store_true", help="Resume a release/field soak after reboot, power loss, or interruption.")
+    field_parser.add_argument("--label", default="", help="Optional label such as pi3-living-room or pi4-regression.")
+    field_parser.add_argument("--output", default="", help="Optional JSON output path; Markdown is written beside it.")
+    sub.add_parser("version", help="Show the installed LibreDisplay version.")
+    args = parser.parse_args()
+
+    if args.command in (None, "version"):
+        print(f"LibreDisplay v{current_version()}")
+        if args.command is None:
+            print("Commands: check, update, field-check, version")
+        return 0
+    if args.command == "check":
+        return print_check()
+    if args.command == "update":
+        return update(no_reboot=args.no_reboot)
+    if args.command == "field-check":
+        return run_field_check(duration_minutes=args.duration_minutes, interval_seconds=args.interval_seconds, once=args.once, release_gate=args.release_gate, resume=args.resume, label=args.label, output=args.output)
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

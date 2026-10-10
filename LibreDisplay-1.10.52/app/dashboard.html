@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LibreDisplay</title>
+<link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="modulepreload" href="/js/runtime.js">
+  <link rel="modulepreload" href="/js/modules/bootstrap.js">
+  <link rel="modulepreload" href="/js/modules/shared.js">
+  <link rel="modulepreload" href="/js/modules/integrations.js">
+  <link rel="modulepreload" href="/js/modules/config.js">
+  <link rel="modulepreload" href="/js/modules/performance.js">
+  <link rel="modulepreload" href="/js/modules/weather.js">
+  <link rel="modulepreload" href="/js/modules/calendar.js">
+  <link rel="modulepreload" href="/js/modules/backgrounds.js">
+  <link rel="modulepreload" href="/js/modules/blocks.js">
+  <link rel="modulepreload" href="/js/modules/layout.js">
+  <link rel="modulepreload" href="/js/modules/appearance.js">
+  <link rel="modulepreload" href="/js/modules/remote.js">
+  <link rel="modulepreload" href="/js/modules/system.js">
+  <link rel="modulepreload" href="/js/modules/onboarding.js">
+  <link rel="modulepreload" href="/js/modules/settings.js">
+  <link rel="modulepreload" href="/js/modules/lifecycle.js">
+</head>
+<body>
+<div id="bg" class="bg-layer" aria-hidden="true"><img id="bg-image-a" alt="" decoding="async"><video id="bg-video-a" muted loop playsinline preload="auto"></video></div>
+<div id="bg-next" class="bg-layer" aria-hidden="true"><img id="bg-image-b" alt="" decoding="async"><video id="bg-video-b" muted loop playsinline preload="auto"></video></div>
+<div id="weather-effects-overlay" aria-hidden="true"></div>
+<div id="setup" class="hidden" aria-hidden="true"><div id="settings-mount"></div></div>
+<template id="settings-template"><div class="setup-box">
+  <div class="setup-head">
+   <div class="setup-brand"><div class="setup-brand-mark" aria-hidden="true">LD</div><div><div class="setup-eyebrow">LibreDisplay · by Gubna</div><h2>Settings &amp; configuration</h2><div class="setup-tagline">Your home. Your dashboard. Your data.</div><div id="settings-save-state" class="settings-save-state">All changes saved</div></div></div>
+   <button class="setup-close" type="button" data-ld-onclick="h001" aria-label="Close settings">×</button>
+  </div>
+  <p class="sub">Configure the display locally or from a paired device. Settings are grouped by task into smaller focused categories, with search available across everything. Your configuration stays on your LibreDisplay server, with a browser-local fallback for recovery.</p>
+  <div id="wizard-shell" class="wizard-shell">
+   <div class="wizard-brand-row"><div class="wizard-brand-mark">LD</div><div><b>Welcome to LibreDisplay</b><span>Private, local-first, and built to make the display yours.</span></div></div>
+   <div class="wizard-progress-row"><span id="wizard-step-label" class="wizard-progress-label">Step 1 of 12</span><span id="wizard-mode-label" class="wizard-progress-label">First-run setup</span></div>
+   <div class="wizard-progress-track"><div id="wizard-progress-bar" class="wizard-progress-bar"></div></div>
+   <div id="wizard-title" class="wizard-title">Welcome</div>
+   <div id="wizard-desc" class="wizard-desc"></div>
+   <div id="wizard-extra" class="wizard-extra"></div>
+   <div id="wizard-summary" class="wizard-summary"></div>
+  </div>
+  <div class="settings-workspace">
+   <aside class="settings-sidebar" aria-label="Settings navigation">
+    <div class="settings-search">
+     <div class="settings-search-field">
+      <span class="settings-search-icon" aria-hidden="true">⌕</span>
+      <input id="s-settings-search" type="search" placeholder="Find a setting" aria-label="Search settings" data-ld-oninput="h002">
+     </div>
+     <button class="btn-util settings-search-clear" type="button" data-ld-onclick="h003">Clear</button>
+     <div id="settings-search-status" class="settings-search-status"></div>
+     <div id="settings-search-results" class="settings-search-results" aria-live="polite"></div>
+    </div>
+    <div class="settings-mobile-category"><label for="settings-mobile-category-select">Category</label><select id="settings-mobile-category-select" data-ld-onchange="h004" aria-label="Settings category"></select></div>
+    <div class="settings-tabs" role="tablist" aria-label="Settings categories">
+     <div class="settings-nav-group-label">Start</div>
+     <button class="settings-tab-btn active" type="button" role="tab" aria-selected="true" data-tab="overview" data-ld-onclick="h005"><span class="settings-nav-icon" aria-hidden="true">⌂</span><span class="settings-nav-copy"><b>Home</b><small>Shortcuts, status &amp; performance</small></span></button>
+     <div class="settings-nav-group-label">Content</div>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="calendars" data-ld-onclick="h006"><span class="settings-nav-icon" aria-hidden="true">▦</span><span class="settings-nav-copy"><b>Calendars</b><small>Feeds, events &amp; display rules</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="backgrounds" data-ld-onclick="h007"><span class="settings-nav-icon" aria-hidden="true">▧</span><span class="settings-nav-copy"><b>Backgrounds</b><small>Photos, folders &amp; slideshow</small></span></button>
+     <div class="settings-nav-group-label">Weather</div>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="weather" data-ld-onclick="h008"><span class="settings-nav-icon" aria-hidden="true">☁</span><span class="settings-nav-copy"><b>Weather</b><small>Location, units &amp; details</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="weatherfx" data-ld-onclick="h009"><span class="settings-nav-icon" aria-hidden="true">≋</span><span class="settings-nav-copy"><b>Weather Effects</b><small>Rain, snow, fog, sky &amp; storms</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="weatheralerts" data-ld-onclick="h010"><span class="settings-nav-icon" aria-hidden="true">!</span><span class="settings-nav-copy"><b>Weather Alerts</b><small>Warnings, cards &amp; hazard scenes</small></span></button>
+     <div class="settings-nav-group-label">Living scenery</div>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="nature" data-ld-onclick="h011"><span class="settings-nav-icon" aria-hidden="true">✿</span><span class="settings-nav-copy"><b>Nature &amp; Seasons</b><small>Season, plants &amp; winter atmosphere</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="wildlife" data-ld-onclick="h012"><span class="settings-nav-icon" aria-hidden="true">⌁</span><span class="settings-nav-copy"><b>Wildlife</b><small>Birds, insects &amp; owls</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="companions" data-ld-onclick="h013"><span class="settings-nav-icon" aria-hidden="true">♡</span><span class="settings-nav-copy"><b>Companion &amp; Holidays</b><small>Dog companion &amp; special-day scenes</small></span></button>
+     <div class="settings-nav-group-label">Appearance</div>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="look" data-ld-onclick="h014"><span class="settings-nav-icon" aria-hidden="true">◐</span><span class="settings-nav-copy"><b>Personalization</b><small>Themes, language &amp; accessibility</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="displaycare" data-ld-onclick="h015"><span class="settings-nav-icon" aria-hidden="true">◌</span><span class="settings-nav-copy"><b>Display Care</b><small>OLED protection, dimming &amp; quiet hours</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="layout" data-ld-onclick="h016"><span class="settings-nav-icon" aria-hidden="true">⌗</span><span class="settings-nav-copy"><b>Layout</b><small>Templates, arrange, sizing &amp; geometry</small></span></button>
+     <div class="settings-nav-group-label">Household &amp; services</div>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="family" data-owner-only="1" data-ld-onclick="h017"><span class="settings-nav-icon" aria-hidden="true">✓</span><span class="settings-nav-copy"><b>Family</b><small>Household, chores &amp; rewards</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="integrations" data-ld-onclick="h018"><span class="settings-nav-icon" aria-hidden="true">◇</span><span class="settings-nav-copy"><b>Integrations</b><small>Providers &amp; connections</small></span></button>
+     <div class="settings-nav-group-label">System</div>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="displays" data-owner-only="1" data-ld-onclick="h019"><span class="settings-nav-icon" aria-hidden="true">▣</span><span class="settings-nav-copy"><b>Displays &amp; Access</b><small>Screens, accounts, profiles &amp; scenes</small></span></button>
+     <button class="settings-tab-btn" type="button" role="tab" aria-selected="false" data-tab="system" data-owner-only="1" data-ld-onclick="h020"><span class="settings-nav-icon" aria-hidden="true">⚙</span><span class="settings-nav-copy"><b>System &amp; Maintenance</b><small>Health, updates, backup &amp; recovery</small></span><span id="settings-update-badge" class="settings-update-badge" aria-hidden="true"></span></button>
+    </div>
+    <div class="settings-sidebar-tools">
+     <div class="settings-mode-wrap">
+      <label>Settings shown</label>
+      <div class="settings-mode-toggle" role="group" aria-label="Settings detail level">
+       <button id="settings-mode-essential" class="settings-mode-btn active" type="button" data-ld-onclick="h021">Essentials</button>
+       <button id="settings-mode-all" class="settings-mode-btn" type="button" data-ld-onclick="h022">All</button>
+      </div>
+     </div>
+     <div id="settings-view-note" class="settings-view-note">Essentials keeps the common controls visible. Choose All for power-user and troubleshooting options.</div>
+    </div>
+   </aside>
+   <main class="settings-content" id="settings-content">
+    <div class="settings-page-head">
+     <div class="settings-page-heading"><div class="settings-page-kicker" id="settings-page-kicker">Start</div><h3 id="settings-page-title">Home</h3><div class="settings-tab-hint" id="settings-tab-hint">Shortcuts, current status, performance mode, and project information.</div><div class="settings-page-meta" id="settings-page-meta"></div><div class="settings-help-legend"><span class="settings-help-legend-mark" aria-hidden="true">?</span><span>Hover a ? for plain-language details. Click it to pin the explanation while you work.</span></div></div>
+     <div class="settings-page-tools"><div class="settings-section-jump"><label for="settings-section-select">Jump to</label><select id="settings-section-select" data-ld-onchange="h023"></select></div><div class="settings-collapse-actions"><button class="btn-util" type="button" data-ld-onclick="h024" aria-label="Expand visible sections">Expand</button><button class="btn-util" type="button" data-ld-onclick="h025" aria-label="Collapse visible sections">Collapse</button></div></div>
+    </div>
+    <div id="settings-section-directory" class="settings-section-directory" aria-label="Sections in this category"></div>
+    <div id="settings-empty-state" class="settings-empty-state">No sections are visible in this view. Choose <b>All</b> or use Search to find a power-user option.</div>
+    <div id="settings-init-error" class="settings-init-error" role="alert">
+     <b>Settings recovered after an initialization problem.</b>
+     <span id="settings-init-error-text">LibreDisplay kept the editor available instead of leaving an empty configuration screen.</span>
+     <div class="utility-actions"><button class="btn-util" type="button" data-ld-onclick="h026">Reload page</button><button class="btn-util" type="button" data-ld-onclick="h027">Arrange dashboard</button></div>
+    </div>
+  <div class="s-section" id="settings-overview" data-settings-tab="overview">
+   <h3>Quick edit</h3>
+   <div class="howto">The common editing jobs are one click away. These work from the wall display or from a paired phone/computer.</div>
+   <div class="quick-edit-grid">
+    <button class="quick-edit-card" type="button" data-ld-onclick="h027"><b>Arrange dashboard</b><span>Drag, resize, add, duplicate, configure, and use keyboard shortcuts for fast edits.</span></button>
+    <button class="quick-edit-card" type="button" data-ld-onclick="h008"><b>Weather</b><span>Location, forecast preferences, details, and severe-weather alerts.</span></button>
+    <button class="quick-edit-card" type="button" data-ld-onclick="h011"><b>Nature &amp; wildlife</b><span>Seasonal scenery, plants, birds, insects, frost, and regional ambience.</span></button>
+    <button class="quick-edit-card" type="button" data-ld-onclick="h013"><b>Companion &amp; holidays</b><span>Dog companion, accessories, holiday overlays, and special-day previews.</span></button>
+    <button class="quick-edit-card" type="button" data-ld-onclick="h006"><b>Calendars</b><span>Calendar feeds, event display rules, refresh timing, and legend behavior.</span></button>
+    <button class="quick-edit-card" type="button" data-ld-onclick="h007"><b>Backgrounds</b><span>Photos, stock images, local folders, rotation, and slideshow presentation.</span></button>
+    <button class="quick-edit-card" type="button" data-ld-onclick="h014"><b>Personalization</b><span>Themes, typography, accessibility, and the Settings button.</span></button>
+    <button class="quick-edit-card" type="button" data-ld-onclick="h018"><b>Integrations</b><span>Browse providers, see configured blocks, and check connection health.</span></button>
+   </div>
+   <div class="s-subhead">Dashboard health</div>
+   <div class="howto">A quick, privacy-safe overview of the dashboard. Use this page first when something stops updating.</div>
+   <div class="health-grid">
+    <div class="health-card"><div class="health-label">Local server</div><div id="health-server" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Weather</div><div id="health-weather" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Calendars</div><div id="health-calendars" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Background</div><div id="health-background" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Weather alerts</div><div id="health-alerts" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Display</div><div id="health-display" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Offline cache</div><div id="health-cache" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Integrations</div><div id="health-integrations" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Software</div><div id="health-software" class="health-value">Checking…</div></div>
+   </div>
+   <div class="utility-actions">
+    <button class="btn-util" type="button" data-ld-onclick="h028">Refresh all data</button>
+    <button class="btn-util" type="button" data-ld-onclick="h029">Test calendars</button>
+    <button class="btn-util" type="button" data-ld-onclick="h030">Reload background</button>
+    <button class="btn-util" type="button" data-ld-onclick="h031">Use device / exit kiosk</button><button class="btn-util" type="button" data-ld-onclick="h032">Return to fullscreen</button>
+    <button class="btn-util" type="button" data-ld-onclick="h033">Run setup wizard</button>
+   </div>
+   <div class="shortcut-note">Keyboard shortcuts: Ctrl/Cmd+S = Save &amp; Apply · Esc = Cancel · Ctrl/Cmd+K = Search settings</div>
+  </div>
+  <div class="s-section" id="settings-lightweight" data-settings-tab="overview">
+   <h3>Lightweight mode <button class="help-tip" type="button" aria-label="Lightweight mode help" data-help="Temporarily pauses the most expensive visual features without changing the settings you chose for them. Turn it off to restore those saved settings exactly.">?</button></h3>
+   <div class="howto">Use this as a quick performance relief switch if a display starts struggling. It temporarily suppresses fullscreen weather/NatureScape effects, animated weather glyphs, moving backgrounds, photo preloading, background blur, and expensive glass blur. Your normal visual settings remain saved underneath and return when Lightweight mode is turned off.</div>
+   <label class="checkline lightweight-mode-toggle"><input id="s-lightweight-mode" type="checkbox"> Enable Lightweight mode now</label>
+   <div id="lightweight-mode-status" class="settings-note" role="status" aria-live="polite">Lightweight mode is OFF — your saved visual settings run normally.</div>
+   <div class="s-row"><label for="s-animation-performance-mode">Animation performance <button class="help-tip" type="button" aria-label="Animation performance help" data-help="Controls the frame-rate/visual-complexity tradeoff after animations are enabled. Automatic uses the lowest Pi 3 animation budget and adapts Pi 4/5 frame pacing; Smooth favors a stable lower FPS over detail; Balanced asks for more motion; Maximum fidelity is the heaviest option. Pi 3 animations remain off on fresh installs because the Weather animations master switch is off by default, but if you enable animations LibreDisplay will honor that choice even when performance is poor. Lightweight mode and an explicit reduced-motion preference can still pause motion.">?</button></label><select id="s-animation-performance-mode"><option value="auto" selected>Automatic · adapt to measured frame time</option><option value="smooth">Smooth · stable lower FPS / lowest load</option><option value="balanced">Balanced · target moderate FPS</option><option value="fidelity">Maximum fidelity · highest target FPS</option></select><div class="settings-note">LibreDisplay uses the detected Raspberry Pi model when available. Pi 3 uses a very low animation budget but no longer overrides an explicit animation enable; Pi 4 starts at a stable 30 FPS and can promote to 45 FPS after sustained good frame pacing; Pi 5 has a larger visual budget.</div></div>
+   <div id="animation-performance-status" class="settings-note performance-live-status" role="status" aria-live="polite">Measuring animation performance…</div>
+  </div>
+  <div class="s-section" id="settings-about" data-settings-tab="overview">
+   <h3>About LibreDisplay</h3>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.10.52</b> · Theme system: Libre Night · MIT License</span></div>
+  </div>
+  <div class="s-section" id="settings-endpoints" data-settings-tab="displays">
+   <h3>Displays</h3>
+   <div class="howto">One LibreDisplay server can power multiple screens. Each named display has its own calendars, photos, layout, theme, and read-only Display Link. Use a lightweight Viewer, tablet, TV browser, or another Pi at each screen.</div>
+   <div class="utility-actions">
+    <button class="btn-util" type="button" data-ld-onclick="h034">+ Add display</button>
+    <button class="btn-util" type="button" data-ld-onclick="h035">Refresh</button>
+   </div>
+   <div id="endpoint-list" class="endpoint-list" style="margin-top:10px;"></div>
+   <div id="endpoint-status" class="settings-note" style="margin-top:7px;"></div>
+  </div>
+  <div class="s-section" id="settings-remote" data-owner-only="1" data-settings-level="advanced" data-settings-tab="displays">
+   <h3>Remote management</h3>
+   <div class="howto">Use the admin pairing link for configuration. Every named display has its own read-only Display Link; the field below shows the link for the display you are currently editing. Both are limited to your trusted LAN/private VPN. Do not port-forward LibreDisplay directly to the public internet.</div>
+   <div class="remote-url-row">
+    <input id="remote-settings-url" type="text" readonly placeholder="Admin pairing link will appear here on the local display">
+    <button class="btn-util" type="button" data-ld-onclick="h036">Copy admin link</button>
+   </div>
+   <div class="remote-url-row" style="margin-top:7px;">
+    <input id="remote-display-url" type="text" readonly placeholder="Read-only link for this display will appear here">
+    <button class="btn-util" type="button" data-ld-onclick="h037">Copy display link</button>
+   </div>
+   <div class="utility-actions" style="margin-top:7px;">
+    <button id="toggle-remote-access" class="btn-util" type="button" data-ld-onclick="h038">Enable remote editing</button>
+    <button id="rotate-remote-key" class="btn-util" type="button" data-ld-onclick="h039" style="display:none;">Rotate remote access key</button>
+   </div>
+   <div id="remote-settings-status" class="settings-note" style="margin-top:7px;">Remote editing is off by default. Enable it here only when you want to pair another device.</div>
+  </div>
+  <div class="s-section" id="settings-users" data-settings-tab="displays" data-owner-only="1">
+   <h3>Local accounts &amp; roles</h3>
+   <div class="howto">Create local <b>Owner</b>, <b>Editor</b>, or <b>Viewer</b> accounts. Owners administer the whole server. Editors can change only their assigned displays. Viewers can open only their assigned displays and cannot save configuration. Passwords are stored locally as PBKDF2-SHA256 hashes.</div>
+   <div class="profile-grid">
+    <div class="s-row"><label>Username</label><input id="account-username" type="text" maxlength="64" placeholder="e.g. kitchen-admin"></div>
+    <div class="s-row"><label>Role</label><select id="account-role"><option value="editor">Editor</option><option value="viewer">Viewer</option><option value="owner">Owner</option></select></div>
+    <div class="s-row"><label>Password</label><input id="account-password" type="password" maxlength="256" placeholder="8+ characters"></div>
+    <div class="s-row"><label>Endpoint IDs</label><input id="account-endpoints" type="text" maxlength="500" placeholder="main,kitchen (ignored for Owner)"></div>
+   </div>
+   <div class="utility-actions"><button class="btn-util" type="button" data-ld-onclick="h040">Create account</button><button class="btn-util" type="button" data-ld-onclick="h041">Update account</button><button class="btn-util" type="button" data-ld-onclick="h042">Refresh</button></div>
+   <div id="account-list" style="margin-top:8px"></div><div id="account-status" class="settings-note" style="margin-top:7px"></div>
+  </div>
+  <div class="s-section" id="settings-profiles" data-settings-level="advanced" data-owner-only="1" data-settings-tab="displays">
+   <h3>Display profiles</h3>
+   <div class="howto">Save complete dashboard configurations as named profiles, then reuse them on this display or explicitly apply them to another LibreDisplay endpoint. Profiles are snapshots of dashboard content and presentation; applying one never changes the profile itself. Use “Update selected” only when you intentionally want to replace a profile with the currently saved dashboard.</div>
+   <div class="profile-grid">
+    <div class="s-row"><label>Saved profile</label><select id="s-profile-select" data-ld-onchange="h043"><option value="">No saved profiles yet</option></select></div>
+    <div class="s-row"><label>Profile name</label><input id="s-profile-name" type="text" maxlength="48" placeholder="e.g. Living Room"></div>
+    <div class="s-row"><label>Target display <button class="help-tip" type="button" aria-label="Profile target display help" data-help="Choose which saved LibreDisplay endpoint should receive a profile. Applying a profile is explicit and does not alter the profile or any other display.">?</button></label><select id="s-profile-endpoint" data-ld-onchange="h043"><option value="main">Main display</option></select></div>
+   </div>
+   <div class="profile-actions">
+    <button class="btn-util" type="button" data-ld-onclick="h044">Save current as new</button>
+    <button class="btn-util" type="button" data-ld-onclick="h045">Update selected</button>
+    <button class="btn-util" type="button" data-ld-onclick="h046">Duplicate</button>
+    <button class="btn-util" type="button" data-ld-onclick="h047">Load on this display</button>
+    <button class="btn-util" type="button" data-ld-onclick="h048">Apply to target display</button>
+    <button class="btn-util" type="button" data-ld-onclick="h049">Capture target as profile</button>
+    <button class="btn-util" type="button" data-ld-onclick="h050">Rename</button>
+    <button class="btn-util" type="button" data-ld-onclick="h051">Delete</button>
+   </div>
+   <div class="settings-note" style="margin-top:8px;">Tip: duplicate a known-good profile before experimenting. Profiles can also be used by Scenes &amp; schedules below.</div>
+   <div id="profile-status" class="howto profile-status" style="display:none;"></div>
+  </div>
+  <div class="s-section" id="settings-scenes" data-settings-level="advanced" data-owner-only="1" data-settings-tab="displays">
+   <h3>Scenes &amp; schedules</h3>
+   <div class="howto">Schedule saved Profiles on this display. LibreDisplay applies scenes on the server, so schedules continue working even when no Settings browser is open. Overnight ranges are supported.</div>
+   <label class="checkline"><input id="scene-automatic" type="checkbox" checked data-ld-onchange="h052"> Enable automatic scene scheduling</label>
+   <div class="s-row"><label>Base profile when no scene is active</label><select id="scene-base-profile"></select></div>
+   <div class="utility-actions"><button class="btn-util" type="button" data-ld-onclick="h053">+ Add scene</button><button class="btn-util" type="button" data-ld-onclick="h054">Save schedules</button><button class="btn-util" type="button" data-ld-onclick="h055">Reload</button></div>
+   <div id="scene-list" class="scene-list"></div>
+   <div id="scene-status" class="settings-note" style="margin-top:8px;"></div>
+  </div>
+  <div class="s-section" id="settings-family" data-owner-only="1" data-settings-tab="family">
+   <h3>Family &amp; touch mode</h3>
+   <div class="howto">Local-only household chores, points, rewards, and child-lock controls. Add a <b>Family Chores</b> block from Arrange dashboard to make these touch-friendly on a wall display. No cloud account is required.</div>
+   <div class="family-editor-grid">
+    <div><label for="family-members-editor">Household members — <code>Name|emoji</code></label><textarea id="family-members-editor" placeholder="Alex|🦊&#10;Sam|🌿"></textarea></div>
+    <div><label for="family-chores-editor">Chores — <code>Chore|member|points|recurrence|days</code></label><textarea id="family-chores-editor" placeholder="Feed the dog|Alex|2|daily|&#10;Take bins out|Sam|5|weekly|&#10;Pack school bag|Alex|1|weekdays|&#10;Water plants|Sam|2|custom|0,3"></textarea></div>
+    <div><label for="family-rewards-editor">Rewards — <code>Reward|cost|member(optional)</code></label><textarea id="family-rewards-editor" placeholder="Movie choice|20|&#10;Extra game time|15|Alex"></textarea></div>
+   </div>
+   <div class="utility-actions" style="margin-top:10px;">
+    <button class="btn-util" type="button" data-ld-onclick="h056">Save household</button>
+    <button class="btn-util" type="button" data-ld-onclick="h057">Reload</button>
+   </div>
+   <div class="s-subhead">PIN / child lock</div>
+   <div class="howto">When enabled, completing chores and redeeming rewards from a display requires the household PIN. The PIN is stored as a salted PBKDF2 hash, not plaintext.</div>
+   <div class="s-row"><label>New PIN (4–12 digits)</label><input id="family-pin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="12" placeholder="••••"></div>
+   <div class="utility-actions"><button class="btn-util" type="button" data-ld-onclick="h058">Set / change PIN &amp; enable lock</button><button class="btn-util" type="button" data-ld-onclick="h059">Disable &amp; clear PIN</button></div>
+   <div id="family-status" class="settings-note" style="margin-top:8px;"></div>
+  </div>
+  <div class="s-section" id="settings-location" data-settings-tab="weather">
+   <h3>Location &amp; Weather</h3>
+   <div class="howto">Search for a place, then choose the exact match before saving. LibreDisplay shows the region, country, coordinates, and timezone so cities with the same name are not confused. Forecast values come from the weather model/grid for those coordinates and can differ somewhat from a nearby personal weather station.</div>
+   <div class="s-row"><label>Weather location</label><div class="weather-location-search"><input id="s-city" placeholder="Springfield, Illinois" autocomplete="off" data-ld-oninput="h060" data-ld-onkeydown="h061"><button class="btn-util" type="button" data-ld-onclick="h062">Find places</button></div><div id="weather-location-search-status" class="weather-location-status"></div><div id="weather-location-results" class="weather-location-results"></div><div id="weather-location-selected" class="weather-location-selected"></div></div>
+   <div class="s-row"><label>Display label (optional)</label><input id="s-locname" placeholder="Home · Chicago" data-ld-oninput="h063"><div class="settings-inline-help">Shown above Current Weather on the dashboard. Leave blank to hide the label; it does not change the selected forecast coordinates.</div></div>
+  </div>
+  <div class="s-section" id="settings-calendars" data-settings-tab="calendars">
+   <h3>Calendars <button class="help-tip" type="button" aria-label="Calendar help" data-help="Add and test ICS feeds before saving. Display range, event count, and calendar auto-scroll are controlled in Appearance and can be fine-tuned further in Arrange mode.">?</button></h3>
+   <div class="howto">Add as many calendars as you need. LibreDisplay accepts standard iCalendar/ICS subscription links from Google Calendar, Proton Calendar, Outlook/Microsoft 365, iCloud shared calendars, Nextcloud, Fastmail, and other providers that expose an ICS feed. You can also import a local <code>.ics</code> file.</div>
+   <div class="calendar-slot-tools">
+    <button class="btn-util" type="button" data-ld-onclick="h064">+ Add calendar</button>
+    <button class="btn-util" type="button" data-ld-onclick="h065">Import .ics file</button>
+    <button class="btn-util" type="button" data-ld-onclick="h066">Check all feeds</button>
+    <input id="calendar-file-input" type="file" accept=".ics,text/calendar" multiple hidden data-ld-onchange="h067">
+    <span class="settings-note" style="align-self:center;margin:0;">Add only the feeds you use. Each can be renamed, checked, colored, reordered, disabled, duplicated, or removed.</span>
+   </div>
+   <div id="calendar-source-list"></div>
+   <div id="cal-status" class="howto" style="display:none;margin-top:10px;"></div>
+   <div class="settings-inline-group">
+    <div class="s-subhead">Calendar preferences</div>
+    <div class="settings-grid">
+     <div class="s-row"><label>Calendar refresh</label><select id="s-calendar-refresh"><option value="5">Every 5 minutes</option><option value="15">Every 15 minutes</option><option value="30">Every 30 minutes</option><option value="60">Every 60 minutes</option></select></div>
+     <div class="s-row"><label>Event time display</label><select id="s-calendar-time-style" data-ld-onchange="h068"><option value="start">Start time</option><option value="range">Start – end</option><option value="none">Hide times</option></select></div>
+    </div>
+    <div class="settings-grid" style="margin-top:4px;">
+     <label class="checkline"><input id="s-calendar-legend" type="checkbox" data-ld-onchange="h068"> Show calendar legend below the calendar band</label>
+     <label class="checkline"><input id="s-calendar-show-continuation" type="checkbox" data-ld-onchange="h068" checked> Mark multi-day carry-over as “Continues”</label>
+    </div>
+    <div class="settings-inline-help">Opacity affects events from that feed only. Display priority is used for the legend and as a tie-breaker when events start at the same time.</div>
+    <div id="calendar-order-list" class="calendar-order-list"></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-alerts" data-settings-tab="weatheralerts">
+   <h3>Weather alerts <button class="help-tip" type="button" aria-label="Weather alert help" data-help="Test mode is generated locally and should keep running with Settings closed. Motion controls apply to both simulated and real alerts.">?</button></h3>
+   <div class="howto">Uses active National Weather Service alerts for the configured location (U.S.). Up to 10 alerts are shown. Test mode generates 10 simulated alerts locally so you can tune the layout at any time.</div>
+   <div class="settings-grid alert-settings-grid">
+    <label class="checkline"><input id="s-alerts-enabled" type="checkbox" checked data-ld-onchange="h069"> Enable weather alerts</label>
+    <label class="checkline"><input id="s-alert-test" type="checkbox" data-ld-onchange="h070"> Test mode — generate 10 alerts <button class="help-tip" type="button" aria-label="Test mode help" data-help="Creates 10 simulated alerts entirely in the browser. Use Preview test alerts full screen below to hide Settings and watch the current unsaved motion settings before you save.">?</button></label>
+    <div class="s-row"><label>Alert card height <span id="s-alert-size-value" class="range-value">29%</span> <button class="help-tip" type="button" aria-label="Alert card height help" data-help="Changes the vertical space used by each alert card. It does not change alert text size; use Arrange → Weather Alerts for text sizing.">?</button></label><input id="s-alert-size" type="range" min="25" max="33" step="1" value="29" data-ld-oninput="h071"></div>
+    <div class="s-row"><label>Alert motion <button class="help-tip" type="button" aria-label="Alert motion help" data-help="Step advances card-by-card. Continuous moves the full list smoothly when it is taller than the alert area. Static disables automatic movement.">?</button></label><select id="s-alert-motion" data-ld-onchange="h072"><option value="step">Smooth step / rotate</option><option value="continuous">Continuous loop — only when needed</option><option value="static">No automatic motion</option></select></div>
+    <div class="s-row"><label>Continuous scroll speed <span id="s-alert-motion-speed-value" class="range-value">36 px/s</span> <button class="help-tip" type="button" aria-label="Continuous alert speed help" data-help="Used only when Alert motion is Continuous. Higher values move the alert list faster.">?</button></label><input id="s-alert-motion-speed" type="range" min="4" max="120" step="1" value="36" data-ld-oninput="h073"><div class="range-ends"><span>Slow</span><span>Fast</span></div></div>
+    <div class="s-row"><label>Step rotation delay <button class="help-tip" type="button" aria-label="Step rotation delay help" data-help="Used only when Alert motion is Step. This is how long each alert position remains visible before advancing.">?</button></label><select id="s-alert-scroll" data-ld-onchange="h072"><option value="5">Every 5 seconds</option><option value="8">Every 8 seconds</option><option value="12">Every 12 seconds</option><option value="20">Every 20 seconds</option></select></div>
+    <div class="s-row"><label>Real alert refresh <button class="help-tip" type="button" aria-label="Real alert refresh help" data-help="How often LibreDisplay checks the National Weather Service for real alerts. Test mode is local and does not wait for this timer.">?</button></label><select id="s-alert-refresh"><option value="3">Every 3 minutes</option><option value="5">Every 5 minutes</option><option value="10">Every 10 minutes</option><option value="15">Every 15 minutes</option></select></div>
+   </div>
+   <div class="utility-actions" style="margin-top:10px;">
+    <button class="btn-util" type="button" data-ld-onclick="h074">Preview test alerts full screen</button>
+   </div>
+   <div id="alert-status" class="howto" role="status" aria-live="polite" style="display:none;margin-top:10px;"></div>
+  </div>
+  <div class="s-section" id="settings-alert-appearance" data-settings-level="advanced" data-settings-tab="weatheralerts">
+   <h3>Alert appearance &amp; filtering <button class="help-tip" type="button" aria-label="Alert filtering help" data-help="Severity filtering applies to real National Weather Service alerts. Test mode intentionally keeps mixed severities so you can preview the layout.">?</button></h3>
+   <div class="settings-grid">
+    <div class="s-row"><label>Alert card opacity <span id="s-alert-opacity-value" class="range-value">100%</span> <button class="help-tip" type="button" aria-label="Alert opacity help" data-help="Changes the visibility of the alert card surface. Text size and individual alert text styling are controlled separately in Arrange mode.">?</button></label><input id="s-alert-opacity" type="range" min="55" max="100" step="1" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Minimum real-alert severity <button class="help-tip" type="button" aria-label="Alert severity help" data-help="Filters live National Weather Service alerts only. Test alerts are not filtered so all severity styles can be previewed.">?</button></label><select id="s-alert-min-severity"><option value="all">All alerts</option><option value="minor">Minor or higher</option><option value="moderate">Moderate or higher</option><option value="severe">Severe or higher</option><option value="extreme">Extreme only</option></select></div>
+   </div>
+   <div class="settings-grid alert-settings-grid" style="margin-top:2px;">
+    <label class="checkline"><input id="s-alert-show-expiry" type="checkbox" data-ld-onchange="h068"> Show alert expiry</label>
+    <label class="checkline"><input id="s-alert-show-meta" type="checkbox" data-ld-onchange="h068"> Show alert area / source</label>
+   </div>
+  </div>
+  <div class="s-section" id="settings-backgrounds" data-settings-tab="backgrounds">
+   <h3>Pictures, video &amp; moving backgrounds <button class="help-tip" type="button" aria-label="Background help" data-help="Choose one active source. Google Photos shared albums paginate up to 1,000 images; local or NAS folders and stock sources can also rotate automatically.">?</button></h3>
+   <div class="howto">Choose the background source and tune its rotation in one place. Local and NAS folders support still images, animated GIFs, browser-playable video, and raw Motion JPEG (.mjpg/.mjpeg/.mpjpg) loops.</div>
+   <div class="settings-grid">
+    <div class="s-row"><label>Source</label><select id="s-bg-source" data-ld-onchange="h076"><option value="google">Google Photos shared album</option><option value="folders">Local / NAS media folders</option><option value="stock">Stock photo categories</option><option value="none">No photo background</option></select></div><div id="background-source-privacy" class="settings-note background-source-privacy"></div>
+    <div class="s-row stock-bg-only"><label>Stock category</label><select id="s-stock-category" data-ld-onchange="h076"><option value="nature">Nature</option><option value="space">Space</option><option value="animals">Animals</option><option value="architecture">Architecture</option><option value="abstract">Abstract</option><option value="ocean">Ocean</option><option value="mountains">Mountains</option><option value="forest">Forest</option><option value="city">City</option><option value="beach">Beach</option><option value="minimal">Minimal</option><option value="technology">Technology</option><option value="wallpaper">Wallpaper</option><option value="custom">Custom search…</option></select></div>
+    <div class="s-row stock-bg-only" id="stock-custom-row"><label>Custom stock search</label><input id="s-stock-query" type="text" maxlength="80" placeholder="e.g. northern lights, tropical forest"></div>
+    <div class="s-row stock-bg-only"><label>Requested image size</label><select id="s-stock-resolution"><option value="1920x1080">1080p — 1920×1080</option><option value="2560x1440">1440p — 2560×1440</option><option value="3840x2160">4K — 3840×2160</option></select></div>
+   </div>
+   <div class="utility-actions stock-bg-only">
+    <button class="btn-util" type="button" data-ld-onclick="h077">Load stock background</button>
+    <button class="btn-util" type="button" data-ld-onclick="h078">Next stock photo</button>
+   </div>
+   <div class="settings-note stock-bg-only">Stock backgrounds use the external SourceSplash image service and require internet access. The service may source images from multiple licensed providers.</div>
+   <div class="google-bg-only settings-inline-group">
+    <div class="s-subhead">Google Photos shared album</div>
+    <div class="settings-inline-help">Google Photos → open album → Share icon → “Create link” → copy URL. LibreDisplay paginates large shared albums and loads up to 1,000 photos per album.</div>
+    <div class="s-row"><label>Album URL <button class="help-tip" type="button" aria-label="Google Photos album help" data-help="Use a Google Photos shared-album link created with Create link. LibreDisplay follows continuation pages and loads up to 1,000 images from one shared album.">?</button></label><input id="s-photos" type="url" placeholder="https://photos.app.goo.gl/…"></div>
+    <div class="utility-actions">
+     <button class="btn-util" type="button" data-ld-onclick="h077">Reload album</button>
+     <button class="btn-util" type="button" data-ld-onclick="h078">Next photo now</button>
+     <button class="btn-util" type="button" data-ld-onclick="h079">Reshuffle now</button>
+    </div>
+   </div>
+   <div class="folders-bg-only settings-inline-group">
+    <div class="s-subhead">Local / NAS media folders</div>
+    <div class="s-row"><label>Media folders — one path per line</label><textarea id="s-media-folders" class="media-paths" placeholder="/home/pi/Pictures/Family
+/mnt/libredisplay/NAS-Photos"></textarea></div>
+    <label class="checkline"><input id="s-media-recursive" type="checkbox" checked> Include subfolders</label>
+    <div class="utility-actions" style="margin-top:7px;">
+     <button class="btn-util" type="button" data-ld-onclick="h080">Browse folders</button>
+     <button class="btn-util" type="button" data-ld-onclick="h081">Scan folders now</button>
+    </div>
+    <div id="media-folder-browser" class="media-browser">
+     <div class="media-browser-toolbar"><button class="btn-util" type="button" data-ld-onclick="h082">Up</button><div id="media-browser-path" class="media-browser-path">Loading…</div><button class="btn-util" type="button" data-ld-onclick="h083">Add this folder</button></div>
+     <div id="media-browser-list" class="media-browser-list"></div>
+    </div>
+    <div class="settings-note" style="margin-top:7px;">Supported folder media includes JPG, PNG, WebP, GIF, AVIF, BMP, MP4, WebM, OGV, M4V, MOV, MJPG, MJPEG and MPJPG. NAS folders use normal Linux mount points. The included <b>scripts/setup-nas.sh</b> helper mounts SMB/CIFS or NFS shares read-only under <code>/mnt/libredisplay</code>. For another local folder outside the approved picture roots, run <b>scripts/setup-media.sh</b> locally on the Pi, then reboot.</div>
+   </div>
+   <div class="settings-inline-group rotating-bg-only">
+    <div class="s-subhead">Rotation &amp; order</div>
+    <div class="settings-inline-help">Choose how quickly pictures change and how LibreDisplay moves through the full source.</div>
+    <div class="settings-grid">
+     <div class="s-row"><label>Change background every</label><select id="s-photo-interval">
+      <option value="0">Don’t rotate</option><option value="5">Every 5 seconds</option><option value="10">Every 10 seconds</option><option value="15">Every 15 seconds</option><option value="20">Every 20 seconds</option><option value="30">Every 30 seconds</option><option value="45">Every 45 seconds</option><option value="60">Every 1 minute</option><option value="120">Every 2 minutes</option><option value="300">Every 5 minutes</option><option value="600">Every 10 minutes</option><option value="900">Every 15 minutes</option><option value="1800">Every 30 minutes</option><option value="3600">Every 60 minutes</option>
+     </select></div>
+     <div class="s-row"><label>Photo order <button class="help-tip" type="button" aria-label="Photo order help" data-help="Sequential follows source order. Shuffle cycle shows every image once before reshuffling. Random chooses independently while avoiding immediate repeats.">?</button></label><select id="s-photo-order"><option value="sequential">Sequential — source order</option><option value="shuffle">Shuffle cycle — every photo once</option><option value="random">Random — avoid immediate repeats</option></select></div>
+     <label class="checkline"><input id="s-photo-random-start" type="checkbox"> Random starting photo</label>
+     <label class="checkline"><input id="s-photo-preload" type="checkbox"> Preload the next photo <button class="help-tip" type="button" aria-label="Photo preload help" data-help="Loads and decodes the exact upcoming image in a hidden background layer before the transition. The current photo stays visible until the next one is ready, preventing blank or black frames. This uses extra memory and network bandwidth, so it is off by default on fresh installs.">?</button></label>
+     <label class="checkline"><input id="s-background-motion" type="checkbox"> Allow animated / video backgrounds <button class="help-tip" type="button" aria-label="Animated background performance help" data-help="Allows animated GIF, video and Motion JPEG items from local/NAS media folders. Continuous decoding can be demanding on Pi 3-class or lower-powered hardware, so fresh installs leave this off unless you enable it.">?</button></label>
+    </div>
+    <div class="settings-note">Shuffle cycle shows every available image once before reshuffling. Random chooses a new image each change and avoids showing the same image twice in a row.</div>
+   </div>
+   <div class="settings-inline-group rotating-bg-only">
+    <div class="s-subhead">Offline background reserve</div>
+    <div class="settings-inline-help">Choose one reserve size. LibreDisplay keeps its normal 10-image recovery cache, then quietly stores additional still photos on disk for internet/NAS outages. Nothing in this reserve is pre-decoded into memory.</div>
+    <div class="s-row"><label>Offline backup size <button class="help-tip" type="button" aria-label="Offline background reserve help" data-help="This is a disk-backed second cache for still photos only. The photo counts are rough examples based on 4 MB photos; smaller files can fit more and larger files fewer. LibreDisplay always keeps browser-storage headroom.">?</button></label><select id="s-bg-offline-reserve" data-ld-onchange="h084"><option value="0">Off — recovery cache only</option><option value="64">Small · 64 MB · about 16 photos</option><option value="128">Medium · 128 MB · about 32 photos</option><option value="192" selected>Recommended · 192 MB · about 48 photos</option><option value="256">Large · 256 MB · about 64 photos</option><option value="384">Extra large · 384 MB · about 96 photos</option></select></div>
+    <div id="s-bg-offline-cache-estimate" class="settings-note">192 MB is roughly 48 typical 4 MB photos. LibreDisplay may fit more optimized images or fewer high-resolution images, and stops early if browser storage is limited.</div>
+   </div>
+   <div class="settings-inline-group">
+    <div class="s-subhead">Startup loading</div>
+    <label class="checkline"><input id="s-bg-startup-priority" type="checkbox" checked> Prioritize dashboard data before background discovery <button class="help-tip" type="button" aria-label="Startup loading help" data-help="Lets weather, air quality, calendars, and the dashboard shell start first. LibreDisplay can immediately reuse the last displayed background while the photo source refreshes in the background.">?</button></label>
+    <div class="s-row"><label>Background discovery delay <span id="s-bg-startup-delay-value" class="range-value">0.7s</span></label><input id="s-bg-startup-delay" type="range" min="0" max="3000" step="100" value="700" data-ld-oninput="h085"><div class="range-ends"><span>Immediate</span><span>3 sec</span></div></div>
+   </div>
+   <div id="background-status" class="howto" style="display:none;margin-top:10px;"></div>
+  </div>
+  <div class="s-section" id="settings-weather-options" data-settings-tab="weather">
+   <h3>Weather preferences</h3>
+   <div class="settings-grid">
+    <div class="s-row"><label>Weather units</label><select id="s-unit"><option value="F">Imperial — °F, mph, inches</option><option value="C">Metric — °C, km/h, mm</option></select></div>
+    <div class="s-row"><label>Weather refresh</label><select id="s-weather-refresh"><option value="5">Every 5 minutes</option><option value="10">Every 10 minutes</option><option value="15">Every 15 minutes</option><option value="30">Every 30 minutes</option></select></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-weather-motion" data-settings-tab="weatherfx">
+   <h3>Weather effects &amp; preview</h3>
+   <div class="howto">Turn on the full-screen atmosphere, preview any condition, and set the overall look here. Detailed rain, snow, fog, seasonal and storm tuning is grouped into the sections below.</div>
+   <div id="weather-effect-live-status" class="settings-note weather-effect-status">Waiting for current weather data.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-animations" type="checkbox" data-ld-onchange="h086"> Enable weather animations</label>
+    <label class="checkline"><input id="s-weather-widget-animations" type="checkbox" checked data-ld-onchange="h086"> Animate weather icons and forecast areas</label>
+    <label class="checkline"><input id="s-weather-fullscreen-effects" type="checkbox" data-ld-onchange="h086"> Full-screen weather atmosphere <button class="help-tip" type="button" aria-label="Full-screen weather effects help" data-help="The full-screen atmosphere is authoritative when enabled and renders behind dashboard content. Use the Weather Effect Lab to tune it before real weather arrives.">?</button></label>
+    <label class="checkline"><input id="s-weather-effect-precipitation" type="checkbox" checked data-ld-onchange="h068"> Enable rain and snow particles</label>
+    <div class="utility-actions weather-effect-presets"><button class="btn-util" type="button" data-ld-onclick="h087">Subtle</button><button class="btn-util" type="button" data-ld-onclick="h088">Balanced</button><button class="btn-util" type="button" data-ld-onclick="h089">Immersive</button><button class="btn-util" type="button" data-ld-onclick="h090">Show current overlay</button></div>
+    <div class="s-subhead">Weather Effect Lab</div>
+    <div class="s-subhead">Normal weather preview</div>
+    <div class="settings-note">Use this while tuning ordinary rain, snow, clouds, fog, sun and wind. It previews behind Settings so you can adjust controls without leaving the menu. It never creates a weather alert.</div>
+    <label class="checkline"><input id="s-weather-effect-test-mode" type="checkbox" data-ld-onchange="h091"> Preview a normal weather condition <button class="help-tip" type="button" aria-label="Weather preview help" data-help="Temporarily replaces the visual weather condition only. Settings stays open and no alert card or severe-weather scene is generated.">?</button></label>
+    <div class="s-row"><label>Normal weather condition</label><select id="s-weather-effect-test-condition" data-ld-onchange="h092"><option value="drizzle">Light drizzle</option><option value="rain" selected>Rain</option><option value="heavy-rain">Heavy rain</option><option value="storm">Thunderstorm</option><option value="snow">Snow</option><option value="heavy-snow">Heavy snow</option><option value="fog">Fog</option><option value="cloud">Cloudy</option><option value="windy">Windy clouds</option><option value="partly">Partly cloudy</option><option value="clear">Clear day</option><option value="night">Clear night</option></select></div>
+    <div class="utility-actions weather-effect-presets"><button class="btn-util" type="button" data-ld-onclick="h093">Preview behind Settings</button><button class="btn-util" type="button" data-ld-onclick="h094">Return to live weather</button></div>
+    <div class="s-row"><label>Full-screen effect behavior</label><select id="s-weather-effect-mode" data-ld-onchange="h068"><option value="auto">Automatic — match current weather</option><option value="precipitation">Precipitation only — rain, snow, storms</option><option value="ambient">Ambient only — clouds, fog, clear sky</option></select></div>
+    <label class="checkline"><input id="s-weather-effect-auto-intensity" type="checkbox" checked data-ld-onchange="h068"> Auto-match intensity to live conditions</label>
+    <div class="s-row"><label>Effect intensity <span id="s-weather-effect-intensity-value" class="range-value">50%</span></label><input id="s-weather-effect-intensity" type="range" min="10" max="100" step="5" value="50" data-ld-oninput="h075"><div class="range-ends"><span>Subtle</span><span>Dense</span></div></div>
+    <div class="s-row"><label>Overlay visibility <span id="s-weather-effect-opacity-value" class="range-value">34%</span></label><input id="s-weather-effect-opacity" type="range" min="5" max="80" step="1" value="34" data-ld-oninput="h075"><div class="range-ends"><span>Soft</span><span>Strong</span></div></div>
+    <div class="s-row"><label>Atmosphere depth <span id="s-weather-effect-atmosphere-value" class="range-value">55%</span></label><input id="s-weather-effect-atmosphere" type="range" min="0" max="100" step="5" value="55" data-ld-oninput="h075"><div class="range-ends"><span>Clean</span><span>Moody</span></div></div>
+    <div class="s-row"><label>Particle size <span id="s-weather-effect-particle-scale-value" class="range-value">100%</span></label><input id="s-weather-effect-particle-scale" type="range" min="60" max="160" step="5" value="100" data-ld-oninput="h075"><div class="range-ends"><span>Fine</span><span>Large</span></div></div>
+    <div class="s-row"><label>Animation speed <span id="s-weather-effect-speed-value" class="range-value">100%</span></label><input id="s-weather-effect-speed" type="range" min="40" max="180" step="5" value="100" data-ld-oninput="h075"><div class="range-ends"><span>Slow</span><span>Fast</span></div></div>
+    <div class="s-row"><label>Wind influence <span id="s-weather-effect-wind-strength-value" class="range-value">100%</span></label><input id="s-weather-effect-wind-strength" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"><div class="range-ends"><span>Vertical</span><span>Strong drift</span></div></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-weather-rain" data-settings-tab="weatherfx">
+   <h3>Rain</h3>
+   <div class="howto">Tune rainfall independently. Use Weather Effect Lab to preview light rain, normal rain, or heavy rain while adjusting these controls.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-rain-enabled" type="checkbox" checked data-ld-onchange="h068"> Rain overlay</label>
+    <div class="s-row"><label>Rain density <span id="s-weather-rain-density-value" class="range-value">100%</span></label><input id="s-weather-rain-density" type="range" min="0" max="150" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Drop length <span id="s-weather-rain-size-value" class="range-value">100%</span></label><input id="s-weather-rain-size" type="range" min="30" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Drop width <span id="s-weather-rain-width-value" class="range-value">100%</span></label><input id="s-weather-rain-width" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Rain fall speed <span id="s-weather-rain-speed-value" class="range-value">100%</span></label><input id="s-weather-rain-speed" type="range" min="35" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Drop opacity <span id="s-weather-rain-opacity-value" class="range-value">100%</span></label><input id="s-weather-rain-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Wind angle <span id="s-weather-rain-angle-value" class="range-value">100%</span></label><input id="s-weather-rain-angle" type="range" min="0" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Near / far depth variation <span id="s-weather-rain-depth-value" class="range-value">100%</span></label><input id="s-weather-rain-depth" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Surface splash amount <span id="s-weather-rain-splash-value" class="range-value">70%</span></label><input id="s-weather-rain-splash" type="range" min="0" max="180" step="5" value="70" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Splash size <span id="s-weather-rain-splash-size-value" class="range-value">100%</span></label><input id="s-weather-rain-splash-size" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Wet-streak glow <span id="s-weather-rain-glow-value" class="range-value">100%</span></label><input id="s-weather-rain-glow" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-weather-snow" data-settings-tab="weatherfx">
+   <h3>Snow</h3>
+   <div class="howto">Tune snow density, flake appearance, drift, and depth without changing rain or fog.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-snow-enabled" type="checkbox" checked data-ld-onchange="h068"> Snow overlay</label>
+    <label class="checkline"><input id="s-weather-snow-blowing" type="checkbox" checked data-ld-onchange="h068"> Blowing-snow veil in heavy snow / squalls</label>
+    <div class="s-row"><label>Snow density <span id="s-weather-snow-density-value" class="range-value">100%</span></label><input id="s-weather-snow-density" type="range" min="0" max="150" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Flake size <span id="s-weather-snow-size-value" class="range-value">100%</span></label><input id="s-weather-snow-size" type="range" min="40" max="150" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Snow drift <span id="s-weather-snow-drift-value" class="range-value">100%</span></label><input id="s-weather-snow-drift" type="range" min="0" max="150" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Snow fall speed <span id="s-weather-snow-speed-value" class="range-value">100%</span></label><input id="s-weather-snow-speed" type="range" min="30" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Flake opacity <span id="s-weather-snow-opacity-value" class="range-value">100%</span></label><input id="s-weather-snow-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Flake spin <span id="s-weather-snow-spin-value" class="range-value">100%</span></label><input id="s-weather-snow-spin" type="range" min="0" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Snow depth variation <span id="s-weather-snow-depth-value" class="range-value">100%</span></label><input id="s-weather-snow-depth" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-weather-fog" data-settings-tab="weatherfx">
+   <h3>Fog &amp; mist</h3>
+   <div class="howto">Control fog visibility, softness, speed, and vertical coverage separately from precipitation.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-effect-fog" type="checkbox" checked data-ld-onchange="h068"> Fog and mist layers</label>
+    <label class="checkline"><input id="s-weather-fog-rolling-banks" type="checkbox" checked data-ld-onchange="h068"> Rolling full-screen fog banks</label>
+    <div class="s-row"><label>Fog density <span id="s-weather-fog-density-value" class="range-value">115%</span></label><input id="s-weather-fog-density" type="range" min="0" max="180" step="5" value="115" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Fog movement <span id="s-weather-fog-speed-value" class="range-value">80%</span></label><input id="s-weather-fog-speed" type="range" min="20" max="150" step="5" value="80" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Fog opacity <span id="s-weather-fog-opacity-value" class="range-value">100%</span></label><input id="s-weather-fog-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Mist softness / blur <span id="s-weather-fog-blur-value" class="range-value">100%</span></label><input id="s-weather-fog-blur" type="range" min="20" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Fog band height <span id="s-weather-fog-layer-height-value" class="range-value">100%</span></label><input id="s-weather-fog-layer-height" type="range" min="40" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-naturescape-overview" data-settings-tab="nature">
+   <h3>Naturescape behavior</h3>
+   <div class="howto">Naturescape adds living, seasonal scenery around the weather overlay. Automatic mode uses the saved weather location, hemisphere, climate band, local month, daylight, temperature, and current conditions.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-seasonal-effects" type="checkbox" checked data-ld-onchange="h068"> Add seasonal atmosphere</label>
+    <div class="s-row"><label>Season</label><select id="s-weather-season-mode" data-ld-onchange="h068"><option value="auto" selected>Automatic — region + season</option><option value="off">Off</option><option value="spring">Spring</option><option value="summer">Summer</option><option value="fall">Fall / Autumn</option><option value="winter">Winter</option></select></div>
+    <div class="s-row"><label>Overall seasonal intensity <span id="s-weather-seasonal-intensity-value" class="range-value">45%</span></label><input id="s-weather-seasonal-intensity" type="range" min="0" max="100" step="5" value="45" data-ld-oninput="h075"></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-naturescape-flora" data-settings-tab="nature">
+   <h3>Leaves, grass &amp; petals</h3>
+   <div class="howto">Tune non-animal seasonal scenery. Each layer keeps its own amount, scale, movement, and visibility controls.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-season-leaves" type="checkbox" checked data-ld-onchange="h068"> Autumn / fall leaves</label>
+    <div class="s-row"><label>Leaf amount <span id="s-weather-leaves-intensity-value" class="range-value">100%</span></label><input id="s-weather-leaves-intensity" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Leaf size <span id="s-weather-leaves-size-value" class="range-value">100%</span></label><input id="s-weather-leaves-size" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Leaf fall speed <span id="s-weather-leaves-speed-value" class="range-value">100%</span></label><input id="s-weather-leaves-speed" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Leaf wind response <span id="s-weather-leaves-wind-value" class="range-value">100%</span></label><input id="s-weather-leaves-wind" type="range" min="0" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Leaf opacity <span id="s-weather-leaves-opacity-value" class="range-value">100%</span></label><input id="s-weather-leaves-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-subhead">Grass &amp; ground life</div>
+    <label class="checkline"><input id="s-weather-season-grass" type="checkbox" checked data-ld-onchange="h068"> Seasonal grass</label>
+    <div class="s-row"><label>Grass amount <span id="s-weather-grass-intensity-value" class="range-value">100%</span></label><input id="s-weather-grass-intensity" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Grass height <span id="s-weather-grass-height-value" class="range-value">100%</span></label><input id="s-weather-grass-height" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Grass sway <span id="s-weather-grass-sway-value" class="range-value">100%</span></label><input id="s-weather-grass-sway" type="range" min="0" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Grass opacity <span id="s-weather-grass-opacity-value" class="range-value">100%</span></label><input id="s-weather-grass-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <label class="checkline"><input id="s-weather-season-petals" type="checkbox" checked data-ld-onchange="h068"> Spring petals</label>
+    <div class="s-row"><label>Petal amount <span id="s-weather-petal-intensity-value" class="range-value">80%</span></label><input id="s-weather-petal-intensity" type="range" min="0" max="180" step="5" value="80" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Petal size <span id="s-weather-petal-size-value" class="range-value">100%</span></label><input id="s-weather-petal-size" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Petal drift speed <span id="s-weather-petal-speed-value" class="range-value">100%</span></label><input id="s-weather-petal-speed" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Petal opacity <span id="s-weather-petal-opacity-value" class="range-value">100%</span></label><input id="s-weather-petal-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-naturescape-insects" data-settings-tab="wildlife">
+   <h3>Bees &amp; butterflies</h3>
+   <div class="howto">Daytime pollinators follow season, region, weather, and daylight. Tune bees and butterflies independently, including butterfly species diversity.</div>
+   <div class="settings-grid">
+    <div class="settings-note">Wildlife follows the saved weather location, season, daylight, temperature and current conditions. Rain, snow, storms and dense fog automatically quiet the scene.</div>
+    <label class="checkline"><input id="s-weather-season-bees" type="checkbox" checked data-ld-onchange="h068"> Daytime bees when region / season fits</label>
+    <div class="s-row"><label>Bee activity <span id="s-weather-bee-intensity-value" class="range-value">55%</span></label><input id="s-weather-bee-intensity" type="range" min="0" max="180" step="5" value="55" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Bee size <span id="s-weather-bee-size-value" class="range-value">100%</span></label><input id="s-weather-bee-size" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Bee flight speed <span id="s-weather-bee-speed-value" class="range-value">100%</span></label><input id="s-weather-bee-speed" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Bee opacity <span id="s-weather-bee-opacity-value" class="range-value">100%</span></label><input id="s-weather-bee-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <label class="checkline"><input id="s-weather-season-butterflies" type="checkbox" checked data-ld-onchange="h068"> Daytime butterflies when region / season fits</label>
+    <div class="s-row"><label>Butterfly activity <span id="s-weather-butterfly-intensity-value" class="range-value">50%</span></label><input id="s-weather-butterfly-intensity" type="range" min="0" max="180" step="5" value="50" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Butterfly size <span id="s-weather-butterfly-size-value" class="range-value">100%</span></label><input id="s-weather-butterfly-size" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Butterfly flight speed <span id="s-weather-butterfly-speed-value" class="range-value">100%</span></label><input id="s-weather-butterfly-speed" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Butterfly opacity <span id="s-weather-butterfly-opacity-value" class="range-value">100%</span></label><input id="s-weather-butterfly-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Butterfly species diversity <span id="s-weather-butterfly-diversity-value" class="range-value">75%</span></label><input id="s-weather-butterfly-diversity" type="range" min="0" max="100" step="5" value="75" data-ld-oninput="h075"><div class="settings-note">Lower values favor familiar/common regional species; higher values mix in more locally plausible color and wing-pattern variants.</div></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-naturescape-fireflies" data-settings-tab="wildlife">
+   <h3>Fireflies</h3>
+   <div class="howto">Evening fireflies follow warm-season weather and local daylight. Tune their amount, size, movement, glow, and visibility without changing daytime wildlife.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-season-fireflies" type="checkbox" checked data-ld-onchange="h068"> Evening / night fireflies in warm seasons</label>
+    <div class="s-row"><label>Firefly activity <span id="s-weather-firefly-intensity-value" class="range-value">70%</span></label><input id="s-weather-firefly-intensity" type="range" min="0" max="180" step="5" value="70" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Firefly size <span id="s-weather-firefly-size-value" class="range-value">100%</span></label><input id="s-weather-firefly-size" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Firefly drift speed <span id="s-weather-firefly-speed-value" class="range-value">100%</span></label><input id="s-weather-firefly-speed" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Firefly glow <span id="s-weather-firefly-glow-value" class="range-value">100%</span></label><input id="s-weather-firefly-glow" type="range" min="0" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Firefly opacity <span id="s-weather-firefly-opacity-value" class="range-value">100%</span></label><input id="s-weather-firefly-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-naturescape-other-insects" data-settings-tab="wildlife">
+   <h3>Dragonflies, ladybugs &amp; moths</h3>
+   <div class="howto">Optional secondary insects add regional variety without changing bees, butterflies, or fireflies. Each group keeps independent activity, size, speed, and opacity controls.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-season-dragonflies" type="checkbox" checked data-ld-onchange="h068"> Daytime dragonflies</label>
+    <div class="s-row"><label>Dragonfly activity <span id="s-weather-dragonfly-intensity-value" class="range-value">35%</span></label><input id="s-weather-dragonfly-intensity" type="range" min="0" max="180" step="5" value="35" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Dragonfly size <span id="s-weather-dragonfly-size-value" class="range-value">100%</span></label><input id="s-weather-dragonfly-size" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Dragonfly speed <span id="s-weather-dragonfly-speed-value" class="range-value">110%</span></label><input id="s-weather-dragonfly-speed" type="range" min="30" max="200" step="5" value="110" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Dragonfly opacity <span id="s-weather-dragonfly-opacity-value" class="range-value">100%</span></label><input id="s-weather-dragonfly-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <label class="checkline"><input id="s-weather-season-ladybugs" type="checkbox" checked data-ld-onchange="h068"> Daytime ladybugs</label>
+    <div class="s-row"><label>Ladybug activity <span id="s-weather-ladybug-intensity-value" class="range-value">25%</span></label><input id="s-weather-ladybug-intensity" type="range" min="0" max="180" step="5" value="25" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Ladybug size <span id="s-weather-ladybug-size-value" class="range-value">100%</span></label><input id="s-weather-ladybug-size" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Ladybug speed <span id="s-weather-ladybug-speed-value" class="range-value">80%</span></label><input id="s-weather-ladybug-speed" type="range" min="30" max="200" step="5" value="80" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Ladybug opacity <span id="s-weather-ladybug-opacity-value" class="range-value">100%</span></label><input id="s-weather-ladybug-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <label class="checkline"><input id="s-weather-season-moths" type="checkbox" checked data-ld-onchange="h068"> Evening / night moths</label>
+    <div class="s-row"><label>Moth activity <span id="s-weather-moth-intensity-value" class="range-value">40%</span></label><input id="s-weather-moth-intensity" type="range" min="0" max="180" step="5" value="40" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Moth size <span id="s-weather-moth-size-value" class="range-value">100%</span></label><input id="s-weather-moth-size" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Moth speed <span id="s-weather-moth-speed-value" class="range-value">90%</span></label><input id="s-weather-moth-speed" type="range" min="30" max="200" step="5" value="90" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Moth opacity <span id="s-weather-moth-opacity-value" class="range-value">100%</span></label><input id="s-weather-moth-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-naturescape-birds" data-settings-tab="wildlife">
+   <h3>Birds &amp; regional wildlife</h3>
+   <div class="howto">Bird species and flight style follow the saved location, season, daylight, and weather. Tune the population, size, speed, flocking, visibility, flight height, species diversity, and rare/large-bird frequency here.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-season-birds" type="checkbox" checked data-ld-onchange="h068"> Region / season-aware daytime birds</label>
+    <div class="s-row"><label>Local bird habitat <button class="help-tip" type="button" aria-label="Bird habitat help" data-help="Auto uses a broad regional mix and can infer mountain, tropical, or arid conditions from available weather/location context. Choose a habitat to strongly favor local water, coastal, alpine, rainforest, grassland, woodland, urban, or desert species.">?</button></label><select id="s-weather-bird-habitat" data-ld-onchange="h068"><option value="auto">Auto — regional mix</option><option value="urban">Urban / suburban</option><option value="woodland">Woodland / forest edge</option><option value="grassland">Grassland / open country</option><option value="wetland">Wetland / lake / river</option><option value="coastal">Coastal / shoreline / seabirds</option><option value="mountain">Mountain / alpine</option><option value="tropical">Tropical / rainforest</option><option value="desert">Desert / arid country</option></select></div>
+    <div class="s-row"><label>Bird activity <span id="s-weather-bird-intensity-value" class="range-value">55%</span></label><input id="s-weather-bird-intensity" type="range" min="0" max="180" step="5" value="55" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Bird size <span id="s-weather-bird-size-value" class="range-value">100%</span></label><input id="s-weather-bird-size" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Bird flight speed <span id="s-weather-bird-speed-value" class="range-value">100%</span></label><input id="s-weather-bird-speed" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Bird flock size <span id="s-weather-bird-flock-value" class="range-value">60%</span></label><input id="s-weather-bird-flock" type="range" min="0" max="180" step="5" value="60" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Bird opacity <span id="s-weather-bird-opacity-value" class="range-value">100%</span></label><input id="s-weather-bird-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Bird flight height <span id="s-weather-bird-height-value" class="range-value">100%</span></label><input id="s-weather-bird-height" type="range" min="35" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Bird species diversity <span id="s-weather-bird-diversity-value" class="range-value">72%</span></label><input id="s-weather-bird-diversity" type="range" min="0" max="100" step="5" value="72" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Rare / large bird frequency <span id="s-weather-bird-rare-value" class="range-value">30%</span></label><input id="s-weather-bird-rare" type="range" min="0" max="100" step="5" value="30" data-ld-oninput="h075"><div class="settings-note">Controls how often raptors and larger waders appear. They remain uncommon by design for a more natural scene.</div></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-naturescape-dog" data-settings-tab="companions">
+   <h3>Dog companion</h3>
+   <div class="howto">Optional living companion, disabled by default. Choose a breed, coat, collar, bandana, or no accessory with any custom color while keeping natural resting, movement, storm shelter, flood safety, and Pi-class performance behavior.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-dog-companion" type="checkbox" data-ld-onchange="h068"> Show dog companion</label>
+    <div class="s-row"><label>Dog breed</label><select id="s-weather-dog-breed" data-ld-onchange="h068"><option value="labrador">Labrador Retriever</option><option value="golden">Golden Retriever</option><option value="german-shepherd">German Shepherd</option><option value="white-swiss-shepherd">White Swiss Shepherd</option><option value="great-pyrenees">Great Pyrenees</option><option value="nova-scotia-duck-tolling-retriever">Nova Scotia Duck Tolling Retriever</option><option value="border-collie">Border Collie</option><option value="australian-shepherd">Australian Shepherd</option><option value="beagle">Beagle</option><option value="corgi">Pembroke Welsh Corgi</option><option value="dachshund">Dachshund</option><option value="french-bulldog">French Bulldog</option><option value="poodle">Standard Poodle</option><option value="husky">Siberian Husky</option><option value="shiba">Shiba Inu</option><option value="boxer">Boxer</option><option value="great-dane">Great Dane</option><option value="chihuahua">Chihuahua</option></select></div>
+    <div class="s-row"><label>Breed color / pattern</label><select id="s-weather-dog-labrador-coat" data-ld-onchange="h068"><option value="yellow" selected>Yellow / cream</option></select><div class="settings-note">Choices follow the selected breed, including breed-appropriate colors and patterns such as sable, merle, brindle, tricolor, dapple, agouti, and harlequin where applicable.</div></div>
+    <div class="s-row"><label>Accessory</label><select id="s-weather-dog-accessory" data-ld-onchange="h068"><option value="none">No accessory</option><option value="collar" selected>Collar</option><option value="bandana">Bandana</option></select><div class="settings-note">Choose a collar, a tied bandana, or no accessory. The selected color is shared by collars and bandanas.</div></div>
+    <div class="s-row"><label>Accessory color</label><div class="color-setting-row"><input id="s-weather-dog-accessory-color" type="color" value="#3478d4" aria-label="Dog accessory color"><input id="s-weather-dog-accessory-color-hex" class="color-hex" type="text" maxlength="7" value="#3478D4" spellcheck="false" aria-label="Dog accessory hex color"></div></div>
+    <div class="s-row"><label>Companion activity <span id="s-weather-dog-activity-value" class="range-value">100%</span></label><input id="s-weather-dog-activity" type="range" min="40" max="160" step="5" value="100" data-ld-oninput="h075"><div class="settings-note">Activity changes how often the dog chooses active behaviors. Even at high activity it still rests, sits, sniffs, and sleeps.</div></div>
+    <div class="s-row"><label>Dog size <span id="s-weather-dog-size-value" class="range-value">100%</span></label><input id="s-weather-dog-size" type="range" min="60" max="160" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Dog opacity <span id="s-weather-dog-opacity-value" class="range-value">100%</span></label><input id="s-weather-dog-opacity" type="range" min="20" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-naturescape-holidays" data-settings-tab="companions">
+   <h3>Holiday overlays</h3>
+   <div class="howto">Optional special-day scenery, disabled by default. This first holiday set is U.S.-focused and designed to expand over time. Enable the master switch, then choose exactly which holidays LibreDisplay may celebrate. Holiday Test lets you preview any scene without changing the date.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-holiday-overlays-enabled" type="checkbox" data-ld-onchange="h068"> Show holiday overlays on matching dates</label>
+    <div class="s-row"><label>Overlay intensity <span id="s-holiday-overlay-intensity-value" class="range-value">100%</span></label><input id="s-holiday-overlay-intensity" type="range" min="20" max="150" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-subhead">Holiday Test</div>
+    <div class="s-row"><label>Preview holiday</label><select id="s-holiday-overlay-test"><option value="live">Use calendar date</option><option value="new-year">New Year's Day</option><option value="valentines">Valentine's Day</option><option value="st-patrick">St. Patrick's Day</option><option value="easter">Easter</option><option value="memorial">Memorial Day</option><option value="juneteenth">Juneteenth</option><option value="independence">Independence Day</option><option value="labor">Labor Day</option><option value="halloween">Halloween</option><option value="day-of-dead">Day of the Dead</option><option value="veterans">Veterans Day</option><option value="thanksgiving">Thanksgiving</option><option value="hanukkah">Hanukkah</option><option value="christmas">Christmas</option></select><div class="settings-note">Test mode is local and temporary. It does not modify the system clock or saved holiday selections.</div></div>
+    <div class="utility-actions weather-effect-presets"><button id="s-holiday-overlay-preview" class="btn-util" type="button">Preview holiday full screen</button><button id="s-holiday-overlay-stop" class="btn-util" type="button">Return to calendar date</button></div>
+    <div class="s-subhead">Choose holidays</div>
+    <label class="checkline"><input id="s-holiday-new-year" type="checkbox" checked data-ld-onchange="h068"> New Year's Day</label>
+    <label class="checkline"><input id="s-holiday-valentines" type="checkbox" checked data-ld-onchange="h068"> Valentine's Day</label>
+    <label class="checkline"><input id="s-holiday-st-patrick" type="checkbox" checked data-ld-onchange="h068"> St. Patrick's Day</label>
+    <label class="checkline"><input id="s-holiday-easter" type="checkbox" checked data-ld-onchange="h068"> Easter</label>
+    <label class="checkline"><input id="s-holiday-memorial" type="checkbox" checked data-ld-onchange="h068"> Memorial Day</label>
+    <label class="checkline"><input id="s-holiday-juneteenth" type="checkbox" checked data-ld-onchange="h068"> Juneteenth</label>
+    <label class="checkline"><input id="s-holiday-independence" type="checkbox" checked data-ld-onchange="h068"> Independence Day</label>
+    <label class="checkline"><input id="s-holiday-labor" type="checkbox" checked data-ld-onchange="h068"> Labor Day</label>
+    <label class="checkline"><input id="s-holiday-halloween" type="checkbox" checked data-ld-onchange="h068"> Halloween</label>
+    <label class="checkline"><input id="s-holiday-day-of-dead" type="checkbox" checked data-ld-onchange="h068"> Day of the Dead</label>
+    <label class="checkline"><input id="s-holiday-veterans" type="checkbox" checked data-ld-onchange="h068"> Veterans Day</label>
+    <label class="checkline"><input id="s-holiday-thanksgiving" type="checkbox" checked data-ld-onchange="h068"> Thanksgiving</label>
+    <label class="checkline"><input id="s-holiday-hanukkah" type="checkbox" checked data-ld-onchange="h068"> Hanukkah</label>
+    <label class="checkline"><input id="s-holiday-christmas" type="checkbox" checked data-ld-onchange="h068"> Christmas</label>
+   </div>
+  </div>
+  <div class="s-section" id="settings-naturescape-owls" data-settings-tab="wildlife">
+   <h3>Owls</h3>
+   <div class="howto">Optional full-catalog owl naturescape. Owl Mode is off by default. When enabled, owls join normal birds instead of replacing them, regional owl species are favored without hiding the wider owl catalog, and each wildlife actor keeps a stable species for its lifetime.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-season-owls" type="checkbox" data-ld-onchange="h068"> Owl Mode</label>
+    <div class="s-row"><label>Owl activity <span id="s-weather-owl-intensity-value" class="range-value">45%</span></label><input id="s-weather-owl-intensity" type="range" min="0" max="180" step="5" value="45" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Owl size <span id="s-weather-owl-size-value" class="range-value">110%</span></label><input id="s-weather-owl-size" type="range" min="30" max="200" step="5" value="110" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Owl flight speed <span id="s-weather-owl-speed-value" class="range-value">85%</span></label><input id="s-weather-owl-speed" type="range" min="30" max="200" step="5" value="85" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Owl opacity <span id="s-weather-owl-opacity-value" class="range-value">100%</span></label><input id="s-weather-owl-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Owl species diversity <span id="s-weather-owl-diversity-value" class="range-value">75%</span></label><input id="s-weather-owl-diversity" type="range" min="0" max="100" step="5" value="75" data-ld-oninput="h075"><div class="settings-note">Higher values broaden the owl catalog. Birds can remain visible alongside owls so mixed wildlife scenes feel fuller without sacrificing species identity.</div></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-naturescape-winter" data-settings-tab="nature">
+   <h3>Winter atmosphere</h3>
+   <div class="howto">Cold-air crystals and screen-edge frost are separate from snowfall and only appear when seasonal/location logic makes them appropriate.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-season-snowmen" type="checkbox" checked data-ld-onchange="h068"> Snowmen in snow-capable winter conditions</label>
+    <div class="s-row"><label>Snowman amount <span id="s-weather-snowman-intensity-value" class="range-value">60%</span></label><input id="s-weather-snowman-intensity" type="range" min="0" max="100" step="5" value="60" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Snowman size <span id="s-weather-snowman-size-value" class="range-value">100%</span></label><input id="s-weather-snowman-size" type="range" min="60" max="160" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Snowman opacity <span id="s-weather-snowman-opacity-value" class="range-value">100%</span></label><input id="s-weather-snowman-opacity" type="range" min="20" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <label class="checkline"><input id="s-weather-season-crystals" type="checkbox" checked data-ld-onchange="h068"> Winter crystal / cold-air accents</label>
+    <div class="s-row"><label>Winter crystal amount <span id="s-weather-crystal-intensity-value" class="range-value">70%</span></label><input id="s-weather-crystal-intensity" type="range" min="0" max="180" step="5" value="70" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Crystal size <span id="s-weather-crystal-size-value" class="range-value">100%</span></label><input id="s-weather-crystal-size" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Crystal fall speed <span id="s-weather-crystal-speed-value" class="range-value">100%</span></label><input id="s-weather-crystal-speed" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Crystal opacity <span id="s-weather-crystal-opacity-value" class="range-value">100%</span></label><input id="s-weather-crystal-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <label class="checkline"><input id="s-weather-cold-frost" type="checkbox" checked data-ld-onchange="h068"> Extreme-cold edge frost</label>
+    <div class="s-row"><label>Cold frost intensity <span id="s-weather-cold-frost-intensity-value" class="range-value">55%</span></label><input id="s-weather-cold-frost-intensity" type="range" min="0" max="150" step="5" value="55" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Frost edge width <span id="s-weather-cold-frost-width-value" class="range-value">100%</span></label><input id="s-weather-cold-frost-width" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Frost opacity <span id="s-weather-cold-frost-opacity-value" class="range-value">100%</span></label><input id="s-weather-cold-frost-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-weather-hazards" data-settings-tab="weatheralerts">
+   <h3>Hazard behavior &amp; preview</h3>
+   <div class="howto">Live alerts can add hazard-specific scenery behind the dashboard. This is separate from the Normal Weather Preview above: severe previews launch an immersive full-screen emergency scene so you can judge the complete alert presentation.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-hazard-effects" type="checkbox" checked data-ld-onchange="h068"> Alert-driven severe-weather scenery</label>
+    <div class="s-subhead">Severe weather preview</div>
+    <div class="s-row"><label>Emergency scenario</label><select id="s-weather-hazard-test" data-ld-onchange="h095"><option value="live">Live alerts</option><option value="flood">Flash flood</option><option value="wind">High wind</option><option value="tornado">Tornado warning</option><option value="tropical">Hurricane</option><option value="storm">Severe thunderstorm</option><option value="winter">Blizzard / winter storm</option><option value="visibility">Dense fog / smoke / dust</option><option value="heat">Extreme heat</option><option value="fire">Red flag / fire weather</option></select><div class="settings-note">Severe preview is local and temporary. It launches the selected hazard scene full screen and does not modify saved alert data.</div></div>
+    <div class="utility-actions weather-effect-presets"><button class="btn-util" type="button" data-ld-onclick="h096">Launch full-screen severe preview</button><button class="btn-util" type="button" data-ld-onclick="h097">Return to live alerts</button></div>
+    <div class="s-row"><label>Overall hazard intensity <span id="s-weather-hazard-intensity-value" class="range-value">70%</span></label><input id="s-weather-hazard-intensity" type="range" min="20" max="100" step="5" value="70" data-ld-oninput="h075"><div class="range-ends"><span>Subtle</span><span>Strong</span></div></div>
+    <div class="s-row"><label>Overall hazard opacity <span id="s-weather-hazard-opacity-value" class="range-value">100%</span></label><input id="s-weather-hazard-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Overall hazard animation speed <span id="s-weather-hazard-speed-value" class="range-value">100%</span></label><input id="s-weather-hazard-speed" type="range" min="30" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Minimum alert severity</label><select id="s-weather-hazard-min-severity" data-ld-onchange="h068"><option value="all">All alerts</option><option value="minor">Minor +</option><option value="moderate" selected>Moderate +</option><option value="severe">Severe +</option><option value="extreme">Extreme only</option></select></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-weather-hazards-flood-wind" data-settings-tab="weatheralerts">
+   <h3>Flood &amp; wind scenes</h3>
+   <div class="howto">Tune flood-water behavior and high-wind scenery independently after choosing the overall hazard behavior above.</div>
+   <div class="settings-grid">
+    <div class="s-subhead">Flood / flash flood</div>
+    <label class="checkline"><input id="s-weather-hazard-flood" type="checkbox" checked data-ld-onchange="h068"> Flood water &amp; floating debris</label>
+    <div class="s-row"><label>Flood water level <span id="s-weather-hazard-flood-level-value" class="range-value">100%</span></label><input id="s-weather-hazard-flood-level" type="range" min="20" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Flood debris amount <span id="s-weather-hazard-flood-debris-value" class="range-value">100%</span></label><input id="s-weather-hazard-flood-debris" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Flood current speed <span id="s-weather-hazard-flood-speed-value" class="range-value">100%</span></label><input id="s-weather-hazard-flood-speed" type="range" min="30" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-subhead">Wind</div>
+    <label class="checkline"><input id="s-weather-hazard-wind" type="checkbox" checked data-ld-onchange="h068"> High-wind gusts</label>
+    <div class="s-row"><label>Gust amount <span id="s-weather-hazard-wind-gusts-value" class="range-value">100%</span></label><input id="s-weather-hazard-wind-gusts" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Gust travel speed <span id="s-weather-hazard-wind-speed-value" class="range-value">100%</span></label><input id="s-weather-hazard-wind-speed" type="range" min="30" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-weather-hazards-storms" data-settings-tab="weatheralerts">
+   <h3>Major storm scenes</h3>
+   <div class="howto">Tornado, tropical-storm, severe-thunderstorm, and winter-storm scenery each keep their own strength and visibility controls.</div>
+   <div class="settings-grid">
+    <div class="s-subhead">Tornado / waterspout</div>
+    <label class="checkline"><input id="s-weather-hazard-tornado" type="checkbox" checked data-ld-onchange="h068"> Tornado / waterspout funnel scenes</label>
+    <div class="s-row"><label>Funnel size <span id="s-weather-hazard-tornado-size-value" class="range-value">100%</span></label><input id="s-weather-hazard-tornado-size" type="range" min="40" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Funnel opacity <span id="s-weather-hazard-tornado-opacity-value" class="range-value">100%</span></label><input id="s-weather-hazard-tornado-opacity" type="range" min="10" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-subhead">Hurricane / tropical storm</div>
+    <label class="checkline"><input id="s-weather-hazard-tropical" type="checkbox" checked data-ld-onchange="h068"> Tropical storm bands &amp; surge</label>
+    <div class="s-row"><label>Storm-band strength <span id="s-weather-hazard-tropical-bands-value" class="range-value">100%</span></label><input id="s-weather-hazard-tropical-bands" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Surge height <span id="s-weather-hazard-tropical-surge-value" class="range-value">100%</span></label><input id="s-weather-hazard-tropical-surge" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-subhead">Severe thunderstorm</div>
+    <label class="checkline"><input id="s-weather-hazard-storm" type="checkbox" checked data-ld-onchange="h068"> Shelf clouds &amp; gust fronts</label>
+    <div class="s-row"><label>Shelf-cloud strength <span id="s-weather-hazard-storm-cloud-value" class="range-value">100%</span></label><input id="s-weather-hazard-storm-cloud" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Gust-front strength <span id="s-weather-hazard-storm-gust-value" class="range-value">100%</span></label><input id="s-weather-hazard-storm-gust" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-subhead">Blizzard / winter storm</div>
+    <label class="checkline"><input id="s-weather-hazard-winter" type="checkbox" checked data-ld-onchange="h068"> Blizzard / winter-storm whiteout</label>
+    <div class="s-row"><label>Whiteout strength <span id="s-weather-hazard-winter-whiteout-value" class="range-value">100%</span></label><input id="s-weather-hazard-winter-whiteout" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Blowing-snow drift <span id="s-weather-hazard-winter-drift-value" class="range-value">100%</span></label><input id="s-weather-hazard-winter-drift" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-weather-hazards-visibility" data-settings-tab="weatheralerts">
+   <h3>Visibility, heat &amp; fire weather</h3>
+   <div class="howto">Tune dense haze and heat / red-flag scenery separately from flood and storm effects.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-hazard-visibility" type="checkbox" checked data-ld-onchange="h068"> Dense fog / smoke / dust / air-quality haze</label>
+    <div class="s-row"><label>Hazard haze opacity <span id="s-weather-hazard-visibility-opacity-value" class="range-value">100%</span></label><input id="s-weather-hazard-visibility-opacity" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <label class="checkline"><input id="s-weather-hazard-heat-fire" type="checkbox" checked data-ld-onchange="h068"> Heat / red-flag dry-air shimmer</label>
+    <div class="s-row"><label>Heat / fire shimmer <span id="s-weather-hazard-heat-shimmer-value" class="range-value">100%</span></label><input id="s-weather-hazard-heat-shimmer" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+   </div>
+   <div class="settings-note">Live hazard scenes use the same alert feed already shown by LibreDisplay. The Weather Alerts card test mode also drives these scenes, while the Alert animation test above can preview one hazard directly. Reduced-motion, display-protection, and constrained-device limits are respected.</div>
+  </div>
+  <div class="s-section" id="settings-weather-sky" data-settings-tab="weatherfx">
+   <h3>Sky, clouds, sun &amp; wind</h3>
+   <div class="howto">Control ambient cloud layers, sunlight, and wind movement separately from precipitation and lightning.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-effect-clouds" type="checkbox" checked data-ld-onchange="h068"> Moving cloud layers</label>
+    <div class="s-row"><label>Cloud amount <span id="s-weather-cloud-density-value" class="range-value">100%</span></label><input id="s-weather-cloud-density" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Cloud opacity <span id="s-weather-cloud-opacity-value" class="range-value">100%</span></label><input id="s-weather-cloud-opacity" type="range" min="0" max="100" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Cloud movement speed <span id="s-weather-cloud-speed-value" class="range-value">100%</span></label><input id="s-weather-cloud-speed" type="range" min="20" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Cloud scale <span id="s-weather-cloud-scale-value" class="range-value">100%</span></label><input id="s-weather-cloud-scale" type="range" min="40" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <label class="checkline"><input id="s-weather-effect-sun" type="checkbox" checked data-ld-onchange="h068"> Sun glow and animated rays</label>
+    <div class="s-row"><label>Sun glow <span id="s-weather-sun-glow-value" class="range-value">100%</span></label><input id="s-weather-sun-glow" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Sun-ray movement <span id="s-weather-sun-ray-speed-value" class="range-value">100%</span></label><input id="s-weather-sun-ray-speed" type="range" min="20" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <label class="checkline"><input id="s-weather-effect-wind" type="checkbox" checked data-ld-onchange="h068"> Wind drift and directional movement</label>
+   </div>
+  </div>
+  <div class="s-section" id="settings-weather-lightning" data-settings-tab="weatherfx">
+   <h3>Thunderstorms &amp; lightning</h3>
+   <div class="howto">Keep lightning, storm-cloud detail, rain sheets, reduced-motion behavior, and OLED dimming rules together in one focused section.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-weather-effect-lightning" type="checkbox" checked data-ld-onchange="h068"> Thunderstorm lightning</label>
+    <label class="checkline"><input id="s-weather-lightning-streaks" type="checkbox" checked data-ld-onchange="h068"> Visible lightning streaks / branching bolts</label>
+    <label class="checkline"><input id="s-weather-storm-cloud-deck" type="checkbox" checked data-ld-onchange="h068"> Rolling dark storm-cloud deck</label>
+    <label class="checkline"><input id="s-weather-storm-rain-sheets" type="checkbox" checked data-ld-onchange="h068"> Wind-driven storm rain sheets / gusts</label>
+    <div class="s-row"><label>Lightning frequency</label><select id="s-weather-effect-lightning-frequency" data-ld-onchange="h068"><option value="rare">Rare</option><option value="normal" selected>Normal</option><option value="frequent">Frequent</option></select></div>
+    <div class="s-row"><label>Lightning brightness <span id="s-weather-effect-lightning-brightness-value" class="range-value">65%</span></label><input id="s-weather-effect-lightning-brightness" type="range" min="20" max="100" step="5" value="65" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Bolt size <span id="s-weather-lightning-size-value" class="range-value">100%</span></label><input id="s-weather-lightning-size" type="range" min="30" max="200" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Sky flash strength <span id="s-weather-lightning-flash-value" class="range-value">100%</span></label><input id="s-weather-lightning-flash" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Bolt activity <span id="s-weather-lightning-bolts-value" class="range-value">100%</span></label><input id="s-weather-lightning-bolts" type="range" min="0" max="180" step="5" value="100" data-ld-oninput="h075"></div>
+    <label class="checkline"><input id="s-weather-effect-reduced-motion" type="checkbox" checked data-ld-onchange="h068"> Respect reduced-motion preferences</label>
+    <label class="checkline"><input id="s-weather-effect-pause-dimmed" type="checkbox" checked data-ld-onchange="h068"> Pause full-screen effects while OLED protection is dimming</label>
+   </div>
+  </div>
+  <div class="s-section" id="settings-weather-details" data-settings-level="advanced" data-settings-tab="weather">
+   <h3>Weather Details element</h3>
+   <div class="howto">Build the Weather Details element row-by-row. Enable only the metrics you want, then drag rows or use the arrow buttons to change their display order. Air Quality and UV use the same cached Open-Meteo air-quality source as the optional Air Quality block.</div>
+   <input id="s-weather-details-state" type="hidden">
+   <div id="weather-detail-settings-list" class="weather-detail-settings"></div>
+   <div class="utility-actions" style="margin-top:8px;">
+    <button class="btn-util" type="button" data-ld-onclick="h098">Recommended set</button>
+    <button class="btn-util" type="button" data-ld-onclick="h099">Enable all</button>
+   </div>
+  </div>
+  <div class="s-section" id="settings-background-style" data-settings-level="advanced" data-settings-tab="backgrounds">
+   <h3>Background appearance</h3>
+   <div class="howto">These controls preview live and only affect how the current background is presented on screen.</div>
+   <div class="settings-grid">
+    <div class="s-row"><label>Background top shading <span id="s-bg-top-value" class="range-value">52%</span></label><input id="s-bg-top" type="range" min="0" max="85" step="1" value="52" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Background bottom shading <span id="s-bg-bottom-value" class="range-value">55%</span></label><input id="s-bg-bottom" type="range" min="0" max="85" step="1" value="55" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Background blur <span id="s-bg-blur-value" class="range-value">0px</span> <button class="help-tip" type="button" aria-label="Background blur help" data-help="Applies visual blur to the background image only. A small amount can make dashboard text easier to read over detailed photos.">?</button></label><input id="s-bg-blur" type="range" min="0" max="12" step="1" value="0" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Photo transition <span id="s-bg-transition-value" class="range-value">1.5s</span></label><input id="s-bg-transition" type="range" min="0" max="4" step="0.25" value="1.5" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Photo fit <button class="help-tip" type="button" aria-label="Photo fit help" data-help="Cover fills the screen and may crop edges. Contain keeps the whole photo visible and may leave unused space around it.">?</button></label><select id="s-bg-fit" data-ld-onchange="h068"><option value="cover">Fill screen (cover)</option><option value="contain">Show whole photo (contain)</option></select></div>
+    <div class="s-row"><label>Photo focal position</label><select id="s-bg-position" data-ld-onchange="h068"><option value="center">Center</option><option value="center top">Top</option><option value="center bottom">Bottom</option><option value="left center">Left</option><option value="right center">Right</option></select></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-templates" data-settings-tab="layout">
+   <h3>Starter templates</h3>
+   <div class="howto">Apply a presentation/layout starting point without replacing your calendar links, photo folders, location, integrations, or added custom blocks. The template previews immediately; Save &amp; Apply replaces any saved built-in Arrange positions, while Cancel/Esc restores them.</div>
+   <div class="template-grid">
+    <button class="template-card" type="button" data-ld-onclick="h100"><b>Family board</b><span>Calendar-forward layout with useful weather context.</span></button>
+    <button class="template-card" type="button" data-ld-onclick="h101"><b>Photo first</b><span>Lighter overlays that let family photos dominate.</span></button>
+    <button class="template-card" type="button" data-ld-onclick="h102"><b>Minimal</b><span>Clock, calendar, and current conditions with less visual noise.</span></button>
+    <button class="template-card" type="button" data-ld-onclick="h103"><b>Weather center</b><span>More forecast space and weather detail.</span></button>
+    <button class="template-card" type="button" data-ld-onclick="h104"><b>Portrait display</b><span>Tighter spacing for vertical tablets and wall screens.</span></button>
+    <button class="template-card" type="button" data-ld-onclick="h105"><b>Smart home</b><span>Graphite styling and room for integration blocks.</span></button>
+    <button class="template-card" type="button" data-ld-onclick="h106"><b>Morning glance</b><span>Large clock, near-term calendar, and weather at a distance.</span></button>
+    <button class="template-card" type="button" data-ld-onclick="h107"><b>Metrics wall</b><span>Compact geometry with room for charts, gauges, and status blocks.</span></button>
+   </div>
+   <div id="template-status" class="settings-note" style="margin-top:8px;"></div>
+  </div>
+  <div class="s-section" id="settings-theme" data-settings-tab="look">
+   <h3>Theme &amp; typography</h3>
+   <div class="howto">Libre Night is the default LibreDisplay look: black and charcoal surfaces with a restrained green accent, designed for an always-on home display. Other included themes keep the same UI structure while changing the mood. Theme and font changes preview live.</div>
+   <div id="theme-choice-grid" class="theme-choice-grid" role="radiogroup" aria-label="LibreDisplay theme"></div>
+   <div class="settings-grid theme-type-grid">
+    <div class="s-row"><label>Dashboard font</label><select id="s-font-family" data-ld-onchange="h108"><option value="Inter">Inter / modern sans</option><option value="system">System UI</option><option value="Noto Sans">Noto Sans</option><option value="DejaVu Sans">DejaVu Sans</option><option value="Liberation Sans">Liberation Sans</option><option value="Trebuchet MS">Humanist sans</option><option value="DejaVu Serif">DejaVu Serif</option><option value="Georgia">Georgia / serif</option><option value="monospace">Monospace</option></select></div>
+    <div class="theme-font-preview"><span>Live preview</span><strong id="theme-font-preview">Your day at a glance</strong><small>Calendar · weather · photos · local data</small></div>
+   </div>
+   <div id="font-choice-grid" class="font-choice-grid" role="radiogroup" aria-label="Dashboard font previews"></div>
+   <div class="settings-note">Each font name above is rendered in that font so you can choose visually. LibreDisplay uses local system fallbacks when a named face is not installed, keeping the dashboard fully offline-capable.</div>
+  </div>
+  <div class="s-section" id="settings-accessibility" data-settings-tab="look">
+   <h3>Accessibility &amp; language</h3>
+   <div class="howto">Keep the everyday controls simple while adapting motion, contrast, keyboard focus, and date language for the people who use this display.</div>
+   <div class="settings-grid">
+    <div class="s-row"><label>Language / date locale</label><select id="s-locale" data-ld-onchange="h068"><option value="auto">Automatic — browser/device</option><option value="en-US">English — United States</option><option value="en-GB">English — United Kingdom</option><option value="es-ES">Español</option><option value="fr-FR">Français</option><option value="de-DE">Deutsch</option></select></div>
+    <div class="s-row"><label>Settings interface size <button class="help-tip" type="button" aria-label="Settings interface size help" data-help="Enlarges labels, controls, and section text inside Settings only. Dashboard element sizes are still controlled independently in Arrange mode.">?</button></label><select id="s-settings-ui-size" data-ld-onchange="h068"><option value="standard">Standard</option><option value="large">Large</option><option value="xlarge">Extra large</option></select></div>
+    <div class="s-row"><label>Motion <button class="help-tip" type="button" aria-label="Motion accessibility help" data-help="Automatic follows the device accessibility preference. Reduced motion minimizes decorative animation while keeping data refreshes and essential status changes working.">?</button></label><select id="s-motion-preference" data-ld-onchange="h068"><option value="auto">Automatic — respect device setting</option><option value="full">Full motion</option><option value="reduced">Reduced motion</option></select></div>
+    <label class="checkline"><input id="s-high-contrast" type="checkbox" data-ld-onchange="h068"> Stronger contrast and borders <button class="help-tip" type="button" aria-label="Contrast help" data-help="Brightens muted Settings text and strengthens borders so controls and secondary information are easier to distinguish.">?</button></label>
+    <label class="checkline"><input id="s-focus-outline" type="checkbox" data-ld-onchange="h068"> Always show strong keyboard focus <button class="help-tip" type="button" aria-label="Keyboard focus help" data-help="Makes the currently focused control easier to see when navigating Settings with Tab, Shift+Tab, Enter, or Space.">?</button></label>
+   </div>
+  </div>
+  <div class="s-section" id="settings-display-care" data-settings-tab="displaycare">
+   <h3>OLED &amp; always-on display care</h3>
+   <div class="howto">Each protection is independent. Use only pixel shifting, only idle dimming, scheduled quiet hours, deep-black protection, or any combination that fits the display.</div>
+   <div class="settings-grid">
+    <label class="checkline"><input id="s-burnin-care-enabled" type="checkbox" data-ld-onchange="h068"> Enable display protection <button class="help-tip" type="button" aria-label="Display protection help" data-help="Master switch. Turning it off pauses every screen-care action without erasing the individual settings below.">?</button></label>
+    <label class="checkline"><input id="s-burnin-pixel-shift" type="checkbox" data-ld-onchange="h068"> Pixel shift <button class="help-tip" type="button" aria-label="Pixel shift help" data-help="Moves the rendered dashboard and background on a slow cycle without changing saved layout coordinates. Pixel shift can run even when every dimming option is disabled.">?</button></label>
+    <div class="s-row"><label>Pixel shift timing</label><select id="s-burnin-shift-mode" data-ld-onchange="h068"><option value="always">Always while display protection is enabled</option><option value="idle">Only while the display is dimmed</option></select></div>
+    <div class="s-row"><label>Pixel-shift interval <span id="s-burnin-shift-interval-value" class="range-value">5 min</span></label><input id="s-burnin-shift-interval" type="range" min="0.5" max="30" step="0.5" value="5" data-ld-oninput="h075"><div class="range-ends"><span>30 sec</span><span>30 min</span></div></div>
+    <div class="s-row"><label>Pixel-shift distance <span id="s-burnin-shift-distance-value" class="range-value">2 px</span></label><input id="s-burnin-shift-distance" type="range" min="1" max="8" step="1" value="2" data-ld-oninput="h075"><div class="range-ends"><span>1 px</span><span>8 px</span></div></div>
+    <div class="s-row"><label>Shift transition <span id="s-burnin-shift-transition-value" class="range-value">1.2s</span></label><input id="s-burnin-shift-transition" type="range" min="0" max="3" step="0.1" value="1.2" data-ld-oninput="h075"><div class="range-ends"><span>Instant</span><span>3 sec</span></div></div>
+    <label class="checkline"><input id="s-burnin-idle-dimming" type="checkbox" data-ld-onchange="h068"> Idle dimming</label>
+    <div class="s-row"><label>Dim after <span id="s-burnin-idle-value" class="range-value">30 min</span></label><input id="s-burnin-idle" type="range" min="1" max="240" step="1" value="30" data-ld-oninput="h075"><div class="range-ends"><span>1 min</span><span>4 hr</span></div></div>
+    <div class="s-row"><label>Dim brightness <span id="s-burnin-brightness-value" class="range-value">40%</span></label><input id="s-burnin-brightness" type="range" min="5" max="90" step="1" value="40" data-ld-oninput="h075"><div class="range-ends"><span>Darker</span><span>Lighter</span></div></div>
+    <label class="checkline"><input id="s-burnin-quiet-hours" type="checkbox" data-ld-onchange="h068"> Quiet hours schedule</label>
+    <div class="s-row"><label>Quiet hours start</label><input id="s-burnin-quiet-start" type="time" value="22:00" data-ld-onchange="h068"></div>
+    <div class="s-row"><label>Quiet hours end</label><input id="s-burnin-quiet-end" type="time" value="07:00" data-ld-onchange="h068"></div>
+    <label class="checkline"><input id="s-burnin-quiet-wake-enabled" type="checkbox" checked data-ld-onchange="h068"> Temporarily wake on local input during quiet hours</label>
+    <div class="s-row"><label>Temporary wake duration <span id="s-burnin-quiet-wake-value" class="range-value">5 min</span></label><input id="s-burnin-quiet-wake" type="range" min="1" max="30" step="1" value="5" data-ld-oninput="h075"><div class="range-ends"><span>1 min</span><span>30 min</span></div></div>
+    <label class="checkline"><input id="s-burnin-deep-protection" type="checkbox" data-ld-onchange="h068"> Deep idle / black-screen protection <button class="help-tip" type="button" aria-label="Deep protection help" data-help="After a longer period without local input, applies a stronger dim level regardless of whether quiet hours are enabled. Set Deep brightness to 0% for a fully black screen.">?</button></label>
+    <div class="s-row"><label>Deep protection trigger</label><select id="s-burnin-deep-trigger" data-ld-onchange="h068"><option value="idle">Extended inactivity</option><option value="quiet">Time spent in Quiet Hours</option></select></div>
+    <div class="s-row"><label>Deep protection after <span id="s-burnin-deep-idle-value" class="range-value">3 hr</span></label><input id="s-burnin-deep-idle" type="range" min="15" max="720" step="5" value="180" data-ld-oninput="h075"><div class="range-ends"><span>15 min</span><span>12 hr</span></div></div>
+    <div class="s-row"><label>Deep brightness <span id="s-burnin-deep-brightness-value" class="range-value">5%</span></label><input id="s-burnin-deep-brightness" type="range" min="0" max="25" step="1" value="5" data-ld-oninput="h075"><div class="range-ends"><span>0% black</span><span>25%</span></div></div>
+    <label class="checkline"><input id="s-burnin-pause-animations" type="checkbox" checked data-ld-onchange="h068"> Pause decorative animations while dimmed</label>
+   </div>
+   <div class="utility-actions" style="margin-top:8px;">
+   </div>
+   <div class="settings-note">Pixel shift does not require Quiet hours or dimming. All display-care effects are suppressed during Arrange and layout preview and never rewrite saved layout geometry.</div>
+  </div>
+  <div class="s-section" id="settings-settings-button" data-settings-tab="look">
+   <h3>Settings button</h3>
+   <div class="howto">Keep the Settings cog convenient without letting it dominate the dashboard. Move it to any corner and tune how noticeable it is when idle.</div>
+   <div class="settings-grid">
+    <div class="s-row"><label>Corner</label><select id="s-cog-position" data-ld-onchange="h068"><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option><option value="top-right">Top right</option><option value="top-left">Top left</option></select></div>
+    <div class="s-row"><label>Button size</label><select id="s-cog-size" data-ld-onchange="h068"><option value="36">Compact</option><option value="42">Small</option><option value="46">Standard</option><option value="52">Large</option><option value="58">Extra large</option></select></div>
+    <div class="s-row"><label>Idle visibility <span id="s-cog-opacity-value" class="range-value">42%</span></label><input id="s-cog-opacity" type="range" min="10" max="90" step="2" value="42" data-ld-oninput="h075"></div>
+    <label class="checkline"><input id="s-cog-label" type="checkbox" checked data-ld-onchange="h068"> Show “Settings” hint on hover / first discovery</label>
+   </div>
+  </div>
+  <div class="s-section" id="settings-layout-presentation" data-settings-level="advanced" data-settings-tab="layout">
+   <h3>Text &amp; element sizing</h3>
+   <div class="howto">Fine-tune dashboard text treatment and the default content scale for major built-in elements. Arrange can still override individual elements later.</div>
+   <div class="s-subhead">Text treatment</div>
+   <div class="settings-grid">
+    <div class="s-row"><label>Secondary text opacity <span id="s-secondary-opacity-value" class="range-value">88%</span></label><input id="s-secondary-opacity" type="range" min="45" max="100" step="1" value="88" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Text shadow strength <span id="s-text-shadow-value" class="range-value">100%</span></label><input id="s-text-shadow" type="range" min="0" max="140" step="5" value="100" data-ld-oninput="h075"></div>
+   </div>
+   <div class="s-row"><label>Primary text color</label><div class="color-setting-row"><select disabled><option>Dashboard text</option></select><input id="s-text-color" type="color" value="#ffffff"><input id="s-text-hex" class="color-hex" type="text" maxlength="7" value="#FFFFFF" spellcheck="false"></div></div>
+   <div class="s-subhead">Element sizing <button class="help-tip" type="button" aria-label="Element sizing help" data-help="These are dashboard-wide size defaults. Arrange mode can override an individual element or one internal section without changing the global default.">?</button></div>
+   <div class="settings-grid">
+    <div class="s-row"><label>Calendar text <span id="s-ui-calendar-value" class="range-value">100%</span></label><input id="s-ui-calendar" type="range" min="75" max="140" step="1" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Current weather <span id="s-ui-current-value" class="range-value">100%</span></label><input id="s-ui-current" type="range" min="75" max="140" step="1" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Clock &amp; date <span id="s-ui-clock-value" class="range-value">100%</span></label><input id="s-ui-clock" type="range" min="75" max="140" step="1" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Day / hourly forecast <span id="s-ui-forecast-value" class="range-value">100%</span></label><input id="s-ui-forecast" type="range" min="75" max="150" step="1" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Sunset / Wind / Humidity <span id="s-ui-details-value" class="range-value">100%</span></label><input id="s-ui-details" type="range" min="75" max="140" step="1" value="100" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Weather alert text <span id="s-ui-alert-value" class="range-value">100%</span></label><input id="s-ui-alert" type="range" min="75" max="150" step="1" value="100" data-ld-oninput="h075"></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-layout" data-settings-tab="layout">
+   <h3>Dashboard layout</h3>
+   <div class="howto">Choose from LibreDisplay’s expanded layout library. These are original command-center compositions built around the patterns that work best on wall displays: calendar-first, photo-first, split planner, weather-focused, compact, and portrait. Selecting a card stages the layout only for preview; your saved dashboard is untouched until <b>Save &amp; Apply</b>. Use <b>Preview selected layout</b> to inspect it full-screen with your real calendar, weather, background, and added custom blocks. Cancel/Esc restores the saved layout.</div>
+   <div id="layout-preset-gallery" class="layout-preset-grid" role="radiogroup" aria-label="Dashboard layout presets"></div>
+   <div class="layout-preset-actions">
+    <button id="layout-preset-preview-button" class="btn-util" type="button" data-ld-onclick="h109">Preview selected layout</button>
+    <div id="layout-preset-status" class="settings-note" role="status" aria-live="polite">Current saved layout selected.</div>
+   </div>
+   <div class="settings-note layout-preset-current-note">Preset layouts stage the built-in positions, alignment, and content density as one balanced composition. Standard presets leave added blocks exactly where you placed them. Integration Showcase presets also snap compatible configured blocks into their labeled slots so the live preview matches the intended composition; unmatched blocks stay put. Empty showcase slots are preview-only suggestions and are never saved as fake data. Your accounts, data sources, credentials, theme, and background stay intact.</div><div class="s-subhead">Current weather composition <button class="help-tip" type="button" aria-label="Current weather composition help" data-help="Choose how temperature, condition text, and lunar information share the Current Weather element. This changes only presentation; weather data stays the same. Arrange can still move and resize the whole Current Weather element and style each lunar text part independently.">?</button></div><div class="settings-grid"><div class="s-row"><label>Internal arrangement</label><select id="s-current-weather-layout" data-ld-onchange="h068"><option value="stacked">Stacked</option><option value="split">Temperature left · Moon right</option><option value="split-reverse">Moon left · Temperature right</option><option value="compact">Compact two-column</option><option value="free">Free arrangement · use Arrange</option></select></div><div class="s-row"><label>Section gap <span id="s-current-weather-gap-value" class="range-value">10px</span></label><input id="s-current-weather-gap" type="range" min="0" max="28" step="1" value="10" data-ld-oninput="h075"></div><div class="s-row"><label>Moon section width <span id="s-current-weather-moon-width-value" class="range-value">184px</span></label><input id="s-current-weather-moon-width" type="range" min="112" max="260" step="4" value="184" data-ld-oninput="h075"></div></div><div class="settings-note">For full customization, open Arrange and select <b>Current Weather</b>. Every visible part—location, icon, temperature, feels-like, condition, Moon disc, illumination, phase name, and lunar event—gets its own draggable outline and can be positioned independently.</div>
+   <div class="s-subhead">Advanced layout editor <button class="help-tip" type="button" aria-label="Arrange mode help" data-help="Arrange changes presentation only. Select an element to move or resize it, then use the movable inspector to style the whole block or individual titles, values, labels, and event text.">?</button></div>
+   <div class="howto">Unlock the dashboard to drag and resize each major element independently. Select any element to open its inspector for content size, font, text color, opacity, horizontal/vertical content alignment, and precise screen placement. Arrow keys nudge a selected block; Shift + arrow resizes it. For added blocks, Delete removes, Ctrl/Cmd+D duplicates, Enter configures, and double-click opens configuration. Press A for Add Block or ? for the shortcut guide. The Add Block catalog supports multiple reusable custom blocks. Positions are stored proportionally so layouts scale across similar screen resolutions.</div>
+   <div class="settings-grid">
+    <div class="s-row"><label>Visual finish <button class="help-tip" type="button" aria-label="Layout finish help" data-help="Clean keeps LibreDisplay's normal floating text treatment. Glass adds translucent dashboard cards. Minimal strips decoration for mirror-like simplicity. Photo-first strengthens readability while keeping the background image dominant.">?</button></label><select id="s-layout-surface" data-ld-onchange="h068"><option value="clean">Clean</option><option value="glass">Glass cards</option><option value="minimal">Minimal mirror</option><option value="photo">Photo-first</option></select></div>
+    <div class="s-row"><label>Snap grid <button class="help-tip" type="button" aria-label="Snap grid help" data-help="Smaller grid values allow finer movement. Turn Snap off for completely free placement and resizing.">?</button></label><select id="s-layout-grid"><option value="8">8 px — fine</option><option value="12">12 px</option><option value="16">16 px</option><option value="20">20 px — default</option><option value="24">24 px</option><option value="32">32 px — coarse</option></select></div>
+    <label class="checkline"><input id="s-layout-snap" type="checkbox" checked> Snap blocks to grid while moving/resizing</label>
+   </div>
+   <div class="utility-actions" style="margin-top:7px;">
+    <button class="btn-util" type="button" data-ld-onclick="h027">Unlock &amp; arrange dashboard</button>
+    <button class="btn-util" type="button" data-ld-onclick="h110">Reset block layout</button>
+   </div>
+   <div id="layout-mode-status" class="settings-note" style="margin-top:8px;">Layout: default locked arrangement</div>
+   <div class="s-subhead">Clock &amp; visibility</div>
+   <div class="settings-grid">
+    <div class="s-row"><label>Time format</label><select id="s-time-format" data-ld-onchange="h068"><option value="12">12 hour</option><option value="24">24 hour</option></select></div>
+    <div class="s-row"><label>Date format</label><select id="s-date-format" data-ld-onchange="h068"><option value="long">Friday, September 25</option><option value="short">Fri, Sep 25</option><option value="dayFirst">Friday, 25 September</option><option value="numeric">09/25/2026</option></select></div>
+   </div>
+   <div class="settings-grid alert-settings-grid" style="margin-top:2px;">
+    <label class="checkline"><input id="s-show-no-events" type="checkbox" data-ld-onchange="h068"> Show “No events” text</label>
+    <label class="checkline"><input id="s-show-event-times" type="checkbox" data-ld-onchange="h068"> Show calendar event times</label>
+    <label class="checkline"><input id="s-show-daily" type="checkbox" data-ld-onchange="h068"> Show daily forecast row</label>
+    <label class="checkline"><input id="s-show-hourly" type="checkbox" data-ld-onchange="h068"> Show hourly forecast row</label>
+    <label class="checkline"><input id="s-show-precip" type="checkbox" data-ld-onchange="h068"> Show forecast precipitation %</label><label class="checkline"><input id="s-show-hourly-wind" type="checkbox" data-ld-onchange="h068"> Show hourly wind speed + direction</label>
+    <label class="checkline"><input id="s-show-seconds" type="checkbox" data-ld-onchange="h068"> Show clock seconds</label>
+    <label class="checkline"><input id="s-show-ampm" type="checkbox" data-ld-onchange="h068"> Show AM/PM</label>
+    <label class="checkline"><input id="s-show-date" type="checkbox" data-ld-onchange="h068"> Show date under clock</label>
+    <label class="checkline"><input id="s-show-current-icon" type="checkbox" data-ld-onchange="h068"> Show current weather icon</label>
+    <div class="howto">Weather Details contents and order are configured from the Weather tab.</div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-layout-geometry" data-settings-level="advanced" data-settings-tab="layout">
+   <h3>Geometry &amp; ranges</h3>
+   <div class="howto">Power-user controls for the default dashboard regions, forecast density, calendar range, spacing, and scrolling behavior.</div>
+   <div class="s-subhead">Layout geometry <button class="help-tip" type="button" aria-label="Layout geometry help" data-help="These controls change the default dashboard regions. Use Arrange mode when you want to position or resize individual elements freely.">?</button></div>
+   <div class="settings-grid">
+    <div class="s-row"><label>Calendar band height <span id="s-calendar-height-value" class="range-value">150px</span></label><input id="s-calendar-height" type="range" min="120" max="210" step="2" value="150" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Bottom area height <span id="s-bottom-height-value" class="range-value">330px</span></label><input id="s-bottom-height" type="range" min="270" max="410" step="2" value="330" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Left info width <span id="s-left-width-value" class="range-value">470px</span></label><input id="s-left-width" type="range" min="410" max="560" step="2" value="470" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Screen side padding <span id="s-side-padding-value" class="range-value">28px</span></label><input id="s-side-padding" type="range" min="10" max="48" step="1" value="28" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Forecast column spacing <span id="s-forecast-gap-value" class="range-value">5px</span></label><input id="s-forecast-gap" type="range" min="0" max="16" step="1" value="5" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Forecast row spacing <span id="s-forecast-row-gap-value" class="range-value">18px</span></label><input id="s-forecast-row-gap" type="range" min="4" max="36" step="1" value="18" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Hourly forecast range</label><select id="s-hourly-hours" data-ld-onchange="h068"><option value="3">3 hours</option><option value="6">6 hours</option><option value="9">9 hours</option><option value="12">12 hours</option><option value="18">18 hours</option><option value="24">24 hours</option></select></div>
+    <div class="s-row"><label>Daily forecast range</label><select id="s-daily-days" data-ld-onchange="h068"><option value="3">3 days</option><option value="5">5 days</option><option value="7">7 days</option><option value="10">10 days</option><option value="12">12 days</option><option value="14">14 days</option></select></div>
+    <div class="s-row"><label>Calendar range</label><select id="s-calendar-days" data-ld-onchange="h068"><option value="3">3 days</option><option value="5">5 days</option><option value="6">6 days</option><option value="7">7 days</option><option value="14">14 days</option><option value="21">21 days</option><option value="30">30 days</option><option value="45">45 days</option><option value="60">60 days</option></select></div>
+    <div class="s-row"><label>Calendar columns</label><select id="s-calendar-columns" data-ld-onchange="h068"><option value="2">2 columns</option><option value="3">3 columns</option><option value="4">4 columns</option><option value="5">5 columns</option><option value="6">6 columns</option><option value="7">7 columns</option><option value="8">8 columns</option><option value="9">9 columns</option><option value="10">10 columns</option></select></div>
+    <div class="s-row"><label>Calendar cell height <span id="s-calendar-cell-height-value" class="range-value">150px</span></label><input id="s-calendar-cell-height" type="range" min="90" max="240" step="5" value="150" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Calendar overflow <button class="help-tip" type="button" aria-label="Calendar overflow help" data-help="Manual keeps the calendar band stationary. Slow auto-scroll moves it only when the calendar content is taller than the available area.">?</button></label><select id="s-calendar-scroll-mode" data-ld-onchange="h068"><option value="off">Manual / no auto-scroll</option><option value="auto">Slow auto-scroll</option></select></div>
+    <div class="s-row"><label>Calendar scroll speed <span id="s-calendar-scroll-speed-value" class="range-value">12 px/s</span> <button class="help-tip" type="button" aria-label="Calendar scroll speed help" data-help="Controls how quickly overflowing calendar content moves when Calendar overflow is set to Slow auto-scroll. Lower speed keeps each event readable longer; higher speed moves through a long agenda sooner. This setting has no effect when the calendar fits without scrolling or when another overflow mode is selected.">?</button></label><input id="s-calendar-scroll-speed" type="range" min="2" max="60" step="1" value="12" data-ld-oninput="h075"></div>
+    <div class="s-row"><label>Calendar events per day <button class="help-tip" type="button" aria-label="Calendar events per day help" data-help="Maximum number of entries shown in each day cell. This affects how much calendar content must fit or scroll.">?</button></label><select id="s-calendar-max-events" data-ld-onchange="h068"><option value="1">1 event</option><option value="2">2 events</option><option value="3">3 events</option><option value="4">4 events</option><option value="5">5 events</option><option value="6">6 events</option></select></div>
+   </div>
+  </div>
+  <div class="s-section" id="settings-integrations" data-settings-tab="integrations">
+   <h3>Integrations</h3>
+   <div class="howto">Configured integration blocks stay editable after you add them. Reconfigure a provider, jump straight to its position in Arrange, test it, or add another block without rebuilding anything.</div>
+   <div class="s-subhead">Configured on this display</div>
+   <div id="integration-configured-blocks" class="integration-configured-list"><div class="settings-note">Loading configured integration blocks…</div></div>
+   <div class="s-subhead">Add another integration</div>
+   <div class="howto">Browse the providers installed on this server. LibreDisplay lists no-key, local, and self-hosted choices first whenever practical. Keyed/account services remain available when they provide something an open alternative cannot yet match.</div>
+   <div class="settings-note integration-freedom-note"><b>Freedom-first:</b> prefer providers that need no signup, no API key, or can stay on your own network. Provider cards explicitly show access requirements, where requests go, whether data leaves LibreDisplay, and the best freedom-first alternative.</div><div class="integration-directory-toolbar">
+    <input id="integration-directory-search" type="search" placeholder="Search providers…" data-ld-oninput="h111">
+    <select id="integration-directory-category" data-ld-onchange="h112"><option value="all">All categories</option></select>
+    <select id="integration-directory-state" data-ld-onchange="h112"><option value="all">All providers</option><option value="configured">Configured only</option><option value="available">Not yet configured</option></select>
+    <select id="integration-directory-access" data-ld-onchange="h112"><option value="all">All access models</option><option value="freedom">Freedom-first · no key/local/self-hosted</option><option value="no-key">No key / no signup</option><option value="local">Local or self-hosted</option><option value="account-key">Requires account or API key</option></select>
+   </div>
+   <div id="integration-directory-summary" class="settings-note"></div>
+   <div id="integration-directory" class="integration-directory"></div>
+   <div class="s-subhead">Connection health</div>
+   <div class="howto">Health checks use each configured block's saved provider settings without displaying credentials. “Test connection” forces a live provider request instead of accepting a cached response.</div>
+   <div id="integration-health-summary" class="integration-health-summary"></div>
+   <div class="utility-actions" style="margin-bottom:8px;"><button class="btn-util" type="button" data-ld-onclick="h113">Test all configured</button><button class="btn-util" type="button" data-ld-onclick="h114">Refresh status</button></div>
+   <div id="integration-health-run-status" class="settings-note" style="display:none;margin-bottom:8px;"></div>
+   <div id="integration-health-list" class="integration-health-list"><div class="settings-note">Loading integration health…</div></div>
+  </div>
+  <div class="s-section" id="settings-provider-health" data-settings-tab="system" data-owner-only="1">
+   <h3>Data sources &amp; providers</h3>
+   <div class="howto">A unified view of the services feeding this display. It shows whether data is current, delayed, misconfigured, or offline without exposing private URLs, tokens, or coordinates.</div>
+   <div id="provider-health-list" class="provider-health-list"><div class="settings-note">Loading provider health…</div></div>
+   <div class="utility-actions" style="margin-top:9px;"><button class="btn-util" type="button" data-ld-onclick="h115">Refresh data sources</button><button class="btn-util" type="button" data-ld-onclick="h113">Test integrations</button></div>
+  </div>
+  <div class="s-section" id="settings-display-readiness" data-settings-tab="system" data-owner-only="1">
+   <h3>Display readiness &amp; kiosk resilience</h3>
+   <div class="howto">Checks the currently reported display viewport and kiosk heartbeat without changing the dashboard. Use it to catch accidental browser zoom, undersized viewports, orientation mismatches, or a stalled local kiosk before they become layout problems.</div>
+   <div class="system-health-meta">
+    <div class="health-card"><div class="health-label">Viewport</div><div id="display-readiness-viewport" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Orientation</div><div id="display-readiness-orientation" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Browser scale</div><div id="display-readiness-scale" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Kiosk heartbeat</div><div id="display-readiness-heartbeat" class="health-value">Checking…</div></div>
+   </div>
+   <div id="display-readiness-notes" class="display-readiness-list"><div class="settings-note">Waiting for display metrics…</div></div>
+   <div class="utility-actions" style="margin-top:9px;"><button class="btn-util" type="button" data-ld-onclick="h116">Recheck display</button></div>
+  </div>
+  <div class="s-section" id="settings-system-health" data-settings-tab="system" data-owner-only="1">
+   <h3>System health</h3>
+   <div class="howto">A local, privacy-safe live view of the LibreDisplay host. It refreshes automatically while Settings is open so storage, uptime, connectivity, deployment mode, and runtime health stay current.</div>
+   <div class="system-health-meta">
+    <div class="health-card"><div class="health-label">Deployment</div><div id="system-health-deployment" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Uptime</div><div id="system-health-uptime" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Storage free</div><div id="system-health-storage" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Data directory</div><div id="system-health-data" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Host</div><div id="system-health-host" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Hardware</div><div id="system-health-hardware" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Memory / temperature</div><div id="system-health-memory" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Load average</div><div id="system-health-load" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Kiosk browser</div><div id="system-health-browser" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Pi graphics / throttling</div><div id="system-health-pi-runtime" class="health-value">Checking…</div></div><div class="health-card"><div class="health-label">Chromium processes</div><div id="system-health-chromium" class="health-value">Checking…</div></div><div class="health-card"><div class="health-label">Connectivity</div><div id="system-health-connectivity" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Startup integrity</div><div id="system-health-integrity" class="health-value">Checking…</div></div>
+    <div class="health-card"><div class="health-label">Automatic recovery</div><div id="system-health-recovery" class="health-value">Checking…</div></div>
+   </div>
+   <div id="system-health-refresh-status" class="settings-note" role="status" aria-live="polite" style="margin-top:9px;">Auto-refresh every 15 seconds while Settings is open.</div><div class="s-row" style="margin-top:12px;"><label data-help="Runs the rendering isolation test on the physical kiosk browser attached to this display endpoint, even when Settings is open remotely from another computer. LibreDisplay asks the kiosk to measure the full dashboard, then isolates custom-layout auto-fit, all CSS motion, forecast icon motion, calendar, current weather, clock, weather details, Daily Forecast, Hourly Forecast, both forecast strips together, alerts/added blocks, the shared weather/flora canvas, the full Weather/NatureScape overlay, backgrounds/video, and the complete dashboard UI before measuring a minimal compositor ceiling. Each stage also records long-task and auto-fit timing, while diagnostics include Daily/Hourly forecast render counts and timing. No dashboard setting is saved or changed, and the kiosk restores every layer automatically. The result returns to remote Settings and is included in Download diagnostics.">Display performance bottleneck test</label><div class="settings-note">Usually 30–60 seconds on the physical display. You can stay on this remote Settings page while the kiosk briefly hides or pauses visual layers. Everything is restored automatically and no setting is changed.</div><div class="utility-actions" style="margin-top:8px;"><button id="system-performance-benchmark-button" class="btn-util" type="button">Run on physical display</button></div><div id="system-performance-benchmark-status" class="howto" role="status" aria-live="polite" style="display:none;margin-top:8px;white-space:pre-wrap;"></div></div>
+   <div class="utility-actions" style="margin-top:9px;"><button class="btn-util" type="button" data-ld-onclick="h117">Refresh now</button><button class="btn-util" type="button" data-ld-onclick="h118">Download diagnostics</button></div>
+  </div>
+  <div class="s-section" id="settings-software-update" data-settings-tab="system" data-owner-only="1">
+   <h3>Software update</h3>
+   <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
+   <div class="settings-grid">
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.10.52</div></div>
+    <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
+   </div>
+   <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
+   <div class="software-update-actions"><button class="btn-util" type="button" data-ld-onclick="h119">Check now</button><button id="software-update-now" class="btn-util update-now-btn" type="button" data-ld-onclick="h120" style="display:none;">Update now</button><a id="software-update-release-link" class="software-update-link" target="_blank" rel="noopener noreferrer">View release notes ↗</a></div>
+   <div id="software-update-auto-status" class="settings-note" style="margin-top:8px;">Auto-checks when Settings opens and every 15 minutes while it remains open.</div>
+   <div id="software-update-action-status" class="settings-note" style="display:none;margin-top:8px;"></div>
+  </div>
+  <div class="s-section" id="settings-update-history" data-settings-tab="system" data-owner-only="1">
+   <h3>Update history &amp; rollback</h3>
+   <div class="howto">Native updates keep a private pre-update snapshot containing the previous LibreDisplay application plus the sensitive safety backup created at that same point. Rollback verifies the snapshot, keeps your current state recoverable, restores the previous version and its pre-update data, then restarts the device.</div>
+   <div id="release-rollback-status" class="settings-note">Loading update history…</div>
+   <div id="release-rollback-list" class="restore-point-list"><div class="settings-note">Loading rollback snapshots…</div></div>
+   <div class="s-subhead">Recent maintenance</div>
+   <div id="maintenance-history-list" class="settings-note">No update or rollback history recorded yet.</div>
+  </div>
+  <div class="s-section" id="settings-backup-recovery" data-settings-tab="system" data-owner-only="1">
+   <h3>Backup & recovery</h3>
+   <div class="howto">Create a portable settings bundle for moving LibreDisplay to another device, or keep local restore points before experimenting. Portable bundles include this display's settings plus Profiles and this display's Scene rules, but not media files, account passwords, pairing secrets, or host/NAS credentials.</div>
+   <div class="backup-recovery-grid">
+    <div class="backup-recovery-card">
+     <div class="health-label">Portable backup</div>
+     <div class="settings-note">Best for migrating settings between LibreDisplay installations.</div>
+     <div class="utility-actions"><button class="btn-util" type="button" data-ld-onclick="h121">Export portable backup</button><button class="btn-util" type="button" data-ld-onclick="h122">Import portable backup</button></div>
+     <input id="portable-import-file" type="file" accept="application/json,.json" style="display:none" data-ld-onchange="h123">
+    </div>
+    <div class="backup-recovery-card">
+     <div class="health-label">Local restore points</div>
+     <div class="settings-note">Stored privately on this LibreDisplay host. A restore point captures the current display configuration plus the server-wide Profiles and Scenes stores, so restoring one can affect scheduled profiles used by other displays.</div>
+     <div class="utility-actions"><button class="btn-util" type="button" data-ld-onclick="h124">Create restore point</button><button class="btn-util" type="button" data-ld-onclick="h125">Refresh list</button></div>
+    </div>
+   </div>
+   <div id="restore-point-status" class="settings-note" style="margin-top:9px;"></div>
+   <div id="restore-point-list" class="restore-point-list"><div class="settings-note">Loading restore points…</div></div>
+   <div class="howto" style="margin-top:10px;"><b>Need a full server backup?</b> The existing <code>backup.sh</code> / <code>server-backup.py</code> tools remain the correct path when you also need media, plugins, environment secrets, or host/NAS state. Full backups may contain credentials and should be protected like passwords.</div>
+  </div>
+  <div class="s-section" id="settings-utilities" data-settings-level="advanced" data-settings-tab="system">
+   <h3>Utilities</h3>
+   <div class="utility-actions">
+    <button class="btn-util" type="button" data-ld-onclick="h066">Test calendar links</button>
+    <button class="btn-util" type="button" data-ld-onclick="h126">Refresh saved data now</button>
+    <button class="btn-util" type="button" data-ld-onclick="h127">Enter fullscreen</button>
+    <button class="btn-util" type="button" data-ld-onclick="h128">Reset appearance</button>
+    <button class="btn-util" type="button" data-ld-onclick="h129">Export settings</button>
+    <button class="btn-util" type="button" data-ld-onclick="h130">Import settings</button>
+    <button class="btn-util" type="button" data-ld-onclick="h131">Restore previous save</button>
+    <button class="btn-util" type="button" data-ld-onclick="h132">Copy diagnostics</button>
+    <button class="btn-util" type="button" data-ld-onclick="h118">Download diagnostics</button>
+    <button class="btn-util" type="button" data-ld-onclick="h133">Clear offline cache</button>
+    <input id="s-import-file" type="file" accept="application/json,.json" style="display:none" data-ld-onchange="h134">
+   </div>
+   <div class="settings-note" style="margin-top:9px;">Exported settings include private calendar URLs and your Google Photos album link. Treat the JSON file as private.</div>
+   <div id="diagnostics-status" class="howto" style="display:none;"></div>
+   <div id="cache-status" class="howto" style="display:none;"></div>
+  </div>
+   </main>
+  </div>
+  <div id="wizard-actions" class="wizard-actions">
+   <button id="wizard-back" class="btn-skip" type="button" data-ld-onclick="h135">Back</button>
+   <button id="wizard-skip" class="btn-skip" type="button" data-ld-onclick="h136">Skip this step</button>
+   <button class="btn-util" type="button" data-ld-onclick="h137">Open full settings</button>
+   <button id="wizard-next" class="btn-save" type="button" data-ld-onclick="h138">Next</button>
+  </div>
+  <div class="s-actions">
+   <div id="settings-dirty" class="settings-dirty">No unsaved changes</div>
+   <button id="s-preview-button" class="btn-util settings-preview-button" type="button" data-ld-onclick="h139">Preview dashboard</button>
+   <button id="s-save-button" class="btn-save" data-ld-onclick="h140">Save &amp; Apply</button>
+   <button class="btn-skip" data-ld-onclick="h001">Cancel</button>
+  </div>
+ </div>
+</template>
+<div id="app">
+ <div id="top-strip">
+ </div>
+ <div id="calendar-legend" aria-label="Calendar legend"></div>
+ <div id="custom-block-layer" aria-label="Custom dashboard blocks"></div>
+ <div id="layout-showcase-layer" aria-hidden="true"></div>
+ <div id="alert-zone" aria-live="polite" aria-label="Weather alerts">
+  <div id="alert-viewport" class="alert-viewport"><div id="alert-track" class="alert-track"></div></div>
+ </div>
+ <div id="bottom">
+  <div id="wx-left">
+   <div class="wx-main">
+    <div class="wx-current">
+     <div class="wx-location" id="wx-location"></div>
+     <div class="wx-icon-big" id="wx-icon">🌡️</div>
+     <div class="wx-temp" id="wx-temp">--°</div>
+    </div>
+    <div class="wx-feels" id="wx-feels">Feels like --°</div>
+    <div class="wx-cond" id="wx-cond">--</div>
+    <div class="wx-moon-info" id="wx-moon-info" aria-live="polite"></div>
+   </div>
+   <div id="clock-block">
+    <div class="clock-time"><span id="clock-hm">--:--</span><sup class="clock-sec" id="clock-sec">--</sup></div>
+    <div class="clock-date" id="clock-date">--</div>
+   </div>
+   <div class="wx-details" id="wx-details"></div>
+  </div>
+  <div id="wx-right">
+   <div class="wx-forecast" id="wx-forecast"></div>
+   <div id="wx-hourly-block">
+    <div class="wx-hourly" id="wx-hourly"></div>
+   </div>
+  </div>
+ </div>
+</div>
+<button id="cog" type="button" data-ld-onclick="h141" title="Quick access" aria-haspopup="menu" aria-controls="quick-access-menu" aria-expanded="false">⚙</button>
+<div id="quick-access-menu" role="menu" aria-hidden="true">
+ <div class="quick-access-head"><b>Quick access</b><span>Customize without digging through Settings</span></div>
+ <div class="quick-access-grid">
+  <button class="quick-access-action primary" type="button" role="menuitem" data-ld-onclick="h142"><strong>Arrange layout</strong><span>Move, resize, style, or rearrange sections inside integrations.</span><kbd>A</kbd></button>
+  <button class="quick-access-action" type="button" role="menuitem" data-ld-onclick="h143"><strong>Add block</strong><span>Open the block and integration catalog.</span><kbd>+</kbd></button>
+  <button class="quick-access-action" type="button" role="menuitem" data-ld-onclick="h144"><strong>Integrations</strong><span>Edit providers and configured blocks.</span></button>
+  <button class="quick-access-action" type="button" role="menuitem" data-ld-onclick="h145"><strong>Settings</strong><span>Open all dashboard settings.</span></button>
+  <button id="quick-lightweight-toggle" class="quick-access-action" type="button" role="menuitem"><strong>Lightweight mode: Off</strong><span>Pause heavy visuals temporarily without changing saved settings.</span></button>
+ </div>
+ <div class="quick-access-foot"><button type="button" data-ld-onclick="h146">Refresh data</button><button type="button" data-ld-onclick="h147">Use device</button><button type="button" data-ld-onclick="h148">Fullscreen</button></div>
+</div>
+<button id="settings-preview-return" type="button" data-ld-onclick="h149" aria-hidden="true"><span>← Return to Settings</span><small>Previewing unsaved changes</small></button>
+<div id="remote-layout-preview-shell" aria-hidden="true">
+ <div id="remote-layout-preview-topbar">
+  <div id="remote-layout-preview-title"><b>Arrange for display</b><span id="remote-layout-preview-meta">Loading display viewport…</span></div>
+  <div id="remote-layout-preview-actions"><label class="remote-layout-element-control"><span>Element</span><select id="remote-layout-element-picker" aria-label="Select dashboard element to edit" data-ld-onchange="h150"><option value="">Choose…</option></select></label><button type="button" data-ld-onclick="h151">Reload preview</button><button type="button" data-ld-onclick="h152">Close</button></div>
+ </div>
+ <div id="remote-layout-preview-stage"><iframe id="remote-layout-preview-frame" title="LibreDisplay target-screen layout editor"></iframe></div>
+</div>
+<div id="layout-editor-layer" aria-hidden="true"></div>
+<div id="context-help-popover" role="tooltip" hidden></div>
+<div id="layout-toolbar" aria-hidden="true">
+ <button id="layout-save" class="layout-save" type="button" data-ld-onclick="h153">Save &amp; Lock</button>
+ <button id="layout-cancel" class="layout-cancel" type="button" data-ld-onclick="h154">Cancel</button>
+ <button id="layout-undo" type="button" data-ld-onclick="h155" disabled title="Undo (Ctrl/Cmd+Z)">Undo</button>
+ <button id="layout-redo" type="button" data-ld-onclick="h156" disabled title="Redo (Ctrl/Cmd+Shift+Z)">Redo</button>
+ <button id="layout-default-positions" type="button" data-ld-onclick="h157">Default positions</button>
+ <button id="layout-reset-selected" type="button" data-ld-onclick="h158">Reset selected</button>
+ <button id="layout-add-block" type="button" data-ld-onclick="h159">+ Add Block</button>
+ <button id="layout-shortcuts-button" type="button" data-ld-onclick="h160" title="Keyboard shortcuts (?)">Shortcuts</button>
+ <button id="layout-configure-block" class="block-action-hidden" type="button" data-ld-onclick="h161">Configure</button>
+ <button id="layout-duplicate-block" class="block-action-hidden" type="button" data-ld-onclick="h162">Duplicate</button>
+ <button id="layout-layer-back" class="block-action-hidden" type="button" data-ld-onclick="h163">Send Back</button>
+ <button id="layout-layer-front" class="block-action-hidden" type="button" data-ld-onclick="h164">Bring Forward</button>
+ <button id="layout-delete-block" class="block-action-hidden" type="button" data-ld-onclick="h165">Delete</button>
+ <span class="layout-toolbar-label">Element</span>
+ <select id="layout-toolbar-block" data-ld-onchange="h166">
+  <option value="">Choose…</option><option value="calendar">Calendar</option><option value="current">Current Weather</option><option value="clock">Clock &amp; Date</option><option value="details">Weather Details</option><option value="daily">Daily Forecast</option><option value="hourly">Hourly Forecast</option><option value="alerts">Weather Alerts</option>
+ </select>
+ <span class="layout-toolbar-label">Grid</span>
+ <select id="layout-toolbar-grid" data-ld-onchange="h167"><option value="8">8</option><option value="12">12</option><option value="16">16</option><option value="20">20</option><option value="24">24</option><option value="32">32</option></select>
+ <label class="layout-toolbar-label"><input id="layout-toolbar-snap" type="checkbox" checked data-ld-onchange="h168"> Grid snap</label>
+ <label class="layout-toolbar-label"><input id="layout-toolbar-smart-guides" type="checkbox" checked data-ld-onchange="h169"> Smart guides</label>
+ <span id="layout-selected-info">Select an element · drag to move · corner to resize</span>
+</div>
+<div id="layout-shortcuts-panel" aria-hidden="true">
+ <div class="layout-shortcuts-head"><b>Arrange keyboard shortcuts</b><button type="button" data-ld-onclick="h170">Close</button></div>
+ <div class="layout-shortcuts-grid">
+  <kbd>Shift/Ctrl/Cmd + click</kbd><span>Add/remove elements from a multi-selection.</span><kbd>Drag selected group</kbd><span>Move selected elements together; smart guides snap to neighboring edges and centers.</span><kbd>Alt + drag</kbd><span>Temporarily ignore magnetic smart guides.</span><kbd>Arrow keys</kbd><span>Nudge the selected element or selected group.</span>
+  <kbd>Shift + ↑↓←→</kbd><span>Resize the selected element.</span>
+  <kbd>Delete</kbd><span>Delete the selected added block. Undo is available.</span>
+  <kbd>Ctrl/Cmd + D</kbd><span>Duplicate the selected added block.</span>
+  <kbd>Enter</kbd><span>Configure the selected added block.</span>
+  <kbd>A</kbd><span>Open Add Block.</span>
+  <kbd>[ / ]</kbd><span>Send an added block backward / bring it forward.</span>
+  <kbd>Ctrl/Cmd + Z</kbd><span>Undo. Shift + Ctrl/Cmd + Z or Ctrl/Cmd + Y redoes.</span>
+  <kbd>Ctrl/Cmd + S</kbd><span>Save and lock the layout.</span>
+  <kbd>?</kbd><span>Show or hide this shortcut guide.</span>
+ </div>
+</div>
+<div id="layout-properties" aria-hidden="true">
+ <div id="layout-properties-drag-handle" class="layout-prop-head" title="Drag this inspector anywhere on the screen"><div><b id="layout-properties-title">Element inspector</b><small id="layout-properties-subtitle">Select an element to customize its contents.</small></div><div class="layout-prop-head-actions"><button id="layout-properties-collapse" type="button" data-ld-onclick="h171" title="Collapse inspector">−</button><button id="layout-properties-reset-position" type="button" data-ld-onclick="h172" title="Return inspector to its default position">↺</button><button id="layout-properties-reset-selected" type="button" data-ld-onclick="h158" title="Reset the selected element, including its position">Reset</button></div></div>
+ <div id="layout-properties-controls" class="layout-prop-disabled">
+  <div class="layout-prop-section">
+   <div class="layout-prop-label"><span>Edit section <button class="help-tip" type="button" aria-label="Inspector section help" data-help="Whole element affects the selected block broadly. Choose an internal section to tune only that title, value, event, label, icon, or subtitle.">?</button></span><span id="layout-part-scope-label">Whole element</span></div>
+   <select id="layout-part-picker" class="layout-section-select" aria-label="Choose part of the selected element to edit" data-ld-onchange="h173"><option value="whole">Whole element</option></select>
+   <div class="layout-prop-hint" style="margin-top:6px">Choose a specific title, label, value, event, or subtitle to style it without changing the rest of the element.</div>
+   <div class="layout-prop-row" style="margin-top:7px"><button type="button" data-ld-onclick="h174">Reset this style</button></div>
+  </div>
+  <div id="layout-integration-internal-section" class="layout-prop-section layout-integration-internal" hidden>
+   <div class="layout-prop-label"><span id="layout-internal-heading">Arrange inside element <button class="help-tip" type="button" aria-label="Internal section arrangement help" data-help="Start with major sections. Choose an overall layout such as vertical, side-by-side, or three columns. Selecting a section does not turn it into free placement; drag it only when you intentionally want off-center positioning.">?</button></span><span id="layout-integration-parent-label">Element root</span></div>
+   <div class="layout-internal-scope-tabs" role="group" aria-label="Internal arrangement detail"><button id="layout-integration-scope-major" type="button" class="active" data-ld-onclick="h175">Sections</button><button id="layout-integration-scope-details" type="button" data-ld-onclick="h176">Individual parts</button></div>
+   <div class="layout-internal-major-layout"><label><span>Major section layout</span><select id="layout-integration-major-layout" data-ld-onchange="h177"><option value="provider">Provider default</option><option value="vertical">Vertical stack</option><option value="two">Side by side · 2 columns</option><option value="three">3-column grid</option><option value="horizontal">Horizontal wrap</option></select></label></div>
+   <select id="layout-integration-part-picker" class="layout-section-select" aria-label="Element section to arrange" data-ld-onchange="h178"></select>
+   <div id="layout-integration-focus-hint" class="layout-prop-hint" style="margin-top:6px">Only major section outlines are shown. Pick the overall layout first, then fine-tune individual sections only when needed.</div>
+   <label class="layout-internal-show-toggle"><input id="layout-integration-shown" type="checkbox" checked data-ld-onchange="h179"><span>Show selected section</span></label>
+   <div class="layout-internal-two-col" style="margin-top:8px"><label><span>Placement</span><select id="layout-integration-mode" data-ld-onchange="h180"><option value="flow">Flow · no overlap</option><option value="free">Free placement</option></select></label><label><span>Order in parent</span><span class="layout-internal-order"><button type="button" data-ld-onclick="h181" title="Move section earlier">↑ Earlier</button><button type="button" data-ld-onclick="h182" title="Move section later">↓ Later</button></span></label></div>
+   <div id="layout-integration-container-quick" class="layout-internal-container-quick" hidden><label><span>Items inside selected section</span><select id="layout-integration-container-layout" data-ld-onchange="h183"><option value="provider">Provider default</option><option value="vertical">Vertical</option><option value="two">Side by side · 2 columns</option><option value="three">3-column grid</option><option value="horizontal">Horizontal wrap</option></select></label></div>
+   <details id="layout-integration-container-details" class="layout-internal-advanced" hidden><summary>Spacing & alignment inside this section</summary><div id="layout-integration-container-controls" class="layout-internal-controls"><div class="layout-prop-hint">The common vertical/side-by-side choices are above. Open these only when you want exact spacing or alignment.</div><div class="layout-internal-two-col"><label><span>Gap</span><input id="layout-integration-gap" type="number" min="0" max="60" step="1" value="8" data-ld-onchange="h184"></label><label><span>Cross-axis</span><select id="layout-integration-align" data-ld-onchange="h185"><option value="auto">Provider default</option><option value="start">Start</option><option value="center">Center</option><option value="end">End</option><option value="stretch">Stretch</option></select></label><label><span>Main-axis</span><select id="layout-integration-justify" data-ld-onchange="h186"><option value="auto">Provider default</option><option value="start">Start</option><option value="center">Center</option><option value="end">End</option><option value="space-between">Space between</option><option value="space-around">Space around</option></select></label></div></div></details>
+   <details id="layout-integration-free-details" class="layout-internal-advanced" hidden><summary>Advanced free placement & size</summary><div id="layout-integration-free-controls" class="layout-internal-controls"><div class="layout-prop-hint">Free placement can intentionally overlap sections. Flow mode is safer for unattended displays. Selecting a section alone never switches it to Free.</div><div class="layout-internal-geometry"><label><span>X</span><input id="layout-integration-x" type="number" min="0" max="100" step="0.5" data-ld-onchange="h187"></label><label><span>Y</span><input id="layout-integration-y" type="number" min="0" max="100" step="0.5" data-ld-onchange="h188"></label><label><span>W</span><input id="layout-integration-w" type="number" min="5" max="100" step="0.5" data-ld-onchange="h189"></label><label><span>H</span><input id="layout-integration-h" type="number" min="0" max="100" step="0.5" data-ld-onchange="h190"></label><label><span>Layer</span><input id="layout-integration-z" type="number" min="0" max="99" step="1" data-ld-onchange="h191"></label></div><div class="layout-prop-label" style="margin-top:8px"><span>Quick position</span><span>Keep size</span></div><div class="layout-position-grid layout-internal-position-grid"><button type="button" data-ld-onclick="h192">↖</button><button type="button" data-ld-onclick="h193">↑</button><button type="button" data-ld-onclick="h194">↗</button><button type="button" data-ld-onclick="h195">←</button><button type="button" data-ld-onclick="h196">Center</button><button type="button" data-ld-onclick="h197">→</button><button type="button" data-ld-onclick="h198">↙</button><button type="button" data-ld-onclick="h199">↓</button><button type="button" data-ld-onclick="h200">↘</button></div></div></details><details id="layout-integration-content-details" class="layout-internal-advanced" hidden><summary>Edit visible content</summary><div class="layout-internal-controls layout-internal-content-controls"><div class="layout-prop-hint">Anything rendered here can keep its live/provider value or be overridden locally. Reset returns to the live source. Unsafe executable URLs are rejected.</div><label id="layout-integration-content-text-row" class="layout-internal-content-row"><span><input id="layout-integration-content-text-enabled" type="checkbox"> Override live text</span><textarea id="layout-integration-content-text" rows="3" maxlength="12000"></textarea></label><label id="layout-integration-content-url-row" class="layout-internal-content-row" hidden><span><input id="layout-integration-content-url-enabled" type="checkbox"> Override <span id="layout-integration-content-url-label">Link destination</span></span><input id="layout-integration-content-url" type="url" maxlength="4000" spellcheck="false"></label><label id="layout-integration-content-alt-row" class="layout-internal-content-row" hidden><span><input id="layout-integration-content-alt-enabled" type="checkbox"> Override image alt text</span><input id="layout-integration-content-alt" type="text" maxlength="1000"></label><button id="layout-integration-content-reset" type="button">Use live/provider content</button></div></details>
+   <div class="layout-prop-row layout-internal-reset-row" style="margin-top:9px"><button type="button" data-ld-onclick="h201">Reset selected section</button><button type="button" data-ld-onclick="h202">Reset all internal layout</button></div>
+  </div>
+  <div class="layout-prop-section">
+   <div class="layout-prop-label"><span id="layout-size-label">Content size <button class="help-tip" type="button" aria-label="Content size help" data-help="Scales the text or content inside the selected scope without changing the outer element box. Resize the block itself with its corner handles.">?</button></span><span id="layout-toolbar-scale-value" class="layout-prop-value">100%</span></div>
+   <div id="layout-content-size-control" class="layout-content-size-control layout-prop-row"><input id="layout-toolbar-scale" type="range" min="50" max="200" step="5" value="100" aria-label="Selected content size" data-ld-oninput="h203" data-ld-onchange="h204"><input id="layout-toolbar-scale-number" type="number" min="50" max="200" step="1" value="100" aria-label="Selected content size percent" style="width:64px;flex:0 0 64px" data-ld-onchange="h205"><button type="button" data-ld-onclick="h206">100%</button></div>
+  </div>
+  <div class="layout-prop-section">
+   <div class="layout-prop-label"><span>Typography <button class="help-tip" type="button" aria-label="Typography help" data-help="Override the dashboard font or text color for the selected element or internal section. Theme restores the inherited dashboard color.">?</button></span><span id="layout-typography-scope">Per element</span></div>
+   <div class="layout-prop-row"><select id="layout-style-font" data-ld-onchange="h207"><option value="">Use dashboard font</option><option value="Inter">Inter</option><option value="system">System UI</option><option value="Noto Sans">Noto Sans</option><option value="DejaVu Sans">DejaVu Sans</option><option value="Liberation Sans">Liberation Sans</option><option value="Trebuchet MS">Humanist sans</option><option value="DejaVu Serif">DejaVu Serif</option><option value="Georgia">Georgia</option><option value="monospace">Monospace</option></select></div>
+   <div class="layout-prop-row" style="margin-top:6px"><input id="layout-style-color" type="color" value="#ffffff" aria-label="Text color" data-ld-oninput="h208" data-ld-onchange="h209"><input id="layout-style-color-hex" type="text" maxlength="7" value="Theme" aria-label="Text color hex" data-ld-onchange="h210"><button type="button" data-ld-onclick="h211">Theme</button></div>
+  </div>
+  <div id="layout-part-advanced" class="layout-prop-section layout-part-only" hidden>
+   <div class="layout-prop-label"><span>Fine text tuning <button class="help-tip" type="button" aria-label="Fine text tuning help" data-help="Adjust weight, line height, letter spacing, or visibility only for the selected internal section.">?</button></span><span>Selected section</span></div>
+   <div class="layout-prop-row"><select id="layout-part-weight" aria-label="Font weight" data-ld-onchange="h212"><option value="">Use default weight</option><option value="200">Extra light</option><option value="300">Light</option><option value="400">Regular</option><option value="500">Medium</option><option value="600">Semi-bold</option><option value="700">Bold</option><option value="800">Extra bold</option><option value="900">Black</option></select></div>
+   <div class="layout-prop-label" style="margin-top:9px"><span>Line height</span><span id="layout-part-line-height-value" class="layout-prop-value">100%</span></div>
+   <div class="layout-prop-row"><input id="layout-part-line-height" type="range" min="80" max="180" step="5" value="100" data-ld-oninput="h213" data-ld-onchange="h214"><button type="button" data-ld-onclick="h215">100%</button></div>
+   <div class="layout-prop-label" style="margin-top:9px"><span>Letter spacing</span><span id="layout-part-letter-spacing-value" class="layout-prop-value">0px</span></div>
+   <div class="layout-prop-row"><input id="layout-part-letter-spacing" type="range" min="-2" max="6" step="0.25" value="0" data-ld-oninput="h216" data-ld-onchange="h214"><button type="button" data-ld-onclick="h217">0</button></div>
+   <label class="layout-check-row" style="margin-top:9px"><span>Show this section</span><input id="layout-part-visible" type="checkbox" checked data-ld-onchange="h218"></label>
+  </div>
+  <div id="layout-current-weather-arrange" class="layout-prop-section layout-part-only" hidden><div class="layout-prop-label"><span>Arrange & resize this weather part <button class="help-tip" type="button" aria-label="Current Weather part placement help" data-help="Drag the outlined weather part to move it. Drag its lower-right handle to resize it, or enter exact percentage geometry here. Position/box size and visual content size are separate controls.">?</button></span><span>Free placement</span></div><div class="layout-prop-hint">Each visible Current Weather part has its own independent box. Resize the box here or with its corner handle; use Content size above to resize the actual text/icon inside it.</div><div class="layout-internal-geometry" style="margin-top:8px"><label><span>X %</span><input id="layout-current-part-x" type="number" min="0" max="100" step="0.5" data-ld-onchange="h256"></label><label><span>Y %</span><input id="layout-current-part-y" type="number" min="0" max="100" step="0.5" data-ld-onchange="h257"></label><label><span>Width %</span><input id="layout-current-part-w" type="number" min="4" max="100" step="0.5" data-ld-onchange="h258"></label><label><span>Height %</span><input id="layout-current-part-h" type="number" min="2" max="100" step="0.5" data-ld-onchange="h262"></label><label><span>Layer</span><input id="layout-current-part-z" type="number" min="0" max="99" step="1" data-ld-onchange="h259"></label></div><div class="layout-prop-row" style="margin-top:9px"><button type="button" data-ld-onclick="h260">Reset selected part position</button><button type="button" data-ld-onclick="h261">Reset all weather parts</button></div></div>
+  <div class="layout-prop-section">
+   <div class="layout-prop-label"><span id="layout-h-label">Horizontal content <button class="help-tip" type="button" aria-label="Horizontal alignment help" data-help="Aligns content inside its current element. It does not move the outer element on the dashboard.">?</button></span><span id="layout-h-scope">Inside block</span></div>
+   <div class="layout-align-grid"><button id="layout-h-left" type="button" data-ld-onclick="h219">Left</button><button id="layout-h-center" type="button" data-ld-onclick="h220">Center</button><button id="layout-h-right" type="button" data-ld-onclick="h221">Right</button></div>
+   <div class="layout-prop-row" style="margin-top:5px"><button id="layout-h-auto" type="button" data-ld-onclick="h222">Use default</button></div>
+  </div><div id="layout-frame-behavior-section" class="layout-prop-section layout-whole-only"><div class="layout-prop-label"><span>Frame resize behavior <button class="help-tip" type="button" aria-label="Frame resize behavior help" data-help="Frame size and content size are independent. When Auto-fit is off, trimming blank space from an element will not shrink its contents. Use Content size separately when you actually want larger or smaller content.">?</button></span><span>Independent sizing</span></div><label class="layout-check-row"><span>Auto-fit content when frame shrinks</span><input id="layout-frame-fit-content" type="checkbox" checked data-ld-onchange="h263"></label><div class="layout-prop-hint">Dragging a frame resize handle automatically turns Auto-fit off for that element so you can crop dead space without the contents moving or shrinking. Re-enable it here only when you want responsive fit behavior.</div></div>
+  <div id="layout-v-section" class="layout-prop-section layout-whole-only">
+   <div class="layout-prop-label"><span>Vertical content <button class="help-tip" type="button" aria-label="Vertical alignment help" data-help="Moves the element contents toward the top, middle, or bottom of the current block while keeping the block itself in place.">?</button></span><span>Inside block</span></div>
+   <div class="layout-align-grid"><button id="layout-v-top" type="button" data-ld-onclick="h223">Top</button><button id="layout-v-middle" type="button" data-ld-onclick="h224">Middle</button><button id="layout-v-bottom" type="button" data-ld-onclick="h225">Bottom</button></div>
+   <div class="layout-prop-row" style="margin-top:5px"><button id="layout-v-auto" type="button" data-ld-onclick="h226">Use default</button></div>
+  </div>
+  <div class="layout-prop-section">
+   <div class="layout-prop-label"><span id="layout-opacity-label">Element opacity <button class="help-tip" type="button" aria-label="Element opacity help" data-help="Changes visibility of the selected scope. Lower opacity can help secondary information sit behind more important content.">?</button></span><span id="layout-style-opacity-value" class="layout-prop-value">100%</span></div>
+   <div class="layout-prop-row"><input id="layout-style-opacity" type="range" min="20" max="100" step="5" value="100" data-ld-oninput="h227" data-ld-onchange="h209"><button type="button" data-ld-onclick="h228">100%</button></div>
+  </div>
+  <div id="layout-group-section" class="layout-prop-section layout-whole-only" hidden>
+   <div class="layout-prop-label"><span>Relate selected elements <button class="help-tip" type="button" aria-label="Multi-select arrangement help" data-help="Shift, Ctrl, or Cmd-click elements to select several. The primary element has the brighter outline and is the anchor for match and alignment commands. Locked elements can act as references but are never moved.">?</button></span><span id="layout-selection-count">Select 2+</span></div><div class="layout-relation-grid"><button type="button" data-layout-relation data-min-selection="2" data-ld-onclick="h229">Match width</button><button type="button" data-layout-relation data-min-selection="2" data-ld-onclick="h230">Match height</button></div><div class="layout-relation-grid three"><button type="button" data-layout-relation data-min-selection="2" data-ld-onclick="h231">Align left</button><button type="button" data-layout-relation data-min-selection="2" data-ld-onclick="h232">Center</button><button type="button" data-layout-relation data-min-selection="2" data-ld-onclick="h233">Align right</button></div>
+   <div class="layout-relation-grid three"><button type="button" data-layout-relation data-min-selection="2" data-ld-onclick="h234">Align top</button><button type="button" data-layout-relation data-min-selection="2" data-ld-onclick="h235">Middle</button><button type="button" data-layout-relation data-min-selection="2" data-ld-onclick="h236">Align bottom</button></div><div class="layout-relation-grid"><button type="button" data-layout-relation data-min-selection="3" data-ld-onclick="h237">Equal horizontal spacing</button><button type="button" data-layout-relation data-min-selection="3" data-ld-onclick="h238">Equal vertical spacing</button></div><div class="layout-prop-hint">Shift/Ctrl/Cmd-click to build a selection. Drag any selected element to move the group. Smart guides magnetically snap the group to neighboring edges and centers; hold Alt while dragging to temporarily ignore them.</div>
+  </div>
+  <div id="layout-place-section" class="layout-prop-section layout-whole-only">
+   <div class="layout-prop-label"><span>Place element <button class="help-tip" type="button" aria-label="Quick placement help" data-help="Moves the selected block to a screen anchor while preserving its current width and height. You can still drag it afterward for fine placement.">?</button></span><span>Keep current size</span></div>
+   <div class="layout-position-grid"><button type="button" data-ld-onclick="h239">↖</button><button type="button" data-ld-onclick="h240">↑</button><button type="button" data-ld-onclick="h241">↗</button><button type="button" data-ld-onclick="h242">←</button><button type="button" data-ld-onclick="h243">Center</button><button type="button" data-ld-onclick="h244">→</button><button type="button" data-ld-onclick="h245">↙</button><button type="button" data-ld-onclick="h246">↓</button><button type="button" data-ld-onclick="h247">↘</button></div><div class="layout-axis-tools"><button type="button" data-ld-onclick="h248">Center on vertical axis</button><button type="button" data-ld-onclick="h249">Center on horizontal axis</button><button type="button" data-ld-onclick="h250">Mirror left ↔ right</button><button type="button" data-ld-onclick="h251">Mirror top ↕ bottom</button></div><div class="layout-prop-hint">Axis tools preserve the other coordinate, so balanced and mirrored layouts do not require guessing the screen midpoint. <button class="help-tip" type="button" aria-label="Axis alignment help" data-help="Center on vertical axis moves only left/right. Center on horizontal axis moves only up/down. Mirror reflects the selected element across the exact display centerline while preserving its size.">?</button></div>
+  </div>
+  <div class="layout-prop-section"><div class="layout-prop-hint">Drag the inspector by its header whenever it covers something you need to edit. Drag elements for free placement, use Arrow keys to nudge, and Shift + Arrow to resize. Undo/Redo includes geometry and inspector styling.</div></div>
+ </div>
+</div>
+<div id="block-catalog" aria-hidden="true">
+ <div class="block-dialog">
+  <div class="block-dialog-head"><div><h2>Add a block</h2><div class="block-dialog-sub">Choose a reusable dashboard element. You can add more than one of each type.</div></div><button class="block-dialog-close" type="button" data-ld-onclick="h252">Close</button></div>
+  <input id="block-catalog-search" class="block-catalog-search" type="search" placeholder="Search blocks…" data-ld-oninput="h253" autocomplete="off">
+  <div id="block-catalog-grid" class="block-catalog-grid"></div>
+ </div>
+</div>
+<div id="block-config-modal" aria-hidden="true">
+ <div class="block-dialog">
+  <div class="block-dialog-head"><div><h2 id="block-config-title">Configure block</h2><div id="block-config-sub" class="block-dialog-sub"></div></div><button class="block-dialog-close" type="button" data-ld-onclick="h254">Close</button></div>
+  <div id="block-config-fields" class="block-config-grid"></div>
+  <div class="block-dialog-actions"><button type="button" data-ld-onclick="h254">Cancel</button><button class="primary" type="button" data-ld-onclick="h255">Save Block</button></div>
+ </div>
+</div>
+<div id="offline-pill" role="status" aria-live="polite">Offline · cached data</div>
+<div id="screen-care-overlay" aria-hidden="true"></div>
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>
