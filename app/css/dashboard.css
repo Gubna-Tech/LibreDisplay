@@ -3811,3 +3811,42 @@ html.ld-pi4-device #weather-effects-overlay .weather-fx-dog-v2 :is(.dogv2-pose-s
 #weather-effects-overlay .hazard-blizzard-flake{box-shadow:0 0 4px rgba(248,252,254,.14)!important;animation:ldNaturalBlizzardFlake var(--blizzard-flake-duration,5.4s) linear var(--blizzard-delay,0s) infinite!important}
 @keyframes ldNaturalBlizzardSheet{from{transform:translate3d(-5vw,-2vh,0) scaleY(.88);opacity:.24}to{transform:translate3d(8vw,4vh,0) scaleY(1.08);opacity:.52}}
 @keyframes ldNaturalBlizzardFlake{0%{transform:translate3d(-8vw,-6vh,0) scale(var(--blizzard-depth,.7));opacity:0}13%{opacity:.74}42%{opacity:.96}76%{opacity:.84}100%{transform:translate3d(var(--blizzard-travel-x,34vw),var(--blizzard-travel-y,18vh),0) scale(var(--blizzard-depth,.7));opacity:0}}
+
+/* Task-bucket navigation, device guidance, Pi 3 static fidelity, and cohesive hourly metrics. */
+#setup .settings-nav-group-label[data-settings-nav-group]{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;user-select:none;border-radius:7px;padding-right:7px;transition:background .14s ease,color .14s ease}
+#setup .settings-nav-group-label[data-settings-nav-group]:hover,#setup .settings-nav-group-label[data-settings-nav-group]:focus-visible{background:color-mix(in srgb,var(--ld-accent) 8%,transparent);color:var(--ld-muted);outline:none}
+#setup .settings-nav-group-caret{font-size:12px;font-weight:700;line-height:1;transition:transform .16s ease;color:var(--ld-subtle)}
+#setup .settings-nav-group-label.nav-group-collapsed .settings-nav-group-caret{transform:rotate(-90deg)}
+#setup .settings-tab-btn.settings-nav-group-hidden{display:none!important}
+#setup .device-detected-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:8px 0 12px}
+#setup .device-detected-badge{display:inline-flex;align-items:center;min-height:28px;padding:5px 9px;border:1px solid var(--ld-border);border-radius:999px;background:var(--ld-surface-2);color:var(--ld-text);font-size:10px;font-weight:800;letter-spacing:.15px}
+#setup .device-detected-badge[data-device-tier="pi3"]{border-color:color-mix(in srgb,#7dd3fc 50%,var(--ld-border));background:color-mix(in srgb,#7dd3fc 8%,var(--ld-surface-2))}
+#setup .device-detected-badge[data-device-tier="pi4"]{border-color:color-mix(in srgb,#86efac 50%,var(--ld-border));background:color-mix(in srgb,#86efac 8%,var(--ld-surface-2))}
+#setup .device-detected-badge[data-device-tier="pi5"]{border-color:color-mix(in srgb,#c4b5fd 52%,var(--ld-border));background:color-mix(in srgb,#c4b5fd 8%,var(--ld-surface-2))}
+#setup .device-profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#setup .device-profile-card{display:grid;gap:4px;padding:11px 12px;border:1px solid var(--ld-border);border-radius:11px;background:color-mix(in srgb,var(--ld-surface-2) 58%,transparent)}
+#setup .device-profile-card b{font-size:11px;color:var(--ld-text)}
+#setup .device-profile-card span{font-size:9.5px;line-height:1.45;color:var(--ld-muted)}
+#setup .device-profile-card small{font-size:8.5px;line-height:1.4;color:var(--ld-subtle)}
+#setup .device-profile-card.device-profile-current{border-color:color-mix(in srgb,var(--ld-accent) 58%,var(--ld-border));background:color-mix(in srgb,var(--ld-accent) 8%,var(--ld-surface-2));box-shadow:inset 3px 0 0 color-mix(in srgb,var(--ld-accent) 78%,transparent)}
+@media(max-width:620px){#setup .device-profile-grid{grid-template-columns:1fr}}
+
+html.ld-pi3-static #weather-effects-overlay .weather-fx-leaf-hq-static{width:52px!important;height:38px!important;background:none!important;box-shadow:none!important;border-radius:0!important;clip-path:none!important;overflow:visible;transform-origin:50% 50%}
+html.ld-pi3-static #weather-effects-overlay .weather-fx-leaf-hq-static::before,html.ld-pi3-static #weather-effects-overlay .weather-fx-leaf-hq-static::after{display:none!important;content:none!important}
+html.ld-pi3-static #weather-effects-overlay .weather-fx-leaf-hq-static .weather-fx-pi3-static-leaf-art{display:block;width:52px;height:38px;max-width:none;max-height:none;opacity:var(--season-opacity,1);image-rendering:auto}
+
+.hr-col .hr-meta{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:clamp(2px,.22vw,4px);min-height:3.45em;max-width:100%;line-height:1.08;white-space:nowrap}
+.hr-col .hr-meta .hr-metric{display:flex;align-items:center;justify-content:center;min-height:1.08em;font-family:inherit;font-size:clamp(13.5px,.94vw,19px);font-weight:650;line-height:1.08;letter-spacing:0;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hr-col .hr-meta .hr-temp{color:rgba(255,255,255,.96)}
+.hr-col .hr-meta .hr-rain{color:#b9e3ff}
+.hr-col .hr-meta .hr-wind{gap:.34em;font-weight:650}
+.hr-col .hr-wind-arrows{display:inline-flex;align-items:center;justify-content:center;gap:.015em;line-height:1;color:var(--wind-arrow-color,currentColor)}
+.hr-col .hr-wind-arrow{display:inline-block;transform:rotate(calc(var(--wind-angle,0deg) + 180deg));transform-origin:50% 50%;font-size:var(--wind-arrow-size,1em);font-weight:var(--wind-arrow-weight,700);line-height:.88;text-shadow:var(--wind-arrow-glow,none)}
+.hr-col .hr-wind-value{display:inline-block;color:var(--wind-text-color,currentColor)}
+.hr-col .hr-wind.wind-calm{--wind-arrow-size:.88em;--wind-arrow-weight:600;--wind-arrow-color:#9ddcff;--wind-text-color:#b9e8f8;color:#b9e8f8}
+.hr-col .hr-wind.wind-breeze{--wind-arrow-size:1em;--wind-arrow-weight:700;--wind-arrow-color:#70ddd2;--wind-text-color:#91e4d9;color:#91e4d9}
+.hr-col .hr-wind.wind-caution{--wind-arrow-size:1.10em;--wind-arrow-weight:800;--wind-arrow-color:#ffd166;--wind-text-color:#f7d783;color:#f7d783}
+.hr-col .hr-wind.wind-strong{--wind-arrow-size:1.20em;--wind-arrow-weight:875;--wind-arrow-color:#ff9f5a;--wind-text-color:#ffb36f;--wind-arrow-glow:0 0 .28em rgba(255,148,72,.24);color:#ffb36f}
+.hr-col .hr-wind.wind-severe{--wind-arrow-size:1.30em;--wind-arrow-weight:900;--wind-arrow-color:#ff5f67;--wind-text-color:#ff858b;--wind-arrow-glow:0 0 .38em rgba(255,74,82,.34);color:#ff858b}
+@media(max-width:1400px){.hr-col .hr-meta .hr-metric{font-size:12.5px}.hr-col .hr-meta{gap:2px}}
+.hr-col .hr-meta .hr-wind.wind-calm{color:#b9e8f8!important}.hr-col .hr-meta .hr-wind.wind-breeze{color:#91e4d9!important}.hr-col .hr-meta .hr-wind.wind-caution{color:#f7d783!important}.hr-col .hr-meta .hr-wind.wind-strong{color:#ffb36f!important}.hr-col .hr-meta .hr-wind.wind-severe{color:#ff858b!important}

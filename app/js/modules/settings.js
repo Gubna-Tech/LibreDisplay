@@ -19,9 +19,10 @@ let settingsPreviewMode=false,settingsMounted=false;
 function settingsDomMounted(){return settingsMounted;}
 function applySettingsSessionRoleVisibility(){for(const el of document.querySelectorAll('[data-owner-only="1"]'))el.style.display=(bootstrapApi.SESSION_ROLE==='owner'?'':'none');}
 function bindMountedSettingsControls(){
-  const lightweight=document.getElementById('s-lightweight-mode'),performanceMode=document.getElementById('s-animation-performance-mode');
-  lightweight?.addEventListener('change',event=>toggleLightweightMode(event.currentTarget.checked));
-  performanceMode?.addEventListener('change',event=>setAnimationPerformanceMode(event.currentTarget.value));
+  const lightweight=document.getElementById('s-lightweight-mode'),performanceMode=document.getElementById('s-animation-performance-mode'),pi3Refresh=document.getElementById('s-pi3-static-refresh');
+  lightweight?.addEventListener('change',event=>LibreDisplayRuntime.getModule('settings').toggleLightweightMode?.(event.currentTarget.checked));
+  performanceMode?.addEventListener('change',event=>LibreDisplayRuntime.getModule('settings').setAnimationPerformanceMode?.(event.currentTarget.value));
+  pi3Refresh?.addEventListener('change',event=>LibreDisplayRuntime.getModule('settings').setPi3StaticSceneRefresh?.(event.currentTarget.value));
   LibreDisplayRuntime.getModule('weatherScenery').initHolidayControls?.();
   applySettingsSessionRoleVisibility();
 }
@@ -181,7 +182,7 @@ function openSetup(startWizard=false){
     updateCalendarEntryVisibility();
     setWizardMode(!!startWizard);
     markSettingsClean();
-    updateSettingsOverview();try{LibreDisplayRuntime.getModule('settings').updateLightweightModeUi?.();LibreDisplayRuntime.getModule('settings').updateAnimationPerformanceUi?.();}catch(_e){}
+    updateSettingsOverview();try{LibreDisplayRuntime.getModule('settings').updateLightweightModeUi?.();LibreDisplayRuntime.getModule('settings').updateAnimationPerformanceUi?.();LibreDisplayRuntime.getModule('settings').updateDevicePerformanceGuide?.();}catch(_e){}
   }catch(error){
     setWizardMode(false);
     showSettingsInitializationError(error);
@@ -242,7 +243,7 @@ function applySettings(){
   configApi.weatherTimer=performance.startManagedInterval('weather-refresh',weather.fetchWeather,cfg.weatherRefreshMin*60*1000,{skipWhenHidden:true,resumeOnVisible:true});
   configApi.calendarTimer=performance.startManagedInterval('calendar-refresh',calendar.loadCalendars,cfg.calendarRefreshMin*60*1000,{skipWhenHidden:true,resumeOnVisible:true});
   configApi.alertTimer=performance.startManagedInterval('alert-refresh',weather.fetchWeatherAlerts,cfg.alertRefreshMin*60*1000,{skipWhenHidden:true,resumeOnVisible:true});
-  try{LibreDisplayRuntime.getModule('settings').updateLightweightModeUi?.();LibreDisplayRuntime.getModule('settings').updateAnimationPerformanceUi?.();}catch(_e){}
+  try{LibreDisplayRuntime.getModule('settings').updateLightweightModeUi?.();LibreDisplayRuntime.getModule('settings').updateAnimationPerformanceUi?.();LibreDisplayRuntime.getModule('settings').updateDevicePerformanceGuide?.();}catch(_e){}
 }
 
 
@@ -289,9 +290,10 @@ LibreDisplayRuntime.exposeModule("settings", {settingsDomMounted,mountSettings,u
 // Settings tabs, section metadata, help registry, search, and navigation.
 const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 
-const SETTINGS_TABS=['overview','calendars','backgrounds','weather','weatherfx','weatheralerts','nature','wildlife','companions','look','displaycare','layout','family','integrations','displays','system'];
+const SETTINGS_TABS=['overview','device','layout','look','backgrounds','calendars','weather','weatherfx','weatheralerts','nature','wildlife','companions','family','integrations','displaycare','displays','system'];
 const SETTINGS_TAB_TITLES={
   overview:'Home',
+  device:'Device & Performance',
   calendars:'Calendars',
   backgrounds:'Backgrounds',
   weather:'Weather',
@@ -309,16 +311,15 @@ const SETTINGS_TAB_TITLES={
   system:'System & Maintenance'
 };
 const SETTINGS_TAB_GROUPS={
-  overview:'Start',
-  calendars:'Content',backgrounds:'Content',
-  weather:'Weather',weatherfx:'Weather',weatheralerts:'Weather',
-  nature:'Living scenery',wildlife:'Living scenery',companions:'Living scenery',
-  look:'Appearance',displaycare:'Appearance',layout:'Appearance',
-  family:'Household & services',integrations:'Household & services',
-  displays:'System',system:'System'
+  overview:'Start here',device:'Start here',
+  layout:'Dashboard',look:'Dashboard',backgrounds:'Dashboard',calendars:'Dashboard',
+  weather:'Weather & Nature',weatherfx:'Weather & Nature',weatheralerts:'Weather & Nature',nature:'Weather & Nature',wildlife:'Weather & Nature',companions:'Weather & Nature',
+  family:'Household & Services',integrations:'Household & Services',
+  displaycare:'Displays & System',displays:'Displays & System',system:'Displays & System'
 };
 const SETTINGS_TAB_HINTS={
-  overview:'Shortcuts, current status, performance mode, and project information.',
+  overview:'Shortcuts, current status, common editing tasks, and project information.',
+  device:'Detected hardware, recommended settings, performance mode, and Raspberry Pi-specific behavior.',
   calendars:'Calendar feeds, imported files, event presentation, refresh timing, and display rules.',
   backgrounds:'Photo sources, local or NAS folders, slideshow rotation, and background presentation.',
   weather:'Weather location, units, refresh behavior, and the optional Weather Details element.',
@@ -359,7 +360,9 @@ function updateSettingsPageHeader(searchQuery=''){
 }
 const SETTINGS_SECTION_SUMMARIES={
   'settings-overview':'Health checks and the most common dashboard actions.',
+  'settings-device-guide':'Device-aware recommendations for Pi 3, Pi 4, Pi 5, and other hardware.',
   'settings-lightweight':'Temporarily pause expensive visual effects without changing the settings you chose for them.',
+  'settings-pi3-static':'Choose how often a Pi 3 refreshes its full-quality static weather and NatureScape scene.',
   'settings-about':'Version, project identity and local-first behavior.',
   'settings-endpoints':'Create and manage independent screen endpoints from one server.',
   'settings-remote':'Manage LibreDisplay from another device on your trusted network.',
@@ -508,8 +511,8 @@ const SETTINGS_CONTROL_HELP={
   's-background-motion':'Allows animated GIF, video and Motion JPEG backgrounds from local/NAS folders. Continuous decoding can be demanding on lower-powered devices.',
   's-bg-startup-priority':'Starts weather, air quality, calendars, and the dashboard shell before refreshing the background source. The last displayed background can be reused immediately while source discovery runs.',
   's-bg-startup-delay':'Sets the short delay before background-source discovery begins when startup prioritization is enabled.',
-  's-weather-animations':'Master switch for optional decorative motion based on the current weather.',
-  's-weather-widget-animations':'Adds gentle motion to weather icons without changing weather data. On Raspberry Pi 4 in Auto, Smooth, or Balanced performance modes, the compact Daily/Hourly strips use lightweight static weather symbols to protect frame rate while Current Weather keeps its richer icon treatment; Fidelity mode restores the full animated forecast glyphs.',
+  's-weather-animations':'Master switch for weather/NatureScape presentation. On Pi 3 Automatic, enabling this shows full-quality static scenery rather than continuous motion; the Device & Performance page controls how often that still scene refreshes.',
+  's-weather-widget-animations':'Adds decorative motion to weather icons without changing weather data. Pi 3 Automatic keeps those glyphs static at full visual quality; Pi 4 Auto/Smooth/Balanced protects forecast performance with lightweight strip symbols while Current Weather keeps richer treatment; Fidelity mode restores the full animated forecast glyphs.',
   's-weather-fullscreen-effects':'Adds lightweight weather atmosphere over the background while keeping dashboard content above it.',
   's-weather-bird-habitat':'Guides realistic regional bird selection toward the habitat around the display. Auto can infer mountain, tropical, or arid conditions from available context; explicit choices add wetland, coastal/seabird, alpine, rainforest, grassland, woodland, urban, or desert specialists.',
   's-weather-effect-mode':'Choose automatic atmosphere, precipitation-only effects, or all ambient weather effects.',
@@ -551,7 +554,8 @@ const SETTINGS_CONTROL_HELP={
   's-current-weather-layout':'Changes the internal composition of Current Weather without changing its outer Arrange position. Choose stacked or place lunar information beside the temperature.',
   's-current-weather-gap':'Controls the spacing between temperature/condition content and the Moon section in side-by-side Current Weather layouts.',
   's-current-weather-moon-width':'Controls how much horizontal room the lunar summary receives when Current Weather uses a two-column arrangement.',
-  's-settings-search':'Searches setting names, section summaries, aliases and context-help text across every Settings category.'
+  's-settings-search':'Searches setting names, section summaries, aliases and context-help text across every Settings category.',
+  's-pi3-static-refresh':'On Pi 3 Automatic mode, the scenery stays still between refreshes so quality can remain high without continuous animation cost. Shorter intervals change clouds, leaves, dog pose and other static scene details more often; longer intervals reduce rebuild work.'
 };
 
 function settingsControlLabel(control){
@@ -646,9 +650,15 @@ function setSettingsViewMode(mode){
   if(search&&search.value.trim()){filterSettings(search.value);return;}
   applySettingsSectionVisibility();
 }
+function settingsNavGroupButtons(label){const buttons=[];for(let node=label?.nextElementSibling;node&&node.classList?.contains('settings-tab-btn');node=node.nextElementSibling)buttons.push(node);return buttons;}
+function saveSettingsNavGroups(){const collapsed=[...document.querySelectorAll('.settings-nav-group-label.nav-group-collapsed')].map(x=>x.dataset.settingsNavGroup).filter(Boolean);try{localStorage.setItem('libredisplay_settings_nav_groups',JSON.stringify(collapsed));}catch(_e){}}
+function setSettingsNavGroupCollapsed(label,collapsed,save=true){if(!label)return;label.classList.toggle('nav-group-collapsed',!!collapsed);label.setAttribute('aria-expanded',collapsed?'false':'true');for(const btn of settingsNavGroupButtons(label))btn.classList.toggle('settings-nav-group-hidden',!!collapsed);if(save)saveSettingsNavGroups();}
+function enhanceSettingsNavGroups(){let collapsed=[];try{const raw=localStorage.getItem('libredisplay_settings_nav_groups');collapsed=raw===null?['dashboard','weather-nature','services','system']:JSON.parse(raw||'[]');if(!Array.isArray(collapsed))collapsed=[];}catch(_e){collapsed=['dashboard','weather-nature','services','system'];}for(const label of document.querySelectorAll('.settings-nav-group-label[data-settings-nav-group]')){if(label.dataset.navEnhanced==='1')continue;label.dataset.navEnhanced='1';label.setAttribute('role','button');label.setAttribute('tabindex','0');const name=label.textContent.trim();label.innerHTML=`<span>${name}</span><b class="settings-nav-group-caret" aria-hidden="true">⌄</b>`;const toggle=()=>setSettingsNavGroupCollapsed(label,!label.classList.contains('nav-group-collapsed'));label.addEventListener('click',toggle);label.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();toggle();}});setSettingsNavGroupCollapsed(label,collapsed.includes(label.dataset.settingsNavGroup),false);}}
+function expandActiveSettingsNavGroup(tab=activeSettingsTab){const btn=document.querySelector(`.settings-tab-btn[data-tab="${tab}"]`);if(!btn)return;let label=btn.previousElementSibling;while(label&&!label.classList?.contains('settings-nav-group-label'))label=label.previousElementSibling;if(label?.classList?.contains('nav-group-collapsed'))setSettingsNavGroupCollapsed(label,false);}
 function enhanceSettingsSections(){
   if(settingsSectionsEnhanced)return;
   settingsSectionsEnhanced=true;
+  enhanceSettingsNavGroups();
   let collapsed=[],hasSavedCollapseState=false;
   try{const raw=sessionStorage.getItem('libredisplay_settings_collapsed');hasSavedCollapseState=raw!==null;collapsed=JSON.parse(raw||'[]');if(!Array.isArray(collapsed))collapsed=[];}catch(e){collapsed=[];}
   const firstSectionByTab=new Set();
@@ -693,7 +703,7 @@ function visibleSettingsSectionsForTab(tab){
   return [...document.querySelectorAll(`.s-section[data-settings-tab="${tab}"]`)].filter(s=>settingsSectionRoleAllowed(s)&&(settingsViewMode==='all'||s.dataset.settingsLevel!=='advanced'));
 }
 function buildSettingsMobileCategory(){
-  const sel=document.getElementById('settings-mobile-category-select');if(!sel)return;
+  const sel=document.getElementById('settings-mobile-category-select');if(!sel)return;sel.replaceChildren();
   const groups=new Map();
   for(const btn of document.querySelectorAll('.settings-tab-btn[data-tab]')){
     if(btn.dataset.ownerOnly==='1'&&bootstrapApi.SESSION_ROLE!=='owner')continue;
@@ -760,6 +770,7 @@ function switchSettingsTab(tab,scrollTop=true){
   if(tab!=='overview'&&![...document.querySelectorAll(`.s-section[data-settings-tab="${tab}"]`)].some(settingsSectionRoleAllowed))tab='overview';
   activeSettingsTab=tab;
   try{sessionStorage.setItem('libredisplay_settings_tab',tab);}catch(e){}
+  expandActiveSettingsNavGroup(tab);
   if(scrollTop){
     const search=document.getElementById('s-settings-search');
     if(search)search.value='';
@@ -781,6 +792,8 @@ function switchSettingsTab(tab,scrollTop=true){
 }
 
 const SETTINGS_SEARCH_ALIASES={
+  'settings-device-guide':'device hardware raspberry pi pi3 pi4 pi5 performance recommendations recommended settings gpu fps display tuning',
+  'settings-pi3-static':'pi3 raspberry pi 3 static still scene refresh cadence leaves clouds dog performance quality interval',
   'settings-lightweight':'lightweight low power performance slow lag animations overlays video backgrounds resource cpu memory restore visuals',
   'settings-calendars':'calendar calendars calander agenda events ics google proton outlook icloud',
   'settings-alerts':'alerts warning warnings severe weather test preview rotate rotation scroll scrolling motion',
@@ -863,7 +876,7 @@ function clearSettingsSearch(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("settings", {updateSettingsPageHeader,settingsControlLabel,cleanSettingsLabelText,makeSettingsHelpButton,settingsControlTitle,settingsControlContext,settingsFallbackHelp,enhanceSettingsControlHelp,loadSettingsViewMode,setSettingsViewMode,enhanceSettingsSections,saveCollapsedSettingsSections,toggleSettingsSection,setAllSettingsSectionsCollapsed,settingsSectionRoleAllowed,visibleSettingsSectionsForTab,buildSettingsMobileCategory,buildSettingsSectionDirectory,buildSettingsSectionJump,jumpToSettingsSection,applySettingsSectionVisibility,switchSettingsTab,settingsSectionSearchText,settingsSearchControlText,openSettingsSearchResult,filterSettings,clearSettingsSearch}, {
+LibreDisplayRuntime.exposeModule("settings", {updateSettingsPageHeader,settingsControlLabel,cleanSettingsLabelText,makeSettingsHelpButton,settingsControlTitle,settingsControlContext,settingsFallbackHelp,enhanceSettingsControlHelp,loadSettingsViewMode,setSettingsViewMode,enhanceSettingsNavGroups,setSettingsNavGroupCollapsed,expandActiveSettingsNavGroup,enhanceSettingsSections,saveCollapsedSettingsSections,toggleSettingsSection,setAllSettingsSectionsCollapsed,settingsSectionRoleAllowed,visibleSettingsSectionsForTab,buildSettingsMobileCategory,buildSettingsSectionDirectory,buildSettingsSectionJump,jumpToSettingsSection,applySettingsSectionVisibility,switchSettingsTab,settingsSectionSearchText,settingsSearchControlText,openSettingsSearchResult,filterSettings,clearSettingsSearch}, {
   "SETTINGS_TABS": {configurable:true,get:()=>SETTINGS_TABS},
   "SETTINGS_TAB_TITLES": {configurable:true,get:()=>SETTINGS_TAB_TITLES},
   "SETTINGS_TAB_GROUPS": {configurable:true,get:()=>SETTINGS_TAB_GROUPS},
@@ -921,8 +934,10 @@ function quickAccessAddBlock(){closeQuickAccessMenu();startLayoutEditor();setTim
 function quickAccessSettings(tab='overview'){closeQuickAccessMenu();openSetup();setTimeout(()=>switchSettingsTab(tab),20);}
 function quickAccessIntegrations(){quickAccessSettings('integrations');}
 function updateAnimationPerformanceUi(){
-  const performanceApi=LibreDisplayRuntime.getModule('performance'),select=document.getElementById('s-animation-performance-mode'),status=document.getElementById('animation-performance-status'),snapshot=performanceApi.animationPerformanceSnapshot?.()||{},caps=performanceApi.frontendCapabilities?.()||{};if(select&&document.activeElement!==select)select.value=cfg.animationPerformanceMode||'auto';if(status){const fps=snapshot.fps>0?`${snapshot.fps.toFixed(1)} FPS`:'measuring FPS',drop=Number.isFinite(snapshot.droppedPct)?`${snapshot.droppedPct.toFixed(1)}% delayed frames`:'measuring drops',device=caps.piClass?'Pi-class display':'standard display',blocker=cfg.lightweightModeEnabled===true?'motion paused by Lightweight mode':document.documentElement.classList.contains('ld-reduce-motion')?'motion reduced by Accessibility preference':cfg.weatherAnimationsEnabled!==true?'weather animations OFF — enable Weather → NatureScape → Enable weather animations':caps.pi3Class?(performanceApi.visualPerformanceBudget?.().motionAllowed===false?'Pi 3 Auto · static overlays':'Pi 3 animation override enabled · low-load budget'):'motion enabled';status.textContent=`${fps} · target ${snapshot.targetFps||60} · ${drop} · ${snapshot.renderer||'browser compositor'} · ${device} · ${blocker}`;}
+  const performanceApi=LibreDisplayRuntime.getModule('performance'),select=document.getElementById('s-animation-performance-mode'),status=document.getElementById('animation-performance-status'),snapshot=performanceApi.animationPerformanceSnapshot?.()||{},caps=performanceApi.frontendCapabilities?.()||{};if(select&&document.activeElement!==select)select.value=cfg.animationPerformanceMode||'auto';if(status){const fps=snapshot.fps>0?`${snapshot.fps.toFixed(1)} FPS`:'measuring FPS',drop=Number.isFinite(snapshot.droppedPct)?`${snapshot.droppedPct.toFixed(1)}% delayed frames`:'measuring drops',device=caps.piClass?'Pi-class display':'standard display',blocker=cfg.lightweightModeEnabled===true?'motion paused by Lightweight mode':document.documentElement.classList.contains('ld-reduce-motion')?'motion reduced by Accessibility preference':cfg.weatherAnimationsEnabled!==true?'weather animations OFF — enable Weather → NatureScape → Enable weather animations':caps.pi3Class?(performanceApi.visualPerformanceBudget?.().motionAllowed===false?`Pi 3 Auto · full-quality static scenes · ${cfg.pi3StaticSceneRefreshSec||60}s refresh`:'Pi 3 animation override enabled · low-load motion budget'):'motion enabled';status.textContent=`${fps} · target ${snapshot.targetFps||60} · ${drop} · ${snapshot.renderer||'browser compositor'} · ${device} · ${blocker}`;}
 }
+function updateDevicePerformanceGuide(){const performanceApi=LibreDisplayRuntime.getModule('performance'),caps=performanceApi.frontendCapabilities?.()||{},budget=performanceApi.visualPerformanceBudget?.()||{},badge=document.getElementById('device-detected-badge'),hardware=document.getElementById('device-detected-hardware'),select=document.getElementById('s-pi3-static-refresh'),status=document.getElementById('pi3-static-refresh-status'),tier=caps.pi3Class?'pi3':caps.pi4Class?'pi4':caps.pi5Class?'pi5':'standard',label=caps.pi3Class?'Raspberry Pi 3-class':caps.pi4Class?'Raspberry Pi 4':caps.pi5Class?'Raspberry Pi 5':caps.hostModel||'Standard / unclassified hardware';for(const card of document.querySelectorAll('.device-profile-card[data-device-tier]'))card.classList.toggle('device-profile-current',card.dataset.deviceTier===tier);if(badge){badge.textContent=label;badge.dataset.deviceTier=tier;}if(hardware)hardware.textContent=`${caps.hostModel||label} · ${caps.cores||'?'} CPU cores · ${budget.resolutionTier||'standard'} display load · ${budget.motionAllowed===false?'static overlay path':'motion-capable path'}`;if(select&&document.activeElement!==select)select.value=String(cfg.pi3StaticSceneRefreshSec||60);if(status)status.textContent=caps.pi3Class&&budget.motionAllowed===false?`Active on this display: full-quality still scenery refreshes every ${cfg.pi3StaticSceneRefreshSec||60} seconds. No continuous leaf/cloud/dog animation is required.`:caps.pi3Class?'This Pi 3 currently has motion enabled explicitly; the static-scene interval will take effect when Automatic uses the static overlay path.':'Stored for Pi 3 displays. This control does not reduce Pi 4/Pi 5/standard visual quality or animation behavior.';}
+async function setPi3StaticSceneRefresh(value){const allowed=new Set([30,60,90,120,180,300]),next=Number(value);cfg.pi3StaticSceneRefreshSec=allowed.has(next)?next:60;const result=await configApi.saveCfg();LibreDisplayRuntime.getModule('weatherEffects')?.syncPi3StaticSceneRefresh?.(cfg);LibreDisplayRuntime.getModule('weatherEffects')?.refreshWeatherEffects?.();updateDevicePerformanceGuide();return result;}
 async function setAnimationPerformanceMode(mode){const allowed=new Set(['auto','smooth','balanced','fidelity']);cfg.animationPerformanceMode=allowed.has(String(mode))?String(mode):'auto';LibreDisplayRuntime.getModule('performance').refreshAnimationPerformanceMode?.();updateAnimationPerformanceUi();const result=await configApi.saveCfg();settingsApi().applySettings();LibreDisplayRuntime.getModule('weatherEffects')?.refreshWeatherEffects?.();updateAnimationPerformanceUi();return result;}
 function updateLightweightModeUi(){
   const enabled=cfg.lightweightModeEnabled===true,status=document.getElementById('lightweight-mode-status'),toggle=document.getElementById('s-lightweight-mode'),quick=document.getElementById('quick-lightweight-toggle');
@@ -934,7 +949,7 @@ async function setLightweightMode(enabled){
 }
 function toggleLightweightMode(force){return setLightweightMode(typeof force==='boolean'?force:cfg.lightweightModeEnabled!==true);}
 function quickAccessToggleLightweight(){closeQuickAccessMenu();return toggleLightweightMode();}
-LibreDisplayRuntime.getModule('performance').startManagedInterval?.('settings-animation-diagnostics',()=>{if(!document.getElementById('setup')?.classList.contains('hidden'))updateAnimationPerformanceUi();},2500,{skipWhenHidden:true});
+LibreDisplayRuntime.getModule('performance').startManagedInterval?.('settings-animation-diagnostics',()=>{if(!document.getElementById('setup')?.classList.contains('hidden')){updateAnimationPerformanceUi();updateDevicePerformanceGuide();}},2500,{skipWhenHidden:true});
 document.getElementById('quick-lightweight-toggle')?.addEventListener('click',quickAccessToggleLightweight);
 function quickAccessRefresh(){closeQuickAccessMenu();refreshDataNow();}
 function quickAccessUseDevice(){closeQuickAccessMenu();requestDeviceDisplayMode('windowed');}
@@ -1022,7 +1037,7 @@ document.addEventListener('keydown',e=>{
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("settings", {testCalendarInputs,testSingleCalendarSource,positionQuickAccessMenu,closeQuickAccessMenu,toggleQuickAccessMenu,quickAccessArrange,quickAccessAddBlock,quickAccessSettings,quickAccessIntegrations,updateLightweightModeUi,updateAnimationPerformanceUi,setAnimationPerformanceMode,setLightweightMode,toggleLightweightMode,quickAccessToggleLightweight,quickAccessRefresh,quickAccessUseDevice,quickAccessFullscreen,toggleLayoutShortcuts,refreshDataNow,requestDeviceDisplayMode,enterFullscreen}, {
+LibreDisplayRuntime.exposeModule("settings", {testCalendarInputs,testSingleCalendarSource,positionQuickAccessMenu,closeQuickAccessMenu,toggleQuickAccessMenu,quickAccessArrange,quickAccessAddBlock,quickAccessSettings,quickAccessIntegrations,updateLightweightModeUi,updateAnimationPerformanceUi,updateDevicePerformanceGuide,setPi3StaticSceneRefresh,setAnimationPerformanceMode,setLightweightMode,toggleLightweightMode,quickAccessToggleLightweight,quickAccessRefresh,quickAccessUseDevice,quickAccessFullscreen,toggleLayoutShortcuts,refreshDataNow,requestDeviceDisplayMode,enterFullscreen}, {
   "quickAccessMenuOpen": {configurable:true,get:()=>quickAccessMenuOpen,set:(value)=>{quickAccessMenuOpen=value;}}
 }, {globalFunctions:['testCalendarInputs','testSingleCalendarSource','closeQuickAccessMenu','toggleQuickAccessMenu','quickAccessArrange','quickAccessAddBlock','quickAccessSettings','quickAccessIntegrations','quickAccessRefresh','quickAccessUseDevice','quickAccessFullscreen','toggleLayoutShortcuts','refreshDataNow','requestDeviceDisplayMode','enterFullscreen'],globalStates:[]});
 }
@@ -1488,6 +1503,7 @@ const DASHBOARD_EVENT_HANDLERS=Object.freeze({
   h261:function(event){LibreDisplayRuntime.getModule('layout').resetCurrentWeatherArrangement()},
   h262:function(event){LibreDisplayRuntime.getModule('layout').setCurrentWeatherPartGeometry('h',this.value)},
   h263:function(event){LibreDisplayRuntime.getModule('layout').setSelectedFrameFitContent(this.checked)},
+  h264:function(event){switchSettingsTab('device')},
 });
 const DASHBOARD_DELEGATED_EVENTS=Object.freeze(['click','input','change','keydown','dragstart','dragend','dragover','drop']);
 function delegatedEventElement(event,attr){const target=event?.target;return target&&typeof target.closest==='function'?target.closest('['+attr+']'):null;}

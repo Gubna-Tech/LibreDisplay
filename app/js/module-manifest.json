@@ -40,7 +40,7 @@
     "module": "config",
     "part": "bundle",
     "path": "/js/modules/config.js",
-    "lines": 576,
+    "lines": 577,
     "functions": 17,
     "bindings": 53,
     "sections": [
@@ -64,7 +64,7 @@
     "module": "weather",
     "part": "bundle",
     "path": "/js/modules/weather.js",
-    "lines": 1567,
+    "lines": 1571,
     "functions": 188,
     "bindings": 14,
     "sections": [
@@ -136,7 +136,7 @@
     "module": "appearance",
     "part": "bundle",
     "path": "/js/modules/appearance.js",
-    "lines": 1043,
+    "lines": 1042,
     "functions": 63,
     "bindings": 12,
     "sections": [
@@ -188,7 +188,7 @@
     "module": "settings",
     "part": "bundle",
     "path": "/js/modules/settings.js",
-    "lines": 1504,
+    "lines": 1520,
     "functions": 82,
     "bindings": 18,
     "sections": [

@@ -343,9 +343,8 @@ function applyUiCustomization(source=cfg){
     .fc-col .fc-temps{font-size:${scaledClamp(13,.95,18,dailyFc*ps('daily','temperature'))};color:${textColor};${pe('daily','temperature')}}
     .hr-col .hr-time{font-size:${scaledClamp(14,1,19,hourlyFc*ps('hourly','time'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('hourly','time')}}
     .hr-col .hr-icon{font-size:${scaledClamp(24,1.85,34,hourlyFc*ps('hourly','icon'))};${pe('hourly','icon')}}
-    .hr-col .hr-rain{font-size:${scaledClamp(12,.86,17,hourlyFc*ps('hourly','precip'))};${pe('hourly','precip')}}
-    .hr-col .hr-wind{font-size:${scaledClamp(14.5,1.02,21,hourlyFc*ps('hourly','wind'))};${pe('hourly','wind')}}
-    .hr-col .hr-temp{font-size:${scaledClamp(15,1.05,20,hourlyFc*ps('hourly','temperature'))};color:${textColor};${pe('hourly','temperature')}}
+    .hr-col .hr-metric{font-size:${scaledClamp(13.5,.94,19,hourlyFc*ps('hourly','metrics'))};${pe('hourly','metrics')}}
+    .hr-col .hr-temp{color:${textColor};}
     .wx-detail .wd-icon{font-size:${(21*det/100*ps('details','icon')).toFixed(2)}px;${pe('details','icon')}}
     .wx-detail .wd-label{font-size:${scaledClamp(13,.92,17,det*ps('details','label'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.82).toFixed(3)});${pe('details','label')}}
     .wx-detail .wd-val{font-size:${scaledClamp(15,1,19,det*ps('details','value'))};color:${textColor};${pe('details','value')}}

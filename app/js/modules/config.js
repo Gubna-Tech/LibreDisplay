@@ -11,7 +11,7 @@ let cfg = {
   calendars:[],
   photosUrl:'',
   mediaFolders:[],
-  mediaRecursive:true,backgroundMotionEnabled:null,lightweightModeEnabled:false,animationPerformanceMode:'auto',
+  mediaRecursive:true,backgroundMotionEnabled:null,lightweightModeEnabled:false,animationPerformanceMode:'auto',pi3StaticSceneRefreshSec:60,
   backgroundSource:'google',
   stockCategory:'nature',
   stockQuery:'',
@@ -231,6 +231,7 @@ function ensureCfgDefaults(){
   if(!Array.isArray(cfg.mediaFolders))cfg.mediaFolders=[];
   cfg.mediaFolders=[...new Set(cfg.mediaFolders.map(x=>String(x||'').trim()).filter(Boolean))].slice(0,32);
   if(typeof cfg.mediaRecursive!=='boolean')cfg.mediaRecursive=true;if(typeof cfg.backgroundMotionEnabled!=='boolean')cfg.backgroundMotionEnabled=cfg.onboardingComplete===true;
+  cfg.pi3StaticSceneRefreshSec=[30,60,90,120,180,300].includes(Number(cfg.pi3StaticSceneRefreshSec))?Number(cfg.pi3StaticSceneRefreshSec):60;
   cfg.stockCategory=['nature','space','animals','architecture','abstract','ocean','mountains','forest','city','beach','minimal','technology','wallpaper','custom'].includes(cfg.stockCategory)?cfg.stockCategory:'nature';
   cfg.stockQuery=String(cfg.stockQuery||'').slice(0,80);
   cfg.stockResolution=['1920x1080','2560x1440','3840x2160'].includes(cfg.stockResolution)?cfg.stockResolution:'3840x2160';
