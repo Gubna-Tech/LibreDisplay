@@ -3791,7 +3791,7 @@ html.ld-bench-no-canvas #weather-effects-overlay .weather-fx-pi-sprite-layer{dis
 @keyframes ld11052BlizzardSheet{from{transform:translate3d(-18vw,-10vh,0)}to{transform:translate3d(30vw,18vh,0)}}
 @keyframes ld11052BlizzardParticle{0%{transform:translate3d(-10vw,-9vh,0) scale(var(--blizzard-depth,.7));opacity:.42}10%{opacity:1}90%{opacity:.96}100%{transform:translate3d(48vw,28vh,0) scale(var(--blizzard-depth,.7));opacity:.45}}
 
-/* The v1.10.51 field capture showed moving wildlife as the strongest remaining Pi 4
+/* Field capture showed moving wildlife as the strongest remaining Pi 4
    isolation delta. Keep full anatomy and the proven CSS motion path, but restore compositor
    promotion only for the compact transforms that actually move instead of the old blanket
    promotion/de-promotion behavior. */

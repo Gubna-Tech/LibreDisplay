@@ -35,12 +35,16 @@ command -v python3 >/dev/null 2>&1 || { printf 'python3 is required for the one-
 TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/libredisplay-install.XXXXXX")
 ARCHIVE="$TMP_ROOT/LibreDisplay.zip"
 EXTRACT="$TMP_ROOT/extracted"
-URL="https://github.com/$REPOSITORY/archive/refs/tags/v$VERSION.zip"
+ASSET_URL="https://github.com/$REPOSITORY/releases/download/v$VERSION/LibreDisplay-v$VERSION.zip"
+TAG_URL="https://github.com/$REPOSITORY/archive/refs/tags/v$VERSION.zip"
 
 printf '\nLibreDisplay %s one-command installer\n' "$VERSION"
 printf '========================================\n'
 printf 'Downloading the pinned v%s release from GitHub...\n' "$VERSION"
-curl --fail --location --silent --show-error --retry 3 --retry-delay 2 --proto '=https' --tlsv1.2 "$URL" -o "$ARCHIVE"
+if ! curl --fail --location --silent --show-error --retry 3 --retry-delay 2 --proto '=https' --tlsv1.2 "$ASSET_URL" -o "$ARCHIVE"; then
+  printf 'Versioned release asset was unavailable; falling back to the GitHub tag archive...\n'
+  curl --fail --location --silent --show-error --retry 3 --retry-delay 2 --proto '=https' --tlsv1.2 "$TAG_URL" -o "$ARCHIVE"
+fi
 mkdir -p "$EXTRACT"
 
 python3 - "$ARCHIVE" "$EXTRACT" "$VERSION" <<'PY'

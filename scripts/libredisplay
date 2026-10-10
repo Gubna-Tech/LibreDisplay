@@ -76,13 +76,44 @@ def latest_release():
     latest = ".".join(str(part) for part in parts)
 
     alternate_tag = release_tag[1:] if release_tag.lower().startswith("v") else "v" + release_tag
+    tag_url = f"https://github.com/{REPOSITORY}/archive/refs/tags/{urllib.parse.quote(release_tag, safe='')}.zip"
+    alternate_url = f"https://github.com/{REPOSITORY}/archive/refs/tags/{urllib.parse.quote(alternate_tag, safe='')}.zip"
+
+    preferred_names = (f"LibreDisplay-v{latest}.zip", f"LibreDisplay-{latest}.zip")
+    asset = None
+    for preferred_name in preferred_names:
+        asset = next((row for row in (payload.get("assets") or []) if str(row.get("name") or "") == preferred_name and row.get("browser_download_url")), None)
+        if asset is not None:
+            break
+
+    if asset is not None:
+        digest = str(asset.get("digest") or "").strip().lower()
+        if digest and not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+            digest = ""
+        try:
+            size = int(asset.get("size") or 0)
+        except (TypeError, ValueError):
+            size = 0
+        return {
+            "version": latest,
+            "tag": release_tag,
+            "url": str(asset["browser_download_url"]),
+            "alternate_url": tag_url,
+            "fallback_urls": [tag_url, alternate_url],
+            "digest": digest,
+            "size": max(0, size),
+            "source": "release-asset",
+        }
+
     return {
         "version": latest,
         "tag": release_tag,
-        "url": f"https://github.com/{REPOSITORY}/archive/refs/tags/{urllib.parse.quote(release_tag, safe='')}.zip",
-        "alternate_url": f"https://github.com/{REPOSITORY}/archive/refs/tags/{urllib.parse.quote(alternate_tag, safe='')}.zip",
+        "url": tag_url,
+        "alternate_url": alternate_url,
+        "fallback_urls": [alternate_url],
         "digest": "",
         "size": 0,
+        "source": "tag-archive",
     }
 
 
@@ -103,14 +134,17 @@ def print_check():
 
 def download_release(release, destination):
     urls = [release["url"]]
+    for fallback in release.get("fallback_urls") or []:
+        if fallback and fallback not in urls:
+            urls.append(fallback)
     if release.get("alternate_url") and release["alternate_url"] not in urls:
         urls.append(release["alternate_url"])
+
     last_exc = None
-    hasher = hashlib.sha256()
-    total = 0
-    for attempt_url in urls:
+    for index, attempt_url in enumerate(urls):
         request = urllib.request.Request(attempt_url, headers={"User-Agent": f"LibreDisplay/{current_version()} updater"})
-        hasher = hashlib.sha256(); total = 0
+        hasher = hashlib.sha256()
+        total = 0
         try:
             with urllib.request.urlopen(request, timeout=45) as response, destination.open("wb") as output:
                 while True:
@@ -120,20 +154,28 @@ def download_release(release, destination):
                     total += len(chunk)
                     if total > MAX_ARCHIVE_BYTES:
                         fail("Downloaded release archive exceeded the safety size limit.")
-                    hasher.update(chunk); output.write(chunk)
-            last_exc = None; break
+                    hasher.update(chunk)
+                    output.write(chunk)
         except (OSError, urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
-            last_exc = exc; destination.unlink(missing_ok=True)
-    if last_exc is not None:
-        fail(f"Could not download the LibreDisplay release using either supported tag style: {last_exc}")
+            last_exc = exc
+            destination.unlink(missing_ok=True)
+            continue
 
-    if release["size"] and total != release["size"]:
-        fail("The downloaded release size does not match GitHub's asset metadata.")
-    actual = hasher.hexdigest()
-    expected = release["digest"].split(":", 1)[1] if release["digest"] else ""
-    if expected and actual != expected:
-        fail("The downloaded release failed its SHA-256 verification.")
-    return actual
+        # GitHub asset size/digest metadata belongs only to the preferred asset.
+        # Tag-archive fallbacks are generated independently and cannot be compared
+        # against the attached asset metadata.
+        if index == 0:
+            if release.get("size") and total != release["size"]:
+                destination.unlink(missing_ok=True)
+                fail("The downloaded release size does not match GitHub's asset metadata.")
+            actual = hasher.hexdigest()
+            expected = release.get("digest", "").split(":", 1)[1] if release.get("digest") else ""
+            if expected and actual != expected:
+                destination.unlink(missing_ok=True)
+                fail("The downloaded release failed its SHA-256 verification.")
+        return hasher.hexdigest()
+
+    fail(f"Could not download the LibreDisplay release using the release asset or supported tag archives: {last_exc}")
 
 
 def safe_extract(archive, destination):

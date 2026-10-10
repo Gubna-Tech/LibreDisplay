@@ -116,7 +116,22 @@ def github_json(url: str, user_agent: str):
 def release_download(payload: dict, latest: str):
     release_tag = str(payload.get("tag_name") or "").strip()
     version_tuple(release_tag)
-    return f"https://github.com/{REPOSITORY}/archive/refs/tags/{urllib.parse.quote(release_tag, safe='')}.zip", "", 0
+    alternate_tag = release_tag[1:] if release_tag.lower().startswith("v") else "v" + release_tag
+    tag_url = f"https://github.com/{REPOSITORY}/archive/refs/tags/{urllib.parse.quote(release_tag, safe='')}.zip"
+    alternate_url = f"https://github.com/{REPOSITORY}/archive/refs/tags/{urllib.parse.quote(alternate_tag, safe='')}.zip"
+    for preferred_name in (f"LibreDisplay-v{latest}.zip", f"LibreDisplay-{latest}.zip"):
+        asset = next((row for row in (payload.get("assets") or []) if str(row.get("name") or "") == preferred_name and row.get("browser_download_url")), None)
+        if asset is None:
+            continue
+        digest = str(asset.get("digest") or "").strip().lower()
+        if digest and not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+            digest = ""
+        try:
+            size = max(0, int(asset.get("size") or 0))
+        except (TypeError, ValueError):
+            size = 0
+        return str(asset["browser_download_url"]), digest, size, [tag_url, alternate_url]
+    return tag_url, "", 0, [alternate_url]
 
 
 def download(url: str, destination: Path, user_agent: str, expected_digest="", expected_size=0):
@@ -207,17 +222,21 @@ def prepare(args) -> int:
     archive = stage / "release.zip"
     extracted = stage / "extracted"
     extracted.mkdir()
-    url, digest, expected_size = release_download(payload, latest)
-    release_tag = str(payload.get("tag_name") or "").strip()
-    alternate_tag = release_tag[1:] if release_tag.lower().startswith("v") else "v" + release_tag
-    alternate_url = f"https://github.com/{REPOSITORY}/archive/refs/tags/{urllib.parse.quote(alternate_tag, safe='')}.zip"
+    url, digest, expected_size, fallback_urls = release_download(payload, latest)
     print(f"Downloading LibreDisplay Docker v{latest}...")
     try:
-        try:
-            download(url, archive, f"LibreDisplay-Docker/{current} updater", digest, expected_size)
-        except (OSError, urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
-            archive.unlink(missing_ok=True)
-            download(alternate_url, archive, f"LibreDisplay-Docker/{current} updater", digest, expected_size)
+        candidates = [(url, digest, expected_size)] + [(fallback, "", 0) for fallback in fallback_urls if fallback and fallback != url]
+        last_exc = None
+        for attempt_url, attempt_digest, attempt_size in candidates:
+            try:
+                download(attempt_url, archive, f"LibreDisplay-Docker/{current} updater", attempt_digest, attempt_size)
+                last_exc = None
+                break
+            except (OSError, urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
+                last_exc = exc
+                archive.unlink(missing_ok=True)
+        if last_exc is not None:
+            raise last_exc
         safe_extract(archive, extracted)
         release_root = locate_release_root(extracted)
         verify_release(release_root, latest)
