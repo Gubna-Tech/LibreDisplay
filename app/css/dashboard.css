@@ -3054,14 +3054,15 @@ html.ld-pi4-4k #weather-effects-overlay .weather-fx-splash,
 html.ld-pi4-4k #weather-effects-overlay .hazard-fire-ember:nth-of-type(even),
 html.ld-pi4-4k #weather-effects-overlay .holiday-sparkle:nth-of-type(even){display:none!important}
 .weather-fx-pi-canvas{position:absolute;inset:0;display:block;width:100%;height:100%;z-index:2;pointer-events:none;contain:strict}
-html.ld-pi4-device #weather-effects-overlay .weather-fx-pi-canvas{filter:none!important;box-shadow:none!important}
+.weather-fx-pi-cloud-canvas{position:absolute;left:0;top:0;display:block;width:100%;height:auto;z-index:1;pointer-events:none;contain:strict;image-rendering:auto}
+html.ld-pi4-device #weather-effects-overlay :is(.weather-fx-pi-canvas,.weather-fx-pi-cloud-canvas){filter:none!important;box-shadow:none!important}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-overcast-deck{animation:none!important;transform:none!important}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-bird{z-index:3}
 
 html.ld-pi-steady #weather-effects-overlay :is(.weather-fx-grass-blade,.weather-fx-season-grass,.weather-fx-cloud-mass,.weather-fx-fog-bank,.holiday-foundation,.holiday-overlay .holiday-sparkle,.holiday-overlay .holiday-confetti){animation-duration:calc(var(--weather-speed-factor,1) * 18s)!important}
 html.ld-pi-smooth #weather-effects-overlay :is(.weather-fx-grass-blade,.weather-fx-season-grass,.holiday-foundation,.holiday-overlay .holiday-sparkle,.holiday-overlay .holiday-confetti,.holiday-overlay .holiday-heart,.holiday-overlay .holiday-bat,.holiday-overlay .holiday-ghost){animation:none!important}
 html.ld-pi-smooth #weather-effects-overlay :is(.weather-fx-cloud-mass,.weather-fx-fog-bank){animation-duration:36s!important}
-html.ld-pi4-device #weather-effects-overlay .weather-fx-pi-canvas{image-rendering:auto;contain:strict}
+html.ld-pi4-device #weather-effects-overlay :is(.weather-fx-pi-canvas,.weather-fx-pi-cloud-canvas){image-rendering:auto;contain:strict}
 
 /* Deadhead integration card uses original abstract geometry; no third-party artwork is bundled. */
 .integration-render-host .deadhead-panel{position:relative;height:100%;min-height:0;overflow:hidden;padding:16px;border-radius:18px;background:linear-gradient(145deg,rgba(20,19,32,.94),rgba(36,19,42,.91) 48%,rgba(19,41,43,.92));color:#f8f2e7;box-sizing:border-box;isolation:isolate}
