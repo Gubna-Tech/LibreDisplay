@@ -52,8 +52,8 @@
     "module": "performance",
     "part": "bundle",
     "path": "/js/modules/performance.js",
-    "lines": 332,
-    "functions": 20,
+    "lines": 369,
+    "functions": 24,
     "bindings": 1,
     "sections": [
       "/js/core/performance.js"
@@ -64,8 +64,8 @@
     "module": "weather",
     "part": "bundle",
     "path": "/js/modules/weather.js",
-    "lines": 1522,
-    "functions": 183,
+    "lines": 1523,
+    "functions": 184,
     "bindings": 14,
     "sections": [
       "/js/weather/index.js",
@@ -121,8 +121,8 @@
     "module": "layout",
     "part": "bundle",
     "path": "/js/modules/layout.js",
-    "lines": 1144,
-    "functions": 193,
+    "lines": 1151,
+    "functions": 198,
     "bindings": 32,
     "sections": [
       "/js/layout/index.js",

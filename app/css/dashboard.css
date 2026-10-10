@@ -1382,6 +1382,14 @@ html.ld-bench-no-daily #wx-forecast { visibility:hidden !important; }
 html.ld-bench-no-hourly #wx-hourly-block { visibility:hidden !important; }
 html.ld-bench-no-forecast :is(#wx-forecast,#wx-hourly-block) { visibility:hidden !important; }
 html.ld-bench-no-alerts-custom :is(#alert-zone,#custom-block-layer,#layout-showcase-layer) { visibility:hidden !important; }
+html.ld-bench-no-custom-blocks :is(#custom-block-layer,#layout-showcase-layer) { visibility:hidden !important; }
+html.ld-bench-no-weather-glyphs .ld-weather-glyph { visibility:hidden !important; }
+html.ld-bench-pause-glyph-motion .ld-weather-glyph,
+html.ld-bench-pause-glyph-motion .ld-weather-glyph *,
+html.ld-bench-pause-glyph-motion .ld-weather-glyph *::before,
+html.ld-bench-pause-glyph-motion .ld-weather-glyph *::after { animation:none !important; transition:none !important; filter:none !important; }
+html.ld-bench-no-text-shadow #app * { text-shadow:none !important; }
+html.ld-bench-no-surface-effects :is(#top-strip,.wx-main,#clock-block,.wx-details,#wx-forecast,#wx-hourly-block,#alert-zone,.custom-block-card) { box-shadow:none !important; filter:none !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
 html.ld-bench-no-dashboard-ui :is(#app,#cog) { visibility:hidden !important; }
 html.ld-bench-minimal :is(#app,#cog,#weather-effects-overlay,#bg,#bg-next) { visibility:hidden !important; }
 .shortcut-note {
@@ -2076,6 +2084,38 @@ html.ld-bench-pause-forecast-motion :is(.wx-forecast,.wx-hourly) .ld-weather-gly
 html.ld-bench-pause-forecast-motion :is(.wx-forecast,.wx-hourly) .ld-weather-glyph *,
 html.ld-bench-pause-forecast-motion :is(.wx-forecast,.wx-hourly) .ld-weather-glyph *::before,
 html.ld-bench-pause-forecast-motion :is(.wx-forecast,.wx-hourly) .ld-weather-glyph *::after{animation:none!important;transition:none!important;filter:none!important;}
+
+/* Pi 5 forecast glyphs keep the same vector artwork and motion language while
+   collapsing the most expensive repeated precipitation/fog sub-animations.
+   The current-weather hero glyph remains fully detailed. The forecast path also
+   avoids a live filter over each animated subtree, replacing it with a static
+   painted shadow so motion does not force an offscreen filter repaint per icon. */
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-weather-glyph.ld-weather-glyph-active{filter:none;contain:layout style;isolation:isolate}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-weather-glyph.ld-weather-glyph-active::after{content:"";position:absolute;left:.10em;right:.05em;bottom:-.055em;height:.20em;border-radius:50%;background:radial-gradient(ellipse at center,rgba(0,0,0,.30),rgba(0,0,0,.11) 46%,transparent 74%);pointer-events:none;z-index:-1}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-wx-precip i{display:none!important}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-wx-precip::before,
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-wx-precip::after{content:"";position:absolute;inset:-.08em 0 -.02em 0;pointer-events:none;will-change:transform,opacity}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-wx-rain::before,
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-wx-rain::after{background:repeating-linear-gradient(99deg,transparent 0 .075em,rgba(221,244,255,.96) .078em .105em,rgba(75,178,235,.92) .108em .14em,transparent .145em .205em);background-size:.205em .34em;opacity:.88;transform:translate3d(0,-.20em,0) rotate(7deg);animation:ldWxRainBatch 1.08s linear infinite}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-wx-rain::after{background-size:.235em .30em;opacity:.62;animation-duration:1.34s;animation-delay:-.66s;transform:translate3d(.06em,-.26em,0) rotate(7deg)}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-weather-light .ld-wx-rain::before{opacity:.68;animation-duration:1.34s}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-weather-light .ld-wx-rain::after{opacity:.42;animation-duration:1.62s}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-weather-heavy .ld-wx-rain::before{opacity:1;animation-duration:.88s}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-weather-heavy .ld-wx-rain::after{opacity:.78;animation-duration:1.04s}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-wx-snow::before,
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-wx-snow::after{background-image:radial-gradient(circle,#fff 0 .030em,transparent .034em),radial-gradient(circle,rgba(255,255,255,.94) 0 .024em,transparent .029em),radial-gradient(circle,rgba(245,251,255,.84) 0 .021em,transparent .026em);background-position:.06em .02em,.29em .13em,.53em -.01em;background-size:.36em .31em,.43em .37em,.31em .29em;opacity:.92;animation:ldWxSnowBatch 2.7s linear infinite}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-wx-snow::after{opacity:.58;animation-duration:3.45s;animation-delay:-1.72s;transform:translateX(.05em)}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-weather-light .ld-wx-snow::before{opacity:.70;animation-duration:3.15s}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-weather-heavy .ld-wx-snow::before{opacity:1;animation-duration:2.15s}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-wx-hail::before,
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-wx-hail::after{background-image:radial-gradient(circle at 35% 30%,#fff 0 .035em,#d8efff .039em .058em,#92bfd8 .062em .070em,transparent .074em),radial-gradient(circle at 35% 30%,#fff 0 .032em,#d8efff .036em .054em,#92bfd8 .058em .066em,transparent .070em);background-position:.08em .02em,.43em .12em;background-size:.36em .30em,.41em .34em;animation:ldWxHailBatch 1.15s linear infinite}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-wx-hail::after{opacity:.65;animation-delay:-.58s;animation-duration:1.42s}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-wx-fog i{animation:none!important}
+html.ld-pi5-device :is(.wx-forecast,.wx-hourly) .ld-wx-fog{animation:ldWxFogBatch 3.8s ease-in-out infinite alternate;will-change:transform,opacity}
+@keyframes ldWxRainBatch{0%{transform:translate3d(-.01em,-.23em,0) rotate(7deg);opacity:.08}18%{opacity:1}100%{transform:translate3d(.05em,.36em,0) rotate(7deg);opacity:.15}}
+@keyframes ldWxSnowBatch{0%{transform:translate3d(-.025em,-.18em,0);opacity:.10}18%{opacity:1}100%{transform:translate3d(.09em,.34em,0);opacity:.22}}
+@keyframes ldWxHailBatch{0%{transform:translate3d(0,-.16em,0);opacity:.10}20%{opacity:1}100%{transform:translate3d(.025em,.34em,0);opacity:.20}}
+@keyframes ldWxFogBatch{from{transform:translateX(-.10em);opacity:.62}to{transform:translateX(.10em);opacity:.96}}
 
 body.ld-weather-no-precip .ld-wx-precip{display:none!important}
 body.ld-weather-no-clouds .ld-wx-cloud{display:none!important}
