@@ -52,8 +52,8 @@
     "module": "performance",
     "part": "bundle",
     "path": "/js/modules/performance.js",
-    "lines": 369,
-    "functions": 24,
+    "lines": 371,
+    "functions": 25,
     "bindings": 1,
     "sections": [
       "/js/core/performance.js"
@@ -64,8 +64,8 @@
     "module": "weather",
     "part": "bundle",
     "path": "/js/modules/weather.js",
-    "lines": 1523,
-    "functions": 184,
+    "lines": 1526,
+    "functions": 186,
     "bindings": 14,
     "sections": [
       "/js/weather/index.js",
@@ -151,7 +151,7 @@
     "module": "remote",
     "part": "bundle",
     "path": "/js/modules/remote.js",
-    "lines": 382,
+    "lines": 381,
     "functions": 43,
     "bindings": 10,
     "sections": [

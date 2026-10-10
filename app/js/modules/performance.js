@@ -98,7 +98,7 @@ function animationGovernorTick(now){
   }
   if((caps.pi4Class||caps.pi5Class)&&mode==='auto'&&!settingsOpen&&stamp-animationGovernor.lastProbe>=5000&&animationGovernor.samples.length>=120){
     animationGovernor.lastProbe=stamp;animationGovernor.probes++;const sorted=[...animationGovernor.samples].sort((a,b)=>a-b),p90=sorted[Math.floor(sorted.length*.90)]||16.7,fps=governorFps,target=animationGovernor.targetFps,drop=animationGovernor.droppedPct;
-    if((target>=45&&(p90>31||fps<36||drop>7))||(target===30&&(p90>38||fps<28||drop>8))){const nextTarget=30,nextQuality=target>=45?animationGovernor.quality:Math.max(.42,animationGovernor.quality-.12),changed=nextTarget!==animationGovernor.targetFps||Math.abs(nextQuality-animationGovernor.quality)>.001;animationGovernor.targetFps=nextTarget;animationGovernor.quality=nextQuality;animationGovernor.samples=[];animationGovernor.sampleTotal=0;animationGovernor.frames=animationGovernor.dropped=0;animationGovernor.lastAdjust=stamp;if(changed){applyFrontendPerformanceClass();window.dispatchEvent(new CustomEvent('libredisplay:performancechange',{detail:animationPerformanceSnapshot()}));}}
+    if((target>=45&&(p90>31||fps<36||drop>7))||(target===30&&(p90>38||fps<28||drop>8))){const nextTarget=30,qualityFloor=caps.pi4Class?.78:caps.pi5Class?.60:.42,nextQuality=target>=45?animationGovernor.quality:Math.max(qualityFloor,animationGovernor.quality-.12),changed=nextTarget!==animationGovernor.targetFps||Math.abs(nextQuality-animationGovernor.quality)>.001;animationGovernor.targetFps=nextTarget;animationGovernor.quality=nextQuality;animationGovernor.samples=[];animationGovernor.sampleTotal=0;animationGovernor.frames=animationGovernor.dropped=0;animationGovernor.lastAdjust=stamp;if(changed){applyFrontendPerformanceClass();window.dispatchEvent(new CustomEvent('libredisplay:performancechange',{detail:animationPerformanceSnapshot()}));}}
     else if(caps.pi4Class&&target===30){/* Pi 4 Automatic intentionally remains cadence-locked at 30 FPS. 30 divides a 60 Hz display evenly; 45 FPS creates visible 2-1-1 presentation judder even when average FPS is higher. */}
     else if(caps.pi5Class&&target===30&&pixels.tier!=='4k'&&p90<25&&fps>37&&drop<1&&stamp-animationGovernor.lastAdjust>=30000){animationGovernor.targetFps=45;animationGovernor.quality=Math.min(.78,animationGovernor.quality+.06);animationGovernor.samples=[];animationGovernor.sampleTotal=0;animationGovernor.frames=animationGovernor.dropped=0;animationGovernor.lastAdjust=stamp;applyFrontendPerformanceClass();window.dispatchEvent(new CustomEvent('libredisplay:performancechange',{detail:animationPerformanceSnapshot()}));}
     else if(caps.pi5Class&&target===45&&pixels.tier==='standard'&&p90<19&&fps>50&&drop<1&&stamp-animationGovernor.lastAdjust>=45000){animationGovernor.targetFps=60;animationGovernor.quality=Math.min(.86,animationGovernor.quality+.05);animationGovernor.samples=[];animationGovernor.sampleTotal=0;animationGovernor.frames=animationGovernor.dropped=0;animationGovernor.lastAdjust=stamp;applyFrontendPerformanceClass();window.dispatchEvent(new CustomEvent('libredisplay:performancechange',{detail:animationPerformanceSnapshot()}));}
@@ -231,6 +231,33 @@ function weatherCanvasTelemetrySnapshot(){try{return LibreDisplayRuntime.getModu
 
 let displayBenchmarkRunning=false;
 const DISPLAY_BENCHMARK_CLASSES=['ld-bench-pause-css-motion','ld-bench-pause-glyph-motion','ld-bench-pause-forecast-motion','ld-bench-no-weather-glyphs','ld-bench-no-canvas','ld-bench-no-wildlife','ld-bench-no-dog','ld-bench-no-calendar','ld-bench-no-current','ld-bench-no-clock','ld-bench-no-details','ld-bench-no-daily','ld-bench-no-hourly','ld-bench-no-forecast','ld-bench-no-custom-blocks','ld-bench-no-alerts-custom','ld-bench-no-overlay','ld-bench-no-background','ld-bench-no-text-shadow','ld-bench-no-surface-effects','ld-bench-no-dashboard-ui','ld-bench-minimal'];
+const DISPLAY_BENCHMARK_STAGES=[
+  {key:'baseline',label:'Full dashboard'},
+  {key:'pauseAutoFit',label:'Custom-layout auto-fit paused',pauseAutoFit:true},
+  {key:'pauseCss',label:'All CSS motion paused',className:'ld-bench-pause-css-motion'},
+  {key:'pauseGlyphMotion',label:'All weather glyph motion paused',className:'ld-bench-pause-glyph-motion'},
+  {key:'pauseForecastMotion',label:'Forecast icon motion/effects paused',className:'ld-bench-pause-forecast-motion'},
+  {key:'noWeatherGlyphs',label:'Weather glyphs hidden',className:'ld-bench-no-weather-glyphs'},
+  {key:'noCalendar',label:'Calendar hidden',className:'ld-bench-no-calendar'},
+  {key:'noCurrent',label:'Current weather hidden',className:'ld-bench-no-current'},
+  {key:'noClock',label:'Clock hidden',className:'ld-bench-no-clock'},
+  {key:'noDetails',label:'Weather details hidden',className:'ld-bench-no-details'},
+  {key:'noDaily',label:'Daily forecast hidden',className:'ld-bench-no-daily'},
+  {key:'noHourly',label:'Hourly forecast hidden',className:'ld-bench-no-hourly'},
+  {key:'noForecast',label:'Daily/hourly forecasts hidden',className:'ld-bench-no-forecast'},
+  {key:'noCustomBlocks',label:'Custom/integration blocks hidden',className:'ld-bench-no-custom-blocks'},
+  {key:'noAlertsCustom',label:'Alerts and added blocks hidden',className:'ld-bench-no-alerts-custom'},
+  {key:'noCanvas',label:'Shared weather/flora canvas paused',className:'ld-bench-no-canvas'},
+  {key:'noWildlife',label:'CSS wildlife hidden',className:'ld-bench-no-wildlife'},
+  {key:'noDog',label:'Dog animation hidden',className:'ld-bench-no-dog'},
+  {key:'noOverlay',label:'Weather/NatureScape overlay hidden',className:'ld-bench-no-overlay'},
+  {key:'noBackground',label:'Background layers and video paused',className:'ld-bench-no-background',pauseVideo:true},
+  {key:'noTextShadow',label:'Dashboard text shadows removed',className:'ld-bench-no-text-shadow'},
+  {key:'noSurfaceEffects',label:'Glass/filter/shadow surfaces removed',className:'ld-bench-no-surface-effects'},
+  {key:'noDashboardUi',label:'All dashboard widgets/layout hidden',className:'ld-bench-no-dashboard-ui'},
+  {key:'minimal',label:'Minimal compositor ceiling',className:'ld-bench-minimal',pauseVideo:true}
+];
+function displayBenchmarkStageCount(){return DISPLAY_BENCHMARK_STAGES.length;}
 function waitForBenchmarkFrameDelay(ms){return new Promise(resolve=>setTimeout(resolve,Math.max(0,Number(ms)||0)));}
 function sampleDisplayFrameRate(durationMs=1800){
   const duration=Math.max(800,Number(durationMs)||1800);
@@ -254,7 +281,7 @@ function diagnoseDisplayBenchmark(stages){
   const byKey=Object.fromEntries(stages.map(row=>[row.key,row])),base=Number(byKey.baseline?.fps)||0,ceiling=Number(byKey.minimal?.fps)||0;
   const candidates=stages.filter(row=>!['baseline','minimal'].includes(row.key)).map(row=>({...row,gain:(Number(row.fps)||0)-base})).sort((a,b)=>b.gain-a.gain),best=candidates[0]||{gain:0,label:'No single layer'};
   const longTaskStage=[...stages].sort((a,b)=>(Number(b.longTasks?.totalMs)||0)-(Number(a.longTasks?.totalMs)||0))[0];
-  if(base>=27)return {kind:'healthy',summary:`The full dashboard sustained ${base.toFixed(1)} FPS with a ${ceiling.toFixed(1)} FPS minimal compositor ceiling. This run does not reproduce the low-FPS condition.`,largestSingleGain:best.gain||0,largestSingleStage:best.key||'',longTaskStage:longTaskStage?.key||''};
+  const baseP90=Number(byKey.baseline?.p90Ms)||0,baseP99=Number(byKey.baseline?.p99Ms)||0,baseDropped=Number(byKey.baseline?.droppedPct)||0;if(base>=27&&baseP90<=38&&baseDropped<=5)return {kind:'healthy',summary:`The full dashboard sustained ${base.toFixed(1)} FPS with stable 30 FPS-class pacing (p90 ${baseP90.toFixed(1)} ms) and a ${ceiling.toFixed(1)} FPS minimal compositor ceiling.`,largestSingleGain:best.gain||0,largestSingleStage:best.key||'',longTaskStage:longTaskStage?.key||''};if(base>=27&&(baseP90>38||baseDropped>5)){return {kind:'pacing',summary:`Average throughput reached ${base.toFixed(1)} FPS, but frame pacing is uneven (p90 ${baseP90.toFixed(1)} ms, p99 ${baseP99.toFixed(1)} ms, ${baseDropped.toFixed(1)}% dropped). The strongest isolated gain is ${best.label}: +${best.gain.toFixed(1)} FPS, while the minimal compositor ceiling reaches ${ceiling.toFixed(1)} FPS.`,largestSingleGain:best.gain||0,largestSingleStage:best.key||'',longTaskStage:longTaskStage?.key||''};}
   if(ceiling<18||ceiling-base<4)return {kind:'platform',summary:`The minimal compositor ceiling is only ${ceiling.toFixed(1)} FPS versus ${base.toFixed(1)} FPS with the dashboard visible. The bottleneck remains below individual LibreDisplay layers.`,largestSingleGain:best.gain||0,largestSingleStage:best.key||'',longTaskStage:longTaskStage?.key||''};
   if(best.gain>=3){
     const names={pauseCss:'all CSS animation/transition motion',pauseGlyphMotion:'all weather-glyph motion',pauseForecastMotion:'forecast icon motion/effects',pauseAutoFit:'custom-layout auto-fit work',noWeatherGlyphs:'weather glyph paint/compositing',noCalendar:'calendar rendering',noCurrent:'current-weather rendering',noClock:'clock rendering',noDetails:'weather-details rendering',noDaily:'daily forecast rendering',noHourly:'hourly forecast rendering',noForecast:'combined daily/hourly forecast rendering',noCustomBlocks:'custom/integration blocks',noAlertsCustom:'alerts and added/custom blocks',noCanvas:'the shared weather/flora canvas',noWildlife:'CSS wildlife motion',noDog:'dog animation',noOverlay:'the Weather/NatureScape overlay',noBackground:'background image/video rendering',noTextShadow:'dashboard text shadows',noSurfaceEffects:'glass/filter/shadow surfaces',noDashboardUi:'dashboard widgets/layout'};
@@ -267,32 +294,7 @@ async function runDisplayPerformanceBenchmark(options={}){
   if(displayBenchmarkRunning)throw new Error('Display performance test is already running.');
   displayBenchmarkRunning=true;
   const layout=(()=>{try{return LibreDisplayRuntime.getModule('layout');}catch{return null;}})(),root=document.documentElement,startedAt=new Date().toISOString(),initialClasses=DISPLAY_BENCHMARK_CLASSES.filter(name=>root.classList.contains(name)),wasActive=root.classList.contains('ld-performance-benchmark-active'),playingVideos=[...document.querySelectorAll('video')].filter(v=>!v.paused&&!v.ended),stageDuration=Math.max(800,Number(options.stageDurationMs)||1800),settleMs=Math.max(120,Number(options.settleMs)||280),warmupMs=Math.max(600,Number(options.warmupMs)||1200);
-  const stages=[
-    {key:'baseline',label:'Full dashboard'},
-    {key:'pauseAutoFit',label:'Custom-layout auto-fit paused',pauseAutoFit:true},
-    {key:'pauseCss',label:'All CSS motion paused',className:'ld-bench-pause-css-motion'},
-    {key:'pauseGlyphMotion',label:'All weather glyph motion paused',className:'ld-bench-pause-glyph-motion'},
-    {key:'pauseForecastMotion',label:'Forecast icon motion/effects paused',className:'ld-bench-pause-forecast-motion'},
-    {key:'noWeatherGlyphs',label:'Weather glyphs hidden',className:'ld-bench-no-weather-glyphs'},
-    {key:'noCalendar',label:'Calendar hidden',className:'ld-bench-no-calendar'},
-    {key:'noCurrent',label:'Current weather hidden',className:'ld-bench-no-current'},
-    {key:'noClock',label:'Clock hidden',className:'ld-bench-no-clock'},
-    {key:'noDetails',label:'Weather details hidden',className:'ld-bench-no-details'},
-    {key:'noDaily',label:'Daily forecast hidden',className:'ld-bench-no-daily'},
-    {key:'noHourly',label:'Hourly forecast hidden',className:'ld-bench-no-hourly'},
-    {key:'noForecast',label:'Daily/hourly forecasts hidden',className:'ld-bench-no-forecast'},
-    {key:'noCustomBlocks',label:'Custom/integration blocks hidden',className:'ld-bench-no-custom-blocks'},
-    {key:'noAlertsCustom',label:'Alerts and added blocks hidden',className:'ld-bench-no-alerts-custom'},
-    {key:'noCanvas',label:'Shared weather/flora canvas paused',className:'ld-bench-no-canvas'},
-    {key:'noWildlife',label:'CSS wildlife hidden',className:'ld-bench-no-wildlife'},
-    {key:'noDog',label:'Dog animation hidden',className:'ld-bench-no-dog'},
-    {key:'noOverlay',label:'Weather/NatureScape overlay hidden',className:'ld-bench-no-overlay'},
-    {key:'noBackground',label:'Background layers and video paused',className:'ld-bench-no-background',pauseVideo:true},
-    {key:'noTextShadow',label:'Dashboard text shadows removed',className:'ld-bench-no-text-shadow'},
-    {key:'noSurfaceEffects',label:'Glass/filter/shadow surfaces removed',className:'ld-bench-no-surface-effects'},
-    {key:'noDashboardUi',label:'All dashboard widgets/layout hidden',className:'ld-bench-no-dashboard-ui'},
-    {key:'minimal',label:'Minimal compositor ceiling',className:'ld-bench-minimal',pauseVideo:true}
-  ];
+  const stages=DISPLAY_BENCHMARK_STAGES;
   const results=[];
   const restoreVideos=()=>{for(const video of playingVideos){try{if(video.paused)video.play().catch(()=>{});}catch{}}};
   try{
@@ -364,6 +366,6 @@ queueMicrotask(hydrateRuntimeHardware);
 observeFrontendLongTasks();
 startAnimationGovernor();
 
-LibreDisplayRuntime.exposeModule('performance',{hardwareTierFromModel,hydrateRuntimeHardware,frontendCapabilities,frontendPixelLoad,baseVisualPerformanceBudget,visualPerformanceBudget,animationPerformanceMode:currentAnimationPerformanceMode,animationModeProfile,animationPerformanceFrameMs,animationPerformanceSnapshot,browserGraphicsSnapshot,startAnimationGovernor,refreshAnimationPerformanceMode,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,sampleDisplayFrameRate,runDisplayPerformanceBenchmark,diagnoseDisplayBenchmark,frontendPerformanceSnapshot,animationWorkloadSnapshot,animationCostSnapshot,domWorkloadSnapshot,integrationObserverTelemetrySnapshot,weatherCanvasTelemetrySnapshot,observeFrontendLongTasks,recentLongTaskSnapshot,backgroundRuntimeTelemetrySnapshot},{displayBenchmarkRunning:{configurable:true,get:()=>displayBenchmarkRunning}},{globals:false});
+LibreDisplayRuntime.exposeModule('performance',{hardwareTierFromModel,hydrateRuntimeHardware,frontendCapabilities,frontendPixelLoad,baseVisualPerformanceBudget,visualPerformanceBudget,animationPerformanceMode:currentAnimationPerformanceMode,animationModeProfile,animationPerformanceFrameMs,animationPerformanceSnapshot,browserGraphicsSnapshot,startAnimationGovernor,refreshAnimationPerformanceMode,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,sampleDisplayFrameRate,displayBenchmarkStageCount,runDisplayPerformanceBenchmark,diagnoseDisplayBenchmark,frontendPerformanceSnapshot,animationWorkloadSnapshot,animationCostSnapshot,domWorkloadSnapshot,integrationObserverTelemetrySnapshot,weatherCanvasTelemetrySnapshot,observeFrontendLongTasks,recentLongTaskSnapshot,backgroundRuntimeTelemetrySnapshot},{displayBenchmarkRunning:{configurable:true,get:()=>displayBenchmarkRunning}},{globals:false});
 }
 // End source section: /js/core/performance.js
