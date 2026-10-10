@@ -575,7 +575,7 @@ function startLayoutEditor(){
   cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));
   document.body.classList.add('custom-layout','layout-editing');
   for(const [key,r] of Object.entries(layoutEditorDraft))applyOneLayoutRect(key,r);
-  renderCustomBlocks(layoutCustomBlocksDraft);
+  renderCustomBlocks(layoutCustomBlocksDraft);customBlockRenderSignature=LibreDisplayRuntime.getModule('blocks').customBlockSignature(layoutCustomBlocksDraft);
   const layer=document.getElementById('layout-editor-layer'),toolbar=document.getElementById('layout-toolbar'),props=document.getElementById('layout-properties');
   layer?.classList.add('show');toolbar?.classList.add('show');props?.classList.add('show');
   layer?.setAttribute('aria-hidden','false');toolbar?.setAttribute('aria-hidden','false');props?.setAttribute('aria-hidden','false');initLayoutInspectorDrag();restoreLayoutInspectorPosition();
