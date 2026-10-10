@@ -3840,3 +3840,45 @@ html.ld-pi3-static #weather-effects-overlay .weather-fx-leaf-hq-static{transform
 
 .weather-fx-blowing-snow i,.weather-severity-snow .weather-fx-primary,.weather-severity-heavy-snow .weather-fx-primary{background:radial-gradient(circle at 42% 38%,rgba(255,255,255,.98) 0 22%,rgba(244,251,255,.96) 34%,rgba(221,238,247,.55) 56%,transparent 74%)!important;box-shadow:0 0 .26rem rgba(242,250,255,.18)!important}
 .weather-severity-heavy-snow .weather-fx-primary{filter:blur(var(--fx-blur,0)) opacity(var(--weather-fx-opacity,.34)) drop-shadow(0 0 4px rgba(240,249,255,.22))!important}
+
+/* v1.11.2 weather realism and static-scene refinement overrides */
+.weather-fx-dog-v2 .dogv2-bed{display:none;position:absolute;left:6px;bottom:-4px;width:228px;height:72px;z-index:-1;transform:scale(var(--dog-size,1));transform-origin:0 100%;filter:drop-shadow(0 6px 7px rgba(0,0,0,.18))}
+.weather-fx-dog-v2.dog-state-rest:not(.dog-shelter-house) .dogv2-bed,.weather-fx-dog-v2.dog-state-sleep:not(.dog-shelter-house) .dogv2-bed{display:block}
+.weather-fx-dog-v2 .dogv2-bed-cushion{position:absolute;left:24px;right:22px;bottom:10px;height:34px;border-radius:42% 42% 48% 48%/64% 64% 36% 36%;background:radial-gradient(ellipse at 50% 24%,rgba(155,196,206,.96) 0 18%,rgba(100,148,160,.96) 44%,rgba(54,99,111,.98) 78%,rgba(31,66,79,.99));box-shadow:inset 0 5px 8px rgba(255,255,255,.16),inset 0 -8px 11px rgba(0,0,0,.22),0 4px 8px rgba(0,0,0,.12)}
+.weather-fx-dog-v2 .dogv2-bed-cushion::before{content:"";position:absolute;left:18%;right:18%;top:8px;height:15px;border-radius:999px;background:linear-gradient(180deg,rgba(228,242,246,.34),rgba(255,255,255,0));opacity:.78}
+.weather-fx-dog-v2 .dogv2-bed-rim{position:absolute;inset:0;border-radius:44% 44% 50% 50%/70% 70% 34% 34%;background:radial-gradient(ellipse at 50% 18%,rgba(121,168,180,.80),transparent 33%),linear-gradient(180deg,rgba(74,111,123,.98),rgba(53,84,95,.98) 58%,rgba(32,57,67,.99));box-shadow:inset 0 2px 0 rgba(255,255,255,.15),inset 0 -5px 7px rgba(0,0,0,.18)}
+.weather-fx-dog-v2 .dogv2-bed-rim::before{content:"";position:absolute;left:6px;right:6px;top:7px;bottom:11px;border-radius:40% 40% 48% 48%/64% 64% 36% 36%;border:7px solid rgba(46,74,84,.98);border-bottom-width:9px}
+.weather-fx-dog-v2 .dogv2-bed-rim::after{content:"";position:absolute;left:28px;right:28px;bottom:-2px;height:16px;border-radius:50%;background:radial-gradient(ellipse,rgba(9,16,18,.24),rgba(9,16,18,0) 70%)}
+
+html.ld-pi3-static #weather-effects-overlay .weather-fx-leaf-hq-static{width:64px!important;height:46px!important}
+html.ld-pi3-static #weather-effects-overlay .weather-fx-leaf-hq-static .weather-fx-pi3-static-leaf-art{width:64px;height:46px}
+
+.hazard-tropical-palm{position:absolute;left:var(--palm-x);bottom:calc(var(--hazard-surge-height,16vh) - 2vh);width:92px;height:190px;transform:scale(var(--palm-scale,1));z-index:7;transform-origin:50% 100%;animation:ld1112PalmBend 2.35s ease-in-out var(--palm-delay,0s) infinite alternate}
+.hazard-tropical-palm::before,.hazard-tropical-palm::after{display:none!important;content:none!important}
+.hazard-tropical-palm .hazard-tropical-palm-trunk{position:absolute;left:38px;bottom:0;width:13px;height:132px;border-radius:999px;background:linear-gradient(180deg,#735036,#916443 34%,#68482f 70%,#4f3825);box-shadow:inset 1px 0 0 rgba(255,237,215,.12),inset -1px 0 0 rgba(51,29,15,.28);transform-origin:50% 100%;transform:rotate(calc(var(--palm-bend,16deg) * -.38)) skewX(-6deg)}
+.hazard-tropical-palm .hazard-tropical-palm-crown{position:absolute;left:3px;top:6px;width:86px;height:82px;transform-origin:46px 64px;animation:ld1112PalmCrown 2.35s ease-in-out var(--palm-delay,0s) infinite alternate}
+.hazard-tropical-palm .hazard-tropical-frond{position:absolute;left:40px;top:34px;width:62px;height:14px;border-radius:100% 12% 100% 16%/100% 26% 74% 12%;background:linear-gradient(90deg,rgba(51,105,68,.90),rgba(65,128,82,.97) 38%,rgba(39,91,58,.96) 100%);transform-origin:6px 50%;box-shadow:0 1px 2px rgba(0,0,0,.18),inset 0 1px 0 rgba(214,247,220,.12)}
+.hazard-tropical-palm .hazard-tropical-frond::after{content:"";position:absolute;inset:2px 9px 2px 11px;background:repeating-linear-gradient(112deg,rgba(238,252,238,.10) 0 2px,transparent 2px 6px);opacity:.75}
+.hazard-tropical-palm .hazard-tropical-frond.f1{transform:rotate(-62deg) scaleX(.94)}
+.hazard-tropical-palm .hazard-tropical-frond.f2{transform:rotate(-28deg) scaleX(1.02)}
+.hazard-tropical-palm .hazard-tropical-frond.f3{transform:rotate(6deg) scaleX(1.10)}
+.hazard-tropical-palm .hazard-tropical-frond.f4{transform:rotate(33deg) scaleX(1.06)}
+.hazard-tropical-palm .hazard-tropical-frond.f5{transform:rotate(58deg) scaleX(.90)}
+@keyframes ld1112PalmBend{from{transform:scale(var(--palm-scale,1)) rotate(calc(var(--palm-bend,16deg) * -.18)) translateY(0)}to{transform:scale(var(--palm-scale,1)) rotate(var(--palm-bend,16deg)) translateY(-2px)}}
+@keyframes ld1112PalmCrown{from{transform:rotate(calc(var(--palm-bend,16deg) * .18))}to{transform:rotate(calc(var(--palm-bend,16deg) * 1.16))}}
+
+.hazard-storm-bolt{z-index:6;height:46vh;width:4px;filter:drop-shadow(0 0 10px rgba(222,247,255,.98));animation:ldStormBolt 3.8s linear var(--storm-bolt-delay,0s) infinite}
+.hazard-storm-rain{height:70vh;background:linear-gradient(180deg,rgba(225,239,244,.08),rgba(208,231,240,.70),rgba(156,195,210,.26),transparent)}
+
+.hazard-tornado-model{right:5vw;top:3vh;width:var(--hazard-tornado-width,32vw);height:var(--hazard-tornado-height,80vh);transform-origin:50% 5%;animation:ld1112TornadoModelSway var(--hazard-duration,8.5s) ease-in-out infinite alternate}
+.hazard-tornado-model .hazard-tornado-wallcloud{left:-15%;width:132%;height:24%;border-radius:56% 44% 54% 46%;background:radial-gradient(ellipse at 50% 80%,rgba(34,42,46,.98) 0 18%,rgba(58,68,73,.84) 35%,rgba(29,37,40,.52) 62%,transparent 81%)}
+.hazard-tornado-model .hazard-tornado-condensation{left:24%;top:11%;width:52%;height:85%;clip-path:polygon(44% 0,56% 0,61% 9%,66% 18%,64% 29%,60% 39%,55% 50%,52% 61%,50% 72%,49% 82%,47% 92%,45% 100%,39% 100%,41% 91%,42% 82%,43% 72%,45% 62%,44% 50%,40% 39%,37% 29%,35% 18%,39% 9%);background:linear-gradient(90deg,rgba(215,220,221,.08),rgba(145,156,159,.46) 18%,rgba(74,84,87,.76) 50%,rgba(117,128,130,.56) 78%,rgba(209,216,217,.08));filter:drop-shadow(0 .55vh 1.5vh rgba(18,25,27,.28))}
+.hazard-tornado-model .hazard-tornado-sheath{position:absolute;left:26%;top:13%;width:48%;height:81%;border-radius:42% 58% 44% 56%/11% 10% 22% 24%;background:linear-gradient(180deg,rgba(220,228,229,.14),rgba(144,152,154,.18) 11%,rgba(71,79,82,.22) 29%,rgba(36,43,45,.26) 67%,rgba(28,34,35,.10) 100%);filter:blur(.4px);opacity:.86;animation:ld1112TornadoSheath 2.3s ease-in-out infinite alternate}
+.hazard-tornado-model .hazard-tornado-core{left:43%;top:15%;width:14%;height:76%;border-radius:48% 52% 38% 62%;background:linear-gradient(180deg,rgba(170,180,181,.18),rgba(83,92,95,.58) 31%,rgba(40,46,49,.82) 72%,rgba(27,33,34,.40));opacity:.92}
+.hazard-tornado-model .hazard-tornado-ground{left:9%;width:82%;height:16%;background:radial-gradient(ellipse,rgba(129,103,76,.82),rgba(81,67,54,.42) 48%,rgba(56,49,43,.12) 72%,transparent 82%)}
+.hazard-tornado-slice{clip-path:polygon(8% 0,92% 0,100% 50%,92% 100%,8% 100%,0 50%);background:linear-gradient(90deg,transparent 0,rgba(198,206,207,.16) 20%,rgba(111,121,123,.52) 50%,rgba(55,63,65,.22) 77%,transparent)}
+@keyframes ld1112TornadoModelSway{from{transform:translate3d(-.65vw,0,0) rotate(-.6deg)}to{transform:translate3d(1vw,.18vh,0) rotate(.9deg)}}
+@keyframes ld1112TornadoSheath{from{transform:translateX(-4%) scaleX(.96)}to{transform:translateX(4%) scaleX(1.06)}}
+
+#weather-effects-overlay .hazard-blizzard-heavyflake{position:absolute;left:var(--blizzard-x);top:var(--blizzard-y);width:var(--blizzard-size);height:var(--blizzard-size);border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.98) 0 22%,rgba(249,252,253,.96) 23% 52%,rgba(236,244,247,.68) 53% 74%,transparent 76%);box-shadow:0 0 6px rgba(255,255,255,.28);opacity:calc(.24 + var(--blizzard-depth,.8) * .58);animation:ld1112BlizzardHeavyFlake var(--blizzard-flake-duration,5s) linear var(--blizzard-delay,0s) infinite}
+@keyframes ld1112BlizzardHeavyFlake{from{transform:translate3d(0,0,0) scale(calc(.82 + var(--blizzard-depth,.8) * .24))}to{transform:translate3d(var(--blizzard-travel-x,14vw),var(--blizzard-travel-y,28vh),0) scale(calc(.98 + var(--blizzard-depth,.8) * .32))}}
