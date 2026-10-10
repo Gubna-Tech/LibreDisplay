@@ -3744,3 +3744,57 @@ html.ld-pi4-device .weather-fx-owl .weather-fx-bird-art{will-change:auto}
 body.custom-layout .wx-main[data-weather-layout="split"],body.custom-layout .wx-main[data-weather-layout="split-reverse"],body.custom-layout .wx-main[data-weather-layout="compact"]{display:grid!important}
 
 html.ld-bench-no-canvas #weather-effects-overlay .weather-fx-pi-sprite-layer{display:none!important}
+
+/* Field repair — fixed hazard viewport, natural severe-weather depth, and selective Pi 4 compositor promotion. */
+.hr-col .hr-meta{display:flex;align-items:center;justify-content:center;gap:clamp(4px,.42vw,8px);min-height:1.1em;max-width:100%;font-size:clamp(9px,.66vw,12px);line-height:1.05;white-space:nowrap;color:rgba(229,242,249,.92)}
+.hr-col .hr-meta .hr-rain{font-size:inherit;color:#b9e3ff}.hr-col .hr-meta .hr-wind{font-size:inherit;color:rgba(230,240,244,.92);font-variant-numeric:tabular-nums}
+@media(max-width:1400px){.hr-col .hr-meta{font-size:9px;gap:3px}}
+
+/* Every hazard owns exactly the viewport. Overscan and motion stay inside children so a
+   translated root can never expose a blank strip along an edge. */
+#weather-effects-overlay .weather-fx-hazard{inset:0!important;left:0!important;right:0!important;top:0!important;bottom:0!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;transform:none!important;overflow:hidden!important}
+.weather-fx-hazard-flood{animation:none!important;background:transparent!important;box-shadow:none!important}
+.weather-fx-hazard-flood::before{left:0!important;right:0!important;top:auto!important;bottom:0!important;width:auto!important;height:var(--hazard-flood-height,22vh)!important;background:linear-gradient(180deg,rgba(176,220,230,.08),rgba(77,148,169,.26) 22%,rgba(31,101,134,.64) 58%,rgba(11,48,75,.95))!important;box-shadow:inset 0 3px 0 rgba(235,248,250,.22),0 -8px 28px rgba(13,48,70,.13)!important;animation:none!important}
+.weather-fx-hazard-flood::after{left:0!important;right:0!important;top:auto!important;bottom:0!important;height:var(--hazard-flood-height,22vh)!important;transform:none!important;background:linear-gradient(105deg,transparent 3%,rgba(255,255,255,.07) 18%,transparent 31%,rgba(255,255,255,.045) 54%,transparent 74%)!important;animation:ld11052FloodSheen var(--hazard-duration,8.5s) ease-in-out infinite!important}
+@keyframes ld11052FloodSheen{0%,100%{background-position:-12vw 0;opacity:.28}50%{background-position:12vw 0;opacity:.62}}
+
+/* Thunderstorms darken the whole sky gradually; the cloud base blends into that sky
+   instead of reading as one rectangular black shelf at the top of the display. */
+.weather-fx-hazard-storm{animation:none!important;background:radial-gradient(ellipse at 18% 8%,rgba(63,75,84,.48) 0 16%,rgba(32,43,53,.24) 34%,transparent 54%),radial-gradient(ellipse at 73% 14%,rgba(45,58,69,.54) 0 18%,rgba(24,35,45,.25) 38%,transparent 58%),linear-gradient(180deg,rgba(5,10,16,.88) 0%,rgba(9,16,24,.72) 28%,rgba(16,26,35,.50) 57%,rgba(23,34,42,.27) 80%,rgba(31,40,45,.08) 100%)!important}
+.weather-fx-hazard-storm .hazard-storm-shelf{left:-12vw!important;right:-12vw!important;top:-11vh!important;height:66vh!important;border-radius:0 0 48% 52%!important;background:radial-gradient(ellipse at 18% 24%,rgba(22,29,36,.94) 0 16%,rgba(45,55,63,.72) 38%,rgba(69,79,85,.30) 59%,transparent 77%),radial-gradient(ellipse at 55% 18%,rgba(16,23,30,.94) 0 20%,rgba(41,52,61,.76) 43%,rgba(69,80,87,.27) 64%,transparent 80%),radial-gradient(ellipse at 86% 27%,rgba(25,34,42,.88) 0 18%,rgba(52,64,72,.60) 42%,rgba(75,84,89,.20) 65%,transparent 80%)!important;box-shadow:none!important}
+.weather-fx-hazard-storm .hazard-storm-cell{top:-5vh!important;height:38vh!important;background:radial-gradient(ellipse at 50% 62%,rgba(54,65,74,.68),rgba(25,34,42,.38) 52%,transparent 76%)!important}
+.weather-fx-hazard-storm .hazard-storm-gust-front{top:41vh!important;opacity:.54}
+
+/* Localized multi-layer tornado model: broad wall cloud, translucent condensation funnel,
+   darker rotating core, soft vapor bands and a grounded debris collar. */
+.weather-fx-hazard-tornado{animation:none!important;background:radial-gradient(ellipse at 72% 8%,rgba(45,56,62,.48),transparent 42%),linear-gradient(180deg,rgba(7,14,20,.58),rgba(21,32,39,.30) 50%,rgba(78,74,64,.10) 84%,transparent)!important;filter:none!important}
+.weather-fx-hazard-tornado::before,.weather-fx-hazard-tornado::after{content:none!important;display:none!important}
+.hazard-tornado-model{position:absolute;right:6vw;top:4vh;width:var(--hazard-tornado-width,34vw);height:var(--hazard-tornado-height,78vh);overflow:visible;transform-origin:50% 7%;animation:ld11052TornadoSway var(--hazard-duration,8.5s) ease-in-out infinite alternate}
+.hazard-tornado-model .hazard-tornado-wallcloud{position:absolute;left:-12%;top:0;width:124%;height:23%;border-radius:54% 46% 52% 48%;background:radial-gradient(ellipse at 50% 82%,rgba(38,47,51,.97) 0 18%,rgba(63,73,77,.84) 34%,rgba(28,36,40,.58) 60%,rgba(16,22,26,.15) 74%,transparent 81%);box-shadow:0 2.3vh 3.6vh rgba(7,12,15,.23)}
+.hazard-tornado-model .hazard-tornado-inflow{position:absolute;left:-31%;top:7%;width:162%;height:23%;background:linear-gradient(168deg,transparent 17%,rgba(164,173,174,.07) 37%,rgba(92,104,107,.18) 50%,transparent 68%)}
+.hazard-tornado-model .hazard-tornado-condensation{position:absolute;left:22%;top:11%;width:56%;height:84%;clip-path:polygon(5% 0,95% 0,89% 9%,82% 19%,77% 30%,70% 41%,66% 52%,61% 64%,58% 76%,54% 88%,52% 100%,41% 100%,42% 88%,39% 77%,42% 66%,38% 55%,43% 43%,37% 32%,44% 21%,35% 10%);background:linear-gradient(90deg,rgba(207,214,215,.09),rgba(137,148,151,.48) 19%,rgba(72,82,85,.77) 48%,rgba(111,122,124,.59) 75%,rgba(204,211,212,.08));filter:drop-shadow(0 .5vh 1.3vh rgba(18,25,27,.30));animation:ld11052TornadoBreath 2.9s ease-in-out infinite alternate}
+.hazard-tornado-model .hazard-tornado-core{position:absolute;left:40%;top:14%;width:20%;height:77%;border-radius:46% 54% 42% 58%;background:linear-gradient(180deg,rgba(159,168,170,.20),rgba(78,88,91,.61) 31%,rgba(39,47,49,.80) 72%,rgba(31,37,38,.34));opacity:.88;animation:ld11052TornadoCore 1.9s ease-in-out infinite alternate}
+.hazard-tornado-model .hazard-tornado-ground{position:absolute;left:12%;bottom:0;width:76%;height:14%;border-radius:50%;background:radial-gradient(ellipse,rgba(122,98,72,.76),rgba(74,62,51,.39) 50%,rgba(55,49,44,.14) 68%,transparent 79%)}
+.hazard-tornado-model .hazard-tornado-wisp{position:absolute;z-index:5;left:50%;top:var(--wisp-top);width:var(--wisp-width);height:6%;border:0;background:radial-gradient(ellipse at 50% 50%,rgba(205,213,214,calc(var(--wisp-alpha,.28)*.42)) 0 24%,rgba(116,126,128,calc(var(--wisp-alpha,.28)*.56)) 42%,rgba(54,63,65,calc(var(--wisp-alpha,.28)*.34)) 57%,transparent 72%);border-radius:50%;filter:blur(.85px);opacity:.76;transform:translateX(-50%) rotate(-7deg);animation:ld11052TornadoWisp var(--wisp-duration,1.8s) linear var(--wisp-delay,0s) infinite}
+@keyframes ld11052TornadoSway{from{transform:translate3d(-.7vw,0,0) rotate(-.4deg)}to{transform:translate3d(.8vw,.2vh,0) rotate(.5deg)}}
+@keyframes ld11052TornadoBreath{from{transform:skewX(-.7deg) scaleX(.96)}to{transform:skewX(.8deg) scaleX(1.04)}}
+@keyframes ld11052TornadoCore{from{transform:translateX(-4%) rotate(-1deg) scaleX(.94)}to{transform:translateX(4%) rotate(1deg) scaleX(1.06)}}
+@keyframes ld11052TornadoWisp{0%{transform:translateX(-50%) rotate(-8deg) scaleX(.96)}50%{transform:translateX(-50%) rotate(172deg) scaleX(1.04)}100%{transform:translateX(-50%) rotate(352deg) scaleX(.96)}}
+
+/* A blizzard must visually exceed heavy snow: multiple wind sheets, at least two dozen
+   Pi-class flakes, stronger whiteout and faster diagonal transport. */
+.weather-fx-hazard-winter{animation:none!important;background:linear-gradient(180deg,rgba(190,211,226,var(--hazard-whiteout-alpha,.44)),rgba(233,242,248,calc(var(--hazard-whiteout-alpha,.44)*1.22)) 48%,rgba(185,208,223,.40) 100%)!important}
+.hazard-blizzard-veil{position:absolute;inset:-12vh -12vw;background:radial-gradient(ellipse at 38% 42%,rgba(255,255,255,.54),transparent 42%),radial-gradient(ellipse at 76% 57%,rgba(255,255,255,.36),transparent 45%),linear-gradient(105deg,rgba(248,251,253,.14),rgba(248,251,253,.41) 36%,rgba(248,251,253,.13) 58%,rgba(248,251,253,.36) 76%,rgba(248,251,253,.11))}
+.hazard-blizzard-sheet{position:absolute;left:-32vw;top:var(--blizzard-sheet-y);width:166vw;height:38vh;opacity:.78;background-image:repeating-linear-gradient(104deg,transparent 0 13px,rgba(255,255,255,.65) 14px 15px,transparent 16px 26px),radial-gradient(circle at 20% 30%,rgba(255,255,255,.80) 0 1px,transparent 2px),radial-gradient(circle at 64% 62%,rgba(255,255,255,.72) 0 1.2px,transparent 2.2px);background-size:auto,19px 17px,27px 23px;animation:ld11052BlizzardSheet calc(var(--hazard-duration,3.1s)*.78) linear var(--blizzard-sheet-delay,0s) infinite}
+.hazard-blizzard-flake{box-shadow:12px 3px 4px rgba(248,252,254,.30)!important;animation:ld11052BlizzardParticle var(--hazard-duration,3.1s) linear var(--blizzard-delay,0s) infinite!important}
+.hazard-blizzard-gust{left:-45vw!important;width:200vw!important;height:19vh!important;opacity:.94}
+@keyframes ld11052BlizzardSheet{from{transform:translate3d(-18vw,-10vh,0)}to{transform:translate3d(30vw,18vh,0)}}
+@keyframes ld11052BlizzardParticle{0%{transform:translate3d(-10vw,-9vh,0) scale(var(--blizzard-depth,.7));opacity:.42}10%{opacity:1}90%{opacity:.96}100%{transform:translate3d(48vw,28vh,0) scale(var(--blizzard-depth,.7));opacity:.45}}
+
+/* The v1.10.51 field capture showed moving wildlife as the strongest remaining Pi 4
+   isolation delta. Keep full anatomy and the proven CSS motion path, but restore compositor
+   promotion only for the compact transforms that actually move instead of the old blanket
+   promotion/de-promotion behavior. */
+html.ld-pi4-device #weather-effects-overlay :is(.weather-fx-bird-wing-far,.weather-fx-bird-wing-near){will-change:transform!important;backface-visibility:hidden!important}
+html.ld-pi4-device #weather-effects-overlay .weather-fx-dog-v2{contain:layout style;isolation:isolate;backface-visibility:hidden!important}
+html.ld-pi4-device #weather-effects-overlay .weather-fx-dog-v2 :is(.dogv2-pose-stage,.dogv2-tail,.dogv2-bandana-cloth){will-change:transform!important;backface-visibility:hidden!important}

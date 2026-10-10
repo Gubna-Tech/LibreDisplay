@@ -53,7 +53,7 @@ let cfg = {
   forecastGapPx:5,
   calendarMaxEvents:4,
   showNoEvents:true,
-  showPrecip:true,
+  showPrecip:true,showHourlyWind:true,
   timeFormat:'12',
   showSeconds:true,
   showAmPm:true,
@@ -261,7 +261,7 @@ function ensureCfgDefaults(){
   cfg.forecastGapPx=Math.min(16,Math.max(0,num(cfg.forecastGapPx,5)));
   cfg.calendarMaxEvents=Math.min(6,Math.max(1,Number(cfg.calendarMaxEvents)||4));
   if(typeof cfg.showNoEvents!=='boolean')cfg.showNoEvents=true;
-  if(typeof cfg.showPrecip!=='boolean')cfg.showPrecip=true;
+  if(typeof cfg.showPrecip!=='boolean')cfg.showPrecip=true;if(typeof cfg.showHourlyWind!=='boolean')cfg.showHourlyWind=true;
   cfg.timeFormat=String(cfg.timeFormat)==='24'?'24':'12';
   if(typeof cfg.showSeconds!=='boolean')cfg.showSeconds=true;
   if(typeof cfg.showAmPm!=='boolean')cfg.showAmPm=true;
@@ -434,18 +434,31 @@ async function loadCfg(){
   if(serverConfigAvailable&&bootstrapApi.LOCAL_CLIENT_MODE&&localObj&&(!serverObj||ls>ss))void persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
 }
 
+function stableConfigJson(value){
+  const visit=input=>{if(Array.isArray(input))return input.map(visit);if(input&&typeof input==='object'){const out={};for(const key of Object.keys(input).sort())out[key]=visit(input[key]);return out;}return input;};
+  return JSON.stringify(visit(value));
+}
+function persistedConfigMatches(snapshot,stored){
+  if(!snapshot||!stored||typeof snapshot!=='object'||typeof stored!=='object')return false;
+  if(Number(stored._savedAt||0)!==Number(snapshot._savedAt||0))return false;
+  return stableConfigJson(stored)===stableConfigJson(snapshot);
+}
 async function persistCfgToServer(snapshot){
   try{
-    const res=await resilientFetch(serverPath('/api/config'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:snapshot}),cache:'no-store'});
+    const res=await resilientFetch(serverPath('/api/config'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:snapshot}),cache:'no-store'},{timeoutMs:12000,attempts:2});
     if(!res.ok)throw new Error(await res.text());
     const data=await res.json().catch(()=>({}));
+    const verify=await resilientFetch(serverPath('/api/config'),{cache:'no-store'},{timeoutMs:12000,attempts:2});
+    if(!verify.ok)throw new Error('The display accepted the save but the stored configuration could not be read back for verification.');
+    const verified=await verify.json().catch(()=>({})),stored=verified?.config;
+    if(!verified?.exists||!persistedConfigMatches(snapshot,stored))throw new Error('The display did not return the same configuration after saving. Your changes were not locked because persistence could not be verified.');
     serverConfigAvailable=true;serverConfigLastError='';
     updateSettingsOverview?.();
-    return {ok:true,savedAt:Number(data?.savedAt||snapshot?._savedAt||0),endpoint:String(data?.endpoint||bootstrapApi.ACTIVE_ENDPOINT)};
+    return {ok:true,verified:true,savedAt:Number(data?.savedAt||snapshot?._savedAt||0),endpoint:String(data?.endpoint||bootstrapApi.ACTIVE_ENDPOINT)};
   }catch(e){
     serverConfigLastError=String(e?.message||e);
     updateSettingsOverview?.();
-    return {ok:false,error:serverConfigLastError};
+    return {ok:false,verified:false,error:serverConfigLastError};
   }
 }
 

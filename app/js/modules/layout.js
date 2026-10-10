@@ -598,8 +598,8 @@ async function saveLayoutEditor(){
     cfg.layoutGridPx=Number(document.getElementById('layout-toolbar-grid')?.value)||20;
     cfg.layoutSnap=document.getElementById('layout-toolbar-snap')?.checked!==false;
     const persisted=await saveCfg();
-    if(LAYOUT_PREVIEW_MODE&&!persisted?.ok){
-      alert('Could not save the Arrange layout to this display. The editor will stay open so you can retry. '+(persisted?.error||'Server save failed.'));
+    if(!persisted?.ok||persisted?.verified!==true){
+      alert('Could not verify this Arrange layout on the display. The editor will stay open so you can retry; no unverified layout will be treated as saved. '+(persisted?.error||'Server persistence verification failed.'));
       return;
     }
     stopLayoutEditorUi();layoutEditorOriginal=null;layoutCustomBlocksOriginal=[];applyUiCustomization(cfg);updateLayoutModeStatus(cfg);

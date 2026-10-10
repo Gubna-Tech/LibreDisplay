@@ -58,7 +58,30 @@ for name in SingletonCookie SingletonLock SingletonSocket; do
   [ -L "$path" ] && rm -f -- "$path"
 done
 
+persistent_state_manifest() {
+  python3 - "$DATA_DIR" <<'PYSTATE'
+import hashlib, json, sys
+from pathlib import Path
+root=Path(sys.argv[1]).resolve()
+files=[]
+for name in ('dashboard_config.json','dashboard_config.previous.json','dashboard_profiles.json','dashboard_scenes.json','dashboard_endpoints.json','dashboard_household.json','dashboard_users.json','dashboard_access.json','remote_access.json'):
+    p=root/name
+    if p.is_file(): files.append(p)
+for dirname in ('endpoints','calendar_files'):
+    base=root/dirname
+    if base.is_dir(): files.extend(p for p in sorted(base.rglob('*')) if p.is_file() and not p.is_symlink())
+out={}
+for p in sorted(set(files)):
+    rel=p.relative_to(root).as_posix(); h=hashlib.sha256()
+    with p.open('rb') as fh:
+        for chunk in iter(lambda:fh.read(1024*1024),b''): h.update(chunk)
+    out[rel]={'sha256':h.hexdigest(),'bytes':p.stat().st_size}
+print(json.dumps(out,sort_keys=True,separators=(',',':')))
+PYSTATE
+}
+
 printf 'Creating a safety backup and rollback snapshot...\n'
+PERSISTENT_STATE_BEFORE=$(persistent_state_manifest)
 SNAPSHOT_ID=$(python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" snapshot --to-version "$NEW_VERSION" --quiet)
 printf 'Rollback snapshot: %s\n' "$SNAPSHOT_ID"
 python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" transaction --snapshot-id "$SNAPSHOT_ID" --state prepared
@@ -164,6 +187,12 @@ for file in Dockerfile LICENSE README.md VERSION docker-compose.yml install.sh u
   [ -f "$INSTALL_DIR/$file" ] && mv "$INSTALL_DIR/$file" "$OLD_DIR/files/$file"
   mv "$STAGE_DIR/$file" "$INSTALL_DIR/$file"
 done
+
+PERSISTENT_STATE_AFTER=$(persistent_state_manifest)
+if [ "$PERSISTENT_STATE_BEFORE" != "$PERSISTENT_STATE_AFTER" ]; then
+  printf 'Persistent display settings changed during the application-file swap; aborting the update before commit.\n' >&2
+  exit 1
+fi
 
 printf '%s\n' "$NEW_VERSION" > "$DATA_DIR/.installed"
 chmod 600 "$DATA_DIR/.installed"
