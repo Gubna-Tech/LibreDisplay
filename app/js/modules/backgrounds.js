@@ -265,7 +265,7 @@ function backgroundMediaIsMotion(value){const path=backgroundMediaPath(value),do
 function backgroundMediaAssetUrl(value){const raw=String(value||'');return raw.startsWith('/media?')||raw.startsWith('/media-mjpeg?')?serverPath(raw):serverPath('/proxy?url='+encodeURIComponent(raw));}
 function backgroundLayerMedia(layer,kind=null){if(!layer)return null;const resolved=kind||layer.dataset.mediaKind||'image';return resolved==='video'?layer.querySelector('video'):layer.querySelector('img');}
 function backgroundMediaHasVisual(layer){if(!layer)return false;const kind=layer.dataset.mediaKind||'image',el=backgroundLayerMedia(layer,kind);return kind==='video'?!!(el&&el.readyState>=2&&el.videoWidth>0):!!(el&&el.complete&&el.naturalWidth>0);}
-function resetBackgroundLayerMedia(layer){if(!layer)return;const img=layer.querySelector('img'),video=layer.querySelector('video');if(video){try{video.pause();}catch(_e){}video.removeAttribute('src');video.load?.();video.style.display='none';}if(img){img.removeAttribute('src');img.style.display='none';}layer.dataset.mediaKind='';layer.dataset.remoteUrl='';}
+function resetBackgroundLayerMedia(layer){if(!layer)return;layer.classList.remove('ld-bg-transitioning','ld-bg-retired');const img=layer.querySelector('img'),video=layer.querySelector('video');if(video){try{video.pause();}catch(_e){}video.removeAttribute('src');video.load?.();video.style.display='none';}if(img){img.removeAttribute('src');img.style.display='none';}layer.dataset.mediaKind='';layer.dataset.remoteUrl='';}
 async function activateBackgroundLayerMedia(layer){if(!layer)return;const kind=layer.dataset.mediaKind||'image',img=layer.querySelector('img'),video=layer.querySelector('video');if(img)img.style.display=kind==='video'?'none':'block';if(video){video.style.display=kind==='video'?'block':'none';if(kind==='video'&&!document.documentElement.classList.contains('ld-reduce-motion')){try{await video.play();}catch(_e){}}}}
 function deactivateBackgroundLayerMedia(layer,clear=false){if(!layer)return;const video=layer.querySelector('video');if(video)try{video.pause();}catch(_e){}if(clear)resetBackgroundLayerMedia(layer);}
 function loadBackgroundMedia(layer,remoteUrl,priority='low'){
@@ -566,7 +566,7 @@ function clearBackgroundPrepared(clearLayer=false){
 function clearBackgroundLayers(){
   clearBackgroundPrepared(false);
   for(const id of ['bg','bg-next']){
-    const layer=backgroundLayerById(id);if(!layer)continue;layer.classList.remove('show');layer.style.zIndex='0';resetBackgroundLayerMedia(layer);
+    const layer=backgroundLayerById(id);if(!layer)continue;layer.classList.remove('show','ld-bg-transitioning','ld-bg-retired');layer.style.zIndex='0';resetBackgroundLayerMedia(layer);
   }
   configApi.bgActiveLayerId='bg';
 }
@@ -602,10 +602,10 @@ async function revealBackgroundLayer(layer,remoteUrl){
   const layoutApi=LibreDisplayRuntime.getModule('layout'),fitWasSuspended=layoutApi?.builtInLayoutAutoFitSnapshot?.().suspended===true;if(!fitWasSuspended)layoutApi?.setBuiltInLayoutAutoFitSuspended?.(true,{reschedule:false});
   try{
     const active=activeBackgroundLayer(),hasCurrent=!!(active&&active.classList.contains('show')&&backgroundMediaHasVisual(active));
-    layer.style.zIndex='1';if(active&&active!==layer)active.style.zIndex='0';layer.classList.remove('show');
-    await nextAnimationFrame();await activateBackgroundLayerMedia(layer);layer.classList.add('show');await waitForBackgroundLayerVisible(layer);
-    if(active&&active!==layer){active.style.transition='none';active.classList.remove('show');active.style.transition='';deferBackgroundLayerCleanup(active);}
-    layer.style.zIndex='0';configApi.bgActiveLayerId=layer.id;configApi.bgLastUrl=remoteUrl;rememberLastBackground(remoteUrl);
+    layer.style.zIndex='1';if(active&&active!==layer)active.style.zIndex='0';layer.classList.remove('show','ld-bg-retired');layer.classList.add('ld-bg-transitioning');
+    await activateBackgroundLayerMedia(layer);await nextAnimationFrame();layer.classList.add('show');await waitForBackgroundLayerVisible(layer);
+    if(active&&active!==layer){active.classList.add('ld-bg-retired');active.classList.remove('show');await nextAnimationFrame();deferBackgroundLayerCleanup(active);}
+    layer.classList.remove('ld-bg-transitioning');layer.style.zIndex='0';configApi.bgActiveLayerId=layer.id;configApi.bgLastUrl=remoteUrl;rememberLastBackground(remoteUrl);
   }finally{
     if(!fitWasSuspended){layoutApi?.setBuiltInLayoutAutoFitSuspended?.(false,{reschedule:false});layoutApi?.scheduleBuiltInLayoutAutoFitDeferred?.(null,650);}
     const elapsed=performance.now()-transitionStarted;backgroundRuntime.transitions++;backgroundRuntime.lastTransitionMs=Number(elapsed.toFixed(1));backgroundRuntime.maxTransitionMs=Math.max(backgroundRuntime.maxTransitionMs,backgroundRuntime.lastTransitionMs);backgroundRuntimeEvent('transition-end',{ms:backgroundRuntime.lastTransitionMs});

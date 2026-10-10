@@ -316,7 +316,7 @@ function applyUiCustomization(source=cfg){
     .wx-hourly{grid-template-columns:repeat(${hourlyCols},minmax(0,1fr));gap:${gap}px}
     #calendar-legend{top:${calH+3}px;left:${sidePad}px;right:${sidePad}px}
     #alert-zone{top:${calH+(source.calendarLegend?36:14)}px;bottom:${bottomH+30}px;left:${sidePad}px;right:${sidePad}px}
-    #bg,#bg-next{filter:blur(${blur}px);transform:${blur?`scale(${(1+blur/300).toFixed(3)})`:'none'};transition:opacity ${transition}s ease}
+    #bg,#bg-next{filter:blur(${blur}px);transform:${blur?`scale(${(1+blur/300).toFixed(3)})`:'none'};transition:opacity ${transition}s cubic-bezier(.22,.61,.36,1)}
     .day-num{font-size:${scaledClamp(30,2.55,42,cal*ps('calendar','dayNumber'))};color:${textColor};${pe('calendar','dayNumber')}}
     .day-label{font-size:${scaledClamp(14,1.18,20,cal*ps('calendar','dayLabel'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('calendar','dayLabel')}}
     .no-events{font-size:${scaledClamp(12,1,17,cal*ps('calendar','emptyText'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${tertiary.toFixed(3)});${pe('calendar','emptyText')}}
@@ -343,7 +343,8 @@ function applyUiCustomization(source=cfg){
     .fc-col .fc-temps{font-size:${scaledClamp(13,.95,18,dailyFc*ps('daily','temperature'))};color:${textColor};${pe('daily','temperature')}}
     .hr-col .hr-time{font-size:${scaledClamp(14,1,19,hourlyFc*ps('hourly','time'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('hourly','time')}}
     .hr-col .hr-icon{font-size:${scaledClamp(24,1.85,34,hourlyFc*ps('hourly','icon'))};${pe('hourly','icon')}}
-    .hr-col .hr-rain{font-size:${scaledClamp(12,.86,16,hourlyFc*ps('hourly','precip'))};${pe('hourly','precip')}}
+    .hr-col .hr-rain{font-size:${scaledClamp(12,.86,17,hourlyFc*ps('hourly','precip'))};${pe('hourly','precip')}}
+    .hr-col .hr-wind{font-size:${scaledClamp(14.5,1.02,21,hourlyFc*ps('hourly','wind'))};${pe('hourly','wind')}}
     .hr-col .hr-temp{font-size:${scaledClamp(15,1.05,20,hourlyFc*ps('hourly','temperature'))};color:${textColor};${pe('hourly','temperature')}}
     .wx-detail .wd-icon{font-size:${(21*det/100*ps('details','icon')).toFixed(2)}px;${pe('details','icon')}}
     .wx-detail .wd-label{font-size:${scaledClamp(13,.92,17,det*ps('details','label'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.82).toFixed(3)});${pe('details','label')}}
