@@ -149,10 +149,10 @@ async function loadRemoteInfo(){
   if(bootstrapApi.REMOTE_SETTINGS_MODE){
     if(input)input.value=location.origin+'/settings';
     if(reconnectInput)reconnectInput.value=location.origin+'/login';
-    if(displayInput)displayInput.value='';
-    if(status)status.textContent='Remote session active. This browser will stay paired through normal LibreDisplay restarts until the session expires or access is rotated.';
     if(toggle)toggle.style.display='none';
     if(rotate)rotate.style.display='none';
+    try{const r=await resilientFetch(serverPath('/api/endpoints'),{cache:'no-store'}),d=await r.json().catch(()=>({})),row=(d.endpoints||[]).find(x=>x.id===bootstrapApi.ACTIVE_ENDPOINT)||(d.endpoints||[])[0];if(displayInput)displayInput.value=row?.displayUrl||'';}catch(_e){if(displayInput)displayInput.value='';}
+    if(status)status.textContent='Remote session active. Pairing is already complete on this browser. Use the reconnect address for future visits; the Display Link below is read-only for the current display.';
     return;
   }
   try{
@@ -163,7 +163,7 @@ async function loadRemoteInfo(){
     const url=enabled?(configApi.remoteInfo?.settingsUrls?.[0]||''):'';
     const reconnectUrl=enabled?(configApi.remoteInfo?.reconnectUrls?.[0]||''):'';
     const displayRows=Array.isArray(configApi.remoteInfo?.displayUrls)?configApi.remoteInfo.displayUrls:[];
-    const displayUrl=enabled?(displayRows.find(x=>x&&x.id===bootstrapApi.ACTIVE_ENDPOINT)?.url||displayRows.find(x=>typeof x==='string')||''):'';
+    const currentRows=displayRows.filter(x=>x&&typeof x==='object'&&x.id===bootstrapApi.ACTIVE_ENDPOINT),displayUrl=enabled?(currentRows.find(x=>String(x.url||'').includes(location.hostname))?.url||currentRows[0]?.url||displayRows.find(x=>typeof x==='string')||''):'';
     if(input)input.value=url;
     if(reconnectInput)reconnectInput.value=reconnectUrl;
     if(displayInput)displayInput.value=displayUrl;

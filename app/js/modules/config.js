@@ -36,6 +36,8 @@ let cfg = {
   calendarTimeStyle:'start',
   calendarLegend:false,
   calendarShowContinuation:true,
+  calendarAddonsEnabled:false,
+  calendarAddonCivicUS:false,calendarAddonChristian:false,calendarAddonJewish:false,calendarAddonIslamic:false,calendarAddonAstronomy:false,calendarAddonCultural:false,
   calendarOrder:[],
   alertsEnabled:true,
   alertTestMode:false,
@@ -241,7 +243,7 @@ function ensureCfgDefaults(){
   if(!Number.isFinite(Number(cfg.weatherRefreshMin)))cfg.weatherRefreshMin=10;if(!Number.isFinite(Number(cfg.calendarRefreshMin)))cfg.calendarRefreshMin=15;
   cfg.calendarTimeStyle=['start','range','none'].includes(cfg.calendarTimeStyle)?cfg.calendarTimeStyle:'start';
   if(typeof cfg.calendarLegend!=='boolean')cfg.calendarLegend=false;
-  if(typeof cfg.calendarShowContinuation!=='boolean')cfg.calendarShowContinuation=true;
+  if(typeof cfg.calendarShowContinuation!=='boolean')cfg.calendarShowContinuation=true;if(typeof cfg.calendarAddonsEnabled!=='boolean')cfg.calendarAddonsEnabled=false;for(const k of ['calendarAddonCivicUS','calendarAddonChristian','calendarAddonJewish','calendarAddonIslamic','calendarAddonAstronomy','calendarAddonCultural'])if(typeof cfg[k]!=='boolean')cfg[k]=false;
   if(!Array.isArray(cfg.calendarOrder))cfg.calendarOrder=[];
   if(typeof cfg.alertsEnabled!=='boolean')cfg.alertsEnabled=true;
   if(typeof cfg.alertTestMode!=='boolean')cfg.alertTestMode=false;

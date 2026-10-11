@@ -143,7 +143,7 @@ async function monitorSoftwareUpdate(targetVersion){
       await sleepMs(attempt<4?2000:4000);
       try{
         const statusResponse=await resilientFetch(serverPath('/api/update-run-status'),{cache:'no-store'});
-        if(statusResponse.status===403&&sawOffline){setSoftwareUpdateActionStatus('LibreDisplay restarted successfully enough to answer requests, but this remote Owner session expired during the reboot. Reopen Settings with a fresh pairing link to verify the new version.','warn');return;}
+        if(statusResponse.status===403&&sawOffline){setSoftwareUpdateActionStatus('LibreDisplay restarted successfully enough to answer requests, but this remote Owner session expired during the reboot. Open the saved reconnect address or sign in again to verify the new version.','warn');return;}
         if(statusResponse.ok){
           const run=await statusResponse.json().catch(()=>({}));
           if(run.state==='failed'){
@@ -174,7 +174,7 @@ async function startSoftwareUpdate(){
   const d=softwareUpdateState;
   if(!d?.ok||!d.updateAvailable||!d.canUpdateInApp)return;
   const target=d.latestVersion;
-  if(!confirm(`Update LibreDisplay from v${d.currentVersion||bootstrapApi.DASHBOARD_BUILD} to v${target} now?\n\nA safety backup will be created automatically. The native display will restart and may be unavailable for a few minutes.${bootstrapApi.REMOTE_SETTINGS_MODE?'\n\nBecause this is a remote Settings session, you may need a fresh pairing link after the reboot.':''}`))return;
+  if(!confirm(`Update LibreDisplay from v${d.currentVersion||bootstrapApi.DASHBOARD_BUILD} to v${target} now?\n\nA safety backup will be created automatically. The native display will restart and may be unavailable for a few minutes.${bootstrapApi.REMOTE_SETTINGS_MODE?'\n\nBecause this is a remote Settings session, keep the short reconnect address bookmarked in case the browser needs to sign in again after the reboot.':''}`))return;
   const btn=document.getElementById('software-update-now');if(btn){btn.disabled=true;btn.textContent='Starting update…';}
   setSoftwareUpdateActionStatus(`Starting the v${target} update…`,'warn');
   try{
@@ -220,7 +220,7 @@ async function monitorReleaseRollback(targetVersion){
       await sleepMs(attempt<4?2000:4000);
       try{
         const versionResponse=await resilientFetch(serverPath('/api/update-status'),{cache:'no-store'});
-        if(versionResponse.status===403&&sawOffline){setReleaseRollbackStatus(`LibreDisplay restarted during rollback to v${targetVersion}, but this remote Owner session expired. Reopen Settings with a fresh pairing link to verify the restored version.`,'warn');return;}
+        if(versionResponse.status===403&&sawOffline){setReleaseRollbackStatus(`LibreDisplay restarted during rollback to v${targetVersion}, but this remote Owner session expired. Open the saved reconnect address or sign in again to verify the restored version.`,'warn');return;}
         if(versionResponse.ok){const info=await versionResponse.json().catch(()=>({}));if(info.currentVersion===targetVersion){setReleaseRollbackStatus(`Rollback to v${targetVersion} completed. Reloading Settings…`,'good');await sleepMs(1200);location.reload();return;}if(sawOffline)setReleaseRollbackStatus('LibreDisplay is back online. Verifying the restored version…','warn');}
         const runResponse=await resilientFetch(serverPath('/api/release-rollback-run-status'),{cache:'no-store'});
         if(runResponse.ok){const run=await runResponse.json().catch(()=>({}));if(run.state==='verifying'){setReleaseRollbackStatus(`Verifying the rollback snapshot for v${targetVersion}…`,'warn');}else if(run.state==='failed'){setReleaseRollbackStatus(run.error||'Rollback did not complete. Review data/rollback.log.','bad');return;}}

@@ -3978,7 +3978,6 @@ html.ld-pi3-static #weather-effects-overlay :is(.hazard-blizzard-flake,.hazard-b
 .weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse-front{z-index:7!important}
 .weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-head-svg{overflow:visible!important}
 
-/* v1.11.8 settings readability and reconnect polish */
 #setup .settings-search-field{display:flex;align-items:center}
 #setup .settings-search-icon{left:12px;top:50%;width:14px;height:14px;transform:translateY(-50%);font-size:0;line-height:0;color:transparent}
 #setup .settings-search-icon::before{content:"";position:absolute;left:1px;top:1px;width:8px;height:8px;border:1.7px solid var(--ld-muted);border-radius:50%;box-sizing:border-box}
@@ -4001,3 +4000,30 @@ html.ld-pi3-static #weather-effects-overlay :is(.hazard-blizzard-flake,.hazard-b
 #setup .s-row:has(input[type="range"]){padding-top:10px;padding-bottom:10px}
 #setup .s-row:has(input[type="range"])>label{margin-bottom:5px}
 #setup .remote-reconnect-note{margin:7px 0 2px;padding:8px 10px;border-left:3px solid color-mix(in srgb,var(--ld-accent) 58%,transparent);background:color-mix(in srgb,var(--ld-accent) 5%,transparent)}
+
+.remote-access-hub .remote-access-intro{margin-bottom:12px}
+.remote-access-flow{display:grid;grid-template-columns:1fr;gap:10px;margin:10px 0}
+.remote-access-card{position:relative;padding:13px 14px 13px 52px;border:1px solid rgba(148,163,184,.18);border-radius:13px;background:rgba(15,23,42,.24)}
+.remote-access-card>.remote-step{position:absolute;left:14px;top:14px;display:grid;place-items:center;width:27px;height:27px;border-radius:50%;font-weight:800;background:rgba(96,165,250,.16);border:1px solid rgba(96,165,250,.34)}
+.remote-access-card>div>b{display:block;font-size:.98rem;margin-bottom:2px}.remote-access-card>div>small{display:block;opacity:.74;line-height:1.35;margin-bottom:9px}
+.remote-access-card .remote-url-row{margin-top:7px}.remote-viewer-card{border-color:rgba(52,211,153,.22)}
+.remote-role-guide{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:11px}
+.remote-role-guide>div{padding:9px 10px;border-radius:10px;background:rgba(148,163,184,.075);border:1px solid rgba(148,163,184,.12)}
+.remote-role-guide b,.remote-role-guide span{display:block}.remote-role-guide span{font-size:.78rem;opacity:.74;margin-top:2px;line-height:1.3}
+.remote-account-builder{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
+.calendar-addons-panel{margin-top:13px;padding-top:12px;border-top:1px solid rgba(148,163,184,.18)}
+.calendar-addons-panel h4{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:.98rem}
+.settings-subhead-note{font-size:.68rem;font-weight:650;letter-spacing:.02em;padding:3px 7px;border-radius:999px;background:rgba(148,163,184,.11);opacity:.78}
+.calendar-addon-master{margin:10px 0 8px;font-weight:700}
+.calendar-addon-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.calendar-addon-card{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border:1px solid rgba(148,163,184,.14);border-radius:10px;background:rgba(148,163,184,.055);cursor:pointer}
+.calendar-addon-card input{margin-top:3px}.calendar-addon-card span,.calendar-addon-card b,.calendar-addon-card small{display:block}.calendar-addon-card b{font-size:.86rem}.calendar-addon-card small{margin-top:2px;font-size:.73rem;line-height:1.32;opacity:.70}
+@media(max-width:760px){.remote-role-guide,.remote-account-builder,.calendar-addon-grid{grid-template-columns:1fr}}
+
+.weather-fx-dog-v2.dog-shelter-house .dogv2-house-head{bottom:3px!important;height:98px!important;clip-path:inset(-12px -8px 4px -8px round 48px 48px 5px 5px)!important}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-head-svg{overflow:visible!important}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-shoulders{display:block!important;opacity:.98}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-shoulders-shade{display:block!important}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse-back::after{z-index:2}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-house-head{z-index:4!important}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse-front{z-index:7!important;height:26px!important}

@@ -126,6 +126,7 @@ function openSetup(startWizard=false){
   try{
     bindCalendarColorControls();
     bindCalendarUxInputs();
+    for(const el of document.querySelectorAll('#settings-calendars [id^="s-calendar-addon-"],#s-calendar-addons-enabled'))if(!el.dataset.addonBound){el.dataset.addonBound='1';el.addEventListener('change',markSettingsDirty);}
     renderProfileSelect();
     setProfileStatus('');
     loadScenes();
@@ -160,6 +161,8 @@ function openSetup(startWizard=false){
     document.getElementById('s-calendar-time-style').value=cfg.calendarTimeStyle||'start';
     document.getElementById('s-calendar-legend').checked=!!cfg.calendarLegend;
     document.getElementById('s-calendar-show-continuation').checked=cfg.calendarShowContinuation!==false;
+    document.getElementById('s-calendar-addons-enabled').checked=!!cfg.calendarAddonsEnabled;
+    for(const [id,key] of [['s-calendar-addon-civic-us','calendarAddonCivicUS'],['s-calendar-addon-christian','calendarAddonChristian'],['s-calendar-addon-jewish','calendarAddonJewish'],['s-calendar-addon-islamic','calendarAddonIslamic'],['s-calendar-addon-astronomy','calendarAddonAstronomy'],['s-calendar-addon-cultural','calendarAddonCultural']]){const el=document.getElementById(id);if(el)el.checked=!!cfg[key];}
     renderCalendarOrderList();
     document.getElementById('s-alerts-enabled').checked=cfg.alertsEnabled;
     document.getElementById('s-alert-test').checked=cfg.alertTestMode;
