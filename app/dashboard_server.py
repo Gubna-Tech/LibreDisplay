@@ -4932,7 +4932,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             for e in endpoint_items():
                 if not principal_allows_endpoint(principal, e["id"], write=False):
                     continue
-                rows.append({"id": e["id"], "name": e["name"], "displayUrl": (f"http://{host}/display/{e['id']}?access={e['displayToken']}" if owner else ""), "configured": endpoint_config_path(e["id"]).exists()})
+                rows.append({"id": e["id"], "name": e["name"], "displayPath": (f"/display/{e['id']}?access={e['displayToken']}" if owner else ""), "displayUrl": (f"http://{host}/display/{e['id']}?access={e['displayToken']}" if owner else ""), "configured": endpoint_config_path(e["id"]).exists()})
             return self.json_response(200, {"ok": True, "endpoints": rows, "current": requested_endpoint(parsed) or (rows[0]["id"] if rows else "main"), "remoteEnabled": remote_access_enabled(), "role": (principal or {}).get("role", "")})
         if parsed.path.startswith("/calendar-files/"):
             if not self.require_display_authorized(parsed):

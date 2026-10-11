@@ -146,13 +146,15 @@ async function loadRemoteInfo(){
   const displayInput=document.getElementById('remote-display-url');
   const toggle=document.getElementById('toggle-remote-access');
   const rotate=document.getElementById('rotate-remote-key');
+  const pairButton=document.getElementById('copy-remote-pair-url');
   if(bootstrapApi.REMOTE_SETTINGS_MODE){
-    if(input)input.value=location.origin+'/settings';
+    if(input){input.value='';input.placeholder='Pairing links are created on the local display';}
+    if(pairButton)pairButton.disabled=true;
     if(reconnectInput)reconnectInput.value=location.origin+'/login';
     if(toggle)toggle.style.display='none';
     if(rotate)rotate.style.display='none';
-    try{const r=await resilientFetch(serverPath('/api/endpoints'),{cache:'no-store'}),d=await r.json().catch(()=>({})),row=(d.endpoints||[]).find(x=>x.id===bootstrapApi.ACTIVE_ENDPOINT)||(d.endpoints||[])[0];if(displayInput)displayInput.value=row?.displayUrl||'';}catch(_e){if(displayInput)displayInput.value='';}
-    if(status)status.textContent='Remote session active. Pairing is already complete on this browser. Use the reconnect address for future visits; the Display Link below is read-only for the current display.';
+    try{const r=await resilientFetch(serverPath('/api/endpoints'),{cache:'no-store'}),d=await r.json().catch(()=>({})),row=(d.endpoints||[]).find(x=>x.id===bootstrapApi.ACTIVE_ENDPOINT)||(d.endpoints||[])[0],displayPath=String(row?.displayPath||'');if(displayInput)displayInput.value=displayPath?new URL(displayPath,location.origin).href:(row?.displayUrl||'');}catch(_e){if(displayInput)displayInput.value='';}
+    if(status)status.textContent='Remote session active. This browser is already paired, so no new pairing link is shown here. Use the reconnect address for future visits; the Display Link below is read-only for the current display.';
     return;
   }
   try{
@@ -164,7 +166,8 @@ async function loadRemoteInfo(){
     const reconnectUrl=enabled?(configApi.remoteInfo?.reconnectUrls?.[0]||''):'';
     const displayRows=Array.isArray(configApi.remoteInfo?.displayUrls)?configApi.remoteInfo.displayUrls:[];
     const currentRows=displayRows.filter(x=>x&&typeof x==='object'&&x.id===bootstrapApi.ACTIVE_ENDPOINT),displayUrl=enabled?(currentRows.find(x=>String(x.url||'').includes(location.hostname))?.url||currentRows[0]?.url||displayRows.find(x=>typeof x==='string')||''):'';
-    if(input)input.value=url;
+    if(input){input.value=url;input.placeholder='Owner pairing link will appear here';}
+    if(pairButton)pairButton.disabled=!enabled||!url;
     if(reconnectInput)reconnectInput.value=reconnectUrl;
     if(displayInput)displayInput.value=displayUrl;
     if(toggle){toggle.style.display='';toggle.textContent=enabled?'Disable remote editing':'Enable remote editing';}

@@ -4016,6 +4016,7 @@ html.ld-pi3-static #weather-effects-overlay :is(.hazard-blizzard-flake,.hazard-b
 .settings-subhead-note{font-size:.68rem;font-weight:650;letter-spacing:.02em;padding:3px 7px;border-radius:999px;background:rgba(148,163,184,.11);opacity:.78}
 .calendar-addon-master{margin:10px 0 8px;font-weight:700}
 .calendar-addon-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.calendar-addon-grid.calendar-addons-disabled{opacity:.5}.calendar-addon-grid.calendar-addons-disabled .calendar-addon-card{cursor:default}
 .calendar-addon-card{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border:1px solid rgba(148,163,184,.14);border-radius:10px;background:rgba(148,163,184,.055);cursor:pointer}
 .calendar-addon-card input{margin-top:3px}.calendar-addon-card span,.calendar-addon-card b,.calendar-addon-card small{display:block}.calendar-addon-card b{font-size:.86rem}.calendar-addon-card small{margin-top:2px;font-size:.73rem;line-height:1.32;opacity:.70}
 @media(max-width:760px){.remote-role-guide,.remote-account-builder,.calendar-addon-grid{grid-template-columns:1fr}}

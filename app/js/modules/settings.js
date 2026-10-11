@@ -18,6 +18,7 @@ const appearanceApi=LibreDisplayRuntime.getModule('appearance');
 let settingsPreviewMode=false,settingsMounted=false;
 function settingsDomMounted(){return settingsMounted;}
 function applySettingsSessionRoleVisibility(){for(const el of document.querySelectorAll('[data-owner-only="1"]'))el.style.display=(bootstrapApi.SESSION_ROLE==='owner'?'':'none');}
+const syncCalendarAddonControls=()=>{const master=document.getElementById('s-calendar-addons-enabled'),grid=document.querySelector('.calendar-addon-grid');if(!master||!grid)return;const enabled=!!master.checked;grid.classList.toggle('calendar-addons-disabled',!enabled);grid.setAttribute('aria-disabled',enabled?'false':'true');for(const el of grid.querySelectorAll('input[type=\"checkbox\"]'))el.disabled=!enabled;};
 function bindMountedSettingsControls(){
   const lightweight=document.getElementById('s-lightweight-mode'),performanceMode=document.getElementById('s-animation-performance-mode'),pi3Refresh=document.getElementById('s-pi3-static-refresh');
   lightweight?.addEventListener('change',event=>LibreDisplayRuntime.getModule('settings').toggleLightweightMode?.(event.currentTarget.checked));
@@ -126,7 +127,7 @@ function openSetup(startWizard=false){
   try{
     bindCalendarColorControls();
     bindCalendarUxInputs();
-    for(const el of document.querySelectorAll('#settings-calendars [id^="s-calendar-addon-"],#s-calendar-addons-enabled'))if(!el.dataset.addonBound){el.dataset.addonBound='1';el.addEventListener('change',markSettingsDirty);}
+    for(const el of document.querySelectorAll('#settings-calendars [id^="s-calendar-addon-"],#s-calendar-addons-enabled'))if(!el.dataset.addonBound){el.dataset.addonBound='1';el.addEventListener('change',()=>{markSettingsDirty();if(el.id==='s-calendar-addons-enabled')syncCalendarAddonControls();});}
     renderProfileSelect();
     setProfileStatus('');
     loadScenes();
@@ -162,7 +163,7 @@ function openSetup(startWizard=false){
     document.getElementById('s-calendar-legend').checked=!!cfg.calendarLegend;
     document.getElementById('s-calendar-show-continuation').checked=cfg.calendarShowContinuation!==false;
     document.getElementById('s-calendar-addons-enabled').checked=!!cfg.calendarAddonsEnabled;
-    for(const [id,key] of [['s-calendar-addon-civic-us','calendarAddonCivicUS'],['s-calendar-addon-christian','calendarAddonChristian'],['s-calendar-addon-jewish','calendarAddonJewish'],['s-calendar-addon-islamic','calendarAddonIslamic'],['s-calendar-addon-astronomy','calendarAddonAstronomy'],['s-calendar-addon-cultural','calendarAddonCultural']]){const el=document.getElementById(id);if(el)el.checked=!!cfg[key];}
+    for(const [id,key] of [['s-calendar-addon-civic-us','calendarAddonCivicUS'],['s-calendar-addon-christian','calendarAddonChristian'],['s-calendar-addon-jewish','calendarAddonJewish'],['s-calendar-addon-islamic','calendarAddonIslamic'],['s-calendar-addon-astronomy','calendarAddonAstronomy'],['s-calendar-addon-cultural','calendarAddonCultural']]){const el=document.getElementById(id);if(el)el.checked=!!cfg[key];}syncCalendarAddonControls();
     renderCalendarOrderList();
     document.getElementById('s-alerts-enabled').checked=cfg.alertsEnabled;
     document.getElementById('s-alert-test').checked=cfg.alertTestMode;

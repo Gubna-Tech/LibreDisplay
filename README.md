@@ -1,9 +1,7 @@
 # LibreDisplay
 
 **Your home. Your dashboard. Your data.**  
-A free, open-source home dashboard for Raspberry Pi, Docker, NAS, mini PCs, and browsers.
-
-LibreDisplay brings calendars, weather, photos, family information, tasks, media, alerts, and custom data together on one clean display.
+Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mini PCs, and modern browsers.
 
 <p align="center">
   <img src="assets/libredisplay-promo.png" alt="LibreDisplay dashboard" width="720">
@@ -11,40 +9,48 @@ LibreDisplay brings calendars, weather, photos, family information, tasks, media
 
 ## Quick start — Raspberry Pi
 
-Use a current Raspberry Pi OS **with Desktop**.
-
-For a new installation, paste this single command into Terminal:
+Use a current Raspberry Pi OS **with Desktop**, then paste this into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.11.9/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.11.10/scripts/install-one-line.sh)"
 ```
 
-The bootstrap downloads the pinned **v1.11.9** release, validates the archive, then hands off to LibreDisplay's normal installer. It refuses to overwrite an existing `~/libredisplay` installation; existing users should update with `libredisplay update` instead.
+The bootstrap validates the pinned **v1.11.10** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
 
-Reboot when prompted. LibreDisplay will open automatically.
-
-> Raspberry Pi OS Lite is not supported by the native kiosk installer. Use Raspberry Pi OS with Desktop, or run LibreDisplay with Docker.
+> Raspberry Pi OS Lite is not supported by the native kiosk installer. Use Pi OS with Desktop, or run LibreDisplay with Docker.
 
 ## First setup
 
-A new installation opens the setup wizard automatically. It walks you through the display name, weather location, calendars, background, appearance, and optional remote management.
-
-You can skip anything you do not need and change it later from **Settings**. To rerun the wizard, open **Settings > Home > Run setup wizard**.
+A new installation opens the setup wizard automatically for the display name, weather location, calendars, background, appearance, and optional remote management. Skip anything you do not need; rerun it anytime from **Settings > Home > Run setup wizard**.
 
 ## Using LibreDisplay
 
-Most day-to-day setup happens from **Settings**:
+<details>
+<summary><strong>Features &amp; highlights</strong></summary>
 
-- **Weather** — location, forecast, and alerts
-- **Calendars** — ICS/iCalendar feeds and imported `.ics` files
-- **Backgrounds** — stock photos, Google Photos, local folders, or NAS folders
-- **Family** — household members, chores, points, and rewards
-- **Integrations** — connect supported services and custom data sources
-- **Personalization** — themes, typography, accessibility, and layout
-- **OLED / always-on display care** — optional dimming, quiet-hours scheduling, deep protection, and pixel shifting for static-display wear reduction
-- **Layout** — choose a layout or use Arrange to independently trim block frames, resize their contents, and fine-tune editable internal weather/integration parts
+- Weather, forecasts, alerts, NatureScape scenes, and optional dog companion
+- ICS/iCalendar feeds, `.ics` imports, plus optional holiday/astronomy add-ons
+- Stock, Google Photos, local media, and NAS backgrounds
+- Family, chores, rewards, tasks, alerts, integrations, and custom data
+- Per-display layouts, themes, accessibility, and deep Arrange controls
+- Multiple displays, Owner/Editor/Viewer roles, and read-only Display Links
+- OLED care: dimming, quiet hours, deep protection, and pixel shifting
+- Self-hosted operation with no LibreDisplay cloud account or telemetry
 
-For local photo folders or NAS shares, use the included setup helpers:
+</details>
+
+**Compatible devices**
+
+| Device / role | Run server | Native wall kiosk | Read-only viewer | Remote settings |
+|---|:---:|:---:|:---:|:---:|
+| Raspberry Pi 3 / 4 / 5 + Pi OS Desktop | ✅ | ✅ | ✅ | ✅ |
+| Linux mini PC / Docker host | ✅ | ❌ | ✅ | ✅ |
+| NAS with Docker / Compose | ✅ | ❌ | ❌ | ✅* |
+| Tablet, TV, phone, or desktop browser | ❌ | ❌ | ✅ | ✅ |
+
+\*Use a browser connected to the LibreDisplay server.
+
+For local media or NAS shares:
 
 ```bash
 ~/libredisplay/scripts/setup-media.sh
@@ -54,11 +60,22 @@ For local photo folders or NAS shares, use the included setup helpers:
 ~/libredisplay/scripts/setup-nas.sh
 ```
 
+<details>
+<summary><strong>FAQ</strong></summary>
+
+**Does it need the cloud?** No. Only integrations you configure contact outside services.
+
+**Can I manage it remotely?** Yes, on a trusted LAN/private VPN. Pair a trusted browser once, then bookmark its reconnect address.
+
+**Can one server run several screens?** Yes. Named displays can keep independent settings and read-only Display Links.
+
+**Are holidays built in?** Optional civic, religious, astronomy, and seasonal calendar groups are available and off by default.
+
+</details>
+
 ## Updating LibreDisplay
 
-Native Raspberry Pi installations show available updates in **Settings > System > Software update**.
-
-The command-line updater is also available:
+Native Pi installs show updates in **Settings > System > Software update**. From Terminal:
 
 ```bash
 libredisplay check
@@ -68,7 +85,7 @@ libredisplay check
 libredisplay update
 ```
 
-Your settings, media, and custom plugins are kept during supported updates.
+Supported updates keep settings, media, display endpoints, and custom plugins.
 
 ## Docker
 
@@ -82,15 +99,11 @@ chmod +x scripts/docker-setup.sh
 ./scripts/docker-setup.sh --lan
 ```
 
-Open the address shown by the script from a device on your home network.
-
-To update an existing Docker installation:
+Open the address shown on your home network. For maintenance:
 
 ```bash
 ./scripts/docker-setup.sh update
 ```
-
-To create a Docker backup:
 
 ```bash
 ./scripts/docker-setup.sh backup
@@ -98,7 +111,7 @@ To create a Docker backup:
 
 ## Useful commands
 
-Start LibreDisplay manually on a native Raspberry Pi installation:
+Start a native Pi install:
 
 ```bash
 ~/libredisplay/scripts/start.sh
@@ -110,13 +123,13 @@ Check the local server:
 curl http://127.0.0.1:8787/healthz
 ```
 
-Create a full native backup:
+Create a backup:
 
 ```bash
 ~/libredisplay/scripts/backup.sh
 ```
 
-Uninstall LibreDisplay while preserving a copy of local dashboard data:
+Uninstall while preserving local dashboard data:
 
 ```bash
 ~/libredisplay/uninstall.sh
@@ -124,14 +137,13 @@ Uninstall LibreDisplay while preserving a copy of local dashboard data:
 
 ## Remote access and privacy
 
-LibreDisplay is intended for a trusted home network or private VPN. Do **not** port-forward LibreDisplay directly to the public Internet.
+LibreDisplay is for a trusted home network or private VPN. Do **not** port-forward it directly to the public Internet.
 
-LibreDisplay does not require a LibreDisplay cloud account and does not send analytics or telemetry to LibreDisplay or third parties. External integrations only contact services you choose to configure.
+The **Owner pairing link** authorizes a trusted browser once, the **reconnect address** returns that browser later, and each **Display Link** is read-only for one screen.
 
-Each display can have its own read-only Display Link, and local accounts can be limited to specific displays.
+LibreDisplay needs no cloud account and sends no analytics or telemetry. External integrations only contact services you choose.
 
 ## Open source
 
-LibreDisplay is released under the **[MIT License](LICENSE)**.
-
+LibreDisplay is released under the **[MIT License](LICENSE)**.  
 Copyright (c) 2026 Gubna.
