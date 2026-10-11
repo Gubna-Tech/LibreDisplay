@@ -3977,3 +3977,27 @@ html.ld-pi3-static #weather-effects-overlay :is(.hazard-blizzard-flake,.hazard-b
 .weather-fx-dog-v2.dog-shelter-house .dogv2-house-head{z-index:5!important}
 .weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse-front{z-index:7!important}
 .weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-head-svg{overflow:visible!important}
+
+/* v1.11.8 settings readability and reconnect polish */
+#setup .settings-search-field{display:flex;align-items:center}
+#setup .settings-search-icon{left:12px;top:50%;width:14px;height:14px;transform:translateY(-50%);font-size:0;line-height:0;color:transparent}
+#setup .settings-search-icon::before{content:"";position:absolute;left:1px;top:1px;width:8px;height:8px;border:1.7px solid var(--ld-muted);border-radius:50%;box-sizing:border-box}
+#setup .settings-search-icon::after{content:"";position:absolute;left:9px;top:9px;width:5px;height:1.7px;border-radius:999px;background:var(--ld-muted);transform:rotate(45deg);transform-origin:left center}
+#setup .settings-search input{padding-left:34px!important}
+
+#setup .s-subhead{display:flex;align-items:center;gap:8px;margin:18px 0 9px;padding:8px 10px;border-left:3px solid color-mix(in srgb,var(--ld-accent) 62%,transparent);border-top:1px solid color-mix(in srgb,var(--ld-border) 72%,transparent);border-bottom:1px solid color-mix(in srgb,var(--ld-border) 52%,transparent);border-radius:6px;background:color-mix(in srgb,var(--ld-accent) 5%,var(--ld-surface-2));font-size:10px;font-weight:820;letter-spacing:.45px;color:var(--ld-text)}
+#setup .s-subhead:first-of-type{margin-top:12px}
+#setup .s-section[data-settings-tab]>.howto+.s-subhead{margin-top:14px}
+#setup .s-section[data-settings-tab]{position:relative}
+#setup .s-section[data-settings-tab]:not(.section-collapsed)>.section-summary{padding-bottom:10px;border-bottom:1px solid color-mix(in srgb,var(--ld-border) 46%,transparent);margin-bottom:11px}
+
+#setup .settings-range-row{position:relative}
+#setup .settings-range-dense-hidden{display:none!important}
+#setup .settings-range-toggle{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"title icon" "meta icon";align-items:center;gap:1px 10px;width:100%;margin:2px 0 8px;padding:9px 11px;border:1px dashed color-mix(in srgb,var(--ld-accent) 32%,var(--ld-border));border-radius:9px;background:color-mix(in srgb,var(--ld-surface-2) 78%,transparent);color:var(--ld-text);text-align:left;cursor:pointer}
+#setup .settings-range-toggle:hover,#setup .settings-range-toggle:focus-visible{border-style:solid;border-color:color-mix(in srgb,var(--ld-accent) 58%,var(--ld-border));background:color-mix(in srgb,var(--ld-accent) 7%,var(--ld-surface-2));outline:none}
+#setup .settings-range-toggle span{grid-area:title;font-size:10px;font-weight:760}
+#setup .settings-range-toggle small{grid-area:meta;color:var(--ld-subtle);font-size:8.5px;line-height:1.3}
+#setup .settings-range-toggle b{grid-area:icon;display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:color-mix(in srgb,var(--ld-accent) 9%,var(--ld-surface-3));color:var(--ld-muted);font-size:15px}
+#setup .s-row:has(input[type="range"]){padding-top:10px;padding-bottom:10px}
+#setup .s-row:has(input[type="range"])>label{margin-bottom:5px}
+#setup .remote-reconnect-note{margin:7px 0 2px;padding:8px 10px;border-left:3px solid color-mix(in srgb,var(--ld-accent) 58%,transparent);background:color-mix(in srgb,var(--ld-accent) 5%,transparent)}

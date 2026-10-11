@@ -84,14 +84,18 @@ function cacheSourceName(url){
 let serverConnectionState='online',serverReconnectRefreshPending=false,serverReconnectNoticeTimer=null;
 let serverRecoveryTimer=null,serverRecoveryRunning=false,serverRecoveryAttempt=0;
 const SERVER_RECONNECT_NOTICE_DELAY_MS=8000;
+const STALE_PROVIDER_NOTICE_DELAY_MS=20000;
 const SERVER_RECOVERY_DELAYS_MS=[1000,3000,8000,15000,30000,60000];
+let staleProviderNoticeTimer=null;
 function updateOfflinePill(){
   const pill=document.getElementById('offline-pill');if(!pill)return;
-  const stale=configApi.staleCacheSources.size>0,serverDown=serverConnectionState!=='online';
-  const active=stale||serverDown;let state='online',text='';
-  if(serverDown){state='reconnecting';text=stale?'Connection interrupted · showing last known data':'Connection interrupted · retrying automatically';}
-  else if(stale){state='cached';text='Provider delayed · showing last known data';}
+  const now=Date.now(),staleRows=[...configApi.staleCacheSources.values()],oldest=staleRows.length?Math.min(...staleRows.map(x=>Number(x?.at)||now)):now,exclusiveRuns=Number(LibreDisplayRuntime.getModule('performance').animationPerformanceSnapshot?.().activeExclusiveRuns)||0,staleReady=staleRows.length>0&&!exclusiveRuns&&(now-oldest)>=STALE_PROVIDER_NOTICE_DELAY_MS,serverDown=serverConnectionState!=='online';
+  const active=staleReady||serverDown;let state='online',text='';
+  if(serverDown){state='reconnecting';text=staleReady?'Connection interrupted · showing last known data':'Connection interrupted · retrying automatically';}
+  else if(staleReady){state='cached';text='Provider delayed · showing last known data';}
   pill.dataset.state=state;pill.classList.toggle('show',active);if(pill.textContent!==text)pill.textContent=text;
+  if(staleRows.length&&!staleReady&&!staleProviderNoticeTimer){const wait=Math.max(250,STALE_PROVIDER_NOTICE_DELAY_MS-(now-oldest));staleProviderNoticeTimer=setTimeout(()=>{staleProviderNoticeTimer=null;updateOfflinePill();},wait);}
+  if(!staleRows.length&&staleProviderNoticeTimer){clearTimeout(staleProviderNoticeTimer);staleProviderNoticeTimer=null;}
   updateSettingsOverview?.();
 }
 function clearServerRecoveryTimer(){if(serverRecoveryTimer){clearTimeout(serverRecoveryTimer);serverRecoveryTimer=null;}}
@@ -137,14 +141,16 @@ function noteCacheResponse(url,res,nameOverride=''){
 }
 async function loadRemoteInfo(){
   const input=document.getElementById('remote-settings-url');
+  const reconnectInput=document.getElementById('remote-reconnect-url');
   const status=document.getElementById('remote-settings-status');
   const displayInput=document.getElementById('remote-display-url');
   const toggle=document.getElementById('toggle-remote-access');
   const rotate=document.getElementById('rotate-remote-key');
   if(bootstrapApi.REMOTE_SETTINGS_MODE){
     if(input)input.value=location.origin+'/settings';
+    if(reconnectInput)reconnectInput.value=location.origin+'/login';
     if(displayInput)displayInput.value='';
-    if(status)status.textContent='Remote admin session active. Pairing secrets are not exposed to this browser.';
+    if(status)status.textContent='Remote session active. This browser will stay paired through normal LibreDisplay restarts until the session expires or access is rotated.';
     if(toggle)toggle.style.display='none';
     if(rotate)rotate.style.display='none';
     return;
@@ -155,9 +161,11 @@ async function loadRemoteInfo(){
     configApi.remoteInfo=await res.json();
     const enabled=!!configApi.remoteInfo?.remoteEnabled;
     const url=enabled?(configApi.remoteInfo?.settingsUrls?.[0]||''):'';
+    const reconnectUrl=enabled?(configApi.remoteInfo?.reconnectUrls?.[0]||''):'';
     const displayRows=Array.isArray(configApi.remoteInfo?.displayUrls)?configApi.remoteInfo.displayUrls:[];
     const displayUrl=enabled?(displayRows.find(x=>x&&x.id===bootstrapApi.ACTIVE_ENDPOINT)?.url||displayRows.find(x=>typeof x==='string')||''):'';
     if(input)input.value=url;
+    if(reconnectInput)reconnectInput.value=reconnectUrl;
     if(displayInput)displayInput.value=displayUrl;
     if(toggle){toggle.style.display='';toggle.textContent=enabled?'Disable remote editing':'Enable remote editing';}
     if(rotate)rotate.style.display=enabled?'':'none';
@@ -167,6 +175,7 @@ async function loadRemoteInfo(){
     }
   }catch(e){
     if(input)input.value='';
+    if(reconnectInput)reconnectInput.value='';
     if(displayInput)displayInput.value='';
     if(toggle)toggle.style.display='none';
     if(rotate)rotate.style.display='none';
@@ -196,6 +205,15 @@ async function copyRemoteSettingsUrl(){
   let ok=false;try{await navigator.clipboard.writeText(value);ok=true;}catch(e){}
   if(!ok&&input){input.select();try{ok=document.execCommand('copy');}catch(e){}}
   if(status)status.textContent=ok?'Pairing link copied. Treat it like a password.':'Copy was blocked by the browser; select the URL and copy it manually.';
+}
+async function copyRemoteReconnectUrl(){
+  const input=document.getElementById('remote-reconnect-url');
+  const status=document.getElementById('remote-settings-status');
+  const value=String(input?.value||'').trim();
+  if(!value){if(status)status.textContent='Enable remote editing first, then copy the reconnect address.';return;}
+  let ok=false;try{await navigator.clipboard.writeText(value);ok=true;}catch(e){}
+  if(!ok&&input){input.select();try{ok=document.execCommand('copy');}catch(e){}}
+  if(status)status.textContent=ok?'Reconnect address copied. Bookmark it on trusted devices.':'Copy was blocked by the browser; select the address and copy it manually.';
 }
 async function copyRemoteDisplayUrl(){
   const input=document.getElementById('remote-display-url');
@@ -364,7 +382,7 @@ function clearSettingsInitializationError(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,toggleRemoteAccess,copyRemoteSettingsUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
+LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,toggleRemoteAccess,copyRemoteSettingsUrl,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
   "displayEndpoints": {configurable:true,get:()=>displayEndpoints,set:(value)=>{displayEndpoints=value;}},
   "displayDevices": {configurable:true,get:()=>displayDevices,set:(value)=>{displayDevices=value;}},
   "endpointsRemoteEnabled": {configurable:true,get:()=>endpointsRemoteEnabled,set:(value)=>{endpointsRemoteEnabled=value;}},

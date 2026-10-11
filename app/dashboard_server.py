@@ -67,6 +67,7 @@ REMOTE_NETWORKS_RAW = str(os.environ.get("DASHBOARD_REMOTE_NETWORKS", "private")
 REMOTE_DEFAULT_ENABLED = str(os.environ.get("DASHBOARD_REMOTE_ENABLED", "0")).strip().lower() in {"1", "true", "yes", "on"}
 ALLOWED_HOSTS_RAW = str(os.environ.get("DASHBOARD_ALLOWED_HOSTS", "")).strip()
 REMOTE_ACCESS_PATH = DATA_ROOT / "remote_access.json"
+REMOTE_SESSIONS_PATH = DATA_ROOT / "remote_sessions.json"
 USERS_PATH = DATA_ROOT / "dashboard_users.json"
 REMOTE_SESSION_LOCK = threading.Lock()
 REMOTE_SESSIONS = {}
@@ -1431,6 +1432,59 @@ def client_network_allowed(value):
     return False
 
 
+def _serializable_remote_sessions(now=None):
+    now = time.time() if now is None else float(now)
+    payload = {}
+    for token, row in REMOTE_SESSIONS.items():
+        if not isinstance(row, dict):
+            continue
+        expires = float(row.get("expires") or 0)
+        principal = row.get("principal") if isinstance(row.get("principal"), dict) else None
+        if expires <= now or not principal:
+            continue
+        payload[str(token)] = {"expires": expires, "createdAt": float(row.get("createdAt") or now), "principal": principal}
+    return payload
+
+
+def persist_remote_sessions():
+    with REMOTE_SESSION_LOCK:
+        payload = {"version": 1, "sessions": _serializable_remote_sessions()}
+    try:
+        atomic_write_json_file(REMOTE_SESSIONS_PATH, payload)
+    except Exception:
+        pass
+
+
+def load_remote_sessions():
+    now = time.time()
+    loaded = {}
+    had_file = REMOTE_SESSIONS_PATH.exists()
+    try:
+        if had_file:
+            raw = json.loads(REMOTE_SESSIONS_PATH.read_text(encoding="utf-8"))
+            rows = raw.get("sessions") if isinstance(raw, dict) else {}
+            if isinstance(rows, dict):
+                for token, row in rows.items():
+                    if not re.fullmatch(r"[A-Za-z0-9_-]{24,128}", str(token or "")) or not isinstance(row, dict):
+                        continue
+                    expires = float(row.get("expires") or 0)
+                    principal = row.get("principal") if isinstance(row.get("principal"), dict) else None
+                    if expires <= now or not principal:
+                        continue
+                    role = str(principal.get("role") or "").lower()
+                    if role not in {"owner", "editor", "viewer"}:
+                        continue
+                    loaded[str(token)] = {"expires": expires, "createdAt": float(row.get("createdAt") or now), "principal": dict(principal)}
+    except Exception:
+        loaded = {}
+    with REMOTE_SESSION_LOCK:
+        REMOTE_SESSIONS.clear()
+        REMOTE_SESSIONS.update(loaded)
+    if had_file:
+        persist_remote_sessions()
+    return len(loaded)
+
+
 def create_remote_session(principal=None):
     token = secrets.token_urlsafe(32)
     expires = time.time() + max(300, REMOTE_COOKIE_MAX_AGE)
@@ -1455,6 +1509,7 @@ def create_remote_session(principal=None):
             for old, _ in ordered[:len(REMOTE_SESSIONS) - MAX_REMOTE_SESSIONS + 1]:
                 REMOTE_SESSIONS.pop(old, None)
         REMOTE_SESSIONS[token] = {"expires": expires, "createdAt": now, "principal": principal}
+    persist_remote_sessions()
     return token
 
 
@@ -1567,6 +1622,7 @@ def remote_session_principal(token):
     if not token:
         return None
     now = time.time()
+    changed = False
     with REMOTE_SESSION_LOCK:
         row = REMOTE_SESSIONS.get(str(token))
         if isinstance(row, dict):
@@ -1577,16 +1633,23 @@ def remote_session_principal(token):
             principal = {"username": "paired-owner", "role": "owner", "endpoints": []} if expiry else None
         if not expiry or expiry <= now:
             REMOTE_SESSIONS.pop(str(token), None)
-            return None
-        principal = dict(principal or {"username": "paired-owner", "role": "owner", "endpoints": []})
-        username = str(principal.get("username") or "").strip()
-        if username and username != "paired-owner":
-            account = account_lookup(username)
-            if not account:
-                REMOTE_SESSIONS.pop(str(token), None)
-                return None
-            principal = {"username": account["username"], "role": account["role"], "endpoints": account.get("endpoints") or []}
-        return principal
+            changed = True
+            principal = None
+        else:
+            principal = dict(principal or {"username": "paired-owner", "role": "owner", "endpoints": []})
+            username = str(principal.get("username") or "").strip()
+            if username and username != "paired-owner":
+                account = account_lookup(username)
+                if not account:
+                    REMOTE_SESSIONS.pop(str(token), None)
+                    changed = True
+                    principal = None
+                else:
+                    principal = {"username": account["username"], "role": account["role"], "endpoints": account.get("endpoints") or []}
+                    row["principal"] = principal
+    if changed:
+        persist_remote_sessions()
+    return principal
 
 
 def remote_session_valid(token):
@@ -1596,15 +1659,20 @@ def remote_session_valid(token):
 def clear_remote_sessions():
     with REMOTE_SESSION_LOCK:
         REMOTE_SESSIONS.clear()
+    persist_remote_sessions()
 
 
 def clear_remote_sessions_for_user(username):
     key = str(username or "").strip().lower()
+    changed = False
     with REMOTE_SESSION_LOCK:
         for token, row in list(REMOTE_SESSIONS.items()):
             principal = row.get("principal") if isinstance(row, dict) and isinstance(row.get("principal"), dict) else {}
             if str(principal.get("username") or "").strip().lower() == key:
                 REMOTE_SESSIONS.pop(token, None)
+                changed = True
+    if changed:
+        persist_remote_sessions()
 
 
 def remote_access_enabled():
@@ -3362,6 +3430,7 @@ def remote_management_urls(token):
 
 ACCESS_TOKEN, DISPLAY_TOKEN = load_or_create_access_tokens()
 ENDPOINTS = load_endpoint_registry()
+load_remote_sessions()
 _main_endpoint = next((x for x in ENDPOINTS if x.get("id") == "main"), None)
 if _main_endpoint and _main_endpoint.get("displayToken") != DISPLAY_TOKEN:
     DISPLAY_TOKEN = _main_endpoint["displayToken"]
@@ -4227,6 +4296,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             token = cookie_value(self.headers.get("Cookie", ""), REMOTE_COOKIE_NAME)
             with REMOTE_SESSION_LOCK:
                 REMOTE_SESSIONS.pop(str(token), None)
+            persist_remote_sessions()
             self.send_response(200); self.send_header("Content-Type", "application/json; charset=utf-8"); self.send_header("Set-Cookie", f"{REMOTE_COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict"); payload=b'{"ok":true}'; self.send_header("Content-Length",str(len(payload))); self.end_headers(); self.wfile.write(payload); return
         if parsed.path == "/api/update-now":
             if not self.require_owner():
@@ -4666,6 +4736,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if parsed.path in ("/login", "/login/"):
             if not self.client_network_allowed():
                 return self.text_response(403, "Login is limited to trusted LAN/private VPN clients.")
+            principal = self.session_principal()
+            if principal:
+                allowed = endpoint_items() if str(principal.get("role") or "").lower() == "owner" else [e for e in endpoint_items() if principal_allows_endpoint(principal, e["id"], write=False)]
+                first = (allowed[0]["id"] if allowed else "main")
+                self.send_response(302)
+                self.send_header("Location", f"/dashboard.html?display=1&endpoint={quote(first)}" if str(principal.get("role") or "").lower() == "viewer" else f"/settings?endpoint={quote(first)}")
+                self.end_headers()
+                return
             page = b"""<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>LibreDisplay Sign In</title><style>body{margin:0;background:#0c0f0d;color:#eef2ef;font:16px system-ui;display:grid;place-items:center;min-height:100vh}.card{width:min(420px,calc(100vw - 40px));background:#161a17;border:1px solid #303832;border-radius:18px;padding:28px;box-shadow:0 20px 70px #0008}h1{margin:0 0 4px}p{color:#aab5ad}label{display:block;margin:16px 0 6px}input{box-sizing:border-box;width:100%;padding:12px 14px;border-radius:10px;border:1px solid #3a443d;background:#0f1310;color:#fff}button{margin-top:18px;width:100%;padding:12px;border:0;border-radius:10px;background:#3fb950;color:#061006;font-weight:800;cursor:pointer}.err{min-height:22px;color:#ff8b8b;margin-top:12px}</style></head><body><form class='card' id='f'><h1>LibreDisplay</h1><p>Sign in to a local Owner, Editor, or Viewer account.</p><label>Username</label><input id='u' autocomplete='username' required><label>Password</label><input id='p' type='password' autocomplete='current-password' required><button>Sign in</button><div class='err' id='e'></div></form><script>f.onsubmit=async e=>{e.preventDefault();const b=f.querySelector('button'),c=new AbortController(),t=setTimeout(()=>c.abort(),8000),m=document.getElementById('e');b.disabled=true;m.textContent='';try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.value,password:p.value}),signal:c.signal});const d=await r.json().catch(()=>({}));if(r.ok&&d.ok)location.href=d.role==='viewer'?'/dashboard.html?display=1&endpoint='+(d.endpoint||'main'):'/settings?endpoint='+(d.endpoint||'main');else m.textContent=d.error||'Sign-in failed';}catch(err){m.textContent=err&&err.name==='AbortError'?'Sign-in timed out. Check the LibreDisplay connection and try again.':'Could not reach LibreDisplay. Try again.';}finally{clearTimeout(t);b.disabled=false;}}</script></body></html>"""
             return self.bytes_response(200, page, "text/html; charset=utf-8", {"Cache-Control": "no-store"})
         if parsed.path == "/healthz":
@@ -4727,12 +4805,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
             enabled = remote_access_enabled()
             ips = local_ipv4_addresses() if enabled else []
             urls, display_urls = remote_management_urls(ACCESS_TOKEN) if enabled else ([], [])
+            reconnect_urls = [f"http://{host}:{PORT}/login" for host in remote_link_hosts()] if enabled else []
             return self.json_response(200, {
                 "ok": True,
                 "hostname": socket.gethostname(),
                 "port": PORT,
                 "addresses": ips,
                 "settingsUrls": urls,
+                "reconnectUrls": reconnect_urls,
                 "displayUrls": display_urls,
                 "accessConfigured": True,
                 "remoteEnabled": enabled,

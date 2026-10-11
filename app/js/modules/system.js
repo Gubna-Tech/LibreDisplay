@@ -334,7 +334,7 @@ async function runSystemDisplayPerformanceBenchmark(){
       }
       throw new Error(seen?'The physical display did not finish the benchmark within 180 seconds. It may still be cycling Chromium graphics profiles; check System Health and retry once recovery settles.':'The physical kiosk did not acknowledge the durable benchmark request within 180 seconds. Check the live kiosk heartbeat and browser recovery state.');
     }catch(error){if(box){box.style.display='block';box.textContent=`Performance test could not complete: ${error?.message||error}`;}throw error;
-    }finally{if(button){button.disabled=false;button.textContent='Run on physical display';}}
+    }finally{if(button){button.disabled=false;button.textContent='Run on physical display';}setTimeout(()=>{Promise.allSettled([loadSystemHealth(),LibreDisplayRuntime.getModule('settings').refreshDataNow?.()]).catch(()=>{});},1500);}
   })();
   displayPerformanceBenchmarkPromise=run;
   try{return await run;}finally{displayPerformanceBenchmarkPromise=null;}
