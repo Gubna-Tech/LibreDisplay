@@ -4021,10 +4021,11 @@ html.ld-pi3-static #weather-effects-overlay :is(.hazard-blizzard-flake,.hazard-b
 .calendar-addon-card input{margin-top:3px}.calendar-addon-card span,.calendar-addon-card b,.calendar-addon-card small{display:block}.calendar-addon-card b{font-size:.86rem}.calendar-addon-card small{margin-top:2px;font-size:.73rem;line-height:1.32;opacity:.70}
 @media(max-width:760px){.remote-role-guide,.remote-account-builder,.calendar-addon-grid{grid-template-columns:1fr}}
 
-.weather-fx-dog-v2.dog-shelter-house .dogv2-house-head{bottom:3px!important;height:98px!important;clip-path:inset(-12px -8px 4px -8px round 48px 48px 5px 5px)!important}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-house-head{left:50px!important;bottom:8px!important;width:96px!important;height:100px!important;clip-path:inset(-12px -8px 2px -8px round 48px 48px 5px 5px)!important}
 .weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-head-svg{overflow:visible!important}
 .weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-shoulders{display:block!important;opacity:.98}
 .weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-shoulders-shade{display:block!important}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-upper{transform:translateY(-3px);transform-origin:50% 72%}
 .weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse-back::after{z-index:2}
 .weather-fx-dog-v2.dog-shelter-house .dogv2-house-head{z-index:4!important}
 .weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse-front{z-index:7!important;height:26px!important}
