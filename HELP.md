@@ -1,29 +1,72 @@
 # LibreDisplay Help & Setup Guide
 
-This is the practical handbook for installing, configuring, operating, troubleshooting, and recovering LibreDisplay. The README stays intentionally short; this document explains the system in depth.
+This is the practical handbook for installing, configuring, operating, troubleshooting, and recovering LibreDisplay. It is intentionally detailed, but it is organized so you only need to open the part you are working on. The README stays short; this guide holds the deeper explanations and recovery material.
 
 > **Security boundary:** LibreDisplay is designed for a trusted home LAN or private VPN. Do not expose the built-in server directly to the public Internet.
 
-## Contents
+## Start here
 
-- [How LibreDisplay is structured](#how-libredisplay-is-structured)
-- [Installation](#installation)
-- [First-time setup](#first-time-setup)
-- [Raspberry Pi host modes](#raspberry-pi-host-modes)
-- [Remote Access and Owner devices](#remote-access-and-owner-devices)
-- [Multiple displays](#multiple-displays)
-- [Settings guide](#settings-guide)
-- [Arrange mode and layouts](#arrange-mode-and-layouts)
-- [Terminal / SSH command reference](#terminal--ssh-command-reference)
-- [Backups, updates, and recovery](#backups-updates-and-recovery)
-- [Performance and Raspberry Pi guidance](#performance-and-raspberry-pi-guidance)
-- [OLED and always-on display care](#oled-and-always-on-display-care)
-- [Docker, NAS, and server deployments](#docker-nas-and-server-deployments)
-- [Troubleshooting](#troubleshooting)
-- [Tips and tricks](#tips-and-tricks)
-- [Privacy and security](#privacy-and-security)
+You do not need to read this guide from top to bottom. Pick the task you are trying to complete, then open the matching section below.
 
----
+| If you want to... | Open this section |
+| --- | --- |
+| Install LibreDisplay or complete first-time setup | **1. Getting started and Raspberry Pi host modes** |
+| Run a Pi without a local webpage | **1. Getting started and Raspberry Pi host modes** or use the SSH commands below |
+| Add an Owner device or understand Remote Access | **2. Remote Access and multiple displays** |
+| Understand a Settings page or dashboard layout control | **3. Settings and layout reference** |
+| Administer LibreDisplay over SSH | **4. Terminal and SSH reference** |
+| Back up, update, restore, or recover an installation | **5. Maintenance, updates, and recovery** |
+| Tune Raspberry Pi performance or protect an OLED display | **6. Performance, display care, and server deployments** |
+| Diagnose something that is not working | **7. Troubleshooting** |
+| Learn operating practices, privacy details, or quick recovery commands | **8. Tips, privacy, and quick recovery** |
+
+### Server-only mode over SSH
+
+These commands are supported on native Raspberry Pi installations and are safe to run from an SSH session:
+
+```bash
+libredisplay server-only status
+libredisplay server-only on
+libredisplay server-only off
+```
+
+For people who prefer explicit words, v1.12.2 also accepts:
+
+```bash
+libredisplay server-only enable
+libredisplay server-only disable
+```
+
+`on` and `enable` mean the same thing: keep the LibreDisplay server running but stop/do not launch the local Chromium dashboard. `off` and `disable` return the Pi to **Display + server** mode.
+
+If the LibreDisplay server is temporarily offline, the CLI still saves the requested Server-only state directly so it can take effect on the next start. An environment-level `DASHBOARD_NO_BROWSER=1` override is stronger than the saved preference and must be removed before a local browser can be started.
+
+### Most useful SSH commands
+
+```bash
+libredisplay status
+libredisplay addresses
+libredisplay connect
+libredisplay remote status
+libredisplay server-only status
+libredisplay doctor
+libredisplay logs
+libredisplay backup
+libredisplay check
+```
+
+Run `libredisplay --help` for the complete command list or `libredisplay <command> --help` for one command.
+
+## How to use this guide
+
+The eight major sections below are collapsed by default to keep this file approachable. Open only the section you need. Inside each section, normal headings break the subject into smaller tasks and explanations. No operational detail from the previous guide has been removed; the material has been regrouped around the way people actually use LibreDisplay.
+
+For a problem you cannot immediately place, start with **7. Troubleshooting**. For an SSH-only recovery, start with **4. Terminal and SSH reference**, then use **5. Maintenance, updates, and recovery** if needed.
+
+## Guide sections
+
+<details>
+<summary><strong>1. Getting started and Raspberry Pi host modes</strong><br>Architecture, installation, first-time setup, Display + server mode, and Server-only mode.</summary>
 
 ## How LibreDisplay is structured
 
@@ -207,9 +250,11 @@ The change is applied immediately. The server remains online while the local Chr
 libredisplay server-only status
 libredisplay server-only on
 libredisplay server-only off
+libredisplay server-only enable   # alias for on
+libredisplay server-only disable  # alias for off
 ```
 
-This is also the recovery path if you enabled Server-only mode and later want the local dashboard back.
+The `on`/`enable` forms are equivalent, as are `off`/`disable`. These commands are safe to run over SSH. If the server is temporarily offline, LibreDisplay writes the saved host-mode request directly so it takes effect on the next start. This is also the recovery path if you enabled Server-only mode and later want the local dashboard back.
 
 ### Environment-forced no-browser mode
 
@@ -229,6 +274,11 @@ libredisplay remote on
 ```
 
 ---
+
+</details>
+
+<details>
+<summary><strong>2. Remote Access and multiple displays</strong><br>Owner devices, connection codes, accounts, Display Links, endpoints, profiles, scenes, and multi-screen operation.</summary>
 
 ## Remote Access and Owner devices
 
@@ -353,6 +403,11 @@ Scenes apply Profiles according to server-side schedules. They continue working 
 Use a separate Display Link per screen whenever the viewer should render the dashboard but never administer the server.
 
 ---
+
+</details>
+
+<details>
+<summary><strong>3. Settings and layout reference</strong><br>A section-by-section Settings explanation plus Arrange mode and layout behavior.</summary>
 
 ## Settings guide
 
@@ -518,6 +573,11 @@ A remote Settings browser is an administration surface, not a substitute for the
 
 ---
 
+</details>
+
+<details>
+<summary><strong>4. Terminal and SSH reference</strong><br>The complete `libredisplay` command reference, including Remote Access, Server-only mode, diagnostics, backups, updates, and field checks.</summary>
+
 ## Terminal / SSH command reference
 
 Run:
@@ -606,9 +666,11 @@ Remote Access is for trusted LAN/private-VPN clients only.
 libredisplay server-only status
 libredisplay server-only on
 libredisplay server-only off
+libredisplay server-only enable   # alias for on
+libredisplay server-only disable  # alias for off
 ```
 
-If the server is online, the CLI updates the runtime through the local API. If the server is down, the CLI safely writes the saved mode request so it takes effect on the next LibreDisplay start.
+Use `on` or `enable` to stop the local Chromium dashboard while leaving the server online. Use `off` or `disable` to restore Display + server mode. If the server is online, the CLI updates the runtime through the local API. If the server is down, the CLI safely writes the saved mode request so it takes effect on the next LibreDisplay start.
 
 ### `libredisplay display-mode`
 
@@ -724,6 +786,11 @@ libredisplay version
 
 ---
 
+</details>
+
+<details>
+<summary><strong>5. Maintenance, updates, and recovery</strong><br>Backup, update, restore, interrupted-update recovery, Server-only recovery, and Remote Access recovery.</summary>
+
 ## Backups, updates, and recovery
 
 ### Before major changes
@@ -798,6 +865,11 @@ curl http://127.0.0.1:8787/healthz
 A healthy `/healthz` with a missing local display usually indicates a browser/host-mode issue rather than a server failure.
 
 ---
+
+</details>
+
+<details>
+<summary><strong>6. Performance, display care, and server deployments</strong><br>Pi 3/4/5 guidance, Server-only performance, OLED protection, Docker, NAS, and browserless server deployments.</summary>
 
 ## Performance and Raspberry Pi guidance
 
@@ -877,6 +949,11 @@ Persistent data must stay in the configured volume/mapping. Do not treat the con
 The native **Server-only mode** toggle is intentionally reported as unsupported on deployments that do not use the native Pi kiosk manager, because those deployments already have no managed local kiosk to stop.
 
 ---
+
+</details>
+
+<details>
+<summary><strong>7. Troubleshooting</strong><br>Symptom-based diagnosis for display, network, Owner enrollment, Settings, calendars, weather, backgrounds, performance, browser stability, updates, Docker, and credential recovery.</summary>
 
 ## Troubleshooting
 
@@ -1037,6 +1114,11 @@ Use **Reset all remote credentials** from Owner Settings. This resets remote cre
 
 ---
 
+</details>
+
+<details>
+<summary><strong>8. Tips, privacy, and quick recovery</strong><br>Operational tips, privacy/security boundaries, and the compact recovery command card.</summary>
+
 ## Tips and tricks
 
 ### Use the Pi as a dedicated server
@@ -1154,3 +1236,5 @@ libredisplay server-only off
 ```
 
 If the server itself is healthy but another screen cannot connect, troubleshoot LAN/VPN reachability and the connection address before changing LibreDisplay configuration.
+
+</details>

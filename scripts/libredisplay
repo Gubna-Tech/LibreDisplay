@@ -254,7 +254,7 @@ def server_only_command(action):
         print("Server-only mode (saved request): " + ("on" if row.get("serverOnly") else "off"))
         print("Server is currently unreachable, so effective runtime state could not be confirmed.")
         return 1
-    enabled = action == "on"
+    enabled = action in ("on", "enable")
     try:
         status, payload = api_json("/api/server-mode", method="POST", payload={"serverOnly": enabled})
         if status == 200 and payload.get("ok"):
@@ -611,7 +611,7 @@ def main():
     remote_parser = sub.add_parser("remote", help="Show, enable, or disable trusted-network Remote Access.")
     remote_parser.add_argument("action", nargs="?", choices=("status", "on", "off"), default="status")
     server_parser = sub.add_parser("server-only", help="Show or change native Pi server-only mode.")
-    server_parser.add_argument("action", nargs="?", choices=("status", "on", "off"), default="status")
+    server_parser.add_argument("action", nargs="?", choices=("status", "on", "off", "enable", "disable"), default="status")
     display_parser = sub.add_parser("display-mode", help="Switch the local native Pi browser between kiosk and windowed mode.")
     display_parser.add_argument("mode", choices=("kiosk", "windowed"))
     sub.add_parser("doctor", help="Run quick local installation, server, and startup-integrity checks.")
