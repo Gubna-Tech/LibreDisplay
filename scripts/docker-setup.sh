@@ -20,7 +20,7 @@ Usage:
 Commands:
   start   Build/start LibreDisplay. This is the default command.
   status  Show container status and the current LibreDisplay URLs.
-  links   Reprint the dashboard, display, and admin links.
+  links   Reprint dashboard/display links and generate a one-time Owner code when LAN access is enabled.
   logs    Follow LibreDisplay container logs.
   backup  Create a full Docker-safe backup under ./backups.
   update  Back up, download, rebuild, and health-check the latest release.
@@ -156,9 +156,29 @@ access_value() {
   sed -n "s/.*\"$field\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" data/dashboard_access.json | head -n 1
 }
 
+docker_owner_code() {
+  docker compose ps --status running --services 2>/dev/null | grep -qx 'libredisplay' || return 1
+  docker compose exec -T libredisplay python3 - <<'PY_OWNER_CODE' 2>/dev/null
+import json, urllib.request
+try:
+    req=urllib.request.Request(
+        'http://127.0.0.1:8787/api/owner-enrollment',
+        data=json.dumps({'action':'create'}).encode('utf-8'),
+        headers={'Content-Type':'application/json','Origin':'http://127.0.0.1:8787'},
+        method='POST',
+    )
+    with urllib.request.urlopen(req,timeout=4) as response:
+        data=json.load(response)
+    code=str(data.get('code') or '').strip()
+    if code:
+        print(code)
+except Exception:
+    pass
+PY_OWNER_CODE
+}
+
 show_links() {
   load_env
-  token=$(access_value token)
   ip_value=$(host_ip)
 
   printf '\nLibreDisplay URLs\n'
@@ -191,18 +211,22 @@ PY_ENDPOINTS
       display_token=$(access_value displayToken)
       [ -z "$display_token" ] || printf '  Main display: http://%s:%s/display/main?access=%s\n' "$ip_value" "$DASHBOARD_PORT" "$display_token"
     fi
-    if [ -n "$token" ]; then
-      printf '\nADMIN PAIRING LINK\n'
-      printf 'Open on the phone/computer you use to configure LibreDisplay:\n'
-      printf 'http://%s:%s/pair?access=%s\n' "$ip_value" "$DASHBOARD_PORT" "$token"
+
+    printf '\nADD AN OWNER DEVICE\n'
+    owner_code=$(docker_owner_code || true)
+    if [ -n "$owner_code" ]; then
+      printf 'One-time code:   %s\n' "$owner_code"
+      printf 'Open or scan:    http://%s:%s/connect?code=%s\n' "$ip_value" "$DASHBOARD_PORT" "$owner_code"
+      printf 'The code expires quickly and can be used only once. Generate another from Settings > Remote Access when needed.\n'
+    else
+      printf 'Open http://%s:%s/ on the Docker host, then use Settings > Remote Access > Add Owner Device.\n' "$ip_value" "$DASHBOARD_PORT"
     fi
   else
-    if [ -n "$token" ]; then
-      printf '\nLocal admin pairing link (normally unnecessary on the Docker host):\n'
-      printf 'http://localhost:%s/pair?access=%s\n' "$DASHBOARD_PORT" "$token"
-    fi
+    printf '\nOWNER DEVICE ACCESS\n'
+    printf 'This Docker deployment is host-only. Open the local dashboard, then use Settings > Remote Access > Add Owner Device.\n'
+    printf 'To connect another trusted LAN device, restart with ./scripts/docker-setup.sh --lan first.\n'
   fi
-  printf '\nKeep pairing/display links private. Do not port-forward LibreDisplay to the public Internet.\n'
+  printf '\nKeep Owner codes and read-only Display Links private. Do not port-forward LibreDisplay to the public Internet.\n'
 }
 
 COMMAND=start
@@ -305,7 +329,7 @@ case "$COMMAND" in
     exit 0
     ;;
   reset)
-    printf 'This removes Docker settings, pairing keys, cache, and .env. ./media and ./backups are kept.\n'
+    printf 'This removes Docker settings, remote credentials, cache, and .env. ./media and ./backups are kept.\n'
     printf 'Continue? [y/N] '
     read answer || answer=n
     case "$answer" in y|Y|yes|YES|Yes) ;; *) printf 'Reset cancelled.\n'; exit 0 ;; esac
@@ -375,7 +399,7 @@ printf 'Bind:  %s:%s\n' "$DASHBOARD_BIND" "$DASHBOARD_PORT"
 show_links
 printf '\nUseful commands:\n'
 printf '  ./scripts/docker-setup.sh status   # container status + links\n'
-printf '  ./scripts/docker-setup.sh links    # reprint display/admin links\n'
+printf '  ./scripts/docker-setup.sh links    # display links + one-time Owner code\n'
 printf '  ./scripts/docker-setup.sh logs     # follow logs\n'
 printf '  ./scripts/docker-setup.sh backup   # back up Docker settings/media/plugins\n'
 printf '  ./scripts/docker-setup.sh update   # safely update Docker to the newest release\n'

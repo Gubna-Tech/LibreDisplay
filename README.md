@@ -12,10 +12,10 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 Use a current Raspberry Pi OS **with Desktop**, then paste this into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.11.14/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.12.0/scripts/install-one-line.sh)"
 ```
 
-The bootstrap validates the pinned **v1.11.14** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
+The bootstrap validates the pinned **v1.12.0** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
 
 > Raspberry Pi OS Lite is not supported by the native kiosk installer. Use Pi OS with Desktop, or run LibreDisplay with Docker.
 
@@ -60,62 +60,116 @@ For local media or NAS shares:
 ~/libredisplay/scripts/setup-nas.sh
 ```
 
-<p><strong>❓ FAQ &amp; troubleshooting</strong></p>
+<p align="center"><strong>❓ FAQ &amp; troubleshooting</strong></p>
 
-> **Looking for an answer quickly?** The FAQ stays collapsed to keep this README compact; open it for setup, Remote Access, display, calendar, performance, privacy, update, and recovery help.
+> **Need an answer or fixing something?** Open the FAQ below. It stays collapsed so this README remains easy to scan, but it contains detailed help for setup, Remote Access, Owner devices, displays, calendars, performance, privacy, updates, recovery, and common problems.
 
 <details>
-<summary><strong>FAQ</strong></summary>
+<summary><strong>❓ Open FAQ &amp; troubleshooting — setup, Remote Access, displays, performance &amp; recovery</strong></summary>
 
-**Common questions & troubleshooting**
+**Getting started & privacy**
 
 **Does LibreDisplay need a cloud account?** No. LibreDisplay itself is self-hosted and does not require a LibreDisplay account. Only outside services and integrations you choose to configure contact their providers.
 
-**Does LibreDisplay send analytics or telemetry?** No LibreDisplay analytics or telemetry are required. Your dashboard data stays on your server except for external sources you explicitly configure, such as weather, calendars, photos, or integrations.
+**Does LibreDisplay send analytics or telemetry?** No LibreDisplay analytics or telemetry are required. Dashboard data stays on your server except for outside sources you explicitly configure, such as weather, calendars, photos, or integrations.
 
-**Can I manage LibreDisplay remotely?** Yes, on a trusted home LAN or private VPN. Enable Remote management from the local wall display, use the Owner pairing link once on a trusted browser, then keep the shorter reconnect address for later visits.
+**Should I expose LibreDisplay directly to the public Internet?** No. Do not port-forward the built-in server. Use it on a trusted home LAN or through a private VPN.
 
-**Why do I not see “Pair an Owner browser” from a remote Settings session?** Owner pairing links are intentionally issued only by the local display. Open Settings on the LibreDisplay wall/server itself, enable Remote management, and copy the pairing link there. Already-paired browsers should use the reconnect address instead.
+**What should I do first after installation?** Complete the setup wizard, confirm the weather location and display name, then add only the calendars, backgrounds, integrations, and Remote Access features you actually need. You can rerun the wizard later from Settings.
 
-**What is the difference between the pairing link, reconnect address, and Display Link?** The Owner pairing link (`/pair?access=…`) grants a trusted browser an Owner session once; `/login` is the reusable reconnect/sign-in address; `/display/<id>?access=…` is a read-only link for a specific display. Treat token-bearing links like passwords.
+**Can I change everything later?** Yes. The setup wizard is only a starting point. Settings and Arrange remain available afterward, and each named display can be configured independently.
 
-**Should I expose LibreDisplay directly to the public Internet?** No. Do not port-forward the built-in server. Use it on a trusted local network or through a private VPN.
+**Remote Access & Owner devices**
 
-**Can one server run several screens?** Yes. Named displays can keep independent layouts/settings and have separate read-only Display Links while sharing one LibreDisplay server.
+**How does Remote Access work?** Enable Remote Access from the local LibreDisplay, choose **Add Owner Device**, then use the short-lived one-time code or QR on the phone, tablet, or computer you want to trust. The code is single-use and expires automatically.
 
-**Can a phone, tablet, TV, or desktop be a viewer?** Yes, if it has a compatible modern browser and can reach the LibreDisplay server. A browser-only device does not need to run the LibreDisplay server itself.
+**What is an Owner device?** It is a browser that has been explicitly authorized to manage LibreDisplay with Owner privileges. Authorized devices appear in Settings with a name, last-seen information, and controls to rename or revoke them.
 
-**Which Raspberry Pi models are supported?** Raspberry Pi 3, 4, and 5 are supported with Raspberry Pi OS Desktop. LibreDisplay includes device-aware rendering/performance behavior so lower-power Pi hardware can use a lighter presentation where needed.
+**How do I connect a new Owner device?** In **Settings > Displays > Remote access**, press **Add Owner Device**. Scan the QR or open the shown `/connect` address on the new device, confirm the one-time code, give the device a recognizable name, and connect it.
+
+**Do I still need to copy a long Owner pairing URL?** No for normal use. The current Remote Access system replaces the old password-like pairing-link workflow with one-time connection codes and QR. Existing `/pair?access=…` links remain accepted temporarily for upgrade compatibility but are no longer the normal UI workflow.
+
+**How long does a connection code last?** By default about 10 minutes. It can be used only once. Creating a new code does not authorize anything until another device successfully redeems it.
+
+**What if a QR code does not scan?** Use the connection address shown beneath it and enter the displayed code manually. LibreDisplay can offer more than one reachable LAN/mDNS address when available.
+
+**Can an already-authorized Owner add another Owner device?** Yes. An authenticated Owner can create a fresh one-time connection code without returning to the wall display, provided Remote Access remains enabled.
+
+**How do I remove access from a lost phone or old computer?** Open the **Owner devices** list and choose **Revoke** next to that device. Its stored Owner session is invalidated immediately.
+
+**Can I rename Owner devices?** Yes. Use descriptive names such as “Kitchen iPad”, “My phone”, or “Office laptop” so the authorized-device list stays understandable.
+
+**What happens if I revoke the browser I am currently using?** That browser is signed out immediately. The local LibreDisplay remains the recovery Owner and cannot be remotely revoked.
+
+**What is the Owner sign-in/reconnect address?** `/login` remains the stable account/reconnect page. A still-authorized Owner device normally keeps its trusted session; `/login` is useful when that session expires or when using a named Owner/Editor/Viewer account.
+
+**What is a Display Link?** A Display Link is a separate read-only credential for one named display. Use it for a wall viewer, tablet, TV, or browser that should show the dashboard but never change Settings.
+
+**Can a Display Link change Settings?** No. It is intentionally read-only and scoped to one display endpoint.
+
+**What does Reset all remote credentials do?** It invalidates Owner sessions, legacy pairing credentials, active one-time codes, and read-only Display Links. Use it if you believe remote credentials were exposed or you want a complete Remote Access reset.
+
+**Why can I not connect from another device?** Confirm Remote Access is enabled, both devices are on the same trusted LAN/private VPN, the shown address is reachable from the new device, and the one-time code has not expired or already been used. If `.local` names do not resolve on that device, try the numeric LAN address shown by LibreDisplay.
+
+**Displays & hardware**
+
+**Can one server run several screens?** Yes. Named displays can keep independent layouts/settings and separate read-only Display Links while sharing one LibreDisplay server.
+
+**Can a phone, tablet, TV, or desktop be a viewer?** Yes, if it has a compatible modern browser and can reach the LibreDisplay server. A browser-only viewer does not need to run the LibreDisplay server.
+
+**Which Raspberry Pi models are supported?** Raspberry Pi 3, 4, and 5 are supported with Raspberry Pi OS Desktop. LibreDisplay includes device-aware rendering/performance behavior so lower-power Pi hardware can use lighter presentation where needed.
 
 **Can I use Raspberry Pi OS Lite?** Not with the native wall-kiosk installer, because that workflow expects a desktop/browser session. Use Raspberry Pi OS with Desktop, or run LibreDisplay through Docker and view it from another browser.
 
-**What if animations are too heavy on my display?** Start with Automatic performance mode. LibreDisplay also provides animation/performance controls and Pi-specific behavior so you can favor smoothness, reduced motion, or static NatureScape presentation without giving up the dashboard itself.
+**Can I run LibreDisplay on a mini PC or Linux server?** Yes. Linux/Docker hosts can run the server and can serve one or many browser displays. The native Raspberry Pi kiosk helper is Pi-specific, but the dashboard itself is browser-based.
+
+**Can I run LibreDisplay on a NAS?** Yes when the NAS can run the provided Docker/Compose workflow. The NAS hosts the server; use browsers or separate display devices for the dashboard view.
+
+**Performance, motion & OLED care**
+
+**What if animations are too heavy on my display?** Start with Automatic performance mode. LibreDisplay also provides animation/performance controls and Pi-specific behavior so you can favor smoothness, reduced motion, or static NatureScape presentation without losing the dashboard itself.
+
+**Why does Pi 3 look less animated than Pi 4/5?** Automatic mode intentionally protects the lower-power device by using lighter/static presentation where appropriate. You can adjust performance settings, but stable unattended operation should take priority over unnecessary effects.
 
 **Can I protect an OLED or other always-on display?** Yes. Display-care controls include independently configurable pixel shifting, idle dimming, quiet hours, deep-black protection, temporary wake behavior, and related timing/intensity options.
 
+**Can Quiet Hours be disabled while keeping pixel shifting?** Yes. OLED/display-protection features are independent so you can keep pixel shifting without forcing scheduled dim/black periods.
+
+**Calendars, weather & media**
+
 **Can I use my own calendars?** Yes. LibreDisplay supports ICS/iCalendar feeds and `.ics` imports. Calendar sources can be enabled, disabled, colored, ordered, and refreshed independently.
 
-**Are holidays and other calendar extras built in?** Optional civic, Christian, Jewish, Islamic, astronomy/clock-change, and cultural calendar groups are available. They are opt-in and off by default, and individual groups can be selected without losing those choices when the master add-on switch is temporarily disabled.
+**Are holidays and other calendar extras built in?** Optional civic, Christian, Jewish, Islamic, astronomy/clock-change, and cultural calendar groups are available. They are opt-in and off by default, and individual selections are preserved if the master add-on switch is temporarily disabled.
 
-**Can I use local photos or NAS media as backgrounds?** Yes. LibreDisplay supports local media/folders and NAS-backed media, along with stock and supported photo sources. Use `setup-media.sh` and `setup-nas.sh` for the native installation helpers.
+**Why is a calendar missing events?** Confirm the source is enabled and reachable, verify the calendar URL/file, check time-zone expectations, then use the calendar test/refresh controls. For external feeds, temporary provider/network failures can delay fresh data.
+
+**Can I use local photos or NAS media as backgrounds?** Yes. LibreDisplay supports local folders and NAS-backed media along with stock and supported photo sources. Use `setup-media.sh` and `setup-nas.sh` for native installation helpers.
 
 **What happens if the Internet goes down?** The local dashboard and locally stored content remain available. Features that depend on outside providers cannot fetch fresh data while offline; cached/stale data may continue to be shown where that source supports LibreDisplay caching.
 
-**Are my settings preserved during updates?** Supported updates are designed to preserve dashboard configuration, display endpoints, local data/media, profiles, and custom plugins. The updater also creates recovery/backup material before replacing the application files.
+**Updates, backups & recovery**
+
+**Are my settings preserved during updates?** Supported updates are designed to preserve dashboard configuration, display endpoints, local data/media, profiles, and custom plugins. The updater also creates recovery/backup material before replacing application files.
 
 **How do I back up LibreDisplay?** Use `~/libredisplay/scripts/backup.sh` on a native installation. Keep important backups somewhere other than the display device itself.
 
-**Can I roll back after a bad update?** LibreDisplay includes update recovery/rollback support. If the UI is unavailable, the command-line maintenance tooling and backups provide a recovery path.
+**Can I roll back after a bad update?** LibreDisplay includes update recovery/rollback support. If the UI is unavailable, command-line maintenance tooling and backups provide a recovery path.
 
 **Does Docker keep my configuration between container updates?** Yes when installed with the provided Docker/Compose workflow and its persistent data mapping. Use the supplied Docker update/backup commands instead of treating the container filesystem as permanent storage.
+
+**What should I do if Settings looks wrong after an update?** First perform a full browser refresh so the updated frontend is loaded. Then verify you are editing the intended named display. If a problem persists, check the Software Update/diagnostic controls and restart the LibreDisplay service before changing data manually.
+
+**What should I do if the dashboard itself will not load?** From the server, check `curl http://127.0.0.1:8787/healthz`, verify the LibreDisplay service/container is running, and confirm the browser can reach the server address. Native installs can also use the maintenance/recovery scripts from Terminal.
+
+**Can I reset Remote Access without resetting my dashboard configuration?** Yes. **Reset all remote credentials** affects Remote Access credentials/sessions and Display Links; it does not erase normal dashboard configuration, layouts, calendars, or media settings.
+
+**Customization & integrations**
 
 **Can I customize the layout per display?** Yes. Each named display can have its own layout and presentation, including Arrange controls and per-block/integration styling.
 
 **Can I add integrations or custom data?** Yes. LibreDisplay includes built-in integration/plugin support and custom data blocks. Only configure providers you trust, especially when credentials or API keys are required.
 
-**Where should I start if something looks wrong after changing Settings?** First reopen Settings and confirm the relevant control, then use the refresh/reload controls if the feature fetches external data. For display-specific problems, confirm you are editing the correct named display. A full browser refresh is also useful after an application update.
-
-**Why is a Remote Access link different after I rotate it?** Rotating access credentials intentionally invalidates the old token-bearing links/sessions. Copy and redistribute the new pairing or Display Link only to devices that should retain access.
+**Where should I start if one feature looks wrong after changing Settings?** Reopen Settings and confirm the relevant control, then use the feature-specific refresh/reload action if it fetches outside data. Confirm the correct named display is selected, and perform a full browser refresh after application updates.
 
 </details>
 
@@ -185,7 +239,7 @@ Uninstall while preserving local dashboard data:
 
 LibreDisplay is for a trusted home network or private VPN. Do **not** port-forward it directly to the public Internet.
 
-The **Owner pairing link** authorizes a trusted browser once, the **reconnect address** returns that browser later, and each **Display Link** is read-only for one screen.
+Use **Add Owner Device** to authorize a trusted browser with a short-lived, single-use code or QR. Authorized Owner devices can be named and revoked individually. The `/login` address remains available for named-account sign-in/reconnect, and each **Display Link** is read-only for one screen.
 
 LibreDisplay needs no cloud account and sends no analytics or telemetry. External integrations only contact services you choose.
 

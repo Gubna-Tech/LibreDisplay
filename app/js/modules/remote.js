@@ -11,6 +11,7 @@ const {escHtml,esc,resilientFetch,connectivitySnapshot}=LibreDisplayRuntime.getM
 let displayEndpoints=[];
 let displayDevices=[];
 let endpointsRemoteEnabled=false;
+let ownerDeviceInfo={};
 function endpointDeviceSummary(endpointId){const rows=displayDevices.filter(x=>x.endpoint===endpointId).sort((a,b)=>(b.lastSeen||0)-(a.lastSeen||0)),online=rows.filter(x=>x.online),best=online[0]||rows[0];if(!best)return {online:false,text:'No viewer heartbeat yet'};const res=best.width&&best.height?`${best.width}×${best.height} ${best.width>=best.height?'landscape':'portrait'}`:'resolution unknown',mode=best.mode||'browser',version=best.version?` · v${best.version}`:'',age=Number(best.ageSeconds)||0,last=best.online?'':` · last seen ${age<120?Math.max(1,Math.round(age))+'s':age<7200?Math.round(age/60)+'m':Math.round(age/3600)+'h'} ago`;return {online:!!best.online,text:`${best.online?'Online':'Offline'} · ${res} · ${mode}${version}${last}`};}
 function currentDisplayReadinessDevice(){
   const rows=(displayDevices||[]).filter(x=>x?.endpoint===bootstrapApi.ACTIVE_ENDPOINT&&['local','viewer'].includes(String(x.mode||''))).sort((a,b)=>{const ao=a.online?1:0,bo=b.online?1:0;if(ao!==bo)return bo-ao;return Number(b.lastSeen||0)-Number(a.lastSeen||0);});
@@ -139,99 +140,105 @@ function noteCacheResponse(url,res,nameOverride=''){
   else if(res?.ok)configApi.staleCacheSources.delete(key);
   updateOfflinePill();
 }
-async function loadRemoteInfo(){
-  const input=document.getElementById('remote-settings-url');
-  const reconnectInput=document.getElementById('remote-reconnect-url');
-  const status=document.getElementById('remote-settings-status');
-  const displayInput=document.getElementById('remote-display-url');
-  const toggle=document.getElementById('toggle-remote-access');
-  const rotate=document.getElementById('rotate-remote-key');
-  const pairButton=document.getElementById('copy-remote-pair-url');
-  if(bootstrapApi.REMOTE_SETTINGS_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE){
-    if(input){input.value='';input.placeholder='Pairing links are created on the local display';}
-    if(pairButton)pairButton.disabled=true;
-    if(reconnectInput)reconnectInput.value=location.origin+'/login';
-    if(toggle)toggle.style.display='none';
-    if(rotate)rotate.style.display='none';
-    try{const r=await resilientFetch(serverPath('/api/endpoints'),{cache:'no-store'}),d=await r.json().catch(()=>({})),row=(d.endpoints||[]).find(x=>x.id===bootstrapApi.ACTIVE_ENDPOINT)||(d.endpoints||[])[0],displayPath=String(row?.displayPath||'');if(displayInput)displayInput.value=displayPath?new URL(displayPath,location.origin).href:(row?.displayUrl||'');}catch(_e){if(displayInput)displayInput.value='';}
-    if(status)status.textContent='Remote session active. This browser is already paired, so no new pairing link is shown here. Use the reconnect address for future visits; the Display Link below is read-only for the current display.';
-    return;
+let ownerEnrollmentState=null;
+let ownerEnrollmentTimer=0;
+function remoteTimeAgo(seconds){const n=Math.max(0,Math.floor(Number(seconds)||0));if(n<60)return n+' sec ago';if(n<3600)return Math.floor(n/60)+' min ago';if(n<86400)return Math.floor(n/3600)+' hr ago';return Math.floor(n/86400)+' day'+(Math.floor(n/86400)===1?'':'s')+' ago';}
+function remoteTimeRemaining(seconds){const n=Math.max(0,Math.floor(Number(seconds)||0));if(!n)return 'expired';if(n<3600)return Math.max(1,Math.ceil(n/60))+' min';if(n<86400)return Math.ceil(n/3600)+' hr';return Math.ceil(n/86400)+' day'+(Math.ceil(n/86400)===1?'':'s');}
+function renderOwnerDevices(payload={}){
+  const list=document.getElementById('owner-device-list');if(!list)return;
+  const rows=Array.isArray(payload.devices)?payload.devices:[],serverNow=Number(payload.serverTime)||Date.now()/1000;
+  const local=payload.localDisplay||{};
+  const localRow=`<div class="owner-device-row ${local.current?'current':''}"><div class="owner-device-main"><b>Local LibreDisplay <span class="owner-device-badge">Always Owner</span></b><span>Physical/local server session</span><small>This access cannot be revoked remotely; it is the recovery path for Remote Access.</small></div></div>`;
+  const devices=rows.map(row=>{const current=row.current?' <span class="owner-device-badge">This browser</span>':'';const seen=row.lastSeen?remoteTimeAgo(serverNow-row.lastSeen):'unknown',remaining=row.expiresAt?remoteTimeRemaining(row.expiresAt-serverNow):'unknown';const source=row.source==='enrollment'?'connection code':row.source==='account'?'account sign-in':row.source==='legacy-pair'?'legacy pairing':'authorized session';const ua=String(row.userAgent||'').replace(/\s+/g,' ').slice(0,110);return `<div class="owner-device-row ${row.current?'current':''}"><div class="owner-device-main"><b>${esc(row.name||'Owner device')}${current}</b><span>${esc(source)} · last seen ${esc(seen)} · expires in ${esc(remaining)}</span><small>${esc(ua||'Browser details unavailable')}</small></div><div class="owner-device-actions"><button class="btn-util" type="button" data-ld-action-click="remote.renameOwnerDevice" data-ld-action-args="${escHtml(JSON.stringify([row.id,row.name||'Owner device']))}">Rename</button><button class="btn-util" type="button" data-ld-action-click="remote.revokeOwnerDevice" data-ld-action-args="${escHtml(JSON.stringify([row.id,!!row.current,row.name||'Owner device']))}">Revoke</button></div></div>`;}).join('');
+  list.innerHTML=localRow+(devices||'<div class="settings-note">No additional Owner devices are authorized yet.</div>');
+}
+async function loadOwnerDevices(){
+  const res=await resilientFetch('/api/owner-devices',{cache:'no-store'}),data=await res.json().catch(()=>({}));
+  if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));
+  renderOwnerDevices(data);return data;
+}
+function clearOwnerEnrollmentUi(message=''){
+  ownerEnrollmentState=null;if(ownerEnrollmentTimer){clearInterval(ownerEnrollmentTimer);ownerEnrollmentTimer=0;}
+  const panel=document.getElementById('owner-enrollment-panel');panel?.classList.add('hidden');
+  const code=document.getElementById('owner-enrollment-code');if(code)code.textContent='----';
+  const qr=document.getElementById('owner-enrollment-qr');if(qr)qr.innerHTML='';
+  const select=document.getElementById('owner-connect-url-select');if(select)select.replaceChildren();
+  const input=document.getElementById('owner-connect-url');if(input)input.value='';
+  const countdown=document.getElementById('owner-enrollment-countdown');if(countdown)countdown.textContent='Expires soon';
+  const status=document.getElementById('remote-settings-status');if(message&&status)status.textContent=message;
+}
+function updateOwnerEnrollmentCountdown(){
+  if(!ownerEnrollmentState)return;const el=document.getElementById('owner-enrollment-countdown'),deadline=Number(ownerEnrollmentState._clientExpiresAt||ownerEnrollmentState.expiresAt||0);const left=Math.max(0,Math.ceil(deadline-Date.now()/1000));
+  if(el)el.textContent=left?`Expires in ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')} · one use only`:'Code expired';
+  if(left<=0)clearOwnerEnrollmentUi('The Owner connection code expired. Generate a new one when you are ready.');
+}
+function renderOwnerEnrollment(data){
+  const ttl=Math.max(1,Number(data?.ttlSeconds)||0);ownerEnrollmentState={...data,_clientExpiresAt:ttl?Date.now()/1000+ttl:Number(data?.expiresAt||0)};const panel=document.getElementById('owner-enrollment-panel'),code=document.getElementById('owner-enrollment-code'),select=document.getElementById('owner-connect-url-select');
+  if(code)code.textContent=String(data.code||'----');
+  if(select){const options=Array.isArray(data.connectOptions)?data.connectOptions:[];select.innerHTML=options.map((row,i)=>`<option value="${i}">${esc(row.url||'')}</option>`).join('');select.value='0';}
+  panel?.classList.remove('hidden');selectOwnerConnectOption();if(ownerEnrollmentTimer)clearInterval(ownerEnrollmentTimer);ownerEnrollmentTimer=setInterval(updateOwnerEnrollmentCountdown,1000);updateOwnerEnrollmentCountdown();
+}
+function selectOwnerConnectOption(){
+  if(!ownerEnrollmentState)return;const options=Array.isArray(ownerEnrollmentState.connectOptions)?ownerEnrollmentState.connectOptions:[],select=document.getElementById('owner-connect-url-select'),index=Math.max(0,Number(select?.value)||0),row=options[index]||options[0]||{},input=document.getElementById('owner-connect-url'),qr=document.getElementById('owner-enrollment-qr');
+  if(input)input.value=String(row.url||ownerEnrollmentState.primaryUrl||'');if(qr)qr.innerHTML=String(row.qrSvg||ownerEnrollmentState.qrSvg||'');
+}
+async function cancelOwnerEnrollment(options={}){
+  const state=ownerEnrollmentState,status=document.getElementById('remote-settings-status'),silent=!!options?.silent;
+  if(state?.enrollmentId){
+    try{const res=await resilientFetch('/api/owner-enrollment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cancel',enrollmentId:state.enrollmentId}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));}
+    catch(e){if(status&&!silent)status.textContent='Could not cancel the Owner connection code. It may remain valid until it expires: '+(e.message||e);return false;}
   }
+  clearOwnerEnrollmentUi(silent?'':'Owner connection code cancelled.');return true;
+}
+async function beginOwnerEnrollment(){
+  if(!configApi.remoteInfo?.remoteEnabled){alert('Enable Remote Access first, then add the Owner device.');return false;}
+  const button=document.getElementById('add-owner-device'),status=document.getElementById('remote-settings-status');if(button)button.disabled=true;
   try{
-    const res=await resilientFetch('/api/remote-info',{cache:'no-store'});
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    configApi.remoteInfo=await res.json();
-    const enabled=!!configApi.remoteInfo?.remoteEnabled;
-    const url=enabled?(configApi.remoteInfo?.settingsUrls?.[0]||''):'';
-    const reconnectUrl=enabled?(configApi.remoteInfo?.reconnectUrls?.[0]||''):'';
-    const displayRows=Array.isArray(configApi.remoteInfo?.displayUrls)?configApi.remoteInfo.displayUrls:[];
-    const currentRows=displayRows.filter(x=>x&&typeof x==='object'&&x.id===bootstrapApi.ACTIVE_ENDPOINT),displayUrl=enabled?(currentRows.find(x=>String(x.url||'').includes(location.hostname))?.url||currentRows[0]?.url||displayRows.find(x=>typeof x==='string')||''):'';
-    if(input){input.value=url;input.placeholder='Owner pairing link will appear here';}
-    if(pairButton)pairButton.disabled=!enabled||!url;
-    if(reconnectInput)reconnectInput.value=reconnectUrl;
-    if(displayInput)displayInput.value=displayUrl;
-    if(toggle){toggle.style.display='';toggle.textContent=enabled?'Disable remote editing':'Enable remote editing';}
-    if(rotate)rotate.style.display=enabled?'':'none';
-    if(status){
-      if(!enabled)status.textContent='Remote editing is disabled. The dashboard will reject pairing attempts until you enable it from this local display.';
-      else status.textContent=url?'Remote editing is enabled for trusted private-network clients. Treat the pairing link like a password.':'Remote editing is enabled, but no LAN address is currently available.';
-    }
-  }catch(e){
-    if(input)input.value='';
-    if(reconnectInput)reconnectInput.value='';
-    if(displayInput)displayInput.value='';
-    if(toggle)toggle.style.display='none';
-    if(rotate)rotate.style.display='none';
-    if(status)status.textContent='Remote management controls are available from the wall/local display only.';
-  }
+    if(ownerEnrollmentState?.enrollmentId&&!await cancelOwnerEnrollment({silent:true}))throw new Error('The previous connection code could not be cancelled. Wait for it to expire or check the server connection before generating another.');
+    const res=await resilientFetch('/api/owner-enrollment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create'}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));renderOwnerEnrollment(data);if(status)status.textContent='Connection code ready. It expires quickly and can be used only once.';return true;
+  }catch(e){if(status)status.textContent='Could not create an Owner connection code: '+(e.message||e);return false;}finally{if(button)button.disabled=false;}
+}
+async function copyOwnerConnectUrl(){return copyRemoteInputValue(document.getElementById('owner-connect-url'),document.getElementById('remote-settings-status'),'Connection address copied. Enter the one-time code shown above on the new device.','Generate an Owner connection code first.');}
+async function copyOwnerConnectCode(){const code=String(ownerEnrollmentState?.code||document.getElementById('owner-enrollment-code')?.textContent||'').trim();const status=document.getElementById('remote-settings-status');if(!code||code==='----'){if(status)status.textContent='Generate an Owner connection code first.';return false;}const ok=await copyTextValue(code);if(status)status.textContent=ok?'One-time Owner connection code copied.':'Copy was blocked by the browser. The code remains visible so you can type it manually.';return ok;}
+async function renameOwnerDevice(id,currentName='Owner device'){
+  const name=prompt('Name this Owner device:',currentName);if(name==null||!String(name).trim())return false;
+  try{const res=await resilientFetch('/api/owner-devices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'rename',id,name:String(name).trim()}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));ownerDeviceInfo={...ownerDeviceInfo,...data};renderOwnerDevices(ownerDeviceInfo);return true;}catch(e){alert('Could not rename Owner device: '+(e.message||e));return false;}
+}
+async function revokeOwnerDevice(id,current=false,name='Owner device'){
+  const message=current?`Revoke “${name}”? This is the browser you are using now, so it will be signed out immediately.`:`Revoke “${name}”? That browser will lose Owner access immediately.`;if(!confirm(message))return false;
+  try{const res=await resilientFetch('/api/owner-devices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'revoke',id}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));if(data.currentRevoked){location.href='/login';return true;}ownerDeviceInfo={...ownerDeviceInfo,devices:data.devices||[]};renderOwnerDevices(ownerDeviceInfo);return true;}catch(e){alert('Could not revoke Owner device: '+(e.message||e));return false;}
+}
+async function loadRemoteInfo(){
+  const reconnectInput=document.getElementById('remote-reconnect-url'),status=document.getElementById('remote-settings-status'),displayInput=document.getElementById('remote-display-url'),toggle=document.getElementById('toggle-remote-access'),rotate=document.getElementById('rotate-remote-key'),addOwner=document.getElementById('add-owner-device'),deviceList=document.getElementById('owner-device-list');
+  try{
+    const sessionRes=await resilientFetch('/api/session-info',{cache:'no-store'}),session=await sessionRes.json().catch(()=>({}));if(!sessionRes.ok||!session.ok)throw new Error(session.error||('Session HTTP '+sessionRes.status));
+    let ownerData={ok:false,devices:[],connectUrls:[]},ownerError='';try{ownerData=await loadOwnerDevices();}catch(e){ownerError=String(e.message||e);if(deviceList)deviceList.innerHTML='<div class="settings-note">Could not load Owner devices. Enrollment may still be available; refresh this section after checking the server connection.</div>';}
+    let endpoints={endpoints:[]};try{const endpointsRes=await resilientFetch(serverPath('/api/endpoints'),{cache:'no-store'});if(endpointsRes.ok)endpoints=await endpointsRes.json().catch(()=>({endpoints:[]}));}catch(_e){}
+    let localInfo=null;if(session.local){try{const r=await resilientFetch('/api/remote-info',{cache:'no-store'});if(r.ok)localInfo=await r.json();}catch(_e){}}
+    const enabled=typeof localInfo?.remoteEnabled==='boolean'?localInfo.remoteEnabled:(typeof ownerData.remoteEnabled==='boolean'?ownerData.remoteEnabled:!!endpoints.remoteEnabled),row=(endpoints.endpoints||[]).find(x=>x.id===bootstrapApi.ACTIVE_ENDPOINT)||(endpoints.endpoints||[])[0],displayPath=String(row?.displayPath||''),reconnectUrl=(localInfo?.reconnectUrls?.[0]||location.origin+'/login');
+    configApi.remoteInfo={...(localInfo||{}),remoteEnabled:enabled,connectUrls:ownerData.connectUrls||localInfo?.connectUrls||[],session};
+    if(reconnectInput)reconnectInput.value=reconnectUrl;if(displayInput){let displayUrl=row?.displayUrl||'';if(displayPath){try{displayUrl=new URL(displayPath,(location.origin&&location.origin!=='null')?location.origin:location.href).href;}catch(_e){displayUrl=displayPath;}}displayInput.value=displayUrl;}
+    if(toggle){toggle.style.display=session.local?'':'none';toggle.textContent=enabled?'Disable Remote Access':'Enable Remote Access';}
+    if(rotate){rotate.style.display=session.local&&enabled?'':'none';}
+    if(addOwner)addOwner.disabled=!enabled;
+    if(status)status.textContent=!enabled?'Remote Access is disabled. Enable it from the local LibreDisplay before connecting another device.':(session.local?'Remote Access is enabled on this trusted network. Add Owner devices with a short-lived one-time code or QR.':'Owner session active. You can authorize another Owner device with a one-time code, or revoke devices below.')+(ownerError?' Owner-device list refresh failed; enrollment remains available.':'');
+  }catch(e){if(addOwner)addOwner.disabled=true;if(toggle)toggle.style.display='none';if(rotate)rotate.style.display='none';if(status)status.textContent='Could not load Remote Access status: '+(e.message||e);}
 }
 async function toggleRemoteAccess(){
-  if(bootstrapApi.REMOTE_SETTINGS_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE){alert('Change remote access from the wall display itself.');return;}
-  const currentlyEnabled=!!configApi.remoteInfo?.remoteEnabled;
-  const message=currentlyEnabled
-    ?'Disable remote access? Existing admin sessions and read-only display links will stop working until new links are issued.'
-    :'Enable remote editing for trusted devices on your private LAN/VPN? Do not port-forward LibreDisplay directly to the public internet.';
-  if(!confirm(message))return;
-  const status=document.getElementById('remote-settings-status');
-  try{
-    const res=await resilientFetch('/api/remote-access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!currentlyEnabled}),cache:'no-store'});
-    const data=await res.json().catch(()=>({}));
-    if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));
-    await loadRemoteInfo();
-  }catch(e){if(status)status.textContent='Could not change remote access: '+(e.message||e);}
+  if(bootstrapApi.REMOTE_SETTINGS_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE){alert('Change Remote Access from the local LibreDisplay itself.');return;}
+  const currentlyEnabled=!!configApi.remoteInfo?.remoteEnabled,message=currentlyEnabled?'Disable Remote Access? Authorized remote Owner sessions and read-only Display Links will be invalidated.':'Enable Remote Access for trusted devices on your private LAN/VPN? Do not port-forward LibreDisplay directly to the public internet.';if(!confirm(message))return;
+  const status=document.getElementById('remote-settings-status');try{const res=await resilientFetch('/api/remote-access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!currentlyEnabled}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));clearOwnerEnrollmentUi();await loadRemoteInfo();}catch(e){if(status)status.textContent='Could not change Remote Access: '+(e.message||e);}
 }
 async function copyTextValue(value,input=null){
-  value=String(value||'').trim();if(!value)return false;
-  let target=input,temporary=null,ok=false;
-  if(!target){temporary=document.createElement('textarea');temporary.value=value;temporary.setAttribute('readonly','');temporary.setAttribute('aria-hidden','true');temporary.style.cssText='position:fixed;left:-10000px;top:-10000px;opacity:0';document.body.appendChild(temporary);target=temporary;}
-  // Private-LAN HTTP often has no navigator.clipboard. Keep the synchronous path
-  // inside the original click gesture and only await the modern API if needed.
-  try{target.focus({preventScroll:true});target.select?.();target.setSelectionRange?.(0,value.length);ok=!!document.execCommand?.('copy');}catch(_e){}
-  if(!ok&&navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(value);ok=true;}catch(_e){}}
-  temporary?.remove();return ok;
+  value=String(value||'').trim();if(!value)return false;let target=input,temporary=null,ok=false;if(!target){temporary=document.createElement('textarea');temporary.value=value;temporary.setAttribute('readonly','');temporary.setAttribute('aria-hidden','true');temporary.style.cssText='position:fixed;left:-10000px;top:-10000px;opacity:0';document.body.appendChild(temporary);target=temporary;}
+  try{target.focus({preventScroll:true});target.select?.();target.setSelectionRange?.(0,value.length);ok=!!document.execCommand?.('copy');}catch(_e){}if(!ok&&navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(value);ok=true;}catch(_e){}}temporary?.remove();return ok;
 }
-async function copyRemoteInputValue(input,status,successText,emptyText){
-  const value=String(input?.value||'').trim();
-  if(!value){if(status)status.textContent=emptyText;return false;}
-  const ok=await copyTextValue(value,input);
-  if(status)status.textContent=ok?successText:'Copy was blocked by the browser. The full address remains visible above so you can copy it manually.';
-  return ok;
-}
-async function copyRemoteSettingsUrl(){return copyRemoteInputValue(document.getElementById('remote-settings-url'),document.getElementById('remote-settings-status'),'Pairing link copied. Treat it like a password.','Enable remote editing first, then copy the pairing link.');}
-async function copyRemoteReconnectUrl(){return copyRemoteInputValue(document.getElementById('remote-reconnect-url'),document.getElementById('remote-settings-status'),'Reconnect address copied. Bookmark it on trusted devices.','Enable remote editing first, then copy the reconnect address.');}
-async function copyRemoteDisplayUrl(){return copyRemoteInputValue(document.getElementById('remote-display-url'),document.getElementById('remote-settings-status'),'Read-only display link copied. Open it once on the screen you want to use.','Enable remote access first, then copy the read-only display link.');}
+async function copyRemoteInputValue(input,status,successText,emptyText){const value=String(input?.value||'').trim();if(!value){if(status)status.textContent=emptyText;return false;}const ok=await copyTextValue(value,input);if(status)status.textContent=ok?successText:'Copy was blocked by the browser. The full address remains visible so you can select and copy it manually.';return ok;}
+async function copyRemoteReconnectUrl(){return copyRemoteInputValue(document.getElementById('remote-reconnect-url'),document.getElementById('remote-settings-status'),'Owner reconnect address copied.','Remote reconnect address is unavailable.');}
+async function copyRemoteDisplayUrl(){return copyRemoteInputValue(document.getElementById('remote-display-url'),document.getElementById('remote-settings-status'),'Read-only Display Link copied.','Enable Remote Access first, then copy the read-only Display Link.');}
 async function rotateRemoteAccessKey(){
-  if(bootstrapApi.REMOTE_SETTINGS_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE){alert('Rotate the access key from the wall display itself.');return;}
-  if(!configApi.remoteInfo?.remoteEnabled){alert('Enable remote editing first.');return;}
-  if(!confirm('Rotate remote access keys? Existing admin sessions and read-only display links will stop working immediately.'))return;
-  const status=document.getElementById('remote-settings-status');
-  try{
-    const res=await resilientFetch('/api/access-rotate',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'});
-    const data=await res.json().catch(()=>({}));
-    if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));
-    await loadRemoteInfo();
-    if(status)status.textContent='Remote access keys rotated. Existing admin sessions and display links were invalidated.';
-  }catch(e){if(status)status.textContent='Could not rotate remote access key: '+(e.message||e);}
+  if(bootstrapApi.REMOTE_SETTINGS_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE){alert('Reset remote credentials from the local LibreDisplay itself.');return;}if(!configApi.remoteInfo?.remoteEnabled){alert('Enable Remote Access first.');return;}if(!confirm('Reset all remote credentials? All authorized Owner sessions, legacy pairing links, one-time connection codes, and read-only Display Links will be invalidated immediately.'))return;
+  const status=document.getElementById('remote-settings-status');try{const res=await resilientFetch('/api/access-rotate',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));clearOwnerEnrollmentUi();await loadRemoteInfo();if(status)status.textContent='All remote credentials were reset. Reconnect Owner devices and redistribute any Display Links that should remain active.';}catch(e){if(status)status.textContent='Could not reset remote credentials: '+(e.message||e);}
 }
 
 async function loadCacheStatus(){
@@ -378,7 +385,7 @@ function clearSettingsInitializationError(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteSettingsUrl,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
+LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
   "displayEndpoints": {configurable:true,get:()=>displayEndpoints,set:(value)=>{displayEndpoints=value;}},
   "displayDevices": {configurable:true,get:()=>displayDevices,set:(value)=>{displayDevices=value;}},
   "endpointsRemoteEnabled": {configurable:true,get:()=>endpointsRemoteEnabled,set:(value)=>{endpointsRemoteEnabled=value;}},
@@ -390,6 +397,6 @@ LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplay
   "heartbeatTimer": {configurable:true,get:()=>heartbeatTimer,set:(value)=>{heartbeatTimer=value;}},
   "heartbeatResizeTimer": {configurable:true,get:()=>heartbeatResizeTimer,set:(value)=>{heartbeatResizeTimer=value;}},
   "physicalDisplayBenchmarkState": {configurable:true,get:()=>physicalDisplayBenchmarkState,set:(value)=>{physicalDisplayBenchmarkState=value;}},
-}, {globalFunctions:['refreshDisplayReadiness','loadDisplayEndpoints','sendDisplayCommand','createDisplayEndpoint','editDisplayEndpoint','copyDisplayEndpointLink','renameDisplayEndpoint','rotateDisplayEndpoint','deleteDisplayEndpoint','toggleRemoteAccess','copyRemoteSettingsUrl','copyRemoteDisplayUrl','rotateRemoteAccessKey','clearOfflineCache'],globalStates:[]});
+}, {globalFunctions:['refreshDisplayReadiness','loadDisplayEndpoints','sendDisplayCommand','createDisplayEndpoint','editDisplayEndpoint','copyDisplayEndpointLink','renameDisplayEndpoint','rotateDisplayEndpoint','deleteDisplayEndpoint','toggleRemoteAccess','copyRemoteDisplayUrl','rotateRemoteAccessKey','clearOfflineCache'],globalStates:[]});
 }
 // End source section: /js/remote/index.js

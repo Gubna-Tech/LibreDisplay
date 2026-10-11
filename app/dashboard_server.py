@@ -3,6 +3,7 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, urlencode, quote, unquote, urljoin
 from pathlib import Path
 import hashlib
+import html
 import hmac
 import http.client
 import ipaddress
@@ -28,9 +29,21 @@ import random
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 
+ROOT = Path(__file__).resolve().parent
+# LibreDisplay launches the server with Python isolated mode (-I). Keep the
+# bundled pure-Python QR dependency consolidated in one deterministic archive so
+# the public release stays lean without depending on site-packages. Python's
+# standard zip importer can load the package directly from this trusted file.
+QR_VENDOR_ARCHIVE = ROOT / "qrcode_vendor.zip"
+if QR_VENDOR_ARCHIVE.is_file() and str(QR_VENDOR_ARCHIVE) not in sys.path:
+    sys.path.insert(0, str(QR_VENDOR_ARCHIVE))
+if str(ROOT) not in sys.path:
+    sys.path.insert(1 if str(QR_VENDOR_ARCHIVE) in sys.path else 0, str(ROOT))
+import qrcode
+from qrcode.constants import ERROR_CORRECT_M
+
 HOST = os.environ.get("DASHBOARD_HOST", "127.0.0.1")
 PORT = int(os.environ.get("DASHBOARD_PORT", "8787"))
-ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = ROOT.parent if ROOT.name == "app" else ROOT
 try:
     APP_VERSION = (PROJECT_ROOT / "VERSION").read_text(encoding="utf-8").strip() or "dev"
@@ -73,6 +86,12 @@ REMOTE_SESSION_LOCK = threading.Lock()
 REMOTE_SESSIONS = {}
 MAX_REMOTE_SESSIONS = max(64, min(4096, int(os.environ.get("DASHBOARD_MAX_REMOTE_SESSIONS", "512"))))
 MAX_REMOTE_SESSIONS_PER_USER = max(8, min(256, int(os.environ.get("DASHBOARD_MAX_REMOTE_SESSIONS_PER_USER", "64"))))
+OWNER_DEVICE_SESSION_SECONDS = max(3600, min(365 * 24 * 60 * 60, int(os.environ.get("DASHBOARD_OWNER_DEVICE_SESSION_SECONDS", str(30 * 24 * 60 * 60)))))
+OWNER_ENROLLMENT_TTL_SECONDS = max(120, min(1800, int(os.environ.get("DASHBOARD_OWNER_ENROLLMENT_SECONDS", "600"))))
+OWNER_ENROLLMENT_LOCK = threading.RLock()
+OWNER_ENROLLMENTS = {}
+OWNER_ENROLLMENT_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+MAX_ACTIVE_OWNER_ENROLLMENTS = 8
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".bmp"}
 VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogv", ".m4v", ".mov"}
 MJPEG_EXTENSIONS = {".mjpg", ".mjpeg", ".mpjpg"}
@@ -1442,7 +1461,12 @@ def _serializable_remote_sessions(now=None):
         principal = row.get("principal") if isinstance(row.get("principal"), dict) else None
         if expires <= now or not principal:
             continue
-        payload[str(token)] = {"expires": expires, "createdAt": float(row.get("createdAt") or now), "principal": principal}
+        clean = {"expires": expires, "createdAt": float(row.get("createdAt") or now), "lastSeen": float(row.get("lastSeen") or row.get("createdAt") or now), "principal": principal}
+        for key in ("deviceId", "deviceName", "source", "userAgent"):
+            value = str(row.get(key) or "").strip()
+            if value:
+                clean[key] = value[:240]
+        payload[str(token)] = clean
     return payload
 
 
@@ -1474,7 +1498,12 @@ def load_remote_sessions():
                     role = str(principal.get("role") or "").lower()
                     if role not in {"owner", "editor", "viewer"}:
                         continue
-                    loaded[str(token)] = {"expires": expires, "createdAt": float(row.get("createdAt") or now), "principal": dict(principal)}
+                    clean = {"expires": expires, "createdAt": float(row.get("createdAt") or now), "lastSeen": float(row.get("lastSeen") or row.get("createdAt") or now), "principal": dict(principal)}
+                    for key in ("deviceId", "deviceName", "source", "userAgent"):
+                        value = str(row.get(key) or "").strip()
+                        if value:
+                            clean[key] = value[:240]
+                    loaded[str(token)] = clean
     except Exception:
         loaded = {}
     with REMOTE_SESSION_LOCK:
@@ -1485,9 +1514,10 @@ def load_remote_sessions():
     return len(loaded)
 
 
-def create_remote_session(principal=None):
+def create_remote_session(principal=None, *, session_seconds=None, device_id="", device_name="", source="session", user_agent=""):
     token = secrets.token_urlsafe(32)
-    expires = time.time() + max(300, REMOTE_COOKIE_MAX_AGE)
+    ttl = max(300, int(session_seconds if session_seconds is not None else REMOTE_COOKIE_MAX_AGE))
+    expires = time.time() + ttl
     principal = dict(principal or {"username": "paired-owner", "role": "owner", "endpoints": []})
     now = time.time()
     with REMOTE_SESSION_LOCK:
@@ -1508,10 +1538,192 @@ def create_remote_session(principal=None):
             ordered = sorted(REMOTE_SESSIONS.items(), key=lambda item: float(item[1].get("createdAt") or 0) if isinstance(item[1], dict) else 0)
             for old, _ in ordered[:len(REMOTE_SESSIONS) - MAX_REMOTE_SESSIONS + 1]:
                 REMOTE_SESSIONS.pop(old, None)
-        REMOTE_SESSIONS[token] = {"expires": expires, "createdAt": now, "principal": principal}
+        REMOTE_SESSIONS[token] = {
+            "expires": expires, "createdAt": now, "lastSeen": now, "principal": principal,
+            "deviceId": re.sub(r"[^A-Za-z0-9_-]+", "-", str(device_id or "").strip())[:96],
+            "deviceName": str(device_name or "").strip()[:96], "source": str(source or "session").strip()[:40],
+            "userAgent": str(user_agent or "").strip()[:240],
+        }
     persist_remote_sessions()
     return token
 
+
+
+def normalize_owner_enrollment_code(value):
+    raw = re.sub(r"[^A-Za-z0-9]", "", str(value or "")).upper()
+    return raw[:8]
+
+
+def format_owner_enrollment_code(raw):
+    raw = normalize_owner_enrollment_code(raw)
+    return raw[:4] + ("-" + raw[4:] if len(raw) > 4 else "")
+
+
+def owner_enrollment_digest(code):
+    normalized = normalize_owner_enrollment_code(code)
+    return hmac.new(ACCESS_TOKEN.encode("utf-8"), normalized.encode("ascii", "ignore"), hashlib.sha256).hexdigest()
+
+
+def prune_owner_enrollments(now=None):
+    now = time.time() if now is None else float(now)
+    with OWNER_ENROLLMENT_LOCK:
+        for digest, row in list(OWNER_ENROLLMENTS.items()):
+            if not isinstance(row, dict) or float(row.get("expires") or 0) <= now:
+                OWNER_ENROLLMENTS.pop(digest, None)
+
+
+def clear_owner_enrollments():
+    with OWNER_ENROLLMENT_LOCK:
+        OWNER_ENROLLMENTS.clear()
+
+
+def create_owner_enrollment(created_by="owner"):
+    if not remote_access_enabled():
+        raise ValueError("Enable Remote Access before adding an Owner device.")
+    now = time.time()
+    prune_owner_enrollments(now)
+    with OWNER_ENROLLMENT_LOCK:
+        while len(OWNER_ENROLLMENTS) >= MAX_ACTIVE_OWNER_ENROLLMENTS:
+            oldest = min(OWNER_ENROLLMENTS.items(), key=lambda item: float(item[1].get("createdAt") or 0))[0]
+            OWNER_ENROLLMENTS.pop(oldest, None)
+        for _ in range(20):
+            raw = "".join(secrets.choice(OWNER_ENROLLMENT_ALPHABET) for _ in range(8))
+            digest = owner_enrollment_digest(raw)
+            if digest not in OWNER_ENROLLMENTS:
+                break
+        else:
+            raise RuntimeError("Could not generate a unique connection code")
+        enrollment_id = secrets.token_urlsafe(12)
+        row = {"id": enrollment_id, "createdAt": now, "expires": now + OWNER_ENROLLMENT_TTL_SECONDS, "createdBy": str(created_by or "owner")[:96]}
+        OWNER_ENROLLMENTS[digest] = row
+    return {"code": format_owner_enrollment_code(raw), "enrollmentId": enrollment_id, "createdAt": row["createdAt"], "expiresAt": row["expires"]}
+
+
+def cancel_owner_enrollment(enrollment_id):
+    target = str(enrollment_id or "").strip()
+    removed = False
+    with OWNER_ENROLLMENT_LOCK:
+        for digest, row in list(OWNER_ENROLLMENTS.items()):
+            if str(row.get("id") or "") == target:
+                OWNER_ENROLLMENTS.pop(digest, None); removed = True
+    return removed
+
+
+def consume_owner_enrollment(code):
+    normalized = normalize_owner_enrollment_code(code)
+    if len(normalized) != 8:
+        return None
+    digest = owner_enrollment_digest(normalized)
+    now = time.time()
+    with OWNER_ENROLLMENT_LOCK:
+        row = OWNER_ENROLLMENTS.pop(digest, None)
+    if not isinstance(row, dict) or float(row.get("expires") or 0) <= now:
+        return None
+    return row
+
+
+def qr_svg_markup(value):
+    qr = qrcode.QRCode(version=None, error_correction=ERROR_CORRECT_M, box_size=1, border=4)
+    qr.add_data(str(value or "")); qr.make(fit=True)
+    matrix = qr.get_matrix(); size = len(matrix)
+    cells = []
+    for y, row in enumerate(matrix):
+        start = None
+        for x, active in enumerate(list(row) + [False]):
+            if active and start is None:
+                start = x
+            elif not active and start is not None:
+                cells.append(f'<path d="M{start} {y}h{x-start}v1H{start}z"/>'); start = None
+    return f'<svg class="owner-connect-qr-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}" role="img" aria-label="Owner device connection QR code"><rect width="{size}" height="{size}" fill="#fff"/><g fill="#111">{"".join(cells)}</g></svg>'
+
+
+def owner_connect_urls(code="", preferred_host=""):
+    suffix = "/connect" + (("?" + urlencode({"code": format_owner_enrollment_code(code)})) if code else "")
+    hosts = []
+    preferred = normalized_host_header(preferred_host)
+    if preferred and preferred not in {"localhost", "127.0.0.1", "::1"}:
+        hosts.append(preferred)
+    for host in remote_link_hosts():
+        if host not in hosts:
+            hosts.append(host)
+    return [f"http://{host}:{PORT}{suffix}" for host in hosts]
+
+
+def touch_remote_session(token, user_agent=""):
+    if not token:
+        return
+    now = time.time(); should_persist = False
+    with REMOTE_SESSION_LOCK:
+        row = REMOTE_SESSIONS.get(str(token))
+        if isinstance(row, dict):
+            row["lastSeen"] = now
+            if user_agent and not row.get("userAgent"):
+                row["userAgent"] = str(user_agent)[:240]
+            if now - float(row.get("lastSeenPersisted") or row.get("createdAt") or 0) >= 300:
+                row["lastSeenPersisted"] = now; should_persist = True
+    if should_persist:
+        persist_remote_sessions()
+
+
+def remote_session_device_id(token, row):
+    value = re.sub(r"[^A-Za-z0-9_-]+", "-", str((row or {}).get("deviceId") or "").strip())[:96]
+    if value:
+        return value
+    return "legacy-" + hashlib.sha256(str(token or "").encode("utf-8")).hexdigest()[:16]
+
+
+def owner_device_rows(current_token=""):
+    now = time.time(); prune = False; rows = []
+    with REMOTE_SESSION_LOCK:
+        for token, row in list(REMOTE_SESSIONS.items()):
+            if not isinstance(row, dict) or float(row.get("expires") or 0) <= now:
+                REMOTE_SESSIONS.pop(token, None); prune = True; continue
+            principal = row.get("principal") if isinstance(row.get("principal"), dict) else {}
+            if str(principal.get("role") or "").lower() != "owner":
+                continue
+            device_id = remote_session_device_id(token, row)
+            name = str(row.get("deviceName") or "").strip()
+            source = str(row.get("source") or "legacy").strip()
+            if not name:
+                username = str(principal.get("username") or "Owner").strip()
+                name = "Legacy paired Owner browser" if username == "paired-owner" else f"{username} Owner session"
+            rows.append({
+                "id": device_id, "name": name[:96], "source": source[:40],
+                "createdAt": float(row.get("createdAt") or 0), "lastSeen": float(row.get("lastSeen") or row.get("createdAt") or 0),
+                "expiresAt": float(row.get("expires") or 0), "current": bool(current_token and secrets.compare_digest(str(token), str(current_token))),
+                "userAgent": str(row.get("userAgent") or "")[:240],
+            })
+    if prune: persist_remote_sessions()
+    rows.sort(key=lambda r: (not r["current"], -r["lastSeen"], r["name"].lower()))
+    return rows
+
+
+def rename_owner_device(device_id, name):
+    target = str(device_id or "").strip(); name = re.sub(r"[\x00-\x1f\x7f]", "", str(name or "")).strip()[:96]
+    if not target or not name:
+        raise ValueError("A device and name are required")
+    changed = False
+    with REMOTE_SESSION_LOCK:
+        for token, row in REMOTE_SESSIONS.items():
+            if isinstance(row, dict) and remote_session_device_id(token, row) == target:
+                row["deviceId"] = target; row["deviceName"] = name; changed = True
+    if not changed: raise ValueError("Unknown Owner device")
+    persist_remote_sessions(); return True
+
+
+def revoke_owner_device(device_id):
+    target = str(device_id or "").strip(); removed = []
+    with REMOTE_SESSION_LOCK:
+        for token, row in list(REMOTE_SESSIONS.items()):
+            if isinstance(row, dict) and remote_session_device_id(token, row) == target:
+                REMOTE_SESSIONS.pop(token, None); removed.append(str(token))
+    if removed: persist_remote_sessions()
+    return removed
+
+
+def owner_connect_page(prefill=""):
+    code = html.escape(format_owner_enrollment_code(prefill), quote=True)
+    return f"""<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Connect Owner Device · LibreDisplay</title><style>body{{margin:0;background:#0c0f0d;color:#eef2ef;font:16px system-ui;display:grid;place-items:center;min-height:100vh}}.card{{width:min(470px,calc(100vw - 40px));background:#161a17;border:1px solid #303832;border-radius:18px;padding:28px;box-shadow:0 20px 70px #0008}}h1{{margin:0 0 6px}}p{{color:#aab5ad;line-height:1.45}}label{{display:block;margin:16px 0 6px;font-weight:700}}input{{box-sizing:border-box;width:100%;padding:13px 14px;border-radius:10px;border:1px solid #3a443d;background:#0f1310;color:#fff;font-size:18px}}#code{{font:800 24px ui-monospace,SFMono-Regular,monospace;letter-spacing:.12em;text-transform:uppercase}}button{{margin-top:18px;width:100%;padding:13px;border:0;border-radius:10px;background:#3fb950;color:#061006;font-weight:850;cursor:pointer}}button:disabled{{opacity:.55;cursor:wait}}.err{{min-height:24px;color:#ff9b9b;margin-top:12px}}.hint{{font-size:13px;color:#819087}}</style></head><body><form class='card' id='f'><h1>Connect to LibreDisplay</h1><p>Enter the one-time Owner connection code shown in LibreDisplay Settings. Codes expire quickly and can be used only once.</p><label for='code'>Connection code</label><input id='code' inputmode='text' autocomplete='one-time-code' maxlength='9' spellcheck='false' value='{code}'><label for='name'>Device name</label><input id='name' maxlength='96' autocomplete='off'><div class='hint'>Use a name you will recognize later, such as “Kitchen iPad” or “Sam’s phone”.</div><button type='submit'>Connect this device</button><div class='err' id='msg' role='status' aria-live='polite'></div></form><script src='/js/access.js' defer></script></body></html>""".encode("utf-8")
 
 def endpoint_slug(value):
     value = re.sub(r"[^a-z0-9]+", "-", str(value or "").strip().lower()).strip("-")
@@ -3321,6 +3533,7 @@ def rotate_access_tokens():
         ENDPOINTS = updated
         save_endpoint_registry(ENDPOINTS)
     clear_remote_sessions()
+    clear_owner_enrollments()
     for row in endpoint_items():
         publish_event(row["id"], "reauth", {"reason": "credentials-rotated"})
     ACCESS_TOKEN = token
@@ -3567,7 +3780,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if not self.client_network_allowed():
             return None
         token = cookie_value(self.headers.get("Cookie", ""), REMOTE_COOKIE_NAME)
-        return remote_session_principal(token)
+        principal = remote_session_principal(token)
+        if principal:
+            touch_remote_session(token, self.headers.get("User-Agent", ""))
+        return principal
 
     def authorized(self, parsed=None):
         endpoint_id = requested_endpoint(parsed or urlparse(self.path)) or "main"
@@ -3641,7 +3857,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if self.authorized(parsed):
             return True
         self.note_auth_failure()
-        self.json_response(403, {"ok": False, "error": "A paired remote session is required. Open a fresh pairing link from the local dashboard."})
+        self.json_response(403, {"ok": False, "error": "An authorized Owner session is required. Add an Owner Device from Remote Access on a trusted Owner browser."})
         return False
 
     def post_origin_ok(self):
@@ -4279,7 +4495,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     self.note_auth_failure()
                     return self.json_response(403, {"ok": False, "error": "Invalid username or password."})
                 principal = {"username": account["username"], "role": account["role"], "endpoints": account.get("endpoints") or []}
-                token = create_remote_session(principal)
+                token = create_remote_session(principal, device_id=secrets.token_urlsafe(12), device_name=str(body.get("deviceName") or f"{principal['username']} signed-in browser")[:96], source="account", user_agent=self.headers.get("User-Agent", ""))
                 allowed = endpoint_items() if principal["role"] == "owner" else [e for e in endpoint_items() if principal_allows_endpoint(principal, e["id"], write=False)]
                 first = (allowed[0]["id"] if allowed else "main")
                 self.send_response(200)
@@ -4374,6 +4590,65 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 raise ValueError("Unknown user action")
             except ValueError as exc:
                 return self.json_response(400,{"ok":False,"error":str(exc)})
+        if parsed.path == "/api/owner-enrollment/redeem":
+            if not self.client_network_allowed() or not remote_access_enabled():
+                return self.json_response(403, {"ok": False, "error": "Owner device connection is limited to the trusted LAN/private VPN while Remote Access is enabled."})
+            if self.auth_rate_limited():
+                return self.json_response(429, {"ok": False, "error": "Too many failed connection attempts. Try again shortly."})
+            try:
+                body = self.read_json_body() or {}
+                row = consume_owner_enrollment(body.get("code"))
+                if not row:
+                    self.note_auth_failure(); return self.json_response(403, {"ok": False, "error": "That connection code is invalid, expired, or has already been used."})
+                device_name = re.sub(r"[\x00-\x1f\x7f]", "", str(body.get("deviceName") or "Owner device")).strip()[:96] or "Owner device"
+                device_id = secrets.token_urlsafe(12)
+                token = create_remote_session(session_seconds=OWNER_DEVICE_SESSION_SECONDS, device_id=device_id, device_name=device_name, source="enrollment", user_agent=self.headers.get("User-Agent", ""))
+                self.send_response(200); self.send_header("Content-Type", "application/json; charset=utf-8"); self.send_header("Cache-Control", "no-store")
+                self.send_header("Set-Cookie", f"{REMOTE_COOKIE_NAME}={token}; Path=/; Max-Age={OWNER_DEVICE_SESSION_SECONDS}; HttpOnly; SameSite=Strict")
+                payload = json.dumps({"ok": True, "device": {"id": device_id, "name": device_name}, "redirect": "/settings"}).encode("utf-8")
+                self.send_header("Content-Length", str(len(payload))); self.end_headers(); self.wfile.write(payload); return
+            except ValueError as exc:
+                return self.json_response(400, {"ok": False, "error": str(exc)})
+        if parsed.path == "/api/owner-enrollment":
+            if not self.require_owner():
+                return
+            try:
+                body = self.read_json_body() or {}; action = str(body.get("action") or "create").strip().lower()
+                if action == "cancel":
+                    return self.json_response(200, {"ok": True, "cancelled": cancel_owner_enrollment(body.get("enrollmentId"))})
+                if action != "create":
+                    raise ValueError("Unknown Owner enrollment action")
+                principal = self.session_principal() or {}; created = create_owner_enrollment(principal.get("username") or "owner")
+                preferred = "" if self.client_is_loopback() else normalized_host_header(self.headers.get("Host", ""))
+                base_urls = owner_connect_urls("", preferred)
+                direct_urls = owner_connect_urls(created["code"], preferred)
+                options = []
+                for index, base_url in enumerate(base_urls):
+                    direct_url = direct_urls[index] if index < len(direct_urls) else base_url
+                    options.append({"url": base_url, "directUrl": direct_url, "qrSvg": qr_svg_markup(direct_url)})
+                primary = base_urls[0] if base_urls else ""
+                return self.json_response(200, {"ok": True, **created, "ttlSeconds": OWNER_ENROLLMENT_TTL_SECONDS, "connectUrls": base_urls, "connectOptions": options, "primaryUrl": primary, "directUrl": direct_urls[0] if direct_urls else "", "qrSvg": options[0]["qrSvg"] if options else ""})
+            except ValueError as exc:
+                return self.json_response(409, {"ok": False, "error": str(exc)})
+            except Exception:
+                return self.json_response(500, {"ok": False, "error": "Could not create an Owner device connection code."})
+        if parsed.path == "/api/owner-devices":
+            if not self.require_owner():
+                return
+            try:
+                body = self.read_json_body() or {}; action = str(body.get("action") or "").strip().lower(); device_id = str(body.get("id") or "").strip()
+                current_token = cookie_value(self.headers.get("Cookie", ""), REMOTE_COOKIE_NAME)
+                if action == "rename":
+                    rename_owner_device(device_id, body.get("name")); return self.json_response(200, {"ok": True, "devices": owner_device_rows(current_token), "serverTime": time.time()})
+                if action == "revoke":
+                    removed = revoke_owner_device(device_id); current_removed = current_token in removed
+                    if current_removed:
+                        self.send_response(200); self.send_header("Content-Type", "application/json; charset=utf-8"); self.send_header("Set-Cookie", f"{REMOTE_COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict")
+                        payload=json.dumps({"ok": True, "revoked": len(removed), "currentRevoked": True}).encode("utf-8"); self.send_header("Content-Length", str(len(payload))); self.end_headers(); self.wfile.write(payload); return
+                    return self.json_response(200, {"ok": True, "revoked": len(removed), "currentRevoked": False, "devices": owner_device_rows(current_token), "serverTime": time.time()})
+                raise ValueError("Unknown Owner device action")
+            except ValueError as exc:
+                return self.json_response(400, {"ok": False, "error": str(exc)})
         if parsed.path == "/api/remote-access":
             if not self.client_is_loopback():
                 return self.json_response(403, {"ok": False, "error": "Remote access can only be enabled or disabled from the local display."})
@@ -4732,6 +5007,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return self.json_response(421, {"ok": False, "error": "Unrecognized Host header"})
         if self.proxy_headers_present():
             return self.json_response(403, {"ok": False, "error": "Proxy-forwarded requests are not enabled by the built-in server"})
+        if parsed.path in ("/connect", "/connect/"):
+            if not self.client_network_allowed() or not remote_access_enabled():
+                return self.text_response(403, "Owner device connection is available only while Remote Access is enabled on the trusted LAN/private VPN.")
+            principal = self.session_principal()
+            if principal and str(principal.get("role") or "").lower() == "owner":
+                self.send_response(302); self.send_header("Location", "/settings"); self.end_headers(); return
+            code = str(parse_qs(parsed.query).get("code", [""])[0] or "")
+            return self.bytes_response(200, owner_connect_page(code), "text/html; charset=utf-8", {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
         if parsed.path in ("/login", "/login/"):
             if not self.client_network_allowed():
                 return self.text_response(403, "Login is limited to trusted LAN/private VPN clients.")
@@ -4743,7 +5026,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self.send_header("Location", f"/dashboard.html?display=1&endpoint={quote(first)}" if str(principal.get("role") or "").lower() == "viewer" else f"/settings?endpoint={quote(first)}")
                 self.end_headers()
                 return
-            page = b"""<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>LibreDisplay Sign In</title><style>body{margin:0;background:#0c0f0d;color:#eef2ef;font:16px system-ui;display:grid;place-items:center;min-height:100vh}.card{width:min(420px,calc(100vw - 40px));background:#161a17;border:1px solid #303832;border-radius:18px;padding:28px;box-shadow:0 20px 70px #0008}h1{margin:0 0 4px}p{color:#aab5ad}label{display:block;margin:16px 0 6px}input{box-sizing:border-box;width:100%;padding:12px 14px;border-radius:10px;border:1px solid #3a443d;background:#0f1310;color:#fff}button{margin-top:18px;width:100%;padding:12px;border:0;border-radius:10px;background:#3fb950;color:#061006;font-weight:800;cursor:pointer}.err{min-height:22px;color:#ff8b8b;margin-top:12px}</style></head><body><form class='card' id='f'><h1>LibreDisplay</h1><p>Sign in to a local Owner, Editor, or Viewer account.</p><label>Username</label><input id='u' autocomplete='username' required><label>Password</label><input id='p' type='password' autocomplete='current-password' required><button>Sign in</button><div class='err' id='e'></div></form><script>f.onsubmit=async e=>{e.preventDefault();const b=f.querySelector('button'),c=new AbortController(),t=setTimeout(()=>c.abort(),8000),m=document.getElementById('e');b.disabled=true;m.textContent='';try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.value,password:p.value}),signal:c.signal});const d=await r.json().catch(()=>({}));if(r.ok&&d.ok)location.href=d.role==='viewer'?'/dashboard.html?display=1&endpoint='+(d.endpoint||'main'):'/settings?endpoint='+(d.endpoint||'main');else m.textContent=d.error||'Sign-in failed';}catch(err){m.textContent=err&&err.name==='AbortError'?'Sign-in timed out. Check the LibreDisplay connection and try again.':'Could not reach LibreDisplay. Try again.';}finally{clearTimeout(t);b.disabled=false;}}</script></body></html>"""
+            page = b"""<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>LibreDisplay Sign In</title><style>body{margin:0;background:#0c0f0d;color:#eef2ef;font:16px system-ui;display:grid;place-items:center;min-height:100vh}.card{width:min(420px,calc(100vw - 40px));background:#161a17;border:1px solid #303832;border-radius:18px;padding:28px;box-shadow:0 20px 70px #0008}h1{margin:0 0 4px}p{color:#aab5ad}label{display:block;margin:16px 0 6px}input{box-sizing:border-box;width:100%;padding:12px 14px;border-radius:10px;border:1px solid #3a443d;background:#0f1310;color:#fff}button{margin-top:18px;width:100%;padding:12px;border:0;border-radius:10px;background:#3fb950;color:#061006;font-weight:800;cursor:pointer}.err{min-height:22px;color:#ff8b8b;margin-top:12px}</style></head><body><form class='card' id='f'><h1>LibreDisplay</h1><p>Sign in to a local Owner, Editor, or Viewer account.</p><label for='u'>Username</label><input id='u' autocomplete='username' required><label for='p'>Password</label><input id='p' type='password' autocomplete='current-password' required><button type='submit'>Sign in</button><div class='err' id='e' role='status' aria-live='polite'></div></form><script src='/js/access.js' defer></script></body></html>"""
             return self.bytes_response(200, page, "text/html; charset=utf-8", {"Cache-Control": "no-store"})
         if parsed.path == "/healthz":
             if not self.client_is_loopback():
@@ -4757,11 +5040,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 return self.text_response(429, "Too many failed remote access attempts. Try again shortly.")
             if not token or not secrets.compare_digest(str(token), ACCESS_TOKEN):
                 self.note_auth_failure()
-                return self.text_response(403, "Invalid or expired dashboard pairing link")
-            session_token = create_remote_session()
+                return self.text_response(403, "Invalid or expired legacy pairing link")
+            session_token = create_remote_session(session_seconds=OWNER_DEVICE_SESSION_SECONDS, device_id=secrets.token_urlsafe(12), device_name="Legacy paired Owner browser", source="legacy-pair", user_agent=self.headers.get("User-Agent", ""))
             self.send_response(302)
             secure = "; Secure" if str(self.headers.get("X-Forwarded-Proto", "")).lower() == "https" else ""
-            self.send_header("Set-Cookie", f"{REMOTE_COOKIE_NAME}={session_token}; Path=/; Max-Age={REMOTE_COOKIE_MAX_AGE}; HttpOnly; SameSite=Strict{secure}")
+            self.send_header("Set-Cookie", f"{REMOTE_COOKIE_NAME}={session_token}; Path=/; Max-Age={OWNER_DEVICE_SESSION_SECONDS}; HttpOnly; SameSite=Strict{secure}")
             self.send_header("Location", "/settings")
             self.end_headers()
             return
@@ -4794,14 +5077,19 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if parsed.path in ("/settings", "/settings/"):
             if not self.require_authorized(parsed):
                 return
-            # Keep the wall/local display in local Settings mode. Treating every
-            # /settings request as a remote Settings session hides the Owner pairing
-            # URL on the very device that is allowed to issue it.
+            # Keep the wall/local display in local Settings mode. Remote Settings mode is
+            # reserved for authenticated network clients; Owner enrollment itself
+            # is available to any authorized Owner session.
             settings_flag = "openSettings" if self.client_is_loopback() else "settings"
             self.send_response(302)
             self.send_header("Location", f"/dashboard.html?{settings_flag}=1&endpoint={quote(requested_endpoint(parsed) or 'main')}")
             self.end_headers()
             return
+        if parsed.path == "/api/owner-devices":
+            if not self.require_owner():
+                return
+            current = cookie_value(self.headers.get("Cookie", ""), REMOTE_COOKIE_NAME)
+            return self.json_response(200, {"ok": True, "devices": owner_device_rows(current), "localDisplay": {"id": "local-display", "name": "Local LibreDisplay", "current": self.client_is_loopback()}, "connectUrls": owner_connect_urls() if remote_access_enabled() else [], "remoteEnabled": remote_access_enabled(), "serverTime": time.time()})
         if parsed.path == "/api/remote-info":
             if not self.client_is_loopback():
                 return self.json_response(403, {"ok": False, "error": "Remote-info is available only from the local display."})
@@ -4815,6 +5103,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 "port": PORT,
                 "addresses": ips,
                 "settingsUrls": urls,
+                "connectUrls": owner_connect_urls() if enabled else [],
                 "reconnectUrls": reconnect_urls,
                 "displayUrls": display_urls,
                 "accessConfigured": True,
