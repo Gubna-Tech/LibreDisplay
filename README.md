@@ -58,13 +58,13 @@ For the full installation, setup, settings, terminal, troubleshooting, and recov
 
 For local media or NAS shares, run the helper you need: `~/libredisplay/scripts/setup-media.sh` or `~/libredisplay/scripts/setup-nas.sh`.
 
-## ❓ FAQ & troubleshooting
+## FAQ and troubleshooting
 
 > [!TIP]
 > **Start here when something is unclear.** The FAQ is split into small, collapsible topics so you can scan it like a human instead of opening one giant wall of text. For step-by-step procedures and deeper explanations, use the **[LibreDisplay Help & Setup Guide](HELP.md)**.
 
 <details>
-<summary><strong>🚀 Installation, first setup &amp; privacy</strong></summary>
+<summary><strong>Installation, first setup, and privacy</strong></summary>
 
 **Does LibreDisplay require a cloud account?**  
 No. LibreDisplay is self-hosted. External weather, calendar, photo, or integration providers are contacted only when you choose to use them.
@@ -87,7 +87,7 @@ Open **[HELP.md](HELP.md)** for installation, configuration, every major Setting
 </details>
 
 <details>
-<summary><strong>🖥️ Raspberry Pi, displays &amp; Server-only mode</strong></summary>
+<summary><strong>Raspberry Pi, displays, and Server-only mode</strong></summary>
 
 **What is Server-only mode?**  
 The Pi keeps the LibreDisplay server running but does not launch the local Chromium dashboard. Other devices can still display and manage dashboards from that Pi.
@@ -113,7 +113,7 @@ Not with the native kiosk installer. Install on Pi OS Desktop and switch to Serv
 </details>
 
 <details>
-<summary><strong>🔐 Remote Access, Owner devices &amp; connection addresses</strong></summary>
+<summary><strong>Remote Access, Owner devices, and connection addresses</strong></summary>
 
 **How do I add an Owner device?**  
 Enable Remote Access, choose **Add Owner Device**, then scan the QR or open the displayed `/connect` address and enter the short-lived one-time code.
@@ -148,7 +148,7 @@ It invalidates Owner sessions, active one-time codes, legacy pairing credentials
 </details>
 
 <details>
-<summary><strong>📅 Calendars, weather, backgrounds &amp; media</strong></summary>
+<summary><strong>Calendars, weather, backgrounds, and media</strong></summary>
 
 **What calendars are supported?**  
 Standard ICS/iCalendar subscription feeds and local `.ics` imports. Sources can be named, colored, ordered, enabled/disabled, and checked independently.
@@ -168,7 +168,7 @@ The local server and local content keep working. External providers cannot fetch
 </details>
 
 <details>
-<summary><strong>⚡ Performance, motion &amp; OLED/display care</strong></summary>
+<summary><strong>Performance, motion, and OLED/display care</strong></summary>
 
 **What if animations feel heavy?**  
 Start with Automatic/Balanced performance choices and reduce expensive fullscreen/seasonal/background motion before disabling core dashboard features.
@@ -188,7 +188,7 @@ Yes. Display-protection features are intentionally granular rather than bundled.
 </details>
 
 <details>
-<summary><strong>🛠️ Updates, backups, recovery &amp; Terminal</strong></summary>
+<summary><strong>Updates, backups, recovery, and Terminal</strong></summary>
 
 **How do I check status over SSH?**  
 Run `libredisplay status`. For a broader quick check use `libredisplay doctor`.
@@ -214,7 +214,7 @@ Use `libredisplay logs`, `libredisplay logs --type update`, or `libredisplay log
 </details>
 
 <details>
-<summary><strong>🧩 Customization, integrations &amp; common UI problems</strong></summary>
+<summary><strong>Customization, integrations, and common UI problems</strong></summary>
 
 **Can each display have a different layout?**  
 Yes. Named displays have independent configuration, and Profiles/Scenes can deliberately reuse or schedule layouts.
