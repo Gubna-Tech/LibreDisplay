@@ -4794,8 +4794,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if parsed.path in ("/settings", "/settings/"):
             if not self.require_authorized(parsed):
                 return
+            # Keep the wall/local display in local Settings mode. Treating every
+            # /settings request as a remote Settings session hides the Owner pairing
+            # URL on the very device that is allowed to issue it.
+            settings_flag = "openSettings" if self.client_is_loopback() else "settings"
             self.send_response(302)
-            self.send_header("Location", f"/dashboard.html?settings=1&endpoint={quote(requested_endpoint(parsed) or 'main')}")
+            self.send_header("Location", f"/dashboard.html?{settings_flag}=1&endpoint={quote(requested_endpoint(parsed) or 'main')}")
             self.end_headers()
             return
         if parsed.path == "/api/remote-info":

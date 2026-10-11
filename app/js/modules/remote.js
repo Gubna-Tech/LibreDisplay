@@ -69,7 +69,7 @@ async function createDisplayEndpoint(){
   try{const data=await endpointAction({action:'create',name:name.trim(),copyFrom:copy?bootstrapApi.ACTIVE_ENDPOINT:''});const mode=bootstrapApi.LOCAL_CLIENT_MODE?'openSettings=1':'settings=1';location.href='/dashboard.html?'+mode+'&endpoint='+encodeURIComponent(data.endpoint);}catch(e){alert('Could not add display: '+(e.message||e));}
 }
 function editDisplayEndpoint(id){const mode=bootstrapApi.LOCAL_CLIENT_MODE?'openSettings=1':'settings=1';location.href='/dashboard.html?'+mode+'&endpoint='+encodeURIComponent(id);}
-async function copyDisplayEndpointLink(id){const row=displayEndpoints.find(e=>e.id===id);if(!endpointsRemoteEnabled){alert('Enable Remote management first so other devices can use Display Links.');return;}if(!row?.displayUrl){alert('Display Link is unavailable.');return;}try{await navigator.clipboard.writeText(row.displayUrl);alert('Read-only Display Link copied.');}catch(e){prompt('Copy this Display Link:',row.displayUrl);}}
+async function copyDisplayEndpointLink(id){const row=displayEndpoints.find(e=>e.id===id);if(!endpointsRemoteEnabled){alert('Enable Remote management first so other devices can use Display Links.');return false;}if(!row?.displayUrl){alert('Display Link is unavailable.');return false;}const ok=await copyTextValue(row.displayUrl);if(ok)alert('Read-only Display Link copied.');else prompt('Copy this Display Link:',row.displayUrl);return ok;}
 async function renameDisplayEndpoint(id){const row=displayEndpoints.find(e=>e.id===id);const name=prompt('Display name:',row?.name||id);if(!name?.trim())return;try{await endpointAction({action:'rename',id,name:name.trim()});await loadDisplayEndpoints();}catch(e){alert('Could not rename display: '+(e.message||e));}}
 async function rotateDisplayEndpoint(id){const row=displayEndpoints.find(e=>e.id===id);if(!confirm(`Rotate the read-only link for “${row?.name||id}”? Any screen using the old link will need to be paired again.`))return;try{await endpointAction({action:'rotate',id});await loadDisplayEndpoints();alert('Display Link rotated. Copy the new link to that screen.');}catch(e){alert('Could not rotate display link: '+(e.message||e));}}
 async function deleteDisplayEndpoint(id){const row=displayEndpoints.find(e=>e.id===id);if(!confirm(`Delete “${row?.name||id}” and its saved display configuration?`))return;try{await endpointAction({action:'delete',id});await loadDisplayEndpoints();}catch(e){alert('Could not delete display: '+(e.message||e));}}
@@ -147,7 +147,7 @@ async function loadRemoteInfo(){
   const toggle=document.getElementById('toggle-remote-access');
   const rotate=document.getElementById('rotate-remote-key');
   const pairButton=document.getElementById('copy-remote-pair-url');
-  if(bootstrapApi.REMOTE_SETTINGS_MODE){
+  if(bootstrapApi.REMOTE_SETTINGS_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE){
     if(input){input.value='';input.placeholder='Pairing links are created on the local display';}
     if(pairButton)pairButton.disabled=true;
     if(reconnectInput)reconnectInput.value=location.origin+'/login';
@@ -186,7 +186,7 @@ async function loadRemoteInfo(){
   }
 }
 async function toggleRemoteAccess(){
-  if(bootstrapApi.REMOTE_SETTINGS_MODE){alert('Change remote access from the wall display itself.');return;}
+  if(bootstrapApi.REMOTE_SETTINGS_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE){alert('Change remote access from the wall display itself.');return;}
   const currentlyEnabled=!!configApi.remoteInfo?.remoteEnabled;
   const message=currentlyEnabled
     ?'Disable remote access? Existing admin sessions and read-only display links will stop working until new links are issued.'
@@ -200,23 +200,28 @@ async function toggleRemoteAccess(){
     await loadRemoteInfo();
   }catch(e){if(status)status.textContent='Could not change remote access: '+(e.message||e);}
 }
+async function copyTextValue(value,input=null){
+  value=String(value||'').trim();if(!value)return false;
+  let target=input,temporary=null,ok=false;
+  if(!target){temporary=document.createElement('textarea');temporary.value=value;temporary.setAttribute('readonly','');temporary.setAttribute('aria-hidden','true');temporary.style.cssText='position:fixed;left:-10000px;top:-10000px;opacity:0';document.body.appendChild(temporary);target=temporary;}
+  // Private-LAN HTTP often has no navigator.clipboard. Keep the synchronous path
+  // inside the original click gesture and only await the modern API if needed.
+  try{target.focus({preventScroll:true});target.select?.();target.setSelectionRange?.(0,value.length);ok=!!document.execCommand?.('copy');}catch(_e){}
+  if(!ok&&navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(value);ok=true;}catch(_e){}}
+  temporary?.remove();return ok;
+}
 async function copyRemoteInputValue(input,status,successText,emptyText){
   const value=String(input?.value||'').trim();
   if(!value){if(status)status.textContent=emptyText;return false;}
-  // LibreDisplay is commonly served over plain HTTP on a private LAN. The async
-  // Clipboard API is frequently unavailable there, so try the synchronous,
-  // user-gesture-preserving selection/copy path before awaiting anything.
-  let ok=false;
-  if(input){try{input.focus({preventScroll:true});input.select();input.setSelectionRange?.(0,value.length);ok=!!document.execCommand?.('copy');}catch(_e){}}
-  if(!ok&&navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(value);ok=true;}catch(_e){}}
-  if(status)status.textContent=ok?successText:'Copy was blocked by the browser; the address is selected so you can copy it manually.';
+  const ok=await copyTextValue(value,input);
+  if(status)status.textContent=ok?successText:'Copy was blocked by the browser. The full address remains visible above so you can copy it manually.';
   return ok;
 }
 async function copyRemoteSettingsUrl(){return copyRemoteInputValue(document.getElementById('remote-settings-url'),document.getElementById('remote-settings-status'),'Pairing link copied. Treat it like a password.','Enable remote editing first, then copy the pairing link.');}
 async function copyRemoteReconnectUrl(){return copyRemoteInputValue(document.getElementById('remote-reconnect-url'),document.getElementById('remote-settings-status'),'Reconnect address copied. Bookmark it on trusted devices.','Enable remote editing first, then copy the reconnect address.');}
 async function copyRemoteDisplayUrl(){return copyRemoteInputValue(document.getElementById('remote-display-url'),document.getElementById('remote-settings-status'),'Read-only display link copied. Open it once on the screen you want to use.','Enable remote access first, then copy the read-only display link.');}
 async function rotateRemoteAccessKey(){
-  if(bootstrapApi.REMOTE_SETTINGS_MODE){alert('Rotate the access key from the wall display itself.');return;}
+  if(bootstrapApi.REMOTE_SETTINGS_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE){alert('Rotate the access key from the wall display itself.');return;}
   if(!configApi.remoteInfo?.remoteEnabled){alert('Enable remote editing first.');return;}
   if(!confirm('Rotate remote access keys? Existing admin sessions and read-only display links will stop working immediately.'))return;
   const status=document.getElementById('remote-settings-status');
@@ -373,7 +378,7 @@ function clearSettingsInitializationError(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,toggleRemoteAccess,copyRemoteInputValue,copyRemoteSettingsUrl,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
+LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteSettingsUrl,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
   "displayEndpoints": {configurable:true,get:()=>displayEndpoints,set:(value)=>{displayEndpoints=value;}},
   "displayDevices": {configurable:true,get:()=>displayDevices,set:(value)=>{displayDevices=value;}},
   "endpointsRemoteEnabled": {configurable:true,get:()=>endpointsRemoteEnabled,set:(value)=>{endpointsRemoteEnabled=value;}},
