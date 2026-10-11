@@ -3965,18 +3965,23 @@ html.ld-pi3-static #weather-effects-overlay :is(.hazard-blizzard-flake,.hazard-b
 
 /* Dog shelter visibility refinement */
 .weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse-front{z-index:7!important}
-.weather-fx-dog-v2.dog-shelter-house .dogv2-house-head{left:51px!important;bottom:7px!important;width:94px!important;height:88px!important;overflow:visible!important;clip-path:inset(-13px -6px 15px -6px round 48px 48px 7px 7px)!important;background:transparent!important;z-index:5!important}
-.weather-fx-dog-v2.dog-shelter-house .dogv2-house-head svg{width:100%!important;height:100%!important;overflow:visible!important;transform:translateY(-3px)!important}
-.weather-fx-dog-v2.dog-shelter-house.dog-facing-left .dogv2-house-head svg{transform:translateY(-3px) scaleX(-1)!important}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-house-head{left:49px!important;bottom:7px!important;width:98px!important;height:98px!important;overflow:visible!important;clip-path:inset(-12px -9px 4px -9px round 50px 50px 6px 6px)!important;background:transparent!important;z-index:5!important}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-house-head svg{width:100%!important;height:100%!important;overflow:visible!important;transform:translateY(-2px)!important}
+.weather-fx-dog-v2.dog-shelter-house.dog-shelter-facing-left .dogv2-house-head svg{transform:translateY(-2px) scaleX(-1)!important}
+.weather-fx-dog-v2.dog-shelter-house.dog-shelter-facing-right .dogv2-house-head svg{transform:translateY(-2px)!important}
 
 /* Dog shelter and sleep-state corrections */
 .weather-fx-dog-v2.dog-state-rest:not(.dog-shelter-house) .dogv2-bed{display:none!important}
 .weather-fx-dog-v2.dog-state-sleep:not(.dog-shelter-house) .dogv2-bed{display:block!important}
 .weather-fx-dog-v2.dog-shelter-house>.dogv2-svg{display:none!important;visibility:hidden!important}
-.weather-fx-dog-v2.dog-shelter-house :is(.dogv2-shelter-curled-body,.dogv2-shelter-body-shade,.dogv2-shelter-chest,.dogv2-shelter-bib,.dogv2-shelter-foreleg,.dogv2-shelter-paw){display:none!important}
-.weather-fx-dog-v2.dog-shelter-house .dogv2-house-head{z-index:5!important}
-.weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse-front{z-index:7!important}
+.weather-fx-dog-v2.dog-shelter-house :is(.dogv2-shelter-curled-body,.dogv2-shelter-chest,.dogv2-shelter-bib,.dogv2-shelter-foreleg,.dogv2-shelter-paw){display:none!important}
 .weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-head-svg{overflow:visible!important}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-pose{transform-origin:50% 84%}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-body{display:block!important;opacity:.99}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-body-shade{display:block!important;opacity:.22}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-shoulders{display:block!important;opacity:.99}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-shoulders-shade{display:block!important}
+.weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-upper{transform:translateY(-4px);transform-origin:50% 72%}
 
 #setup .settings-search-field{display:flex;align-items:center}
 #setup .settings-search-icon{left:12px;top:50%;width:14px;height:14px;transform:translateY(-50%);font-size:0;line-height:0;color:transparent}
@@ -4021,11 +4026,6 @@ html.ld-pi3-static #weather-effects-overlay :is(.hazard-blizzard-flake,.hazard-b
 .calendar-addon-card input{margin-top:3px}.calendar-addon-card span,.calendar-addon-card b,.calendar-addon-card small{display:block}.calendar-addon-card b{font-size:.86rem}.calendar-addon-card small{margin-top:2px;font-size:.73rem;line-height:1.32;opacity:.70}
 @media(max-width:760px){.remote-role-guide,.remote-account-builder,.calendar-addon-grid{grid-template-columns:1fr}}
 
-.weather-fx-dog-v2.dog-shelter-house .dogv2-house-head{left:50px!important;bottom:8px!important;width:96px!important;height:100px!important;clip-path:inset(-12px -8px 2px -8px round 48px 48px 5px 5px)!important}
-.weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-head-svg{overflow:visible!important}
-.weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-shoulders{display:block!important;opacity:.98}
-.weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-shoulders-shade{display:block!important}
-.weather-fx-dog-v2.dog-shelter-house .dogv2-shelter-upper{transform:translateY(-3px);transform-origin:50% 72%}
 .weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse-back::after{z-index:2}
 .weather-fx-dog-v2.dog-shelter-house .dogv2-house-head{z-index:4!important}
 .weather-fx-dog-v2.dog-shelter-house .dogv2-doghouse-front{z-index:7!important;height:26px!important}
