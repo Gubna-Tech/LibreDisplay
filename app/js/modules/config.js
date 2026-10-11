@@ -160,7 +160,7 @@ let householdCache=null,householdAdminStore=null;
 let sceneStore={version:1,automatic:true,baseProfiles:{},items:[]};
 let sceneActive={};
 let isWizardMode=false, wizardStepIndex=0;
-let wizardDisplayNameDraft='',wizardDisplayNameTouched=false,wizardCreateBaseline=true,wizardBaselineCreated=false,wizardHealthRunning=false,wizardHealthRows=[],wizardHealthNotices=[],wizardRestorePointCount=null,wizardLastSaveResult=null;
+let wizardDisplayNameDraft='',wizardDisplayNameTouched=false,wizardCreateBaseline=true,wizardBaselineCreated=false,wizardHealthRunning=false,wizardHealthRows=[],wizardHealthNotices=[],wizardRestorePointCount=null,wizardLastSaveResult=null,wizardServerOnly=false,wizardServerModeLoaded=false;
 const WIZARD_STEPS=[
   {key:'welcome',title:'Make LibreDisplay yours',desc:'A guided setup gets the essentials working without hiding the real controls. You can open full Settings at any time.',sections:[],skippable:false},
   {key:'display',title:'Name this display',desc:'Give this screen a clear room or purpose name so multi-display management stays understandable later.',sections:[],skippable:true},
@@ -170,7 +170,8 @@ const WIZARD_STEPS=[
   {key:'performance',title:'Choose visual performance',desc:'Fresh installs start lightweight so lower-powered devices stay responsive. Pick a preset, then enable only the heavier visual features your device can comfortably handle.',sections:[],skippable:true},
   {key:'alerts',title:'Weather alerts',desc:'Choose whether severe-weather alerts should take over the center of the display when they matter.',sections:['settings-alerts'],skippable:true},
   {key:'appearance',title:'Pick a look',desc:'Choose a LibreDisplay theme and font. Every choice remains editable later.',sections:['settings-theme'],skippable:true},
-  {key:'remote',title:'Edit from another device',desc:'Optionally enable private-network remote management and pair a trusted phone or computer.',sections:['settings-remote'],skippable:true},
+  {key:'remote',title:'Edit from another device',desc:'Optionally enable private-network remote management and connect a trusted Owner phone or computer.',sections:['settings-remote'],skippable:true},
+  {key:'host',title:'Choose how this Pi runs',desc:'Keep this Pi as a wall display plus server, or make it a quiet server-only host for other displays and devices.',sections:[],skippable:true},
   {key:'backup',title:'Prepare recovery',desc:'LibreDisplay can create a private baseline restore point after setup so experimentation has an easy way back.',sections:[],skippable:true},
   {key:'review',title:'Review & save',desc:'Check the essentials before LibreDisplay saves this display and runs a real health check.',sections:[],skippable:false},
   {key:'health',title:'Final health check',desc:'LibreDisplay is checking the saved configuration, providers, recovery readiness, and local server health.',sections:[],skippable:false}
@@ -572,6 +573,8 @@ LibreDisplayRuntime.exposeModule("config", {configSchemaVersion,configMigrationI
   "wizardHealthNotices": {configurable:true,get:()=>wizardHealthNotices,set:(value)=>{wizardHealthNotices=value;}},
   "wizardRestorePointCount": {configurable:true,get:()=>wizardRestorePointCount,set:(value)=>{wizardRestorePointCount=value;}},
   "wizardLastSaveResult": {configurable:true,get:()=>wizardLastSaveResult,set:(value)=>{wizardLastSaveResult=value;}},
+  "wizardServerOnly": {configurable:true,get:()=>wizardServerOnly,set:(value)=>{wizardServerOnly=!!value;}},
+  "wizardServerModeLoaded": {configurable:true,get:()=>wizardServerModeLoaded,set:(value)=>{wizardServerModeLoaded=!!value;}},
   "WIZARD_STEPS": {configurable:true,get:()=>WIZARD_STEPS},
   "BLOCK_TYPE_INFO": {configurable:true,get:()=>BLOCK_TYPE_INFO},
 }, {globalFunctions:[],globalStates:['cfg','BLOCK_TYPE_INFO']});

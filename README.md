@@ -12,16 +12,20 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 Use a current Raspberry Pi OS **with Desktop**, then paste this into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.12.0/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.12.1/scripts/install-one-line.sh)"
 ```
 
-The bootstrap validates the pinned **v1.12.0** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
+The bootstrap validates the pinned **v1.12.1** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
 
-> Raspberry Pi OS Lite is not supported by the native kiosk installer. Use Pi OS with Desktop, or run LibreDisplay with Docker.
+> Raspberry Pi OS Lite is not supported by the native kiosk installer. A native Pi can, however, be switched to **Server-only mode** after installation so it runs LibreDisplay without launching a local webpage. Docker/NAS/Linux server deployments are already server-style hosts.
 
 ## First setup
 
-A new installation opens the setup wizard automatically for the display name, weather location, calendars, background, appearance, and optional remote management. Skip anything you do not need; rerun it anytime from **Settings > Home > Run setup wizard**.
+A new installation opens the setup wizard automatically. It walks through the display name, exact weather location, calendars, background, performance, alerts, appearance, Remote Access, **Pi host mode**, and recovery.
+
+Choose **Display + server** for a normal wall dashboard, or **Server only** when the Pi should host LibreDisplay for other Pis/tablets/TVs/browsers without opening Chromium locally. You can change this later under **Settings > System > Raspberry Pi host mode** or over SSH with `libredisplay server-only on|off`.
+
+For the full installation, setup, settings, terminal, troubleshooting, and recovery handbook, see **[HELP.md](HELP.md)**.
 
 ## Using LibreDisplay
 
@@ -34,155 +38,229 @@ A new installation opens the setup wizard automatically for the display name, we
 - Family, chores, rewards, tasks, alerts, integrations, and custom data
 - Per-display layouts, themes, accessibility, and deep Arrange controls
 - Multiple displays, Owner/Editor/Viewer roles, and read-only Display Links
+- One-time Owner-device enrollment with short codes and QR setup
+- Raspberry Pi **Display + server** and **Server-only** host modes
 - OLED care: dimming, quiet hours, deep protection, and pixel shifting
 - Self-hosted operation with no LibreDisplay cloud account or telemetry
 
 </details>
 
-**Compatible devices**
+### Compatible devices
 
-| Device / role | Run server | Native wall kiosk | Read-only viewer | Remote settings |
-|---|:---:|:---:|:---:|:---:|
-| Raspberry Pi 3 / 4 / 5 + Pi OS Desktop | ✅ | ✅ | ✅ | ✅ |
-| Linux mini PC / Docker host | ✅ | ❌ | ✅ | ✅ |
-| NAS with Docker / Compose | ✅ | ❌ | ❌ | ✅* |
-| Tablet, TV, phone, or desktop browser | ❌ | ❌ | ✅ | ✅ |
+| Device / role | Run server | Native wall kiosk | Server-only host | Read-only viewer | Remote settings |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Raspberry Pi 3 / 4 / 5 + Pi OS Desktop | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Linux mini PC / Docker host | ✅ | ❌ | ✅ | ✅ | ✅ |
+| NAS with Docker / Compose | ✅ | ❌ | ✅ | ❌ | ✅* |
+| Tablet, TV, phone, or desktop browser | ❌ | ❌ | ❌ | ✅ | ✅ |
 
 \*Use a browser connected to the LibreDisplay server.
 
-For local media or NAS shares:
+For local media or NAS shares, run the helper you need: `~/libredisplay/scripts/setup-media.sh` or `~/libredisplay/scripts/setup-nas.sh`.
 
-```bash
-~/libredisplay/scripts/setup-media.sh
-```
+## ❓ FAQ & troubleshooting
 
-```bash
-~/libredisplay/scripts/setup-nas.sh
-```
-
-<p align="center"><strong>❓ FAQ &amp; troubleshooting</strong></p>
-
-> **Need an answer or fixing something?** Open the FAQ below. It stays collapsed so this README remains easy to scan, but it contains detailed help for setup, Remote Access, Owner devices, displays, calendars, performance, privacy, updates, recovery, and common problems.
+> [!TIP]
+> **Start here when something is unclear.** The FAQ is split into small, collapsible topics so you can scan it like a human instead of opening one giant wall of text. For step-by-step procedures and deeper explanations, use the **[LibreDisplay Help & Setup Guide](HELP.md)**.
 
 <details>
-<summary><strong>❓ Open FAQ &amp; troubleshooting — setup, Remote Access, displays, performance &amp; recovery</strong></summary>
+<summary><strong>🚀 Installation, first setup &amp; privacy</strong></summary>
 
-**Getting started & privacy**
+**Does LibreDisplay require a cloud account?**  
+No. LibreDisplay is self-hosted. External weather, calendar, photo, or integration providers are contacted only when you choose to use them.
 
-**Does LibreDisplay need a cloud account?** No. LibreDisplay itself is self-hosted and does not require a LibreDisplay account. Only outside services and integrations you choose to configure contact their providers.
+**Does LibreDisplay send analytics or telemetry?**  
+LibreDisplay does not require analytics or telemetry. Your dashboard configuration lives on your server.
 
-**Does LibreDisplay send analytics or telemetry?** No LibreDisplay analytics or telemetry are required. Dashboard data stays on your server except for outside sources you explicitly configure, such as weather, calendars, photos, or integrations.
+**What should I do immediately after installation?**  
+Complete the setup wizard, verify the exact weather location, choose the Pi host mode, create a recovery baseline, then add only the features you need.
 
-**Should I expose LibreDisplay directly to the public Internet?** No. Do not port-forward the built-in server. Use it on a trusted home LAN or through a private VPN.
+**Can I rerun the setup wizard?**  
+Yes. Use **Settings > Home > Run setup wizard**. The full Settings interface remains available at all times.
 
-**What should I do first after installation?** Complete the setup wizard, confirm the weather location and display name, then add only the calendars, backgrounds, integrations, and Remote Access features you actually need. You can rerun the wizard later from Settings.
+**Should I expose LibreDisplay directly to the public Internet?**  
+No. Keep it on a trusted LAN or private VPN. Do not port-forward the built-in web server.
 
-**Can I change everything later?** Yes. The setup wizard is only a starting point. Settings and Arrange remain available afterward, and each named display can be configured independently.
-
-**Remote Access & Owner devices**
-
-**How does Remote Access work?** Enable Remote Access from the local LibreDisplay, choose **Add Owner Device**, then use the short-lived one-time code or QR on the phone, tablet, or computer you want to trust. The code is single-use and expires automatically.
-
-**What is an Owner device?** It is a browser that has been explicitly authorized to manage LibreDisplay with Owner privileges. Authorized devices appear in Settings with a name, last-seen information, and controls to rename or revoke them.
-
-**How do I connect a new Owner device?** In **Settings > Displays > Remote access**, press **Add Owner Device**. Scan the QR or open the shown `/connect` address on the new device, confirm the one-time code, give the device a recognizable name, and connect it.
-
-**Do I still need to copy a long Owner pairing URL?** No for normal use. The current Remote Access system replaces the old password-like pairing-link workflow with one-time connection codes and QR. Existing `/pair?access=…` links remain accepted temporarily for upgrade compatibility but are no longer the normal UI workflow.
-
-**How long does a connection code last?** By default about 10 minutes. It can be used only once. Creating a new code does not authorize anything until another device successfully redeems it.
-
-**What if a QR code does not scan?** Use the connection address shown beneath it and enter the displayed code manually. LibreDisplay can offer more than one reachable LAN/mDNS address when available.
-
-**Can an already-authorized Owner add another Owner device?** Yes. An authenticated Owner can create a fresh one-time connection code without returning to the wall display, provided Remote Access remains enabled.
-
-**How do I remove access from a lost phone or old computer?** Open the **Owner devices** list and choose **Revoke** next to that device. Its stored Owner session is invalidated immediately.
-
-**Can I rename Owner devices?** Yes. Use descriptive names such as “Kitchen iPad”, “My phone”, or “Office laptop” so the authorized-device list stays understandable.
-
-**What happens if I revoke the browser I am currently using?** That browser is signed out immediately. The local LibreDisplay remains the recovery Owner and cannot be remotely revoked.
-
-**What is the Owner sign-in/reconnect address?** `/login` remains the stable account/reconnect page. A still-authorized Owner device normally keeps its trusted session; `/login` is useful when that session expires or when using a named Owner/Editor/Viewer account.
-
-**What is a Display Link?** A Display Link is a separate read-only credential for one named display. Use it for a wall viewer, tablet, TV, or browser that should show the dashboard but never change Settings.
-
-**Can a Display Link change Settings?** No. It is intentionally read-only and scoped to one display endpoint.
-
-**What does Reset all remote credentials do?** It invalidates Owner sessions, legacy pairing credentials, active one-time codes, and read-only Display Links. Use it if you believe remote credentials were exposed or you want a complete Remote Access reset.
-
-**Why can I not connect from another device?** Confirm Remote Access is enabled, both devices are on the same trusted LAN/private VPN, the shown address is reachable from the new device, and the one-time code has not expired or already been used. If `.local` names do not resolve on that device, try the numeric LAN address shown by LibreDisplay.
-
-**Displays & hardware**
-
-**Can one server run several screens?** Yes. Named displays can keep independent layouts/settings and separate read-only Display Links while sharing one LibreDisplay server.
-
-**Can a phone, tablet, TV, or desktop be a viewer?** Yes, if it has a compatible modern browser and can reach the LibreDisplay server. A browser-only viewer does not need to run the LibreDisplay server.
-
-**Which Raspberry Pi models are supported?** Raspberry Pi 3, 4, and 5 are supported with Raspberry Pi OS Desktop. LibreDisplay includes device-aware rendering/performance behavior so lower-power Pi hardware can use lighter presentation where needed.
-
-**Can I use Raspberry Pi OS Lite?** Not with the native wall-kiosk installer, because that workflow expects a desktop/browser session. Use Raspberry Pi OS with Desktop, or run LibreDisplay through Docker and view it from another browser.
-
-**Can I run LibreDisplay on a mini PC or Linux server?** Yes. Linux/Docker hosts can run the server and can serve one or many browser displays. The native Raspberry Pi kiosk helper is Pi-specific, but the dashboard itself is browser-based.
-
-**Can I run LibreDisplay on a NAS?** Yes when the NAS can run the provided Docker/Compose workflow. The NAS hosts the server; use browsers or separate display devices for the dashboard view.
-
-**Performance, motion & OLED care**
-
-**What if animations are too heavy on my display?** Start with Automatic performance mode. LibreDisplay also provides animation/performance controls and Pi-specific behavior so you can favor smoothness, reduced motion, or static NatureScape presentation without losing the dashboard itself.
-
-**Why does Pi 3 look less animated than Pi 4/5?** Automatic mode intentionally protects the lower-power device by using lighter/static presentation where appropriate. You can adjust performance settings, but stable unattended operation should take priority over unnecessary effects.
-
-**Can I protect an OLED or other always-on display?** Yes. Display-care controls include independently configurable pixel shifting, idle dimming, quiet hours, deep-black protection, temporary wake behavior, and related timing/intensity options.
-
-**Can Quiet Hours be disabled while keeping pixel shifting?** Yes. OLED/display-protection features are independent so you can keep pixel shifting without forcing scheduled dim/black periods.
-
-**Calendars, weather & media**
-
-**Can I use my own calendars?** Yes. LibreDisplay supports ICS/iCalendar feeds and `.ics` imports. Calendar sources can be enabled, disabled, colored, ordered, and refreshed independently.
-
-**Are holidays and other calendar extras built in?** Optional civic, Christian, Jewish, Islamic, astronomy/clock-change, and cultural calendar groups are available. They are opt-in and off by default, and individual selections are preserved if the master add-on switch is temporarily disabled.
-
-**Why is a calendar missing events?** Confirm the source is enabled and reachable, verify the calendar URL/file, check time-zone expectations, then use the calendar test/refresh controls. For external feeds, temporary provider/network failures can delay fresh data.
-
-**Can I use local photos or NAS media as backgrounds?** Yes. LibreDisplay supports local folders and NAS-backed media along with stock and supported photo sources. Use `setup-media.sh` and `setup-nas.sh` for native installation helpers.
-
-**What happens if the Internet goes down?** The local dashboard and locally stored content remain available. Features that depend on outside providers cannot fetch fresh data while offline; cached/stale data may continue to be shown where that source supports LibreDisplay caching.
-
-**Updates, backups & recovery**
-
-**Are my settings preserved during updates?** Supported updates are designed to preserve dashboard configuration, display endpoints, local data/media, profiles, and custom plugins. The updater also creates recovery/backup material before replacing application files.
-
-**How do I back up LibreDisplay?** Use `~/libredisplay/scripts/backup.sh` on a native installation. Keep important backups somewhere other than the display device itself.
-
-**Can I roll back after a bad update?** LibreDisplay includes update recovery/rollback support. If the UI is unavailable, command-line maintenance tooling and backups provide a recovery path.
-
-**Does Docker keep my configuration between container updates?** Yes when installed with the provided Docker/Compose workflow and its persistent data mapping. Use the supplied Docker update/backup commands instead of treating the container filesystem as permanent storage.
-
-**What should I do if Settings looks wrong after an update?** First perform a full browser refresh so the updated frontend is loaded. Then verify you are editing the intended named display. If a problem persists, check the Software Update/diagnostic controls and restart the LibreDisplay service before changing data manually.
-
-**What should I do if the dashboard itself will not load?** From the server, check `curl http://127.0.0.1:8787/healthz`, verify the LibreDisplay service/container is running, and confirm the browser can reach the server address. Native installs can also use the maintenance/recovery scripts from Terminal.
-
-**Can I reset Remote Access without resetting my dashboard configuration?** Yes. **Reset all remote credentials** affects Remote Access credentials/sessions and Display Links; it does not erase normal dashboard configuration, layouts, calendars, or media settings.
-
-**Customization & integrations**
-
-**Can I customize the layout per display?** Yes. Each named display can have its own layout and presentation, including Arrange controls and per-block/integration styling.
-
-**Can I add integrations or custom data?** Yes. LibreDisplay includes built-in integration/plugin support and custom data blocks. Only configure providers you trust, especially when credentials or API keys are required.
-
-**Where should I start if one feature looks wrong after changing Settings?** Reopen Settings and confirm the relevant control, then use the feature-specific refresh/reload action if it fetches outside data. Confirm the correct named display is selected, and perform a full browser refresh after application updates.
+**Where is the detailed documentation?**  
+Open **[HELP.md](HELP.md)** for installation, configuration, every major Settings area, terminal commands, troubleshooting, recovery, and tips.
 
 </details>
 
-## Updating LibreDisplay
+<details>
+<summary><strong>🖥️ Raspberry Pi, displays &amp; Server-only mode</strong></summary>
 
-Native Pi installs show updates in **Settings > System > Software update**. From Terminal:
+**What is Server-only mode?**  
+The Pi keeps the LibreDisplay server running but does not launch the local Chromium dashboard. Other devices can still display and manage dashboards from that Pi.
+
+**How do I enable or disable Server-only mode?**  
+Use the first-run wizard, **Settings > System > Raspberry Pi host mode**, or SSH: `libredisplay server-only on` / `libredisplay server-only off`.
+
+**If I turn Server-only mode on, how do I get the local dashboard back?**  
+SSH into the Pi and run `libredisplay server-only off`. The local Chromium kiosk should launch shortly afterward without stopping the server.
+
+**Can one LibreDisplay server run several screens?**  
+Yes. Named display endpoints can use independent settings/layouts and separate read-only Display Links while sharing one server.
+
+**Can a phone, tablet, TV, or desktop be a viewer?**  
+Yes. Any compatible browser that can reach the server can use a read-only Display Link.
+
+**Which Raspberry Pi models are supported?**  
+Pi 3, Pi 4, and Pi 5 with Raspberry Pi OS Desktop are supported by the native installer. Device-aware performance behavior reduces load on weaker hardware.
+
+**Can I use Raspberry Pi OS Lite?**  
+Not with the native kiosk installer. Install on Pi OS Desktop and switch to Server-only mode, or use a Docker/server deployment.
+
+</details>
+
+<details>
+<summary><strong>🔐 Remote Access, Owner devices &amp; connection addresses</strong></summary>
+
+**How do I add an Owner device?**  
+Enable Remote Access, choose **Add Owner Device**, then scan the QR or open the displayed `/connect` address and enter the short-lived one-time code.
+
+**Do I still need to copy a long Owner pairing URL?**  
+No. New Owner devices use the stable `/connect` address plus a short-lived one-time code, or the QR for one-scan setup. Existing `/pair?access=…` links remain accepted temporarily for upgrade compatibility but are no longer the normal setup workflow.
+
+**Can I create a connection code over SSH?**  
+Yes. Run `libredisplay connect`. Use `libredisplay addresses` to print the stable connection/login addresses first.
+
+**What is an Owner device?**  
+A trusted browser with Owner privileges. Owner devices can be named, reviewed, and revoked individually.
+
+**Can an existing Owner authorize another Owner device?**  
+Yes, as long as Remote Access remains enabled.
+
+**What if `.local` addresses do not work?**  
+Run `libredisplay addresses` and use a numeric private-LAN address shown there.
+
+**What is `/login` for?**  
+It is the stable sign-in/reconnect page for named Owner, Editor, or Viewer accounts.
+
+**What is a Display Link?**  
+A separate read-only credential scoped to one display. It cannot change Settings.
+
+**How do I revoke a lost phone or old computer?**  
+Open **Owner devices** in Remote Access and use **Revoke** for that device. Revoking the current browser signs that browser out immediately.
+
+**What does “Reset all remote credentials” do?**  
+It invalidates Owner sessions, active one-time codes, legacy pairing credentials, and read-only Display Links without erasing dashboard configuration.
+
+</details>
+
+<details>
+<summary><strong>📅 Calendars, weather, backgrounds &amp; media</strong></summary>
+
+**What calendars are supported?**  
+Standard ICS/iCalendar subscription feeds and local `.ics` imports. Sources can be named, colored, ordered, enabled/disabled, and checked independently.
+
+**What are Optional Calendar Add-ons?**  
+Opt-in civic, Christian, Jewish, Islamic, astronomy/clock-change, and cultural events. They are off by default and subgroup choices remain remembered when the master switch is off.
+
+**Why is a calendar missing events?**  
+Check that the source is enabled/reachable, verify timezone expectations, then use the feed check/refresh controls. See the calendar troubleshooting section in [HELP.md](HELP.md).
+
+**Can I use local or NAS media?**  
+Yes. Native installations include `setup-media.sh` and `setup-nas.sh`; LibreDisplay can also use stock and supported photo sources.
+
+**What happens when LibreDisplay is offline or the Internet goes down?**  
+The local server and local content keep working. External providers cannot fetch fresh data; cached last-known-good data may remain available where supported.
+
+</details>
+
+<details>
+<summary><strong>⚡ Performance, motion &amp; OLED/display care</strong></summary>
+
+**What if animations feel heavy?**  
+Start with Automatic/Balanced performance choices and reduce expensive fullscreen/seasonal/background motion before disabling core dashboard features.
+
+**Why can Pi 3 look less animated than Pi 4/5?**  
+Automatic mode deliberately uses lighter/static rendering on weaker hardware to keep unattended displays responsive.
+
+**How do I diagnose slow rendering?**  
+Use **Settings > System > Display performance bottleneck test**, or run `libredisplay doctor` and the field-readiness tooling described in [HELP.md](HELP.md).
+
+**Can LibreDisplay protect OLED displays?**  
+Yes. Pixel shifting, idle dimming, Quiet Hours, deep-black protection, temporary wake behavior, and related timing/intensity controls are independently configurable.
+
+**Can Quiet Hours be off while pixel shifting stays on?**  
+Yes. Display-protection features are intentionally granular rather than bundled.
+
+</details>
+
+<details>
+<summary><strong>🛠️ Updates, backups, recovery &amp; Terminal</strong></summary>
+
+**How do I check status over SSH?**  
+Run `libredisplay status`. For a broader quick check use `libredisplay doctor`.
+
+**How do I see connection addresses?**  
+Run `libredisplay addresses`. Add `--include-display-links` only when you intentionally need the credential-bearing read-only links.
+
+**How do I update LibreDisplay?**  
+Use **Settings > System > Software update** or run `libredisplay check` followed by `libredisplay update`.
+
+**Are settings preserved during updates?**  
+Supported updates preserve configuration, endpoints, local data/media, profiles, and custom plugins while using rollback/recovery safeguards.
+
+**How do I create a backup?**  
+Run `libredisplay backup` or the underlying `~/libredisplay/scripts/backup.sh`.
+
+**Can I recover from a bad update?**  
+Yes. LibreDisplay keeps update rollback/recovery tooling and backups. See **Recovery** in [HELP.md](HELP.md) before manually editing data files.
+
+**Where can I see logs?**  
+Use `libredisplay logs`, `libredisplay logs --type update`, or `libredisplay logs --type rollback`.
+
+</details>
+
+<details>
+<summary><strong>🧩 Customization, integrations &amp; common UI problems</strong></summary>
+
+**Can each display have a different layout?**  
+Yes. Named displays have independent configuration, and Profiles/Scenes can deliberately reuse or schedule layouts.
+
+**Can I add integrations or custom data?**  
+Yes. LibreDisplay includes integrations/plugins and custom data blocks. Only provide credentials to providers you trust.
+
+**Settings looks wrong after an update. What first?**  
+Perform a full browser refresh, confirm you are editing the intended named display, then run `libredisplay doctor` if the problem persists.
+
+**The dashboard will not load. What should I check?**  
+Run `libredisplay status`, `libredisplay doctor`, and `curl http://127.0.0.1:8787/healthz` from the server. The troubleshooting decision tree in [HELP.md](HELP.md) covers the next steps.
+
+</details>
+
+## Terminal commands
+
+The native Pi installation provides one main CLI:
 
 ```bash
-libredisplay check
+libredisplay --help
 ```
 
+Common commands:
+
+| Task | Command |
+|---|---|
+| Overall status | `libredisplay status` |
+| LAN/VPN addresses | `libredisplay addresses` |
+| New Owner connection code | `libredisplay connect` |
+| Remote Access status | `libredisplay remote status` |
+| Pi host mode | `libredisplay server-only status` |
+| Quick diagnostics | `libredisplay doctor` |
+| Recent browser log | `libredisplay logs` |
+| Update check | `libredisplay check` |
+| Update | `libredisplay update` |
+| Sensitive backup | `libredisplay backup` |
+
+See **[HELP.md → Terminal / SSH command reference](HELP.md#terminal--ssh-command-reference)** for complete usage and recovery examples.
+
+## Updating LibreDisplay
+
+Native installs show updates in **Settings > System > Software update**. From Terminal:
+
 ```bash
-libredisplay update
+libredisplay check && libredisplay update
 ```
 
 Supported updates keep settings, media, display endpoints, and custom plugins.
@@ -192,56 +270,25 @@ Supported updates keep settings, media, display endpoints, and custom plugins.
 From the extracted LibreDisplay folder:
 
 ```bash
-chmod +x scripts/docker-setup.sh
+chmod +x scripts/docker-setup.sh && ./scripts/docker-setup.sh --lan
 ```
 
-```bash
-./scripts/docker-setup.sh --lan
-```
+For maintenance, use `./scripts/docker-setup.sh update` or `./scripts/docker-setup.sh backup`.
 
-Open the address shown on your home network. For maintenance:
-
-```bash
-./scripts/docker-setup.sh update
-```
-
-```bash
-./scripts/docker-setup.sh backup
-```
-
-## Useful commands
-
-Start a native Pi install:
-
-```bash
-~/libredisplay/scripts/start.sh
-```
-
-Check the local server:
-
-```bash
-curl http://127.0.0.1:8787/healthz
-```
-
-Create a backup:
-
-```bash
-~/libredisplay/scripts/backup.sh
-```
-
-Uninstall while preserving local dashboard data:
-
-```bash
-~/libredisplay/uninstall.sh
-```
+Docker/NAS hosts are already server-oriented and do not use the native Pi Chromium kiosk manager.
 
 ## Remote access and privacy
 
 LibreDisplay is for a trusted home network or private VPN. Do **not** port-forward it directly to the public Internet.
 
-Use **Add Owner Device** to authorize a trusted browser with a short-lived, single-use code or QR. Authorized Owner devices can be named and revoked individually. The `/login` address remains available for named-account sign-in/reconnect, and each **Display Link** is read-only for one screen.
+Use **Add Owner Device** to authorize a trusted browser with a short-lived, single-use code or QR. `/login` remains available for named-account sign-in/reconnect, and each **Display Link** is read-only for one screen.
 
 LibreDisplay needs no cloud account and sends no analytics or telemetry. External integrations only contact services you choose.
+
+## Documentation
+
+- **[HELP.md](HELP.md)** — comprehensive setup, Settings, Terminal, troubleshooting, recovery, and tips guide
+- **[LICENSE](LICENSE)** — MIT License
 
 ## Open source
 

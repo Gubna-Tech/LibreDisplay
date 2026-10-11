@@ -402,6 +402,7 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-settings-button':'Move and soften the Settings cog so it stays available without distracting from the dashboard.',
   'settings-integrations':'Browse installed providers, test live connections, and review refresh health without exposing credentials.',
   'settings-provider-health':'Review weather, calendars, backgrounds, alerts, and integrations in one privacy-safe troubleshooting view.',
+  'settings-host-mode':'Choose whether a native Raspberry Pi runs both the local Chromium dashboard and server, or runs as a server-only host for other displays.',
   'settings-layout-presentation':'Text treatment and default content sizing for built-in dashboard elements.',
   'settings-layout':'Preview and apply dashboard layouts, arrange elements, and choose clock/content visibility.',
   'settings-layout-geometry':'Power-user geometry, forecast density, calendar range, spacing and scrolling controls.',

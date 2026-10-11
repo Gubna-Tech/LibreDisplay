@@ -33,12 +33,15 @@ fi
 : "${DASHBOARD_DATA_DIR:=$DATA_DIR}"
 : "${DASHBOARD_ENDPOINT:=main}"
 : "${DASHBOARD_KIOSK_WATCHDOG:=1}"
+: "${DASHBOARD_NO_BROWSER:=0}"
+: "${DASHBOARD_NATIVE_KIOSK:=1}"
 : "${DASHBOARD_KIOSK_HEARTBEAT_TIMEOUT:=150}"
 : "${PYTHONDONTWRITEBYTECODE:=1}"
-export DASHBOARD_HOST DASHBOARD_PORT DASHBOARD_REMOTE_ENABLED DASHBOARD_REMOTE_NETWORKS DASHBOARD_DATA_DIR DASHBOARD_ENDPOINT PYTHONDONTWRITEBYTECODE
+export DASHBOARD_HOST DASHBOARD_PORT DASHBOARD_REMOTE_ENABLED DASHBOARD_REMOTE_NETWORKS DASHBOARD_DATA_DIR DASHBOARD_ENDPOINT DASHBOARD_NO_BROWSER DASHBOARD_NATIVE_KIOSK PYTHONDONTWRITEBYTECODE
 mkdir -p "$DASHBOARD_DATA_DIR"
 KIOSK_HEARTBEAT_FILE="$DASHBOARD_DATA_DIR/kiosk-heartbeat.json"
 DISPLAY_MODE_FILE="$DASHBOARD_DATA_DIR/display-mode.json"
+SERVER_MODE_FILE="$DASHBOARD_DATA_DIR/server-mode.json"
 WATCHDOG_STATE_FILE="$DASHBOARD_DATA_DIR/watchdog-state.json"
 STARTUP_INTEGRITY_FILE="$DASHBOARD_DATA_DIR/startup-integrity.json"
 BROWSER_LAUNCH_STATE_FILE="$DASHBOARD_DATA_DIR/browser-launch-state.json"
@@ -56,6 +59,18 @@ read_display_mode() {
   if [ -f "$DISPLAY_MODE_FILE" ]; then
     parsed=$(sed -n 's/.*"mode"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$DISPLAY_MODE_FILE" 2>/dev/null | head -n 1)
     [ "$parsed" = "windowed" ] && mode=windowed
+  fi
+  printf '%s' "$mode"
+}
+read_server_only() {
+  if [ "${DASHBOARD_NO_BROWSER:-0}" = "1" ]; then
+    printf '1'
+    return
+  fi
+  mode=0
+  if [ -f "$SERVER_MODE_FILE" ]; then
+    parsed=$(sed -n 's/.*"serverOnly"[[:space:]]*:[[:space:]]*\(true\|false\).*/\1/p' "$SERVER_MODE_FILE" 2>/dev/null | head -n 1)
+    [ "$parsed" = "true" ] && mode=1
   fi
   printf '%s' "$mode"
 }
@@ -207,18 +222,10 @@ start_server() {
   fi
 }
 
-if [ "${DASHBOARD_NO_BROWSER:-0}" = "1" ]; then
-  start_server || { printf 'LibreDisplay server did not start.\n' >&2; exit 1; }
-  printf 'LibreDisplay server: %s\n' "$URL"
-  wait "$SERVER_PID"
-  exit $?
-fi
-
 BROWSER=""
 for candidate in chromium chromium-browser; do
   if command -v "$candidate" >/dev/null 2>&1; then BROWSER=$(command -v "$candidate"); break; fi
 done
-[ -n "$BROWSER" ] || { printf 'Chromium was not found.\n' >&2; exit 1; }
 
 clear_chromium_gpu_caches() {
   for name in GPUCache GrShaderCache ShaderCache DawnCache; do
@@ -292,6 +299,7 @@ trim_browser_log() {
 }
 
 launch_browser() {
+  [ -n "$BROWSER" ] || return 1
   rm -f "$KIOSK_HEARTBEAT_FILE" 2>/dev/null || true
   if [ "$BROWSER_ACCEL_PROFILE" = "pi-angle-gles" ] && [ "$BROWSER_ACCEL_ATTEMPT" = "0" ] && [ ! -f "$BROWSER_ACCEL_PROFILE_FILE" ]; then
     clear_chromium_gpu_caches
@@ -388,7 +396,15 @@ while :; do
   fi
 
   SERVER_STARTED_AT=$(date +%s)
-  launch_browser
+  CURRENT_SERVER_ONLY=$(read_server_only)
+  if [ "$CURRENT_SERVER_ONLY" = "1" ]; then
+    rm -f "$KIOSK_HEARTBEAT_FILE" 2>/dev/null || true
+    write_watchdog_state "server-only"
+    printf 'LibreDisplay server-only mode active: no local Chromium kiosk will be launched.\n' >&2
+  elif ! launch_browser; then
+    write_watchdog_state "browser-unavailable"
+    printf 'LibreDisplay Chromium was not found; server remains available without a local kiosk.\n' >&2
+  fi
   SERVER_HEALTH_FAILURES=0
   while kill -0 "$SERVER_PID" 2>/dev/null; do
     if ! curl -fsS --max-time 2 "http://127.0.0.1:${DASHBOARD_PORT}/healthz" >/dev/null 2>&1; then
@@ -404,26 +420,54 @@ while :; do
       SERVER_HEALTH_FAILURES=0
     fi
 
-    DESIRED_BROWSER_MODE=$(read_display_mode)
-    if [ "$DESIRED_BROWSER_MODE" != "$CURRENT_BROWSER_MODE" ]; then
-      write_watchdog_state "display-mode-$DESIRED_BROWSER_MODE"
-      kill "$BROWSER_PID" 2>/dev/null || true
-      wait "$BROWSER_PID" 2>/dev/null || true
-      BROWSER_PID=""
-      launch_browser
+    DESIRED_SERVER_ONLY=$(read_server_only)
+    if [ "$DESIRED_SERVER_ONLY" != "$CURRENT_SERVER_ONLY" ]; then
+      CURRENT_SERVER_ONLY=$DESIRED_SERVER_ONLY
+      if [ "$CURRENT_SERVER_ONLY" = "1" ]; then
+        write_watchdog_state "server-only"
+        if [ -n "$BROWSER_PID" ]; then
+          kill "$BROWSER_PID" 2>/dev/null || true
+          wait "$BROWSER_PID" 2>/dev/null || true
+          BROWSER_PID=""
+        fi
+        rm -f "$KIOSK_HEARTBEAT_FILE" 2>/dev/null || true
+        printf 'LibreDisplay switched to server-only mode; local Chromium kiosk stopped.\n' >&2
+      else
+        write_watchdog_state "server-only-disabled"
+        if ! launch_browser; then
+          write_watchdog_state "browser-unavailable"
+          printf 'LibreDisplay server-only mode was disabled, but Chromium is unavailable.\n' >&2
+        fi
+      fi
       sleep 1
       continue
     fi
 
-    if ! kill -0 "$BROWSER_PID" 2>/dev/null; then
+    if [ "$CURRENT_SERVER_ONLY" = "1" ]; then
+      sleep 5
+      continue
+    fi
+
+    DESIRED_BROWSER_MODE=$(read_display_mode)
+    if [ -n "$BROWSER_PID" ] && [ "$DESIRED_BROWSER_MODE" != "$CURRENT_BROWSER_MODE" ]; then
+      write_watchdog_state "display-mode-$DESIRED_BROWSER_MODE"
+      kill "$BROWSER_PID" 2>/dev/null || true
       wait "$BROWSER_PID" 2>/dev/null || true
+      BROWSER_PID=""
+      launch_browser || true
+      sleep 1
+      continue
+    fi
+
+    if [ -z "$BROWSER_PID" ] || ! kill -0 "$BROWSER_PID" 2>/dev/null; then
+      [ -z "$BROWSER_PID" ] || wait "$BROWSER_PID" 2>/dev/null || true
       BROWSER_PID=""
       BROWSER_RECOVERY_COUNT=$((BROWSER_RECOVERY_COUNT + 1))
       write_watchdog_state "browser-exited"
       sleep "$BROWSER_RESTART_DELAY"
       [ "$BROWSER_RESTART_DELAY" -ge 30 ] || BROWSER_RESTART_DELAY=$((BROWSER_RESTART_DELAY * 2))
       [ "$BROWSER_RESTART_DELAY" -le 30 ] || BROWSER_RESTART_DELAY=30
-      launch_browser
+      launch_browser || true
     elif [ "$DASHBOARD_KIOSK_WATCHDOG" = "1" ]; then
       NOW=$(date +%s)
       if is_pi_accel_profile "$BROWSER_ACCEL_PROFILE" && [ $((NOW - BROWSER_STARTED_AT)) -ge 20 ]; then

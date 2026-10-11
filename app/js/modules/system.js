@@ -53,6 +53,50 @@ let systemHealthUpdatedAt=0;
 const SYSTEM_HEALTH_REFRESH_MS=15000;
 let lastDisplayPerformanceBenchmark=null;
 let displayPerformanceBenchmarkPromise=null;
+let serverModeState=null;
+let serverModePromise=null;
+function renderServerMode(){
+  const input=document.getElementById('s-server-only-mode'),status=document.getElementById('server-only-status'),badge=document.getElementById('server-only-badge'),d=serverModeState;
+  if(!input&&!status&&!badge)return;
+  if(!d){if(status)status.textContent='Checking host mode…';return;}
+  const supported=d.supported!==false;
+  if(input){input.checked=!!d.serverOnly;input.disabled=!supported||!!d.forcedByEnvironment;}
+  if(badge){badge.textContent=d.effectiveServerOnly?'Server only':'Display + server';badge.className='settings-subhead-note '+(d.effectiveServerOnly?'server-only-active':'');}
+  if(status){
+    if(!supported)status.textContent='This deployment does not use LibreDisplay’s native Pi kiosk manager. Docker/NAS/server deployments already run without a managed local browser.';
+    else if(d.forcedByEnvironment)status.textContent='Server-only mode is forced by DASHBOARD_NO_BROWSER in the host environment. Remove that override before changing it here.';
+    else if(d.effectiveServerOnly)status.textContent='Server-only mode is active. LibreDisplay keeps the server running but does not launch the local Chromium dashboard on this Pi.';
+    else status.textContent='Display + server mode is active. This Pi runs LibreDisplay and launches its local Chromium dashboard.';
+  }
+}
+async function loadServerMode(force=false){
+  if(serverModePromise&&!force)return serverModePromise;
+  serverModePromise=(async()=>{
+    try{const r=await resilientFetch(serverPath('/api/server-mode'),{cache:'no-store'},{timeoutMs:5000,attempts:2});const d=await r.json().catch(()=>({}));serverModeState=r.ok&&d.ok?d:{supported:false,error:d.error||`HTTP ${r.status}`};}
+    catch(e){serverModeState={supported:false,error:String(e?.message||e)};}
+    renderServerMode();return serverModeState;
+  })();
+  try{return await serverModePromise;}finally{serverModePromise=null;}
+}
+async function setServerOnlyMode(enabled,options={}){
+  const next=!!enabled,d=serverModeState||await loadServerMode();
+  if(d?.forcedByEnvironment)throw new Error('Server-only mode is forced by the host environment.');
+  if(d?.supported===false)throw new Error('This deployment does not use the native Pi kiosk manager.');
+  if(next&&options.confirm!==false&&bootstrapApi.LOCAL_CLIENT_MODE){
+    const remoteReady=!!configApi.remoteInfo?.remoteEnabled;
+    const warning=remoteReady?'This will stop the local Chromium dashboard on this Pi. The LibreDisplay server and remote Owner access will keep running. Continue?':'This will stop the local Chromium dashboard on this Pi, and Remote Access is currently disabled. You will need SSH and `libredisplay server-only off` to bring the local dashboard back. Continue?';
+    if(!confirm(warning)){renderServerMode();return {ok:false,cancelled:true};}
+  }
+  const r=await resilientFetch(serverPath('/api/server-mode'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({serverOnly:next}),cache:'no-store'},{timeoutMs:6000,retry:false});
+  const payload=await r.json().catch(()=>({}));if(!r.ok||!payload.ok)throw new Error(payload.error||`HTTP ${r.status}`);
+  serverModeState=payload;renderServerMode();
+  const status=document.getElementById('server-only-status');if(status)status.textContent=next?'Server-only mode saved. The local dashboard will close shortly; the server stays online.':'Display + server mode saved. The local Chromium dashboard will start shortly.';
+  return payload;
+}
+async function handleServerOnlyToggle(event){
+  const input=event?.currentTarget||document.getElementById('s-server-only-mode'),wanted=!!input?.checked;
+  try{const result=await setServerOnlyMode(wanted);if(result?.cancelled&&input)input.checked=!wanted;}catch(e){if(input)input.checked=!wanted;const status=document.getElementById('server-only-status');if(status)status.textContent='Could not change host mode: '+(e?.message||e);}
+}
 function renderSoftwareUpdateStatus(){
   const current=document.getElementById('software-update-current');
   const status=document.getElementById('software-update-status');
@@ -272,9 +316,10 @@ function renderSystemHealth(){
   const displayText=kiosk.viewport?`${kiosk.viewport}${Number(kiosk.dpr)&&Number(kiosk.dpr)!==1?` · DPR ${Number(kiosk.dpr).toFixed(2)}`:''}${kiosk.screen&&kiosk.screen!==kiosk.viewport?` · screen ${kiosk.screen}`:''}`:'';
   const fpsText=anim.settingsOpen&&dashboardFps?`dashboard ${dashboardFps.toFixed(1)} FPS · settings ${settingsFps||fps?Number(settingsFps||fps).toFixed(1):'—'} FPS${targetFps?` / ${targetFps} target`:''}`:fps?`${fps.toFixed(1)} FPS${targetFps?` / ${targetFps} target`:''}`:'';
   const forecastText=(forecastRendering.daily||forecastRendering.hourly)?`forecast renders D ${Number(forecastRendering.daily?.renders)||0}/${Number(forecastRendering.daily?.skips)||0} skip · H ${Number(forecastRendering.hourly?.renders)||0}/${Number(forecastRendering.hourly?.skips)||0} skip · ${Math.max(Number(forecastRendering.daily?.maxMs)||0,Number(forecastRendering.hourly?.maxMs)||0).toFixed(1)} ms max`:'';
-  const perfText=kiosk.present&&Object.keys(perf).length?[`${perf.tier||'browser'} tier`,perf.hostModel||'',displayText,fpsText,dropped?`${dropped.toFixed(1)}% dropped`:'',gpuText,gpuRenderer&&!graphics.software?gpuRenderer:'',graphics.probeError?`graphics probe: ${graphics.probeError}`:'',workloadText,forecastText,Number(layoutAutoFit.runs)?`layout auto-fit ${Number(layoutAutoFit.runs)} runs · ${Number(layoutAutoFit.maxMs||0).toFixed(0)} ms max`:'',`${Number(longTasks.count)||0} long tasks`,`${Number(longTasks.maxMs)||0} ms max`,perf.heap?.usedBytes?`${formatHealthBytes(perf.heap.usedBytes)} JS heap`:'' ].filter(Boolean).join(' · '):(kiosk.present?'Waiting for browser metrics':'No local kiosk heartbeat');
+  const serverOnly=!!d.serverMode?.effectiveServerOnly;
+  const perfText=serverOnly?'Server-only mode · local Chromium intentionally disabled':kiosk.present&&Object.keys(perf).length?[`${perf.tier||'browser'} tier`,perf.hostModel||'',displayText,fpsText,dropped?`${dropped.toFixed(1)}% dropped`:'',gpuText,gpuRenderer&&!graphics.software?gpuRenderer:'',graphics.probeError?`graphics probe: ${graphics.probeError}`:'',workloadText,forecastText,Number(layoutAutoFit.runs)?`layout auto-fit ${Number(layoutAutoFit.runs)} runs · ${Number(layoutAutoFit.maxMs||0).toFixed(0)} ms max`:'',`${Number(longTasks.count)||0} long tasks`,`${Number(longTasks.maxMs)||0} ms max`,perf.heap?.usedBytes?`${formatHealthBytes(perf.heap.usedBytes)} JS heap`:'' ].filter(Boolean).join(' · '):(kiosk.present?'Waiting for browser metrics':'No local kiosk heartbeat');
   const healthFps=dashboardFps||fps;
-  set('system-health-browser',perfText,!kiosk.present?'warn':graphics.software||healthFps&&healthFps<15?'bad':healthFps&&healthFps<26?'warn':'good');
+  set('system-health-browser',perfText,serverOnly?'good':!kiosk.present?'warn':graphics.software||healthFps&&healthFps<15?'bad':healthFps&&healthFps<26?'warn':'good');
   const pi=d.piRuntime||{},thermal=pi.thermal||{},session=pi.displaySession||{},chrome=pi.chromium||{},kernel=pi.kernelGraphics||{};
   const throttledNow=!!(thermal.throttledNow||thermal.frequencyCappedNow||thermal.underVoltageNow||thermal.softTempLimitNow),throttledEver=!!(thermal.throttledOccurred||thermal.frequencyCappedOccurred||thermal.underVoltageOccurred||thermal.softTempLimitOccurred);
   const runtimeParts=[session.xdgSessionType?`session ${session.xdgSessionType}`:'',session.waylandDisplay?`Wayland ${session.waylandDisplay}`:session.display?`DISPLAY ${session.display}`:'',kernel.vc4Loaded?'vc4 loaded':'vc4 missing',kernel.v3dLoaded?'v3d loaded':'v3d missing',Number(thermal.cpuFreqMHz)?`CPU ${Number(thermal.cpuFreqMHz).toFixed(0)} MHz`:'' ,Number(thermal.cpuMaxMHz)?`max ${Number(thermal.cpuMaxMHz).toFixed(0)} MHz`:'',thermal.governor?`governor ${thermal.governor}`:'',Number(thermal.coreFreqMHz)?`core ${Number(thermal.coreFreqMHz).toFixed(0)} MHz`:'',Number(thermal.v3dFreqMHz)?`V3D ${Number(thermal.v3dFreqMHz).toFixed(0)} MHz`:'',thermal.throttledRaw?`throttle ${thermal.throttledRaw}`:''].filter(Boolean);
@@ -283,10 +328,10 @@ function renderSystemHealth(){
   set('system-health-chromium',chromeParts.join(' · ')||'No Chromium process data',!Number(chrome.processCount)?'warn':flags.includes('--disable-gpu')||!Number(chrome.gpuProcesses)||!webglVerified?'bad':'good');
   const conn=perf.connectivity||{},requests=Number(conn.requests)||0,failures=Number(conn.failures)||0,timeouts=Number(conn.timeouts)||0,retries=Number(conn.retries)||0,avg=Number(conn.averageLatencyMs)||0;
   const outbound=d.outboundConnectivity||{},serverRequests=Number(outbound.requests)||0,serverFailures=Number(outbound.failures)||0,serverRetries=Number(outbound.retries)||0,serverAvg=Number(outbound.averageLatencyMs)||0,lastKind=String(outbound.lastFailureKind||'');
-  const browserText=kiosk.present&&requests?`${conn.online===false?'Offline':'Online'} · browser ${failures}/${requests} failed · ${timeouts} timed out · ${retries} retries${avg?' · '+avg+' ms avg':''}`:(kiosk.present?'Browser metrics pending':'No local kiosk heartbeat');
+  const browserText=serverOnly?'Local browser intentionally disabled':kiosk.present&&requests?`${conn.online===false?'Offline':'Online'} · browser ${failures}/${requests} failed · ${timeouts} timed out · ${retries} retries${avg?' · '+avg+' ms avg':''}`:(kiosk.present?'Browser metrics pending':'No local kiosk heartbeat');
   const serverText=serverRequests?`server ${serverFailures}/${serverRequests} failed · ${serverRetries} retries${serverAvg?' · '+serverAvg+' ms avg':''}${lastKind?' · last '+lastKind:''}`:'server provider metrics pending';
   const connText=`${browserText} · ${serverText}`;
-  set('system-health-connectivity',connText,!kiosk.present?'warn':conn.online===false?'bad':(failures||timeouts||serverFailures)?'warn':'good');
+  set('system-health-connectivity',connText,serverOnly?(serverFailures?'warn':'good'):!kiosk.present?'warn':conn.online===false?'bad':(failures||timeouts||serverFailures)?'warn':'good');
   const integrity=d.startupIntegrity||{},integrityChecked=Number(integrity.checkedAt)||0,integrityAge=integrityChecked?healthAgeText(Math.max(0,Date.now()/1000-integrityChecked)):'';
   const integrityText=integrity.ok?`Verified${integrity.version?' · v'+integrity.version:''}${integrityAge?' · '+integrityAge:''}`:'Not verified at startup';
   set('system-health-integrity',integrityText,integrity.ok&&integrity.frontendVerified?'good':'warn');
@@ -355,6 +400,7 @@ async function loadSystemHealth(){
       systemHealthState=r.ok?await r.json():{ok:false};
     }catch(e){systemHealthState={ok:false};}
     systemHealthUpdatedAt=Date.now();
+    if(systemHealthState?.serverMode){serverModeState=systemHealthState.serverMode;renderServerMode();}
     renderSystemHealth();renderDisplayReadiness();renderSystemHealthRefreshStatus(false);
     const physicalBenchmark=physicalDisplayBenchmarkState();if(!displayPerformanceBenchmarkPromise&&physicalBenchmark?.state){if(physicalBenchmark.state==='complete'&&physicalBenchmark.result)lastDisplayPerformanceBenchmark=physicalBenchmark.result;renderDisplayPerformanceBenchmark(physicalBenchmark);}
     return systemHealthState;
@@ -476,6 +522,7 @@ function buildDiagnosticsPayload(){
     alerts:{enabled:cfg.alertsEnabled,testMode:cfg.alertTestMode,active:configApi.activeWeatherAlerts.length,motion:cfg.alertMotionMode},
     refreshMinutes:{weather:cfg.weatherRefreshMin,calendar:cfg.calendarRefreshMin,alerts:cfg.alertRefreshMin},
     remoteSettings:{mode:bootstrapApi.REMOTE_SETTINGS_MODE?'remote':'local',serverSync:configApi.serverConfigAvailable},
+    hostMode:systemHealthState?.serverMode||serverModeState||undefined,
     layout:{mode:cfg.layoutMode||'default',gridPx:cfg.layoutGridPx||20,snap:cfg.layoutSnap!==false,blocks:Object.keys(cfg.layoutBlocks||{})},
     offlineCache:{staleSources:[...new Set([...configApi.staleCacheSources.values()].map(v=>v?.name||'remote data'))]}
   };
@@ -516,22 +563,24 @@ function restorePreviousSettings(){
 }
 
 if(!window.__ldSystemPerformanceBenchmarkDelegated){window.__ldSystemPerformanceBenchmarkDelegated=true;document.addEventListener('click',event=>{const button=event.target?.closest?.('#system-performance-benchmark-button');if(!button)return;event.preventDefault();runSystemDisplayPerformanceBenchmark().catch(()=>{});});}
+if(!window.__ldServerModeDelegated){window.__ldServerModeDelegated=true;document.addEventListener('change',event=>{if(event.target?.id!=='s-server-only-mode')return;handleServerOnlyToggle(event);});}
 
 document.getElementById('setup')?.addEventListener('input',e=>{
-  if(e.target?.id==='s-settings-search'||e.target?.id==='s-import-file')return;
+  if(['s-settings-search','s-import-file','s-server-only-mode'].includes(e.target?.id))return;
   markSettingsDirty();
   if(e.target?.classList?.contains('cal-enabled')||e.target?.closest?.('.cal-entry'))LibreDisplayRuntime.getModule('onboarding').updateCalendarEntryVisibility();
 });
 document.getElementById('setup')?.addEventListener('change',e=>{
-  if(e.target?.id==='s-settings-search'||e.target?.id==='s-import-file')return;
+  if(['s-settings-search','s-import-file','s-server-only-mode'].includes(e.target?.id))return;
   markSettingsDirty();
   if(e.target?.classList?.contains('cal-enabled')||e.target?.closest?.('.cal-entry'))LibreDisplayRuntime.getModule('onboarding').updateCalendarEntryVisibility();
 });
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("system", {markSettingsDirty,markSettingsClean,setHealth,renderSoftwareUpdateStatus,checkSoftwareUpdate,settingsPanelOpen,autoDetectSoftwareUpdate,startSoftwareUpdateAutoDetection,stopSoftwareUpdateAutoDetection,setSoftwareUpdateActionStatus,sleepMs,monitorSoftwareUpdate,startSoftwareUpdate,setReleaseRollbackStatus,renderReleaseRollbacks,loadReleaseRollbacks,monitorReleaseRollback,startReleaseRollback,formatHealthBytes,formatHealthUptime,renderSystemHealth,renderSystemHealthRefreshStatus,loadSystemHealth,stopSystemHealthAutoRefresh,startSystemHealthAutoRefresh,providerHealthPill,renderProviderHealth,refreshProviderHealth,updateSettingsOverview,physicalDisplayBenchmarkState,renderDisplayPerformanceBenchmark,runSystemDisplayPerformanceBenchmark,buildDiagnosticsPayload,diagnosticsJson,copyDiagnostics,downloadDiagnostics,restorePreviousSettings}, {
+LibreDisplayRuntime.exposeModule("system", {markSettingsDirty,markSettingsClean,setHealth,renderServerMode,loadServerMode,setServerOnlyMode,handleServerOnlyToggle,renderSoftwareUpdateStatus,checkSoftwareUpdate,settingsPanelOpen,autoDetectSoftwareUpdate,startSoftwareUpdateAutoDetection,stopSoftwareUpdateAutoDetection,setSoftwareUpdateActionStatus,sleepMs,monitorSoftwareUpdate,startSoftwareUpdate,setReleaseRollbackStatus,renderReleaseRollbacks,loadReleaseRollbacks,monitorReleaseRollback,startReleaseRollback,formatHealthBytes,formatHealthUptime,renderSystemHealth,renderSystemHealthRefreshStatus,loadSystemHealth,stopSystemHealthAutoRefresh,startSystemHealthAutoRefresh,providerHealthPill,renderProviderHealth,refreshProviderHealth,updateSettingsOverview,physicalDisplayBenchmarkState,renderDisplayPerformanceBenchmark,runSystemDisplayPerformanceBenchmark,buildDiagnosticsPayload,diagnosticsJson,copyDiagnostics,downloadDiagnostics,restorePreviousSettings}, {
   "settingsInitializing": {configurable:true,get:()=>settingsInitializing,set:(value)=>{settingsInitializing=value;}},
+  "serverModeState": {configurable:true,get:()=>serverModeState,set:(value)=>{serverModeState=value;}},
   "settingsDirty": {configurable:true,get:()=>settingsDirty,set:(value)=>{settingsDirty=value;}},
   "calendarHideEmpty": {configurable:true,get:()=>calendarHideEmpty,set:(value)=>{calendarHideEmpty=value;}},
   "softwareUpdateState": {configurable:true,get:()=>softwareUpdateState,set:(value)=>{softwareUpdateState=value;}},

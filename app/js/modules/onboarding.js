@@ -49,6 +49,10 @@ function beginWizardSession(){
   configApi.wizardHealthNotices=[];
   configApi.wizardRestorePointCount=null;
   configApi.wizardLastSaveResult=null;
+  const mode=systemApi.serverModeState;
+  configApi.wizardServerOnly=!!mode?.serverOnly;
+  configApi.wizardServerModeLoaded=!!mode;
+  if(!mode)systemApi.loadServerMode().then(state=>{configApi.wizardServerOnly=!!state?.serverOnly;configApi.wizardServerModeLoaded=true;if(configApi.isWizardMode&&configApi.WIZARD_STEPS[configApi.wizardStepIndex]?.key==='host')renderWizardStep();}).catch(()=>{});
 }
 function syncWizardDisplayNameFromEndpoints(){
   if(!configApi.isWizardMode||configApi.wizardDisplayNameTouched)return;
@@ -101,10 +105,11 @@ function renderWizardSummary(){
   const themeKey=document.querySelector('.theme-choice-card.selected')?.dataset.theme||cfg.uiTheme||'libre-night';
   const theme=appearanceApi.LIBREDISPLAY_THEMES[themeKey]?.name||'Libre Night';
   const remote=configApi.remoteInfo?.remoteEnabled?'Enabled for trusted private-network clients':'Disabled';
+  const hostMode=configApi.wizardServerOnly?'Server only · no local webpage':'Display + server';
   const recovery=configApi.wizardCreateBaseline?'Create an Initial setup baseline':'Skip initial restore point';
   const performanceProfile=wizardPerformanceProfile(),performanceLabel=performanceProfile==='custom'?'Custom visual mix':performanceProfile[0].toUpperCase()+performanceProfile.slice(1);
   const display=(configApi.wizardDisplayNameDraft||currentWizardDisplayName()).trim()||currentWizardDisplayName();
-  el.innerHTML=[['Display',display],['Location',city],['Calendars',calendars?`${calendars} connected`:'None yet'],['Background',bgLabel],['Visual performance',performanceLabel],['Weather',unit],['Alerts',alerts],['Theme',theme],['Remote editing',remote],['Recovery',recovery]]
+  el.innerHTML=[['Display',display],['Location',city],['Calendars',calendars?`${calendars} connected`:'None yet'],['Background',bgLabel],['Visual performance',performanceLabel],['Weather',unit],['Alerts',alerts],['Theme',theme],['Remote editing',remote],['Pi host mode',hostMode],['Recovery',recovery]]
     .map(([a,b])=>`<div class="wizard-summary-card"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join('');
 }
 function wizardHealthCard(name,detail,state='warn'){
@@ -120,6 +125,7 @@ function buildWizardHealthRows(){
   const bgReady=cfg.backgroundSource==='none'||cfg.backgroundSource==='stock'||(cfg.backgroundSource==='folders'&&!!cfg.mediaFolders?.length)||(cfg.backgroundSource==='google'&&!!cfg.photosUrl);
   rows.push({name:'Background',detail:bgReady?(cfg.backgroundSource==='none'?'Photo background disabled by choice':'Background source configured'):'Background source still needs setup',state:bgReady?'good':'warn'});
   rows.push({name:'Remote management',detail:configApi.remoteInfo?.remoteEnabled?'Enabled on the trusted private network':'Disabled — local-only management is valid',state:'good'});
+  const mode=systemApi.serverModeState;rows.push({name:'Pi host mode',detail:mode?.supported===false?'Not managed by the native Pi kiosk launcher':(configApi.wizardServerOnly?'Server only selected — local Chromium will stop after setup':'Display + server selected'),state:'good'});
   const recoveryReady=configApi.wizardBaselineCreated||(Number(configApi.wizardRestorePointCount)||0)>0;
   rows.push({name:'Recovery',detail:recoveryReady?`${configApi.wizardBaselineCreated?'Initial setup baseline created':configApi.wizardRestorePointCount+' local restore point'+(configApi.wizardRestorePointCount===1?'':'s')+' available'}`:(bootstrapApi.SESSION_ROLE==='owner'?'No local restore point yet':'Restore-point status requires Owner access'),state:recoveryReady?'good':'warn'});
   if(systemApi.systemHealthState?.ok){const freePct=Number(systemApi.systemHealthState.disk?.freePercent)||0;rows.push({name:'Host health',detail:`Data directory ${systemApi.systemHealthState.dataWritable?'writable':'not writable'}${freePct?` · ${freePct.toFixed(0)}% storage free`:''}`,state:systemApi.systemHealthState.dataWritable&&(freePct===0||freePct>=10)?'good':systemApi.systemHealthState.dataWritable?'warn':'bad'});}
@@ -152,7 +158,16 @@ function renderWizardExtra(step){
     const featureMap={'wizard-perf-widget':'s-weather-widget-animations','wizard-perf-overlay':'s-weather-fullscreen-effects','wizard-perf-seasonal':'s-weather-seasonal-effects','wizard-perf-motion-bg':'s-background-motion','wizard-perf-preload':'s-photo-preload'};
     for(const [from,to] of Object.entries(featureMap)){document.getElementById(from)?.addEventListener('change',e=>{const target=document.getElementById(to);if(target)target.checked=!!e.currentTarget.checked;wizardPerformanceFeatureChanged();});}
   }else if(step.key==='remote'){
-    extra.innerHTML='<div class="wizard-inline-note">Remote editing is optional. Keep it disabled for a local-only installation, or enable it only on a trusted LAN/private VPN. Never port-forward LibreDisplay directly to the public internet.</div>';
+    extra.innerHTML='<div class="wizard-inline-note">Remote editing is optional. Keep it disabled for a local-only installation, or enable it only on a trusted LAN/private VPN. Never port-forward LibreDisplay directly to the public internet. Server-only Pi mode works best with Remote Access enabled, but SSH can always restore the local display.</div>';
+  }else if(step.key==='host'){
+    const mode=systemApi.serverModeState;
+    if(!configApi.wizardServerModeLoaded){extra.innerHTML='<div class="wizard-inline-note">Checking whether this host uses LibreDisplay’s native Pi kiosk manager…</div>';systemApi.loadServerMode().then(state=>{configApi.wizardServerModeLoaded=true;configApi.wizardServerOnly=!!state?.serverOnly;if(configApi.isWizardMode&&configApi.WIZARD_STEPS[configApi.wizardStepIndex]?.key==='host')renderWizardStep();}).catch(()=>{});}
+    else if(mode?.supported===false)extra.innerHTML='<div class="wizard-inline-note">This deployment does not use LibreDisplay’s native Pi kiosk manager. Docker, NAS, and generic server deployments already run without a managed local Chromium window.</div>';
+    else if(mode?.forcedByEnvironment)extra.innerHTML='<div class="wizard-inline-note">This Pi is forced into server-only mode by the host environment. Remove <code>DASHBOARD_NO_BROWSER</code> before changing this choice in LibreDisplay.</div>';
+    else{
+      extra.innerHTML=`<div class="wizard-form-card"><div class="wizard-mode-choice"><label class="wizard-feature-option"><input type="radio" name="wizard-host-mode" value="display" ${configApi.wizardServerOnly?'':'checked'}><span><b>Display + server</b><small>This Pi runs the LibreDisplay server and also launches the local full-screen Chromium dashboard.</small></span><em>DEFAULT</em></label><label class="wizard-feature-option"><input type="radio" name="wizard-host-mode" value="server" ${configApi.wizardServerOnly?'checked':''}><span><b>Server only</b><small>Keep the server running but do not launch a webpage on this Pi. Other Pis/devices can display LibreDisplay from this server.</small></span><em>HEADLESS</em></label></div><div class="wizard-inline-note"><b>Recovery:</b> over SSH, <code>libredisplay server-only off</code> restores the local dashboard. <code>libredisplay addresses</code> shows connection addresses and <code>libredisplay connect</code> creates a one-time Owner code.</div></div>`;
+      extra.querySelectorAll('input[name="wizard-host-mode"]').forEach(input=>input.addEventListener('change',()=>{configApi.wizardServerOnly=input.value==='server';}));
+    }
   }else if(step.key==='backup'){
     extra.innerHTML=`<div class="wizard-form-card"><label class="checkline"><input id="wizard-create-baseline" type="checkbox" ${configApi.wizardCreateBaseline?'checked':''}> Create a private “Initial setup baseline” restore point after saving</label><div class="wizard-inline-note">Recommended. This captures the saved display configuration plus Profiles and Scenes after setup. Full .ldbackup files remain the option for media, plugins, environment secrets, and host/NAS state.</div></div>`;
     const input=document.getElementById('wizard-create-baseline');input?.addEventListener('change',()=>{configApi.wizardCreateBaseline=!!input.checked;});
@@ -190,6 +205,12 @@ async function wizardCreateSetupBaseline(){
   if(!configApi.wizardCreateBaseline||bootstrapApi.SESSION_ROLE!=='owner')return {ok:true,skipped:true};
   try{const res=await resilientFetch('/api/restore-points',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create',endpoint:bootstrapApi.ACTIVE_ENDPOINT,label:'Initial setup baseline'}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||`HTTP ${res.status}`);configApi.wizardBaselineCreated=true;configApi.wizardRestorePointCount=Array.isArray(data.points)?data.points.length:configApi.wizardRestorePointCount;return {ok:true};}catch(e){return {ok:false,error:String(e?.message||e)};}
 }
+async function wizardApplyServerMode(){
+  const mode=systemApi.serverModeState||await systemApi.loadServerMode();
+  if(mode?.supported===false||mode?.forcedByEnvironment)return {ok:true,skipped:true};
+  try{await systemApi.setServerOnlyMode(!!configApi.wizardServerOnly,{confirm:false});return {ok:true};}
+  catch(e){return {ok:false,error:String(e?.message||e)};}
+}
 async function wizardLoadRestorePointCount(){
   if(bootstrapApi.SESSION_ROLE!=='owner'){configApi.wizardRestorePointCount=null;return;}
   try{const res=await resilientFetch('/api/restore-points',{cache:'no-store'}),data=await res.json().catch(()=>({}));if(res.ok&&data.ok)configApi.wizardRestorePointCount=Array.isArray(data.points)?data.points.length:0;}catch(e){}
@@ -224,7 +245,7 @@ async function wizardNext(){
     if(!pendingWeatherLocation){alert('Use Find places and choose the exact city/region/country match before continuing.');document.getElementById('s-city')?.focus();return;}
   }
   if(step.key==='review'){await wizardSaveAndRunChecks();return;}
-  if(step.key==='health'){closeSetup(false);applySettings();return;}
+  if(step.key==='health'){const modeResult=await wizardApplyServerMode();if(!modeResult.ok){alert('LibreDisplay could not apply the selected Pi host mode: '+modeResult.error);return;}closeSetup(false);applySettings();return;}
   configApi.wizardStepIndex++;renderWizardStep();
 }
 function openFullSettingsFromWizard(){setWizardMode(false);switchSettingsTab('overview',false);}
@@ -439,7 +460,7 @@ async function saveSetup(options={}){
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
 window.addEventListener('resize',()=>{if(configApi.isWizardMode)applyWizardDisplayScale();});
-LibreDisplayRuntime.exposeModule("onboarding", {applyStarterTemplate,wizardPerformanceState,wizardPerformanceProfile,applyWizardPerformancePreset,wizardPerformanceFeatureChanged,currentWizardDisplayName,beginWizardSession,syncWizardDisplayNameFromEndpoints,wizardPhysicalViewport,wizardDisplayScale,applyWizardDisplayScale,setWizardMode,renderWizardSummary,wizardHealthCard,buildWizardHealthRows,renderWizardHealth,renderWizardExtra,renderWizardStep,wizardCommitDisplayName,wizardCreateSetupBaseline,wizardLoadRestorePointCount,runWizardHealthChecks,wizardSaveAndRunChecks,wizardBack,wizardSkip,wizardNext,openFullSettingsFromWizard,startWizardFromSettings,newCalendarId,calendarRowsFromDom,readCalendarInputs,syncCalendarEditorRows,calendarCardHtml,bindCalendarCard,renderCalendarSourceList,addCalendarSource,removeCalendarSource,duplicateCalendarSource,importCalendarFile,calendarOrderIds,calendarPriority,readCalendarOrder,renderCalendarOrderList,moveCalendarOrder,renderCalendarLegend,bindCalendarColorControls,bindCalendarUxInputs,updateCalendarEntryVisibility,toggleEmptyCalendarSlots,normalizeWeatherLocationResult,savedWeatherLocation,weatherLocationTitle,weatherLocationSearchText,renderWeatherLocationSelected,weatherLocationQueryChanged,selectWeatherLocationResult,searchWeatherLocations,previewWeatherLocationLabel,saveSetup}, {
+LibreDisplayRuntime.exposeModule("onboarding", {applyStarterTemplate,wizardPerformanceState,wizardPerformanceProfile,applyWizardPerformancePreset,wizardPerformanceFeatureChanged,currentWizardDisplayName,beginWizardSession,syncWizardDisplayNameFromEndpoints,wizardPhysicalViewport,wizardDisplayScale,applyWizardDisplayScale,setWizardMode,renderWizardSummary,wizardHealthCard,buildWizardHealthRows,renderWizardHealth,renderWizardExtra,renderWizardStep,wizardCommitDisplayName,wizardCreateSetupBaseline,wizardApplyServerMode,wizardLoadRestorePointCount,runWizardHealthChecks,wizardSaveAndRunChecks,wizardBack,wizardSkip,wizardNext,openFullSettingsFromWizard,startWizardFromSettings,newCalendarId,calendarRowsFromDom,readCalendarInputs,syncCalendarEditorRows,calendarCardHtml,bindCalendarCard,renderCalendarSourceList,addCalendarSource,removeCalendarSource,duplicateCalendarSource,importCalendarFile,calendarOrderIds,calendarPriority,readCalendarOrder,renderCalendarOrderList,moveCalendarOrder,renderCalendarLegend,bindCalendarColorControls,bindCalendarUxInputs,updateCalendarEntryVisibility,toggleEmptyCalendarSlots,normalizeWeatherLocationResult,savedWeatherLocation,weatherLocationTitle,weatherLocationSearchText,renderWeatherLocationSelected,weatherLocationQueryChanged,selectWeatherLocationResult,searchWeatherLocations,previewWeatherLocationLabel,saveSetup}, {
   "STARTER_TEMPLATES": {configurable:true,get:()=>STARTER_TEMPLATES},
   "STARTER_TEMPLATE_LAYOUTS": {configurable:true,get:()=>STARTER_TEMPLATE_LAYOUTS},
   "pendingWeatherLocation": {configurable:true,get:()=>pendingWeatherLocation,set:(value)=>{pendingWeatherLocation=value;}},

@@ -155,6 +155,7 @@ ROLLBACK_ROOT = Path.home() / "libredisplay-rollbacks"
 MAINTENANCE_HISTORY_PATH = DATA_ROOT / "maintenance_history.json"
 KIOSK_HEARTBEAT_PATH = DATA_ROOT / "kiosk-heartbeat.json"
 DISPLAY_MODE_PATH = DATA_ROOT / "display-mode.json"
+SERVER_MODE_PATH = DATA_ROOT / "server-mode.json"
 WATCHDOG_STATE_PATH = DATA_ROOT / "watchdog-state.json"
 STARTUP_INTEGRITY_PATH = DATA_ROOT / "startup-integrity.json"
 CONFIG_RECOVERY_STATE_PATH = DATA_ROOT / "config-recovery-state.json"
@@ -215,6 +216,30 @@ def load_json_path(path, fallback=None):
 
 
 
+
+def _env_truthy(name):
+    return str(os.environ.get(name, "")).strip().lower() in {"1", "true", "yes", "on"}
+
+def server_mode_state():
+    row = load_json_path(SERVER_MODE_PATH, {})
+    if not isinstance(row, dict):
+        row = {}
+    requested = bool(row.get("serverOnly"))
+    forced = _env_truthy("DASHBOARD_NO_BROWSER")
+    native_kiosk = _env_truthy("DASHBOARD_NATIVE_KIOSK")
+    return {
+        "serverOnly": requested,
+        "effectiveServerOnly": bool(requested or forced),
+        "forcedByEnvironment": forced,
+        "nativeKioskManaged": native_kiosk,
+        "supported": native_kiosk,
+        "requestedAt": max(0, int(row.get("requestedAt") or 0)),
+    }
+
+def set_server_only_mode(enabled):
+    payload = {"serverOnly": bool(enabled), "requestedAt": int(time.time())}
+    atomic_write_json_file(SERVER_MODE_PATH, payload)
+    return server_mode_state()
 
 def _write_config_recovery_state(endpoint_id, recovered_from, quarantined):
     try:
@@ -3182,6 +3207,7 @@ def system_health_payload():
         "loadAverage": load,
         "disk": disk_payload,
         "dataWritable": os.access(DATA_ROOT, os.W_OK),
+        "serverMode": server_mode_state(),
         "kioskHeartbeat": kiosk_payload,
         "outboundConnectivity": outbound_health_payload(),
         "startupIntegrity": {
@@ -4722,6 +4748,20 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 return self.json_response(400, {"ok": False, "error": public_integration_error(exc)})
             except Exception as exc:
                 return self.json_response(502, {"ok": False, "error": "Integration action failed: " + public_integration_error(exc)})
+        if parsed.path == "/api/server-mode":
+            if not self.require_owner():
+                return
+            try:
+                body = self.read_json_body() or {}
+                enabled = body.get("serverOnly")
+                if not isinstance(enabled, bool):
+                    raise ValueError("serverOnly must be true or false")
+                state = set_server_only_mode(enabled)
+                return self.json_response(200, {"ok": True, **state})
+            except ValueError as exc:
+                return self.json_response(400, {"ok": False, "error": str(exc)})
+            except Exception:
+                return self.json_response(500, {"ok": False, "error": "Could not change the LibreDisplay server-only mode."})
         if parsed.path == "/api/display-mode":
             if not self.client_is_loopback():
                 return self.json_response(403, {"ok": False, "error": "Display mode can only be changed from the local LibreDisplay screen."})
@@ -5085,6 +5125,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.send_header("Location", f"/dashboard.html?{settings_flag}=1&endpoint={quote(requested_endpoint(parsed) or 'main')}")
             self.end_headers()
             return
+        if parsed.path == "/api/server-mode":
+            if not self.require_owner():
+                return
+            return self.json_response(200, {"ok": True, **server_mode_state()})
         if parsed.path == "/api/owner-devices":
             if not self.require_owner():
                 return
