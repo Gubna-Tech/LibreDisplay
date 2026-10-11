@@ -3413,11 +3413,10 @@ def local_ipv4_addresses():
 
 def remote_link_hosts():
     hosts = local_ipv4_addresses()
-    hostname = re.sub(r"[^A-Za-z0-9-]", "", str(socket.gethostname() or "").split(".", 1)[0])
-    if hostname:
-        mdns = hostname + ".local"
-        if mdns not in hosts:
-            hosts.append(mdns)
+    hostname = re.sub(r"[^A-Za-z0-9-]", "", str(socket.gethostname() or "").split(".", 1)[0]) or "libredisplay"
+    mdns = hostname + ".local"
+    if mdns not in hosts:
+        hosts.append(mdns)
     return hosts
 
 
