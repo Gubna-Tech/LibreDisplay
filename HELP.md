@@ -1,14 +1,14 @@
 # LibreDisplay Help & Setup Guide
 
-LibreDisplay is a self-hosted dashboard platform for always-on displays, household information screens, weather and calendar dashboards, media and integration views, and multi-display setups. This guide is the complete end-user handbook for installing it, setting it up, administering it, customizing it, troubleshooting it, and recovering it when something goes wrong.
+LibreDisplay turns a browser-connected screen into a customizable, self-hosted dashboard. This guide covers setup, everyday changes, remote administration, troubleshooting, recovery, and the deeper options you may want later.
 
-The goal of this document is not to make you read everything. It is designed so a first-time user can get running quickly, while an advanced user can still find the deeper operational and recovery details without needing a separate manual.
+You do not need to read it cover to cover. Start with the task that matches what you are doing, then open the more detailed sections only when you need them.
 
 > **Security boundary:** LibreDisplay is designed for a trusted home LAN or private VPN. Do not expose the built-in LibreDisplay server directly to the public Internet with port forwarding.
 
 ---
 
-## Start here: choose what you are trying to do
+## Start here: what do you want to do?
 
 | Your goal | Best place to start |
 | --- | --- |
@@ -27,7 +27,7 @@ The goal of this document is not to make you read everything. It is designed so 
 | Understand privacy, credentials, and security boundaries | [Privacy and security](#privacy-and-security) |
 | Find a practical example for a common task | [Task recipes](#task-recipes) |
 
-### If something is broken right now
+### Something broken right now?
 
 SSH into the LibreDisplay host and run these commands in order:
 
@@ -70,11 +70,11 @@ curl http://127.0.0.1:8787/healthz
 
 ---
 
-## How this guide is organized
+## How to use this guide
 
-The large chapters below are collapsed so you can open only what you need. The visible start section is intentionally short; the detailed material stays available underneath.
+The 15 main chapters below are collapsed by default. Open the one you need and leave the rest alone until it becomes useful.
 
-For most people, the most useful order is:
+If you are setting up LibreDisplay for the first time, this order works well:
 
 1. installation and first-time setup
 2. Remote Access and Owner devices
@@ -83,13 +83,7 @@ For most people, the most useful order is:
 5. backups and updates
 6. troubleshooting only when needed
 
-For a server-only or SSH-heavy deployment, start with **Server-only mode**, **Terminal and SSH reference**, and **Maintenance and recovery**.
-
-### Search terms that work well
-
-If your Markdown viewer supports page search, useful terms include:
-
-`server-only`, `Owner`, `QR`, `Display Link`, `calendar`, `weather`, `background`, `OLED`, `backup`, `restore`, `update`, `rollback`, `Pi 3`, `Pi 4`, `Docker`, `NAS`, `Arrange`, `Profile`, `Scene`, `logs`, `doctor`, `healthz`, `Remote Access`.
+Running LibreDisplay headless or mostly over SSH? Jump straight to **Server-only mode**, **Terminal and SSH reference**, and **Maintenance and recovery**.
 
 ---
 
@@ -2310,7 +2304,7 @@ Use a private VPN that places your trusted device onto the private network. Do n
 
 <a id="task-recipes"></a>
 <details>
-<summary><strong>15. Task recipes, operating tips, glossary, and quick reference</strong><br>Concrete examples for common deployments plus terminology and a compact recovery card.</summary>
+<summary><strong>15. Task recipes, operating tips, glossary, and quick reference</strong><br>Common tasks, useful habits, plain-English terminology, and a quick recovery card.</summary>
 
 ## Recipe: one Pi, one wall display
 
@@ -2530,20 +2524,3 @@ libredisplay restore /path/to/backup.ldbackup --verify-only
 If the server is healthy but another display cannot connect, investigate LAN/VPN reachability and the display address before changing LibreDisplay configuration.
 
 </details>
-
----
-
-## Final guidance
-
-LibreDisplay has a large number of controls because it is intended to be customized deeply and left running unattended. The safest way to use that flexibility is to work in layers:
-
-1. make the server healthy
-2. make the data sources healthy
-3. make the target display stable
-4. establish Remote Access and recovery
-5. customize broad presentation
-6. fine-tune layout
-7. add richer motion/integrations gradually
-8. save Profiles and backups at useful milestones
-
-When in doubt, use `libredisplay status` and `libredisplay doctor` before manually editing internal files. When changing how the Pi itself runs, remember that Server-only is a host mode, not a display layout. When adding viewers, use read-only Display Links rather than Owner access. And when experimenting with presentation, preserve a known-good Profile first.
