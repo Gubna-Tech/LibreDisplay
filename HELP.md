@@ -807,11 +807,11 @@ Settings also includes:
 
 - search with aliases and direct editing for many matching controls
 - a **Favorites** bucket at the end of the Start here group
-- per-setting favorite stars, exact numeric entry for sliders, and one-control reset buttons
+- per-setting favorite stars and exact numeric entry for sliders
 - a **Modified only** filter that shows settings changed from their defaults
 - category navigation and per-category section jump menus
 - reusable section presets that become **Custom** as soon as you fine-tune a control
-- live preview plus a press-and-hold comparison with the saved dashboard for visual sections
+- one centralized **Preview dashboard** action at the bottom of Settings so visual changes can be checked without repeating preview controls throughout the page
 - expand/collapse controls
 - contextual `?` help tips
 - live saved/unsaved state
@@ -822,11 +822,11 @@ If you know a word but not the category, Settings search is usually faster than 
 
 Use the star control beside any setting to place it in **Favorites**. Favorites is the last item in the first Start here group, so frequently used controls stay close without changing the organization of the full Settings tree. Favorites are live proxies for the original controls; changing a favorite changes the real setting. Use the up/down actions to organize the bucket.
 
-Use **Modified only** when you want to see what differs from LibreDisplay defaults. Modified controls are marked in their normal sections as well, and the per-control reset returns only that setting to its default instead of wiping a whole section.
+Use **Modified only** when you want to see what differs from LibreDisplay defaults. Modified controls are marked in their normal sections as well. Reset actions stay at meaningful section, preset, or feature boundaries instead of being repeated beside every individual control.
 
 ### Sliders and presets
 
-Range controls keep the ordinary slider for quick adjustment and add a precise numeric field plus a one-setting reset. Where a section has presets, treat them as starting points rather than locked modes: choosing a preset fills the controls, and changing any individual value turns that section into **Custom**.
+Range controls keep the ordinary slider for quick adjustment and add a precise numeric field without cluttering every row with another reset button. Where a section has presets, treat them as starting points rather than locked modes: choosing a preset fills the controls, and changing any individual value turns that section into **Custom**.
 
 ---
 
@@ -1079,7 +1079,7 @@ This category controls:
 
 The simple **Companion activity** control still changes the dog's overall pace. In **All** settings, **Dog behavior mix** adds independent frequency controls for rest, sit, sleep, sniff, watching surroundings, wandering, inspecting the dashboard, surveying the room, stretching, scratching, digging, rolling over, fetch/chase-ball play, and bird watching/chasing.
 
-`100%` is LibreDisplay's natural weighting, `0%` disables that behavior, and higher values make it more likely. Calm, Natural, Playful, and Very active are editable starting presets; changing any behavior immediately makes the mix **Custom**. Use **Preview** beside a behavior when you want to see that action once before deciding how often it should occur.
+`100%` is LibreDisplay's natural weighting, `0%` disables that behavior, and higher values make it more likely. Calm, Natural, Playful, and Very active are editable starting presets; changing any behavior immediately makes the mix **Custom**. Use the single **Preview dashboard** action at the bottom of Settings to check the overall companion presentation without adding a Preview button to every behavior row.
 
 The dog and seasonal overlays are presentation features; they should not affect weather data itself.
 

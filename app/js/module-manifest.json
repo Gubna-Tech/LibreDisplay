@@ -205,7 +205,7 @@
     "module": "qol",
     "part": "bundle",
     "path": "/js/modules/qol.js",
-    "lines": 164,
+    "lines": 156,
     "functions": 51,
     "bindings": 0,
     "sections": [
