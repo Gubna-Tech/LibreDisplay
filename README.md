@@ -12,10 +12,10 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 Use a current Raspberry Pi OS **with Desktop**, then paste this into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.12.4/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.12.5/scripts/install-one-line.sh)"
 ```
 
-The bootstrap validates the pinned **v1.12.4** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
+The bootstrap validates the pinned **v1.12.5** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
 
 > Raspberry Pi OS Lite is not supported by the native kiosk installer. A native Pi can, however, be switched to **Server-only mode** after installation so it runs LibreDisplay without launching a local webpage. Docker/NAS/Linux server deployments are already server-style hosts.
 
@@ -25,7 +25,7 @@ A new installation opens the setup wizard automatically. It walks through the di
 
 Choose **Display + server** for a normal wall dashboard, or **Server only** when the Pi should host LibreDisplay for other Pis/tablets/TVs/browsers without opening Chromium locally. You can change this later under **Settings > System > Raspberry Pi host mode** or over SSH with `libredisplay server-only on|off`.
 
-For the full installation, setup, settings, terminal, troubleshooting, and recovery handbook, see **[HELP.md](HELP.md)**.
+For the full task-oriented installation, setup, Settings, terminal, troubleshooting, recovery, deployment, and reference handbook, see **[HELP.md](HELP.md)**.
 
 ## Using LibreDisplay
 
@@ -255,7 +255,7 @@ Common commands:
 | Update | `libredisplay update` |
 | Sensitive backup | `libredisplay backup` |
 
-See **[HELP.md](HELP.md)** and open **4. Terminal and SSH reference** for complete usage, aliases, and recovery examples.
+See **[HELP.md](HELP.md)** and open **9. Terminal and SSH reference** for complete usage, aliases, and recovery examples.
 
 ## Updating LibreDisplay
 
@@ -289,7 +289,7 @@ LibreDisplay needs no cloud account and sends no analytics or telemetry. Externa
 
 ## Documentation
 
-- **[HELP.md](HELP.md)** — comprehensive setup, Settings, Terminal, troubleshooting, recovery, and tips guide
+- **[HELP.md](HELP.md)** — comprehensive task-oriented setup, Settings, Terminal, deployment, troubleshooting, recovery, and reference guide
 - **[LICENSE](LICENSE)** — MIT License
 
 ## Open source

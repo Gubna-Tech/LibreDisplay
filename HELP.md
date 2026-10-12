@@ -1,329 +1,647 @@
 # LibreDisplay Help & Setup Guide
 
-This is the practical handbook for installing, configuring, operating, troubleshooting, and recovering LibreDisplay. It is intentionally detailed, but it is organized so you only need to open the part you are working on. The README stays short; this guide holds the deeper explanations and recovery material.
+LibreDisplay is a self-hosted dashboard platform for always-on displays, household information screens, weather and calendar dashboards, media and integration views, and multi-display setups. This guide is the complete end-user handbook for installing it, setting it up, administering it, customizing it, troubleshooting it, and recovering it when something goes wrong.
 
-> **Security boundary:** LibreDisplay is designed for a trusted home LAN or private VPN. Do not expose the built-in server directly to the public Internet.
+The goal of this document is not to make you read everything. It is designed so a first-time user can get running quickly, while an advanced user can still find the deeper operational and recovery details without needing a separate manual.
 
-## Start here
-
-You do not need to read this guide from top to bottom. Pick the task you are trying to complete, then open the matching section below.
-
-| If you want to... | Open this section |
-| --- | --- |
-| Install LibreDisplay or complete first-time setup | **1. Getting started and Raspberry Pi host modes** |
-| Run a Pi without a local webpage | **1. Getting started and Raspberry Pi host modes** or use the SSH commands below |
-| Add an Owner device or understand Remote Access | **2. Remote Access and multiple displays** |
-| Understand a Settings page or dashboard layout control | **3. Settings and layout reference** |
-| Administer LibreDisplay over SSH | **4. Terminal and SSH reference** |
-| Back up, update, restore, or recover an installation | **5. Maintenance, updates, and recovery** |
-| Tune Raspberry Pi performance or protect an OLED display | **6. Performance, display care, and server deployments** |
-| Diagnose something that is not working | **7. Troubleshooting** |
-| Learn operating practices, privacy details, or quick recovery commands | **8. Tips, privacy, and quick recovery** |
-
-### Server-only mode over SSH
-
-These commands are supported on native Raspberry Pi installations and are safe to run from an SSH session:
-
-```bash
-libredisplay server-only status
-libredisplay server-only on
-libredisplay server-only off
-```
-
-For people who prefer explicit words, v1.12.4 also accepts:
-
-```bash
-libredisplay server-only enable
-libredisplay server-only disable
-```
-
-`on` and `enable` mean the same thing: keep the LibreDisplay server running but stop/do not launch the local Chromium dashboard. `off` and `disable` return the Pi to **Display + server** mode.
-
-If the LibreDisplay server is temporarily offline, the CLI still saves the requested Server-only state directly so it can take effect on the next start. An environment-level `DASHBOARD_NO_BROWSER=1` override is stronger than the saved preference and must be removed before a local browser can be started.
-
-### Most useful SSH commands
-
-```bash
-libredisplay status
-libredisplay addresses
-libredisplay connect
-libredisplay remote status
-libredisplay server-only status
-libredisplay doctor
-libredisplay logs
-libredisplay backup
-libredisplay check
-```
-
-Run `libredisplay --help` for the complete command list or `libredisplay <command> --help` for one command.
-
-## How to use this guide
-
-The eight major sections below are collapsed by default to keep this file approachable. Open only the section you need. Inside each section, normal headings break the subject into smaller tasks and explanations. No operational detail from the previous guide has been removed; the material has been regrouped around the way people actually use LibreDisplay.
-
-For a problem you cannot immediately place, start with **7. Troubleshooting**. For an SSH-only recovery, start with **4. Terminal and SSH reference**, then use **5. Maintenance, updates, and recovery** if needed.
-
-## Guide sections
-
-<details>
-<summary><strong>1. Getting started and Raspberry Pi host modes</strong><br>Architecture, installation, first-time setup, Display + server mode, and Server-only mode.</summary>
-
-## How LibreDisplay is structured
-
-LibreDisplay has two distinct jobs:
-
-1. **The server** stores configuration, serves the dashboard, talks to integrations/providers, manages accounts and display endpoints, handles backups/updates, and coordinates remote access.
-2. **The display browser** renders a dashboard in Chromium or another modern browser.
-
-A normal Raspberry Pi installation can do both jobs on the same device. A Pi in **Server-only mode** does only the first job. Other Pis, tablets, TVs, mini PCs, or browsers can then handle the display role.
-
-### Important terms
-
-**Display endpoint**  
-A named LibreDisplay dashboard such as `main`, `kitchen`, or `office`. Each endpoint can keep its own settings and layout.
-
-**Owner device**  
-A trusted browser authorized to administer LibreDisplay. Owner devices are enrolled with a short-lived one-time code or QR and can later be renamed or revoked.
-
-**Display Link**  
-A read-only credential for one display endpoint. It is intended for wall screens or viewers that should never change Settings.
-
-**Owner / Editor / Viewer account**  
-Optional named accounts for repeat sign-in. Owners can administer the whole server; Editors are limited to assigned displays; Viewers are read-only.
-
-**Local display**  
-The Chromium browser launched by LibreDisplay on a native Raspberry Pi wall-display installation.
+> **Security boundary:** LibreDisplay is designed for a trusted home LAN or private VPN. Do not expose the built-in LibreDisplay server directly to the public Internet with port forwarding.
 
 ---
 
-## Installation
+## Start here: choose what you are trying to do
 
-### Raspberry Pi native installation
+| Your goal | Best place to start |
+| --- | --- |
+| Install LibreDisplay on a Raspberry Pi with a screen | [Install on a Raspberry Pi](#install-on-a-raspberry-pi) |
+| Use a Pi only as the LibreDisplay server | [Server-only deployment](#server-only-deployment) |
+| Finish the first-time setup wizard | [First-time setup](#first-time-setup) |
+| Connect a phone, tablet, or computer as an Owner | [Add an Owner device](#add-an-owner-device) |
+| Add another read-only wall screen | [Add a read-only display](#add-a-read-only-display) |
+| Understand a Settings category | [Settings encyclopedia](#settings-encyclopedia) |
+| Rearrange or resize the dashboard | [Arrange mode](#arrange-mode) |
+| Administer LibreDisplay over SSH | [Terminal and SSH reference](#terminal-and-ssh-reference) |
+| Back up, update, restore, or roll back | [Maintenance and recovery](#maintenance-and-recovery) |
+| Improve Raspberry Pi performance | [Performance and device guidance](#performance-and-device-guidance) |
+| Run LibreDisplay with Docker, NAS, or a browserless host | [Server deployments](#server-deployments) |
+| Fix something that is not working | [Troubleshooting by symptom](#troubleshooting-by-symptom) |
+| Understand privacy, credentials, and security boundaries | [Privacy and security](#privacy-and-security) |
+| Find a practical example for a common task | [Task recipes](#task-recipes) |
 
-Use a current Raspberry Pi OS **with Desktop**. LibreDisplay's native installer expects the Pi desktop/browser stack even if you later switch that Pi to Server-only mode.
+### If something is broken right now
 
-Run the command shown in the README from Terminal. The installer places LibreDisplay at:
+SSH into the LibreDisplay host and run these commands in order:
+
+```bash
+libredisplay status
+libredisplay doctor
+libredisplay server-only status
+libredisplay remote status
+libredisplay addresses
+libredisplay logs --lines 120
+```
+
+If the server itself responds but the Pi screen is blank, check Server-only mode before changing anything else:
+
+```bash
+libredisplay server-only status
+libredisplay server-only off
+```
+
+If you need to authorize a new Owner device and cannot reach Settings locally:
+
+```bash
+libredisplay remote on
+libredisplay connect
+```
+
+If you only want to confirm the server is alive:
+
+```bash
+curl http://127.0.0.1:8787/healthz
+```
+
+### Five things worth knowing before you customize
+
+1. **The server and the display browser are separate jobs.** One Pi can do both, or a server-only Pi can host dashboards for other devices.
+2. **A display endpoint is not an Owner device.** Endpoints are dashboards; Owner devices are trusted administration browsers.
+3. **Read-only Display Links are credentials.** Treat them like secrets even though they are meant for unattended screens.
+4. **Profiles are for fast dashboard/layout rollback.** Full `.ldbackup` files are for server-level recovery and migration.
+5. **If a setting exists in both broad appearance and Arrange mode, use broad settings first and fine-tune in Arrange mode second.**
+
+---
+
+## How this guide is organized
+
+The large chapters below are collapsed so you can open only what you need. The visible start section is intentionally short; the detailed material stays available underneath.
+
+For most people, the most useful order is:
+
+1. installation and first-time setup
+2. Remote Access and Owner devices
+3. Settings encyclopedia
+4. Arrange mode
+5. backups and updates
+6. troubleshooting only when needed
+
+For a server-only or SSH-heavy deployment, start with **Server-only mode**, **Terminal and SSH reference**, and **Maintenance and recovery**.
+
+### Search terms that work well
+
+If your Markdown viewer supports page search, useful terms include:
+
+`server-only`, `Owner`, `QR`, `Display Link`, `calendar`, `weather`, `background`, `OLED`, `backup`, `restore`, `update`, `rollback`, `Pi 3`, `Pi 4`, `Docker`, `NAS`, `Arrange`, `Profile`, `Scene`, `logs`, `doctor`, `healthz`, `Remote Access`.
+
+---
+
+<a id="install-on-a-raspberry-pi"></a>
+<details>
+<summary><strong>1. Installation and deployment choices</strong><br>Choose the right host type, install LibreDisplay, understand the directory layout, and avoid common first-install mistakes.</summary>
+
+## Decide what kind of LibreDisplay host you want
+
+LibreDisplay can be used in three common ways.
+
+### Raspberry Pi: Display + server
+
+Use this when the Pi is physically connected to the screen you want to show LibreDisplay on.
+
+The Pi runs:
+
+- the LibreDisplay Python server
+- the local Chromium dashboard
+- browser watchdog and display-health checks
+- Remote Access and Owner-device enrollment
+- integrations and provider refreshes
+- backups, updates, profiles, scenes, and schedules
+
+This is the normal wall-display setup.
+
+### Raspberry Pi: Server only
+
+Use this when the Pi should host LibreDisplay but another device will render the dashboard.
+
+The Pi still runs the full server, but LibreDisplay intentionally does not launch the local Chromium dashboard. This is useful for:
+
+- a Pi in a cabinet or rack
+- one server feeding several display devices
+- a Pi with no attached monitor
+- reducing local browser/GPU overhead
+- using tablets, TVs, mini PCs, or separate Pis as viewers
+
+Server-only mode can be selected during first-time setup or changed later from Settings or SSH.
+
+### Docker / NAS / general server
+
+Use this when the host is not meant to run LibreDisplay's native Raspberry Pi kiosk manager.
+
+Docker/server deployments already behave like server-only hosts. They serve dashboards to browsers but do not manage a local Chromium kiosk through the native Pi display subsystem.
+
+---
+
+## Native Raspberry Pi requirements
+
+Use a current Raspberry Pi OS **with Desktop** for the native installation path. The native installer includes browser management, display diagnostics, kiosk recovery, and graphics-health behavior that expect a desktop/browser environment.
+
+If you want a completely browserless operating system, use Docker or another server-style deployment instead of installing the native kiosk stack on Pi OS Lite.
+
+### Installation directory
+
+A normal native installation lives at:
 
 ```text
 ~/libredisplay
 ```
 
-and installs the main CLI as:
+Important locations include:
+
+```text
+~/libredisplay/README.md
+~/libredisplay/HELP.md
+~/libredisplay/app/
+~/libredisplay/assets/
+~/libredisplay/plugins/
+~/libredisplay/scripts/
+~/libredisplay/data/
+```
+
+The main administration CLI is installed as:
 
 ```text
 /usr/local/bin/libredisplay
 ```
 
-After the installer finishes, reboot when prompted. LibreDisplay starts automatically with the desktop session.
+---
 
-### Why Pi OS Lite is not the native installer target
+## First installation
 
-The native path includes kiosk/window management, display diagnostics, graphics recovery, and a browser watchdog. Those features rely on the desktop environment. If the Pi is intended only as a server, you can still install on Pi OS Desktop and then enable **Server-only mode** so Chromium no longer opens.
+Use the one-line installer shown in `README.md`. The bootstrap validates the pinned release before performing the native installation.
 
-For a completely browserless server operating system, use a Docker/server deployment instead of the native kiosk installer.
+Important rules:
 
-### Existing installations
+- do not run the normal installer directly as root unless the documented installer flow invokes privileged helpers itself
+- do not overwrite an existing `~/libredisplay` directory with the first-install command
+- reboot when the installer asks you to
+- keep SSH available until first-time setup and display behavior are confirmed
 
-Do not run the first-install bootstrap over an existing `~/libredisplay` directory. Use:
+### Existing installation
+
+For an existing LibreDisplay installation, use the supported updater instead of reinstalling over the directory:
 
 ```bash
 libredisplay check
 libredisplay update
 ```
 
-Supported updates preserve LibreDisplay data and create recovery material before application files are replaced.
+The updater creates recovery material and validates the replacement release before committing the new runtime.
 
 ---
 
+## After installation
+
+Start with:
+
+```bash
+libredisplay status
+```
+
+On a normal Display + server Pi you should see:
+
+- the installed version
+- server online status
+- host mode
+- local kiosk state
+- detected hardware information when available
+- Remote Access state
+
+If the server is healthy but the browser is not visible, do not immediately reinstall. See the troubleshooting section for host-mode and Chromium checks.
+
+---
+
+## Installation safety notes
+
+LibreDisplay's native install/update path validates release structure, required startup files, the bundled QR dependency, archive integrity, and other startup-critical material. The one-command release extractor also rejects unsafe archive conditions such as traversal paths, symlinks, duplicate normalized members, oversized members, and unreasonable decompressed totals.
+
+You should still keep an external backup before major host changes, storage migration, or operating-system reinstallation.
+
+</details>
+
+<a id="first-time-setup"></a>
+<details>
+<summary><strong>2. First-time setup and the first hour</strong><br>Walk through the setup wizard, make the first safe choices, and establish a recovery baseline before deep customization.</summary>
+
 ## First-time setup
 
-The first-run wizard uses the same real settings that the full Settings panel uses; there is no hidden second configuration system.
+### What the setup wizard actually does
 
-### 1. Display name
+The first-time wizard writes the same real configuration used by the full Settings interface. It is not a temporary setup layer and there is no hidden second configuration system.
 
-Choose a name that describes the physical screen or purpose, for example:
+You can change every major wizard choice later.
 
-- Living Room
-- Kitchen
-- Office
-- Family Board
-- Weather Display
+---
 
-This is a friendly label. The internal endpoint ID remains stable.
+## 1. Name the display
 
-### 2. Weather location
+Use a name that identifies the physical screen or purpose rather than the hardware model.
 
-Search for the exact place and select the correct city/region/country match. LibreDisplay stores coordinates and timezone information so duplicate city names are not confused.
+Good examples:
 
-The optional display label is cosmetic and does not change the forecast coordinates.
+```text
+Living Room
+Kitchen
+Office
+Family Board
+Weather Display
+Hallway
+```
 
-### 3. Calendars
+The friendly display name is for people. LibreDisplay also keeps a stable internal endpoint ID for routing and multi-display management.
 
-Add ICS/iCalendar feeds you actually use. You can skip calendars during setup and add them later.
+---
 
-Use feed checking before assuming a missing event is a layout problem. Calendar sources can fail because of authentication changes, provider outages, invalid subscription URLs, or timezone mismatches.
+## 2. Set the weather location
 
-### 4. Background
+Search for the exact city/region/country match. LibreDisplay stores coordinates and timezone-related information so duplicate city names can be distinguished correctly.
 
-Choose one of the supported background types:
+The visible location label is cosmetic. Renaming the label does not move the weather coordinates.
 
-- stock images
-- supported photo sources
+If weather later appears to come from the wrong place, search and select the location again instead of only editing the label.
+
+---
+
+## 3. Add calendars
+
+Calendar sources can be added during setup or later.
+
+Prefer a small number of known-good sources first. Once the first feed is confirmed, add more.
+
+Common calendar problems are caused by:
+
+- expired or changed subscription URLs
+- authentication changes at the calendar provider
+- timezone assumptions
+- disabled feeds
+- provider/network outages
+- event-range filters rather than fetch failures
+
+Use the calendar feed check/test controls before treating a missing event as a layout bug.
+
+---
+
+## 4. Choose a background source
+
+You can use:
+
+- stock/background sources
+- supported photo integrations
 - local folders
 - NAS folders
 - no photo background
 
-For local/NAS media, see the helper scripts later in this guide.
+For a first boot on lower-power hardware, a static or simple background is easier to validate than a video or highly dynamic source.
 
-### 5. Visual performance
+Local and NAS setup helpers are described later in this guide.
 
-The wizard provides performance presets. Start conservatively on a Pi 3 or heavily customized dashboard. It is easier to enable richer effects later than to diagnose an overloaded unattended display.
+---
 
-### 6. Alerts and appearance
+## 5. Choose a visual performance starting point
 
-Choose severe-weather alert behavior, theme, font, and other presentation basics. Everything remains editable later.
+Use **Automatic** unless you already know the target hardware needs a specific mode.
 
-### 7. Remote Access
+The purpose of the initial performance choice is to establish a stable unattended display. You can add richer motion and denser NatureScape behavior later.
 
-Remote Access is optional but strongly recommended if this Pi will be Server-only. Keep it restricted to a trusted LAN or private VPN.
+For Pi 3 especially, start conservatively and let the static-scene behavior do its job before forcing continuous motion.
 
-### 8. Pi host mode
+---
 
-Choose:
+## 6. Configure alerts and appearance basics
+
+Choose the basics first:
+
+- severe-weather alert behavior
+- theme
+- typography
+- general presentation preferences
+
+Do not spend an hour perfecting exact block positions during the wizard. Finish setup, confirm the data sources work, then use Arrange mode.
+
+---
+
+## 7. Decide whether to enable Remote Access
+
+Remote Access is optional but strongly recommended when:
+
+- the Pi will run Server-only
+- the display is mounted where keyboard/mouse access is inconvenient
+- you want to manage LibreDisplay from a laptop or phone
+- you have multiple display endpoints
+
+Keep Remote Access restricted to a trusted LAN or private VPN.
+
+---
+
+## 8. Choose Raspberry Pi host mode
+
+Choose one:
 
 **Display + server**  
-The Pi runs LibreDisplay and launches the local Chromium dashboard.
+The Pi runs the LibreDisplay server and opens the local Chromium dashboard.
 
 **Server only**  
-The Pi keeps LibreDisplay's server running but intentionally does not open a local webpage. Other devices connect to the Pi instead.
+The Pi runs the LibreDisplay server but intentionally does not launch a local webpage.
 
-The host mode is operational state, not part of an individual display profile. Changing display layouts or loading Profiles does not silently change the Pi's host mode.
-
-### 9. Recovery baseline
-
-Creating the initial restore point is recommended. It gives you a known-good local configuration before deeper customization.
+This is a host-level choice. It is not part of a Profile and does not change when you load a Scene or rearrange a dashboard endpoint.
 
 ---
 
-## Raspberry Pi host modes
+## 9. Create a recovery baseline
 
-### Display + server
+Before heavy customization, create:
 
-This is the standard wall-display mode. The Pi:
+1. a Profile for the working dashboard layout
+2. a full `.ldbackup` for server-level recovery
 
-- starts the LibreDisplay server
-- launches Chromium
-- monitors the browser heartbeat
-- monitors server health
-- uses bounded Chromium graphics recovery on supported Pi hardware
-- restarts Chromium if the managed kiosk becomes unhealthy
-
-### Server-only mode
-
-Server-only mode is designed for a Pi that should host LibreDisplay for other devices without wasting resources on a local webpage.
-
-The Pi still runs:
-
-- the LibreDisplay Python server
-- saved display endpoints
-- Remote Access and Owner-device enrollment
-- Profiles and Scenes/schedules
-- integrations and server-side provider work
-- backup/update/recovery tooling
-- configuration persistence
-
-The Pi intentionally does **not** launch the local Chromium kiosk.
-
-### Enable or disable in Settings
-
-Open:
-
-**Settings > System > Raspberry Pi host mode**
-
-Toggle **Server-only mode — do not launch a webpage on this Pi**.
-
-The change is applied immediately. The server remains online while the local Chromium process stops or starts.
-
-### Enable or disable over SSH
-
-```bash
-libredisplay server-only status
-libredisplay server-only on
-libredisplay server-only off
-libredisplay server-only enable   # alias for on
-libredisplay server-only disable  # alias for off
-```
-
-The `on`/`enable` forms are equivalent, as are `off`/`disable`. These commands are safe to run over SSH. If the server is temporarily offline, LibreDisplay writes the saved host-mode request directly so it takes effect on the next start. This is also the recovery path if you enabled Server-only mode and later want the local dashboard back.
-
-### Environment-forced no-browser mode
-
-Advanced deployments can still force no-browser behavior with `DASHBOARD_NO_BROWSER=1`. When that override is active, the Settings toggle is intentionally disabled because the host environment is stronger than the saved UI preference.
-
-### Server-only and Remote Access
-
-For normal use, enable Remote Access before making a physically unattended Pi Server-only. If Remote Access is disabled, SSH remains the recovery/admin path.
-
-Useful SSH commands:
-
-```bash
-libredisplay addresses
-libredisplay connect
-libredisplay remote status
-libredisplay remote on
-```
+A Profile is quick to restore for layout experiments. A `.ldbackup` protects much more of the server state.
 
 ---
+
+## Recommended first-hour checklist
+
+After the wizard, confirm these before deeper customization:
+
+- `libredisplay status` reports the server online
+- the intended dashboard endpoint renders
+- weather location is correct
+- at least one calendar source works if you use calendars
+- Remote Access works if you plan to administer remotely
+- one Owner device is authorized and named clearly
+- the Pi host mode matches how you intend to use it
+- a recovery Profile exists
+- a backup exists before major experimentation
 
 </details>
 
+<a id="server-only-deployment"></a>
 <details>
-<summary><strong>2. Remote Access and multiple displays</strong><br>Owner devices, connection codes, accounts, Display Links, endpoints, profiles, scenes, and multi-screen operation.</summary>
+<summary><strong>3. Raspberry Pi Server-only mode</strong><br>Run a Pi as the LibreDisplay server without a local browser, switch modes safely, and recover over SSH.</summary>
 
-## Remote Access and Owner devices
+## What Server-only mode changes
 
-### Recommended Owner-device workflow
+Server-only mode stops or prevents LibreDisplay's managed local Chromium kiosk from running on that Pi.
 
-1. Enable Remote Access on the trusted LAN/private VPN.
-2. Choose **Add Owner Device** in Settings, or run `libredisplay connect` over SSH.
-3. On the new device, open one of the displayed `/connect` addresses.
-4. Enter the one-time code, or scan the QR. When a code is generated in Settings, LibreDisplay automatically brings the QR card into view and highlights it so it is easy to find.
-5. Give the browser a recognizable name.
-6. The browser becomes an Owner device and appears in the device list.
+It does **not** stop the LibreDisplay server.
 
-Connection codes are intentionally short-lived and single-use.
+The Pi continues to provide:
 
-### From SSH
+- dashboard endpoints
+- Owner-device enrollment and Remote Access
+- named accounts and Display Links
+- integrations and data providers
+- Profiles, Scenes, and schedules
+- configuration persistence
+- backups, updates, and recovery tooling
+- APIs used by connected displays
 
-Show stable connection addresses:
+This makes Server-only mode suitable for a dedicated central host.
+
+---
+
+## Enable or disable Server-only mode from Settings
+
+Open:
+
+**Settings > System & Maintenance > Raspberry Pi host mode**
+
+Use the Server-only toggle.
+
+The change is applied live:
+
+- switching to Server-only stops the managed local browser while the server stays online
+- switching back to Display + server starts the local dashboard again without intentionally stopping the server
+
+---
+
+## Enable or disable Server-only mode over SSH
+
+Status:
+
+```bash
+libredisplay server-only status
+```
+
+Enable:
+
+```bash
+libredisplay server-only on
+```
+
+or:
+
+```bash
+libredisplay server-only enable
+```
+
+Disable and restore the local dashboard:
+
+```bash
+libredisplay server-only off
+```
+
+or:
+
+```bash
+libredisplay server-only disable
+```
+
+`on` and `enable` are equivalent. `off` and `disable` are equivalent.
+
+If the LibreDisplay server is temporarily offline, the CLI can still save the requested host mode so it takes effect when LibreDisplay starts again.
+
+---
+
+## Environment-forced no-browser mode
+
+Advanced deployments may use:
+
+```text
+DASHBOARD_NO_BROWSER=1
+```
+
+This is stronger than the saved Server-only preference. If the environment forces no browser, turning Server-only off in Settings cannot override that host-level instruction.
+
+If the UI says the mode is forced by the environment, remove or change the environment setting before expecting the local kiosk to start.
+
+---
+
+## Recommended Server-only setup order
+
+Before placing a Pi somewhere physically inconvenient:
+
+```bash
+libredisplay remote on
+libredisplay addresses
+libredisplay connect
+libredisplay server-only on
+libredisplay status
+```
+
+Then confirm from another device that:
+
+- the server address is reachable
+- the Owner device can open Settings
+- at least one display endpoint renders remotely
+- SSH still works
+
+Only then remove the local keyboard/monitor if the installation will be unattended.
+
+---
+
+## Restore the local webpage if Server-only was enabled accidentally
+
+SSH into the Pi:
+
+```bash
+libredisplay server-only status
+libredisplay server-only off
+```
+
+Then check:
+
+```bash
+libredisplay status
+libredisplay logs --lines 120
+```
+
+Do not delete Chromium profiles or dashboard configuration merely because the screen is blank; Server-only mode is intentionally designed to produce a blank local display.
+
+</details>
+
+<a id="add-an-owner-device"></a>
+<details>
+<summary><strong>4. Remote Access, Owner devices, QR enrollment, and accounts</strong><br>Connect trusted administration devices, understand the one-time code/QR workflow, manage roles, and recover access safely.</summary>
+
+## Remote Access model
+
+Remote Access is intended for trusted devices on a private LAN or private VPN.
+
+There are three different access concepts:
+
+| Access type | Purpose | Can change Settings? | Typical use |
+| --- | --- | ---: | --- |
+| Owner device | Trusted browser administration | Yes | Your laptop, phone, tablet |
+| Named account | Repeated sign-in with a role | Depends on role | Household user, editor, viewer |
+| Display Link | Read-only display credential | No | Wall screen, TV browser, kiosk viewer |
+
+Do not use Owner enrollment for every wall screen. Read-only screens should normally use Display Links.
+
+---
+
+## Add an Owner device
+
+From local Settings:
+
+1. Open **Settings > Displays & Access > Remote access**.
+2. Make sure Remote Access is enabled.
+3. Choose **Add Owner Device**.
+4. LibreDisplay generates a short-lived one-time code and a QR.
+5. LibreDisplay automatically brings the QR card into view and highlights it; the card is centered in the Settings viewport and focused so it is difficult to miss.
+6. On the new device, either scan the QR or open the stable `/connect` address and enter the code manually.
+7. Give the new device a recognizable name.
+8. Confirm it appears in the Owner-device list.
+
+Connection codes are short-lived and single-use. If one expires or is redeemed, generate another rather than trying to reuse it.
+
+---
+
+## Add an Owner device from SSH
+
+Show stable addresses:
 
 ```bash
 libredisplay addresses
 ```
 
-Create an Owner connection code:
+Create a one-time code:
 
 ```bash
 libredisplay connect
 ```
 
-If Remote Access is currently disabled and you intentionally want the command to enable it:
+If Remote Access is disabled and you intentionally want the command to enable it:
 
 ```bash
 libredisplay connect --enable-remote
 ```
 
-The default CLI output keeps the code separate from the stable `/connect` address. This is safer to read and copy manually.
+Print machine-readable output:
 
-To print the direct temporary-code URL as well:
+```bash
+libredisplay connect --json
+```
+
+Print the direct temporary-code URL as well:
 
 ```bash
 libredisplay connect --show-direct
 ```
 
-Treat that direct URL as a short-lived credential.
+The default output intentionally keeps the stable `/connect` address separate from the temporary code. The direct URL contains the temporary code and should be treated as a short-lived secret.
 
-### Remote Access status
+---
+
+## How the QR enrollment works
+
+The QR represents a temporary enrollment route, not a permanent Owner password.
+
+The flow is:
+
+```text
+Generate one-time code
+        |
+        v
+QR / temporary enrollment address
+        |
+        v
+LibreDisplay validates code, expiry, reuse, rate limits, and access boundary
+        |
+        v
+Browser receives its own authenticated Owner session
+        |
+        v
+One-time code becomes unusable
+```
+
+The QR is generated locally by LibreDisplay. The normal workflow does not require an external QR website or cloud QR service.
+
+Pending codes intentionally disappear if the server restarts. Already-authorized Owner-device sessions are a different thing and survive normal restarts according to LibreDisplay's session policy.
+
+---
+
+## Manage Owner devices
+
+The Owner-device list lets you:
+
+- see trusted browsers
+- identify the current browser
+- name or rename devices clearly
+- review source/last-seen/session information
+- revoke old, lost, or untrusted devices
+
+Good names are descriptive:
+
+```text
+Office Laptop
+Kitchen iPad
+John Phone
+Living Room Admin Tablet
+```
+
+Avoid generic names such as `Chrome 2` once the system grows.
+
+Revoking the current browser signs it out. Keep at least one tested recovery path, such as SSH or another Owner device, before revoking the only remote administration browser.
+
+---
+
+## Remote Access commands
 
 ```bash
 libredisplay remote status
@@ -331,308 +649,762 @@ libredisplay remote on
 libredisplay remote off
 ```
 
-Disabling Remote Access invalidates active remote credentials according to LibreDisplay's security policy. Do not toggle it casually on a server you can only reach remotely.
+Disabling Remote Access clears active remote credentials according to LibreDisplay's security policy. Do not disable it casually on a server you can only reach remotely unless SSH recovery is confirmed.
 
-### Owner devices
+---
 
-In Settings, the Owner-device list shows trusted browsers. Use it to:
+## Named accounts
 
-- rename a device
-- identify the current browser
-- review last-seen/session information
-- revoke a lost, retired, or untrusted browser
+Named accounts are useful when a person should log in repeatedly rather than enrolling the browser itself as an Owner device.
 
-The physical/local LibreDisplay remains the recovery Owner on a native installation.
+Use the least-powerful role that is sufficient:
 
-### Named accounts
+**Owner**  
+Full server administration.
 
-Use named accounts when a person should repeatedly sign in with a username/password instead of enrolling a browser as an Owner device.
+**Editor**  
+Can modify the displays assigned to that account but should not have unrestricted server administration.
 
-Use the least-powerful role that works:
+**Viewer**  
+Read-only access to assigned displays.
 
-- **Owner** — whole server
-- **Editor** — assigned displays
-- **Viewer** — read-only assigned displays
+---
 
-### Display Links
+<a id="add-a-read-only-display"></a>
+## Add a read-only display
 
-Display Links are for viewers, not administrators. They are scoped to one endpoint and contain a credential.
+Use a Display Link for a wall screen or viewer that should render one endpoint but never administer the server.
 
-The CLI hides Display Links by default. To intentionally print them:
+Display Links contain credentials. The CLI hides them by default.
+
+To intentionally print them:
 
 ```bash
 libredisplay addresses --include-display-links
 ```
 
-Do not paste Display Links into public chats, tickets, screenshots, or documentation.
+Do not paste Display Links into public issues, screenshots, chats, or documentation.
 
 ---
 
-## Multiple displays
+## Remote Access recovery
 
-One LibreDisplay server can serve several named display endpoints.
+If your Owner browser is lost or revoked:
 
-Typical arrangement:
-
-```text
-Pi 4 server-only host
-├── Living Room Pi browser -> main
-├── Kitchen Pi browser     -> kitchen
-├── Tablet                 -> family
-└── Owner laptop           -> Settings/admin
+```bash
+libredisplay remote status
+libredisplay remote on
+libredisplay connect
 ```
 
-### Profiles
+Use the newly generated code from another trusted device.
 
-Profiles are reusable dashboard snapshots. They can be created from one display and intentionally applied to another.
-
-Use Profiles when you want repeatable configurations such as:
-
-- weekday layout
-- nighttime layout
-- holiday layout
-- minimal performance profile
-- common room template
-
-### Scenes and schedules
-
-Scenes apply Profiles according to server-side schedules. They continue working even if no Settings browser is open.
-
-### Read-only endpoints
-
-Use a separate Display Link per screen whenever the viewer should render the dashboard but never administer the server.
-
----
+If you want to invalidate all remote credentials, use **Reset all remote credentials** from Owner Settings. That resets Remote Access credentials without deleting ordinary dashboard layout, weather, calendar, media, or appearance configuration.
 
 </details>
 
 <details>
-<summary><strong>3. Settings and layout reference</strong><br>A section-by-section Settings explanation plus Arrange mode and layout behavior.</summary>
+<summary><strong>5. Displays, endpoints, Profiles, Scenes, and multi-display setups</strong><br>Understand what a display is, reuse layouts safely, schedule changes, and build one-server/many-screen installations.</summary>
 
-## Settings guide
+## Display endpoints
 
-LibreDisplay has many controls because unattended displays benefit from granular behavior. This section explains what each major area is for rather than listing every slider mechanically.
+A display endpoint is a named dashboard configuration served by the LibreDisplay server.
 
-### Home / overview
+Examples:
 
-Use Home to:
+```text
+main
+kitchen
+family
+office
+weather
+```
 
-- see setup status
-- rerun the guided wizard
-- review saved/unsaved state
-- jump into the major configuration areas
+An endpoint can have its own layout and display-oriented configuration.
 
-If you are unsure where to begin after a reset or migration, rerun the wizard from Home.
+A display endpoint is not:
 
-### Displays
+- an Owner device
+- a named user account
+- the Raspberry Pi host itself
 
-The Displays area covers multi-display administration and Remote Access.
+Keeping these concepts separate makes multi-display systems much easier to reason about.
+
+---
+
+## Typical multi-display architecture
+
+```text
+LibreDisplay server
+├── main endpoint       -> Living Room Pi
+├── kitchen endpoint    -> Kitchen tablet
+├── family endpoint     -> Hallway touch display
+├── office endpoint     -> Office monitor
+└── Owner administration -> Laptop / phone
+```
+
+The server can be the same Pi as one of the displays or a separate Server-only machine.
+
+---
+
+## Profiles
+
+A Profile is a reusable dashboard/configuration snapshot intended for intentional reuse and fast rollback.
+
+Good uses:
+
+- save a known-good layout before rearranging
+- create a daytime and nighttime arrangement
+- copy a baseline design to another display
+- create a holiday presentation
+- create a low-motion troubleshooting profile
+
+Profiles are not a substitute for full backups when changing server infrastructure, integrations, NAS mounts, or credentials.
+
+---
+
+## Scenes and schedules
+
+Scenes apply Profiles according to server-side scheduling rules.
+
+They continue operating even when no Settings browser is open.
+
+Before troubleshooting a display that “keeps changing back,” check whether a Scene schedule is intentionally applying another Profile.
+
+---
+
+## Practical multi-display rules
+
+- give every endpoint a descriptive name
+- give every Owner device a different descriptive name
+- use read-only Display Links for unattended viewers
+- verify the active endpoint before editing remotely
+- save a Profile before large layout changes
+- test performance on the physical target display, not only on the admin laptop
+
+</details>
+
+<a id="settings-encyclopedia"></a>
+<details>
+<summary><strong>6. Settings encyclopedia</strong><br>A complete map of the Settings interface: what each category controls, when to use it, and what commonly causes confusion.</summary>
+
+## How Settings is organized
+
+LibreDisplay Settings has an **Essentials** view and an **All** view.
+
+Use **Essentials** for normal configuration. Use **All** when you need power-user controls, troubleshooting options, or the more granular visual settings.
+
+Settings also includes:
+
+- search
+- category navigation
+- per-category section jump menus
+- expand/collapse controls
+- contextual `?` help tips
+- live saved/unsaved state
+
+If you know a word but not the category, Settings search is usually faster than hunting manually.
+
+---
+
+## Home
+
+Use Home for orientation and common tasks.
+
+Typical reasons to open it:
+
+- check overall setup state
+- see shortcuts into common configuration areas
+- confirm save state
+- rerun or revisit guided setup
+- review current project/release information
+
+If an installation was restored or migrated and you do not know what is configured, Home is the safest starting point.
+
+---
+
+## Device & Performance
+
+This category is about the hardware driving the actual display.
+
+It includes:
+
+- detected hardware guidance
+- Raspberry Pi 3 / Pi 4 / Pi 5 recommendations
+- Lightweight mode
+- animation performance mode
+- Pi 3 static-scene refresh cadence
+- performance status and measured behavior
+
+### Lightweight mode
+
+Lightweight mode is a temporary relief switch. It suppresses expensive visual behavior without deleting your saved preferences. Turn it off and the saved visual settings return.
+
+Use it when:
+
+- a display suddenly struggles
+- you need to isolate whether the problem is visual load
+- you are testing an older Pi
+
+### Animation performance
+
+Automatic is the recommended default.
+
+Pi 3 Automatic prioritizes high-quality static scenery rather than continuous expensive animation. Pi 4 has adaptive pacing with more headroom. Pi 5 generally has more motion budget.
+
+Do not force maximum fidelity merely because a remote laptop looks smooth; the physical kiosk hardware is what matters.
+
+---
+
+## Layout
+
+Layout is where broad arrangement and exact geometry meet.
 
 Use it for:
 
-- display endpoint names
-- read-only Display Links
-- Owner-device enrollment
-- authorized Owner-device management
-- named Owner/Editor/Viewer accounts
-- Profiles
-- Scenes and schedules
+- starter templates
+- dashboard element sizing
+- geometry/range behavior
+- entering Arrange mode
+- positioning and sizing blocks
+- exact layout relationships
 
-A display endpoint is not the same thing as an Owner device. One is a dashboard configuration; the other is a trusted administration browser.
+Use templates first when you want a clean base. Use Arrange mode second for exact placement.
 
-### Location & Weather
+---
 
-The location controls determine forecast coordinates and timezone behavior.
+## Personalization
 
-Weather settings cover:
+Personalization covers the general visual language of the dashboard and Settings interface.
 
-- units
-- current conditions
-- Daily/Hourly forecast presentation
-- weather detail cards
-- refresh intervals
-- fullscreen weather effects
-- hazard presentation
-- NatureScape effects
-- dog companion behavior
+It includes:
 
-Performance-heavy visual effects can be reduced independently of the core forecast data.
+- theme and typography
+- text/panel appearance
+- accessibility preferences
+- language-related presentation
+- Settings interface size
 
-### Calendars
+Use Personalization for broad look-and-feel choices rather than exact block geometry.
 
-Calendar settings cover:
+---
 
-- ICS feed URLs
-- local `.ics` imports
-- source labels/colors
-- enable/disable state
-- order/priority
-- refresh interval
-- display range and continuation behavior
-- optional built-in add-ons
+## Backgrounds
 
-Optional Calendar Add-ons are off by default. The master add-on toggle controls participation without erasing subgroup selections.
+Background settings cover the source and behavior of the large dashboard background.
 
-### Backgrounds
+They can include:
 
-Background settings control:
-
-- source type
-- stock search/category/resolution
+- stock images
 - supported photo sources
-- local/NAS folders
+- local folders
+- NAS folders
+- slideshow order
+- rotation timing
 - recursive media discovery
-- playback order
-- rotation interval
 - preloading
 - motion/video allowance
-- offline background reserve
-- startup priority/delay
+- offline reserve behavior
+- background blur and appearance
 
-If a wall display stutters, animated/video backgrounds are one of the first things to temporarily disable during diagnosis.
+### Troubleshooting advice
 
-### Appearance
+If a dashboard starts stuttering, video or moving backgrounds are one of the first things to disable temporarily. This isolates background decoding/compositing from weather/NatureScape load.
 
-Appearance controls the broad visual system:
+If a local/NAS background is blank, verify the mount/path before changing visual settings.
 
-- theme
-- font
-- text colors
-- panel opacity/style
-- overall sizing
-- clock/calendar/weather sizing
-- forecast presentation
-- spacing and alignment
+---
 
-Use Arrange mode for exact placement; use Appearance for broad visual behavior.
+## Calendars
 
-### Arrange dashboard
+Calendars covers both calendar sources and how events participate in the dashboard.
 
-Arrange provides per-element positioning/sizing and detailed component controls. It is the right place for exact layout work after the broad Appearance choices are stable.
+Typical controls include:
 
-Save a Profile before a large layout experiment if you want an easy return point.
+- ICS feed URLs
+- local `.ics` data
+- source labels and colors
+- enable/disable state
+- ordering
+- refresh behavior
+- event range/count behavior
+- optional built-in calendar add-ons
 
-### Alerts
+Optional add-ons are off by default. The master add-on control governs participation without erasing the more detailed subgroup choices underneath.
 
-Alert settings determine whether severe-weather alerts are active, how large they appear, their motion/scroll behavior, and refresh timing.
+### When events are missing
 
-Use test mode when adjusting presentation instead of waiting for a real hazard.
+Check in this order:
 
-### Integrations
+1. feed enabled
+2. feed URL/source still valid
+3. feed test/check result
+4. timezone expectations
+5. display range/event-count filters
+6. layout visibility
 
-The Integrations directory describes whether each provider is:
+---
 
-- local/self-hosted
-- no-key/no-signup
-- account/API-key based
+## Weather
 
-LibreDisplay favors freedom-first/local providers when practical. The health section lets you test configured integrations without displaying saved secrets.
+Weather contains data-oriented weather preferences rather than the full visual effect system.
 
-### Family & touch mode
+Use it for:
 
-Family features provide local household members, chores, points, rewards, and optional PIN protection. Add the Family Chores block through Arrange mode for a wall-friendly touch interface.
+- location
+- units
+- current-condition preferences
+- forecast presentation choices
+- weather detail fields
+- refresh behavior
 
-### System
+If the location is wrong, reselect the geographic result. Editing only the display label does not change coordinates.
 
-System contains operational rather than visual controls:
+---
 
-- **Raspberry Pi host mode**
+## Weather Effects
+
+Weather Effects controls the visual atmosphere drawn around the dashboard.
+
+Areas include:
+
+- rain
+- snow
+- fog and mist
+- sky/cloud/sun/wind behavior
+- thunderstorms and lightning
+- preview/test behavior
+
+These effects are separate from weather data. You can keep a forecast visible while reducing or disabling expensive fullscreen visuals.
+
+---
+
+## Weather Alerts
+
+Weather Alerts controls severe-weather messaging and hazard-scene behavior.
+
+It includes:
+
+- alert enablement
+- severity filtering
+- card behavior
+- motion/scroll presentation
+- alert appearance
+- hazard previews
+- flood/wind scenes
+- major storm scenes
+- visibility/heat/fire-weather presentation
+
+Use test/preview behavior to tune presentation instead of waiting for a real alert.
+
+Hazard visuals should never be treated as a substitute for official safety instructions from local authorities.
+
+---
+
+## Nature & Seasons
+
+Nature & Seasons controls seasonal and environmental decorative behavior.
+
+It includes areas such as:
+
+- NatureScape behavior
+- leaves
+- grass
+- petals
+- winter atmosphere
+- seasonal density/intensity
+
+These controls can add substantial motion. If you are diagnosing performance, reduce the highest-motion categories one at a time rather than changing everything simultaneously.
+
+---
+
+## Wildlife
+
+Wildlife controls animated ambient creatures and regional behavior.
+
+Areas include:
+
+- bees and butterflies
+- fireflies
+- dragonflies
+- ladybugs
+- moths
+- birds
+- regional wildlife
+- owls
+
+On Pi hardware, wildlife density and motion interact with the rest of NatureScape and weather rendering. Use Automatic performance mode unless you have measured the physical display and know the available headroom.
+
+---
+
+## Companion & Holidays
+
+This category controls:
+
+- dog companion behavior
+- dog breed/appearance options
+- weather/shelter behavior
+- holiday overlays and special-day scenes
+
+The dog and seasonal overlays are presentation features; they should not affect weather data itself.
+
+---
+
+## Family
+
+Family features support household-oriented wall-board behavior.
+
+They can include:
+
+- household members
+- chores
+- points
+- rewards
+- optional PIN protection
+- touch-friendly Family blocks
+
+Use Arrange mode to add/configure the Family Chores block on a touch display.
+
+---
+
+## Integrations
+
+Integrations is where external/local providers are configured and tested.
+
+LibreDisplay supports a mixture of:
+
+- local/self-hosted sources
+- no-key public sources
+- account-based services
+- API-key services
+
+The interface should tell you what a provider requires before you enable it.
+
+Do not expose API keys or private feed URLs in screenshots or issue reports.
+
+A provider can be configured correctly yet temporarily unavailable because of the provider's network/API state. Use integration health/testing before assuming the dashboard renderer is broken.
+
+---
+
+## Display Care
+
+Display Care is intentionally granular so always-on display protection is not one all-or-nothing mode.
+
+Independent controls can include:
+
+- pixel shifting
+- idle dimming
+- Quiet Hours
+- deep-black / 0% protection
+- temporary wake behavior
+- motion suppression while dimmed
+- timing and intensity controls
+
+Example: you can enable pixel shifting all day while leaving Quiet Hours disabled.
+
+For OLED users, combine the protections that match the room and screen instead of blindly enabling every option.
+
+---
+
+## Displays & Access
+
+This Owner-only category combines multi-display administration and access control.
+
+It includes:
+
+- display endpoints
+- Remote Access
+- Add Owner Device
+- QR/connection-code enrollment
+- authorized Owner devices
+- named accounts
+- Display Links
+- Profiles
+- Scenes and schedules
+- family/touch-related display configuration where applicable
+
+Remember:
+
+- endpoints are dashboards
+- Owner devices are trusted browsers
+- accounts are people/roles
+- Display Links are read-only credentials
+- Profiles are reusable dashboard snapshots
+- Scenes schedule Profile application
+
+---
+
+## System & Maintenance
+
+This Owner-only category covers the host and maintenance layer.
+
+Areas include:
+
+- Raspberry Pi host mode
+- display readiness and kiosk resilience
+- System Health
+- update controls
+- update history and rollback
+- backup and recovery
+- utilities
 - provider/data-source health
-- display readiness
-- kiosk/browser health
-- storage/temperature/load
-- graphics/throttling diagnostics
-- physical-display performance benchmark
-- diagnostics export
-- software update
-- rollback/recovery information
+- physical-display diagnostics
 
-Server-only mode appears here because it changes how the host runs, not how one dashboard endpoint looks.
+This is where you go when the question is “is LibreDisplay itself healthy?” rather than “how should my dashboard look?”
 
 ---
 
-## Arrange mode and layouts
+## Settings habits that prevent mistakes
 
-### Recommended workflow
+- use Settings search instead of guessing a category
+- confirm the active display before making display-specific changes
+- save a Profile before large layout changes
+- change one performance-heavy category at a time while diagnosing
+- use test/preview controls for alerts/weather rather than waiting for live conditions
+- verify the target physical screen after remote layout changes
+- use Owner-only maintenance controls carefully when connected remotely
 
-1. Get data sources working first.
-2. Choose a theme and broad Appearance settings.
-3. Save a Profile.
-4. Enter Arrange mode.
-5. Move/resize blocks.
-6. Check the real target display, not only a remote admin browser.
-7. Save another Profile after major milestones.
+</details>
 
-### Avoiding accidental layout confusion
+<a id="arrange-mode"></a>
+<details>
+<summary><strong>7. Arrange mode and dashboard design</strong><br>Move, size, align, and customize dashboard blocks without losing a known-good layout.</summary>
 
-When managing several screens, always confirm the active display endpoint before editing. A correct layout applied to the wrong endpoint can look like lost settings even though the intended display was never changed.
+## Arrange mode workflow
 
-### Remote editing versus physical rendering
+A reliable layout workflow is:
 
-A remote Settings browser is an administration surface, not a substitute for the target kiosk's hardware. Performance tests that need the physical display are dispatched to the attached kiosk browser and returned to Settings.
+1. make sure weather/calendars/integrations are working
+2. choose theme and broad appearance
+3. save a Profile
+4. enter Arrange mode
+5. position and resize elements
+6. verify on the physical target display
+7. save another Profile when the layout reaches a milestone
+
+This avoids confusing data-source problems with geometry problems.
 
 ---
+
+## Flow versus free placement
+
+Flow-style layout behavior is safer for unattended displays because elements participate in predictable relationships.
+
+Free placement is useful when you intentionally need exact coordinates or overlap, but it can create conflicts if several blocks occupy the same region.
+
+Selecting an element does not automatically mean you should put it into free placement.
+
+---
+
+## Geometry
+
+Arrange mode can expose controls such as:
+
+- X position
+- Y position
+- width
+- height
+- layer/Z order
+- gap
+- alignment
+- justification
+- quick-position presets
+
+For unusual aspect ratios, verify the layout on the real target. A remote administration browser can have very different dimensions from the wall display.
+
+---
+
+## Editing visible content
+
+Some integration blocks allow local overrides for visible text, links, or image alt text.
+
+Use overrides when you deliberately want presentation different from the live/provider value. Use the reset option to return to the provider's current data.
+
+Unsafe executable URLs are rejected.
+
+---
+
+## Common layout mistakes
+
+### Editing the wrong display
+
+Confirm the active endpoint before moving anything.
+
+### A Scene keeps changing the layout
+
+Check whether a scheduled Scene is applying another Profile.
+
+### Remote layout looks fine but physical display does not
+
+Use the target display as the final authority. Physical screen size, browser viewport, hardware class, and display scaling can differ.
+
+### Too many changes at once
+
+Save Profiles at milestones so you can compare clean states instead of trying to reverse dozens of small edits manually.
 
 </details>
 
 <details>
-<summary><strong>4. Terminal and SSH reference</strong><br>The complete `libredisplay` command reference, including Remote Access, Server-only mode, diagnostics, backups, updates, and field checks.</summary>
+<summary><strong>8. Integrations and data providers</strong><br>Understand provider types, credentials, health checks, privacy boundaries, and the bundled provider ecosystem.</summary>
 
-## Terminal / SSH command reference
+## Provider model
 
-Run:
+LibreDisplay integrations fall into several broad classes:
+
+- local/self-hosted service
+- public/no-key service
+- account OAuth/token-style service
+- API-key service
+- private feed or local file
+
+Each provider has different reliability and privacy characteristics. A provider outage is not necessarily a LibreDisplay outage.
+
+---
+
+## Bundled integration families
+
+The release includes provider modules for services and data categories such as:
+
+### Tasks and productivity
+
+- Asana
+- Google Tasks
+- Microsoft To Do
+- Todoist
+- Trello
+- CalDAV tasks
+- Slack messages
+
+### Photos and media
+
+- Dropbox Photos
+- Box Photos
+- OneDrive Photos
+- Flickr Photos
+- iCloud shared photos
+- Spotify now playing
+- Sonos now playing
+- Grateful Dead / Deadhead content
+
+### Finance and reference data
+
+- Alpha Vantage
+- CoinGecko
+- Frankfurter currency data
+
+### Travel and transit
+
+- Aviationstack
+- GTFS Realtime
+- Mapbox travel
+- OpenStreetMap
+- OSRM travel
+- AfterShip
+
+### Weather, environment, and location data
+
+- Google Pollen
+- Open-Meteo Pollen
+- Open-Meteo UV
+- NOAA tides
+- Weather Company personal weather station support
+
+### Home and custom APIs
+
+- Home Assistant
+- generic Web API integration
+
+The exact credentials or account requirements vary by provider. Use the Settings integration description and health/test controls as the source of truth for a specific provider.
+
+---
+
+## Integration troubleshooting order
+
+1. confirm the integration is enabled
+2. confirm required credentials/URLs are present
+3. run the provider health/test control
+4. check network/DNS reachability
+5. check provider service status separately if possible
+6. confirm the dashboard block is enabled and visible
+7. only then investigate layout/rendering
+
+---
+
+## Credential safety
+
+Treat these as secrets:
+
+- API keys
+- OAuth/access tokens
+- private calendar URLs
+- private photo-share credentials
+- custom Web API credentials
+- Display Links
+- backup files containing configuration
+
+Do not include them in screenshots or public bug reports.
+
+</details>
+
+<a id="terminal-and-ssh-reference"></a>
+<details>
+<summary><strong>9. Terminal and SSH reference</strong><br>Complete `libredisplay` command reference with practical examples, safe defaults, and recovery use cases.</summary>
+
+## Discover commands
 
 ```bash
 libredisplay --help
 ```
 
-or:
+For one command:
 
 ```bash
 libredisplay <command> --help
 ```
 
-### `libredisplay status`
+---
 
-Shows the installed version, server health, native Pi host mode, local kiosk state, basic hardware information, and Remote Access state.
+## `libredisplay status`
 
 ```bash
 libredisplay status
 ```
 
-Use this first after SSHing into a Pi.
+Shows the installed version, server status, host mode, kiosk state, basic hardware information when available, and Remote Access state.
 
-### `libredisplay addresses`
+Use this first after SSHing into an unfamiliar or malfunctioning host.
 
-Shows stable LAN/VPN addresses for Owner-device connection and login.
+---
+
+## `libredisplay addresses`
 
 ```bash
 libredisplay addresses
 ```
 
-By default it does not print credential-bearing read-only Display Links.
+Shows stable LAN/VPN addresses used to reach LibreDisplay.
+
+By default, credential-bearing read-only Display Links are hidden.
+
+To intentionally print them:
 
 ```bash
 libredisplay addresses --include-display-links
 ```
 
-Use the latter only when you deliberately need those credentials.
+Treat the resulting Display Links as credentials.
 
-### `libredisplay connect`
+---
 
-Creates a one-time Owner-device code.
+## `libredisplay connect`
+
+Create a short-lived one-time Owner-device connection code:
 
 ```bash
 libredisplay connect
 ```
 
 Enable Remote Access first if necessary:
-
-```bash
-libredisplay remote on
-```
-
-or intentionally combine the two:
 
 ```bash
 libredisplay connect --enable-remote
@@ -644,13 +1416,17 @@ Machine-readable output:
 libredisplay connect --json
 ```
 
-Include the temporary direct-code URL:
+Include the direct temporary-code URL:
 
 ```bash
 libredisplay connect --show-direct
 ```
 
-### `libredisplay remote`
+The direct URL contains the temporary code. The normal stable `/connect` address does not authorize a device by itself.
+
+---
+
+## `libredisplay remote`
 
 ```bash
 libredisplay remote status
@@ -658,60 +1434,68 @@ libredisplay remote on
 libredisplay remote off
 ```
 
-Remote Access is for trusted LAN/private-VPN clients only.
+Remote Access is designed for trusted LAN/private-VPN clients only.
 
-### `libredisplay server-only`
+---
+
+## `libredisplay server-only`
 
 ```bash
 libredisplay server-only status
 libredisplay server-only on
 libredisplay server-only off
-libredisplay server-only enable   # alias for on
-libredisplay server-only disable  # alias for off
+libredisplay server-only enable
+libredisplay server-only disable
 ```
 
-Use `on` or `enable` to stop the local Chromium dashboard while leaving the server online. Use `off` or `disable` to restore Display + server mode. If the server is online, the CLI updates the runtime through the local API. If the server is down, the CLI safely writes the saved mode request so it takes effect on the next LibreDisplay start.
+`on`/`enable` keep the server running but stop/prevent the managed local Chromium dashboard. `off`/`disable` restore Display + server mode.
 
-### `libredisplay display-mode`
+---
 
-Switch the managed local Pi browser between fullscreen kiosk and windowed device-use mode:
+## `libredisplay display-mode`
 
 ```bash
 libredisplay display-mode kiosk
 libredisplay display-mode windowed
 ```
 
-This command applies only to the local native display manager.
+Switches the managed local Pi browser between fullscreen kiosk and windowed device-use mode.
 
-### `libredisplay doctor`
+This applies to the native Pi display manager, not to remote browsers.
 
-Runs quick checks for:
+---
 
-- required installation files
-- writable data directory
-- `/healthz`
-- system-health API
-- host mode
-- startup integrity
+## `libredisplay doctor`
 
 ```bash
 libredisplay doctor
 ```
 
-Use this before manually changing files.
+Runs quick installation and runtime checks such as:
 
-### `libredisplay logs`
+- required installation files
+- writable data directory
+- local `/healthz`
+- system-health API
+- host mode
+- startup integrity
 
-Recent Chromium/browser log:
+Use `doctor` before manually editing internal files.
+
+---
+
+## `libredisplay logs`
+
+Browser log:
 
 ```bash
 libredisplay logs
 ```
 
-More or fewer lines:
+More lines:
 
 ```bash
-libredisplay logs --lines 250
+libredisplay logs --lines 300
 ```
 
 Update log:
@@ -726,272 +1510,539 @@ Rollback log:
 libredisplay logs --type rollback
 ```
 
-### `libredisplay backup`
+---
 
-Creates a sensitive `.ldbackup` using the same backup engine as the maintenance scripts.
+## `libredisplay backup`
+
+Create a sensitive `.ldbackup` archive:
 
 ```bash
 libredisplay backup
 ```
 
-You may pass the same extra arguments supported by `server-backup.py backup`.
-
-### `libredisplay restore`
-
-Restores a `.ldbackup` using the LibreDisplay backup engine.
+Choose a destination:
 
 ```bash
-libredisplay restore /path/to/LibreDisplay-backup.ldbackup
+libredisplay backup /path/to/my-backup.ldbackup
 ```
 
-Restores can replace active configuration and may require elevated privileges when host/NAS state is included. Read the prompt carefully.
+Include LibreDisplay-managed host configuration when appropriate:
 
-### `libredisplay check`
+```bash
+libredisplay backup --include-host
+```
 
-Checks GitHub for a newer release.
+Host-level backup material may require elevated privileges.
+
+---
+
+## `libredisplay restore`
+
+Verify without changing files:
+
+```bash
+libredisplay restore /path/to/backup.ldbackup --verify-only
+```
+
+Restore interactively:
+
+```bash
+libredisplay restore /path/to/backup.ldbackup
+```
+
+Non-interactive confirmation:
+
+```bash
+libredisplay restore /path/to/backup.ldbackup --yes
+```
+
+Restores can replace active configuration. Keep a copy of the current state when possible.
+
+---
+
+## `libredisplay check`
 
 ```bash
 libredisplay check
 ```
 
-### `libredisplay update`
+Checks GitHub for a newer supported LibreDisplay release.
 
-Creates recovery material and updates to the latest supported GitHub release.
+---
+
+## `libredisplay update`
 
 ```bash
 libredisplay update
 ```
 
-To install without the normal reboot step:
+Creates recovery material, validates the new release, and updates LibreDisplay.
+
+Skip the normal reboot step:
 
 ```bash
 libredisplay update --no-reboot
 ```
 
-### `libredisplay field-check`
+Headless SSH updates keep server availability in mind even when the current SSH session cannot launch a graphical kiosk.
 
-Collects privacy-safe field-readiness/performance data for a real Pi display.
+---
+
+## `libredisplay field-check`
+
+One immediate sample:
 
 ```bash
 libredisplay field-check --once
 ```
 
-See command help for longer soak and release-gate options.
+Longer sampling:
 
-### `libredisplay version`
+```bash
+libredisplay field-check --duration-minutes 60 --interval-seconds 15
+```
+
+Strict long-running release field gate:
+
+```bash
+libredisplay field-check --release-gate
+```
+
+Resume an interrupted soak:
+
+```bash
+libredisplay field-check --resume
+```
+
+Useful options also include `--label` and `--output`.
+
+Field checks are designed for privacy-safe physical-display readiness/performance evidence.
+
+---
+
+## `libredisplay version`
 
 ```bash
 libredisplay version
 ```
 
+Prints the installed LibreDisplay version.
+
 ---
+
+## SSH quick-reference table
+
+| Task | Command |
+| --- | --- |
+| Overall status | `libredisplay status` |
+| Quick diagnostics | `libredisplay doctor` |
+| Connection addresses | `libredisplay addresses` |
+| New Owner code | `libredisplay connect` |
+| Remote Access status | `libredisplay remote status` |
+| Enable Remote Access | `libredisplay remote on` |
+| Disable Remote Access | `libredisplay remote off` |
+| Server-only status | `libredisplay server-only status` |
+| Enable Server-only | `libredisplay server-only on` |
+| Disable Server-only | `libredisplay server-only off` |
+| Windowed local browser | `libredisplay display-mode windowed` |
+| Kiosk local browser | `libredisplay display-mode kiosk` |
+| Browser log | `libredisplay logs` |
+| Update log | `libredisplay logs --type update` |
+| Backup | `libredisplay backup` |
+| Check for update | `libredisplay check` |
+| Install update | `libredisplay update` |
 
 </details>
 
+<a id="maintenance-and-recovery"></a>
 <details>
-<summary><strong>5. Maintenance, updates, and recovery</strong><br>Backup, update, restore, interrupted-update recovery, Server-only recovery, and Remote Access recovery.</summary>
+<summary><strong>10. Maintenance, backup, update, rollback, and recovery</strong><br>Protect your configuration, update safely, verify backups, and recover from interrupted or failed maintenance.</summary>
 
-## Backups, updates, and recovery
+## Understand the recovery layers
 
-### Before major changes
+LibreDisplay has several different recovery tools. They solve different problems.
 
-Create both:
+### Profile
 
-1. a Profile for quick dashboard/layout rollback
-2. a full `.ldbackup` for server data/recovery
+Best for:
 
-### Backup
+- layout rollback
+- presentation experiments
+- reusing a dashboard design
+
+### Previous settings / restore point
+
+Best for:
+
+- recent configuration mistakes
+- local settings rollback where available
+
+### `.ldbackup`
+
+Best for:
+
+- server migration
+- major update safety
+- configuration/data recovery
+- infrastructure changes
+
+### Updater rollback material
+
+Best for:
+
+- failed application update
+- interrupted replacement of application files
+
+Do not use one recovery layer as a substitute for every other layer.
+
+---
+
+## Before major changes
+
+Recommended sequence:
 
 ```bash
+libredisplay status
 libredisplay backup
+libredisplay check
 ```
 
-Store important backups somewhere other than the Pi itself.
+Also save a Profile when the upcoming work includes layout changes.
 
-### Update
+Keep important backup archives somewhere other than the Pi itself.
+
+---
+
+## Verify a backup before you need it
+
+```bash
+libredisplay restore /path/to/backup.ldbackup --verify-only
+```
+
+A backup you have never successfully verified is less useful than one you know LibreDisplay can read.
+
+---
+
+## Update
 
 ```bash
 libredisplay check
 libredisplay update
 ```
 
-LibreDisplay verifies release structure and uses bounded rollback/recovery behavior around updates.
+The native updater validates release structure and startup-critical files and keeps rollback/recovery state around the application swap.
 
-### Interrupted update
+If preparation, staging, or validation fails, the updater attempts to preserve/restore the previously working runtime rather than turning a failed update into unnecessary downtime.
 
-The native startup path checks for an interrupted update transaction before starting the server. If the previous update lost power mid-transaction, LibreDisplay attempts to recover the verified pre-update snapshot before continuing.
+---
 
-### Server-only recovery
+## Interrupted update
 
-If the local screen is blank because Server-only mode is enabled intentionally:
+LibreDisplay checks update transaction/recovery state during startup. If power was lost at the wrong time, the recovery path can use the verified pre-update snapshot rather than blindly continuing with a partially replaced installation.
+
+Do not delete rollback directories or transaction markers immediately after an update problem; they may be part of the recovery mechanism.
+
+---
+
+## Update from headless SSH
+
+`libredisplay update --no-reboot` is useful when you are maintaining a Server-only or remote host.
+
+A headless SSH environment may not have a usable graphical session for Chromium. LibreDisplay distinguishes “server can restart” from “browser can launch right now” so the host can come back online without pretending a GUI is available in the SSH session.
+
+---
+
+## Server-only recovery
 
 ```bash
 libredisplay server-only status
 libredisplay server-only off
 ```
 
-Do not delete browser profiles or configuration files just to restore the webpage.
+If the server is healthy and the local screen is intentionally disabled, this is the correct recovery path.
 
-### Remote Access recovery
+---
 
-If an Owner device was lost/revoked:
-
-1. SSH to the Pi.
-2. Check Remote Access:
+## Remote Access recovery
 
 ```bash
 libredisplay remote status
-```
-
-3. Enable it if appropriate:
-
-```bash
 libredisplay remote on
-```
-
-4. Generate a new one-time code:
-
-```bash
 libredisplay connect
 ```
 
-### Basic server recovery check
+Use this when the wall display is inaccessible but SSH still works.
+
+---
+
+## Basic server recovery
 
 ```bash
 libredisplay doctor
 curl http://127.0.0.1:8787/healthz
 ```
 
-A healthy `/healthz` with a missing local display usually indicates a browser/host-mode issue rather than a server failure.
+If `/healthz` is healthy but the local screen is not rendering, focus on host mode, Chromium, graphics/session state, and browser logs instead of server configuration.
 
 ---
 
+## When to restore a full backup
+
+A full restore is appropriate when:
+
+- configuration/data is genuinely damaged
+- migrating to another host
+- a previous known-good state is preferable to continued manual repair
+- server-level state changed beyond what a Profile can restore
+
+Before restoring, verify the archive and understand what will be replaced.
+
 </details>
 
+<a id="performance-and-device-guidance"></a>
 <details>
-<summary><strong>6. Performance, display care, and server deployments</strong><br>Pi 3/4/5 guidance, Server-only performance, OLED protection, Docker, NAS, and browserless server deployments.</summary>
+<summary><strong>11. Performance, Raspberry Pi guidance, and display care</strong><br>Tune Pi 3/4/5 systems, diagnose stutter, use Lightweight mode, and protect always-on displays.</summary>
 
-## Performance and Raspberry Pi guidance
+## General rule
 
-### Pi 3
+Measure the physical display, not the administration computer.
 
-Prioritize stability and static presentation. Automatic mode may reduce or stop expensive continuous animation while preserving the dashboard's visual information.
+A powerful laptop opening Settings remotely says very little about how smoothly a Pi-driven wall display is rendering.
 
-Recommended troubleshooting order:
+Use System Health, physical-display diagnostics, and the bottleneck/performance tooling when performance matters.
 
-1. disable video/animated backgrounds
-2. reduce fullscreen weather/NatureScape effects
-3. reduce wildlife/seasonal intensity
-4. check browser graphics/runtime health
-5. run the physical-display bottleneck test
+---
 
-### Pi 4
+## Raspberry Pi 3
 
-Pi 4 normally has more visual headroom, but heavy forecast strips, motion, large custom layouts, video, and overlays can still combine into a bottleneck.
+Prioritize stability.
 
-Use the physical-display performance test rather than judging only from the remote Settings browser.
+Recommended starting point:
 
-### Pi 5
+- Automatic performance mode
+- static full-quality weather/NatureScape scenes
+- moderate static-scene refresh cadence
+- no video background while diagnosing
+- conservative wildlife/motion density
 
-Pi 5 should generally keep full presentation quality while avoiding unnecessary duplicated animation/rendering work.
+Pi 3 Automatic is designed to reduce continuous animation cost without requiring the artwork itself to become low quality.
 
-### Server-only Pi
+Troubleshooting order:
 
-A server-only Pi does not need to spend CPU/GPU/memory on the managed local Chromium dashboard. This is useful when:
+1. disable video/moving backgrounds
+2. enable Lightweight mode temporarily
+3. reduce fullscreen weather/NatureScape motion
+4. reduce wildlife/seasonal density
+5. inspect System Health
+6. run the physical-display bottleneck test
 
-- the Pi is hidden in a cabinet/rack
-- all displays are separate devices
-- you want one Pi to centralize several endpoints
-- the server hardware is not connected to a screen
+---
 
-Server-side provider work and integrations still consume normal resources.
+## Raspberry Pi 4
+
+Pi 4 has more headroom, but combined load still matters.
+
+Heavy combinations can include:
+
+- large custom layouts
+- video backgrounds
+- forecast strips
+- fullscreen weather overlays
+- NatureScape motion
+- many wildlife actors
+- several translucent/blurred panels
+
+Automatic performance mode is the recommended default because it can adapt pacing to measured headroom.
+
+---
+
+## Raspberry Pi 5
+
+Pi 5 generally supports richer motion and denser presentation while maintaining good headroom.
+
+Avoid using the extra hardware as a reason to duplicate unnecessary animation layers. Stable unattended rendering is still the priority.
+
+---
+
+## Server-only Pi
+
+Server-only removes the local Chromium rendering workload, but the Pi still performs server work such as:
+
+- provider refreshes
+- integrations
+- schedules
+- backup/update operations
+- serving multiple browsers
+
+A Server-only Pi can therefore be much lighter graphically while still having normal CPU/network/storage work.
+
+---
+
+## Lightweight mode
+
+Lightweight mode is a diagnostic and relief switch, not a destructive reset.
+
+It temporarily suppresses expensive visual features while preserving the selected settings underneath.
+
+If performance improves immediately with Lightweight mode, re-enable it and then reduce expensive categories one at a time to find the actual bottleneck.
 
 ---
 
 ## OLED and always-on display care
 
-LibreDisplay intentionally keeps these protections independent:
+LibreDisplay keeps protection controls independent so you can choose the strategy appropriate to the display.
+
+Options can include:
 
 - pixel shifting
 - idle dimming
 - Quiet Hours
-- deep-black / 0% protection
+- deep-black / 0% behavior
 - temporary wake behavior
 - motion suppression while dimmed
-- timing/intensity controls
+- delay/intensity controls
 
-You do not need to enable every protection feature together.
+Example strategies:
 
-For example, you can run pixel shifting continuously while leaving Quiet Hours disabled.
+**Low intervention**  
+Pixel shifting enabled, Quiet Hours disabled.
 
----
+**Night protection**  
+Pixel shifting plus Quiet Hours and deeper overnight dimming.
 
-## Docker, NAS, and server deployments
+**Aggressive static-content protection**  
+Pixel shifting, idle dimming, deeper black behavior, and reduced motion when dimmed.
 
-Docker/NAS installations already behave like server hosts; they do not use LibreDisplay's native Raspberry Pi Chromium manager.
+Choose based on the actual panel and room rather than enabling everything automatically.
 
-Typical Docker flow:
+</details>
+
+<a id="server-deployments"></a>
+<details>
+<summary><strong>12. Docker, NAS, local media, and server deployments</strong><br>Run LibreDisplay without the native Pi kiosk, keep persistent data safe, and connect local/NAS media.</summary>
+
+## Docker behavior
+
+Docker deployments serve LibreDisplay but do not use the native Pi Chromium/kiosk manager.
+
+A typical LAN-oriented setup uses:
 
 ```bash
 chmod +x scripts/docker-setup.sh
 ./scripts/docker-setup.sh --lan
 ```
 
-Maintenance:
+Maintenance examples:
 
 ```bash
 ./scripts/docker-setup.sh update
 ./scripts/docker-setup.sh backup
 ```
 
-Persistent data must stay in the configured volume/mapping. Do not treat the container filesystem itself as permanent storage.
-
-The native **Server-only mode** toggle is intentionally reported as unsupported on deployments that do not use the native Pi kiosk manager, because those deployments already have no managed local kiosk to stop.
+The native Raspberry Pi Server-only toggle is intentionally unsupported in deployments that have no native kiosk manager; those hosts are already effectively server-only.
 
 ---
 
+## Persistent data
+
+For Docker/NAS deployments, configuration must live in the configured persistent volume/mapping.
+
+Do not store important LibreDisplay state only inside an ephemeral container layer. Replacing that container can remove anything that was not mapped persistently.
+
+---
+
+## Local media
+
+Native installs include a local media helper:
+
+```bash
+~/libredisplay/scripts/setup-media.sh
+```
+
+Use it when you want LibreDisplay to read local media folders in a supported way.
+
+---
+
+## NAS media
+
+Native installs include:
+
+```bash
+~/libredisplay/scripts/setup-nas.sh
+```
+
+Use it to establish supported NAS access/mount behavior rather than manually inventing a path and then troubleshooting permissions later.
+
+If a previously working NAS background becomes blank, confirm the mount is still present and readable before changing slideshow or visual settings.
+
+---
+
+## One server, several display devices
+
+A useful server deployment pattern is:
+
+```text
+Server-only Pi / Docker host
+├── read-only Living Room screen
+├── read-only Kitchen screen
+├── read-only Office screen
+└── trusted Owner laptop/phone
+```
+
+Use separate endpoints and Display Links for the viewers, then keep administration on Owner devices.
+
 </details>
 
+<a id="troubleshooting-by-symptom"></a>
 <details>
-<summary><strong>7. Troubleshooting</strong><br>Symptom-based diagnosis for display, network, Owner enrollment, Settings, calendars, weather, backgrounds, performance, browser stability, updates, Docker, and credential recovery.</summary>
+<summary><strong>13. Troubleshooting by symptom</strong><br>Decision-oriented diagnosis for blank screens, network failures, Owner enrollment, data sources, performance, updates, Docker, and configuration problems.</summary>
 
-## Troubleshooting
+## Troubleshooting method
 
-Use this section as a decision tree.
+When possible, answer these questions in order:
 
-### Nothing appears on the Pi screen
+1. Is the LibreDisplay server running?
+2. Is the problem only the local browser, or all clients?
+3. Is the correct display endpoint being viewed/edited?
+4. Is the data source healthy?
+5. Is the content present but hidden by layout/presentation?
+6. Is the issue performance-related?
+7. Did the problem begin after an update, restore, host change, or network change?
 
-First determine whether this is intentional.
+This prevents a visual problem from turning into unnecessary configuration surgery.
+
+---
+
+## Nothing appears on the Pi screen
+
+Check whether the blank screen is intentional:
 
 ```bash
 libredisplay status
 libredisplay server-only status
 ```
 
-If Server-only mode is on and you want the local dashboard:
+If Server-only is on and you want the local display:
 
 ```bash
 libredisplay server-only off
 ```
 
-If Server-only mode is off, run:
+If Server-only is off:
 
 ```bash
 libredisplay doctor
 libredisplay logs --lines 200
-```
-
-Also verify:
-
-```bash
 curl http://127.0.0.1:8787/healthz
 ```
 
-If `/healthz` works, focus on Chromium/display-session issues rather than server configuration.
+Healthy `/healthz` plus a missing local display points toward Chromium/display-session/graphics behavior rather than a dead server.
 
-### The server cannot be reached from another device
+---
 
-1. On the Pi:
+## The server cannot be reached from another device
+
+On the host:
 
 ```bash
 libredisplay status
@@ -999,219 +2050,448 @@ libredisplay remote status
 libredisplay addresses
 ```
 
-2. Confirm both devices are on the same trusted LAN/private VPN.
-3. Try a numeric LAN address if `.local` does not resolve.
-4. Do not test through a public port-forward; that is unsupported and unsafe.
+Then check:
 
-### I need to authorize a new Owner but the wall display is unavailable
+- both devices are on the same trusted LAN/private VPN
+- firewall/router client isolation is not blocking local traffic
+- Remote Access is enabled when administration is required
+- a numeric private-LAN address works if `.local` does not
 
-SSH to the server:
+Do not “fix” this by forwarding the LibreDisplay port to the public Internet.
+
+---
+
+## `.local` does not resolve
+
+Run:
+
+```bash
+libredisplay addresses
+```
+
+Use a numeric LAN address printed there.
+
+mDNS/`.local` reliability depends on the network and client operating system; failure to resolve `.local` does not necessarily mean LibreDisplay is down.
+
+---
+
+## I need a new Owner device but cannot use the wall display
 
 ```bash
 libredisplay remote on
 libredisplay connect
 ```
 
-Open one of the printed `/connect` addresses on the new device and enter the code.
+Open the printed stable `/connect` address on the new trusted device and enter the code.
 
-### Connection code says invalid or expired
+---
 
-Codes are single-use and short-lived. Create a new one:
+## The Owner code is invalid or expired
+
+Generate another:
 
 ```bash
 libredisplay connect
 ```
 
-Do not reuse an already-redeemed QR/link.
+One-time codes are meant to fail after expiry, redemption, cancellation, or server restart.
 
-### `.local` hostname does not work
+---
 
-Some networks/devices do not resolve mDNS reliably. Run:
+## QR appears but scanning does not complete enrollment
 
-```bash
-libredisplay addresses
-```
+Try the manual path:
 
-Use one of the numeric private-LAN addresses instead.
+1. note the one-time code
+2. run `libredisplay addresses` if needed
+3. open a stable `/connect` address manually
+4. type the code
 
-### Settings changes do not appear on the intended screen
+This separates camera/QR handling from LibreDisplay enrollment itself.
 
-- confirm the active display endpoint
-- save the settings
-- refresh the target display
-- make sure you did not edit a Profile without applying it
-- check whether a Scene schedule is intentionally applying another Profile
+---
 
-### Calendar does not update
-
-- verify the feed is enabled
-- use Check/Test feed
-- confirm the provider URL is still valid
-- verify timezone expectations
-- look for provider/network errors
-- temporarily reduce the problem to one calendar source
-
-### Weather location is wrong
-
-Search again and choose the exact region/country match. The display label does not change the coordinates.
-
-### Background is blank
-
-- verify the selected source
-- test network access for remote photo sources
-- verify local/NAS mounts
-- run the media/NAS helper again if mount paths changed
-- temporarily choose a stock or no-photo background to isolate the problem
-
-### Pi display is stuttering
-
-- run the physical-display bottleneck test
-- disable video/animated backgrounds first
-- reduce fullscreen effects
-- inspect System Health for software graphics or throttling
-- check temperature and power quality
-- use the Pi-specific performance guidance above
-
-### Browser keeps restarting
+## Settings changes are not visible on the intended screen
 
 Check:
+
+- active display endpoint
+- save state
+- target browser refresh/reconnect
+- Profile currently applied
+- scheduled Scene that may be reapplying a Profile
+- whether you changed broad Appearance but later Arrange-mode overrides are still active
+
+---
+
+## Calendar does not update
+
+Check in order:
+
+1. source enabled
+2. feed URL still valid
+3. feed check/test result
+4. provider/network status
+5. timezone expectations
+6. event range/count filters
+7. calendar block visible in layout
+
+Temporarily reduce to one calendar source if several feeds are configured.
+
+---
+
+## Weather location is wrong
+
+Search again and choose the exact region/country match. Changing the visible label does not change coordinates.
+
+---
+
+## Background is blank
+
+Check:
+
+- selected source type
+- provider/network access for remote sources
+- local/NAS path still exists
+- NAS mount still active
+- file permissions
+- whether the source has usable images/video
+
+Temporarily switch to a stock/static background. If stock works, the dashboard renderer is probably fine and the problem is source-specific.
+
+---
+
+## Pi display is stuttering
+
+Try:
+
+1. Lightweight mode
+2. disable video/moving backgrounds
+3. reduce fullscreen weather/NatureScape effects
+4. reduce wildlife density
+5. check System Health for throttling/software rendering
+6. check temperature/power quality
+7. run physical-display performance/bottleneck diagnostics
+
+Change one major category at a time so the result is measurable.
+
+---
+
+## Browser keeps restarting
 
 ```bash
 libredisplay logs --lines 300
 libredisplay doctor
 ```
 
-System Health also records browser recovery and graphics profile information.
+Also inspect System Health for graphics profile, kiosk heartbeat, recovery events, and throttling information.
 
-### Update failed
+---
 
-Check:
+## Update failed
 
 ```bash
 libredisplay logs --type update
 libredisplay logs --type rollback
 ```
 
-Do not immediately delete rollback directories or transaction markers; they are part of the safety path.
+Do not immediately delete update transaction or rollback material.
 
-### I think configuration is corrupted
+Run:
+
+```bash
+libredisplay doctor
+libredisplay status
+```
+
+The v1.12.x updater is designed to restore the previously working runtime when update preparation/staging/validation fails.
+
+---
+
+## Configuration seems corrupted
 
 Before editing JSON manually:
 
 1. run `libredisplay doctor`
-2. use the previous-settings/restore-point tools if available
-3. restore a known-good `.ldbackup` if necessary
+2. identify whether only one display/Profile is wrong
+3. use previous-settings/restore-point tools when appropriate
+4. verify a known-good backup
+5. restore the backup only when you understand the scope
 
-LibreDisplay maintains resilience/recovery paths specifically so manual file surgery is not the first option.
-
-### Docker container starts but no dashboard configuration remains
-
-Check the persistent volume/mapping. Configuration inside an ephemeral container layer disappears when that container is replaced.
-
-### Remote Access should be completely reset
-
-Use **Reset all remote credentials** from Owner Settings. This resets remote credentials without deleting normal dashboard configuration/layout/media settings.
+Manual file editing should be the last option, not the first.
 
 ---
 
+## Docker starts but configuration is missing
+
+Check the persistent volume/mapping. Data stored only in the old container layer disappears when that container is replaced.
+
+---
+
+## Remote Access should be reset completely
+
+Use **Reset all remote credentials** from Owner Settings.
+
+This resets Remote Access credentials without deleting normal weather, layout, media, appearance, or calendar configuration.
+
+---
+
+## The Help guide says a command exists but the host does not recognize it
+
+Check the installed version:
+
+```bash
+libredisplay version
+```
+
+Then verify the CLI path:
+
+```bash
+command -v libredisplay
+```
+
+If the application was upgraded but host-installed CLI files are stale, inspect the update log and run the supported update/recovery path rather than copying random scripts between release directories.
+
 </details>
 
+<a id="privacy-and-security"></a>
 <details>
-<summary><strong>8. Tips, privacy, and quick recovery</strong><br>Operational tips, privacy/security boundaries, and the compact recovery command card.</summary>
+<summary><strong>14. Privacy, security, credentials, and data boundaries</strong><br>Know what stays local, what contacts external providers, and which URLs/files must be protected.</summary>
 
-## Tips and tricks
+## Local-first model
 
-### Use the Pi as a dedicated server
+LibreDisplay is self-hosted and does not require a LibreDisplay cloud identity.
 
-For a clean central-server setup:
+Configuration, Owner-device authorization state, Profiles, Scenes, backups, and other server data live with your installation unless you intentionally move, synchronize, or back them up elsewhere.
+
+---
+
+## External providers
+
+Weather, calendars, photos, task services, music services, maps, transit, and other integrations necessarily contact the provider you configure.
+
+A self-hosted LibreDisplay server does not make those third-party services local. Review each provider's own privacy and credential requirements.
+
+---
+
+## Treat these as secrets
+
+- Display Links
+- direct one-time enrollment URLs while valid
+- named-account passwords
+- API keys
+- OAuth/access tokens
+- private calendar subscription URLs
+- private photo-source credentials
+- `.ldbackup` files containing sensitive configuration
+
+The stable `/connect` address without a code is not sufficient to authorize a new Owner by itself.
+
+---
+
+## Recommended security posture
+
+- trusted LAN or private VPN only
+- no direct public port forwarding
+- use read-only Display Links for unattended screens
+- use Viewer/Editor roles where Owner is unnecessary
+- revoke retired Owner devices
+- protect backup files
+- keep the host updated
+- keep SSH recovery available for Server-only deployments
+
+---
+
+## If remote access from outside home is required
+
+Use a private VPN that places your trusted device onto the private network. Do not expose LibreDisplay directly to the public Internet merely to make the URLs reachable from anywhere.
+
+</details>
+
+<a id="task-recipes"></a>
+<details>
+<summary><strong>15. Task recipes, operating tips, glossary, and quick reference</strong><br>Concrete examples for common deployments plus terminology and a compact recovery card.</summary>
+
+## Recipe: one Pi, one wall display
+
+1. Install on Raspberry Pi OS Desktop.
+2. Use Display + server mode.
+3. Complete weather/calendar/background setup.
+4. Enable Remote Access.
+5. Enroll your laptop or phone as an Owner device.
+6. Save a Profile.
+7. Create a backup.
+8. Mount the display and use remote administration afterward.
+
+---
+
+## Recipe: one server-only Pi, several screens
+
+On the server Pi:
 
 ```bash
 libredisplay remote on
+libredisplay connect
 libredisplay server-only on
 libredisplay addresses
 ```
 
-Then use read-only Display Links on the viewing devices and enroll one or more trusted Owner devices for administration.
+Then:
 
-### Keep one emergency SSH path
-
-If you depend on Server-only mode, make sure SSH access is tested before placing the Pi somewhere physically inconvenient.
-
-### Name everything clearly
-
-Good names make multi-display administration much easier:
-
-- `Living Room Display`
-- `Kitchen Tablet`
-- `Office Owner Laptop`
-- `Family Board Profile`
-
-Avoid generic names such as `device2` once the system grows.
-
-### Save Profiles before major experiments
-
-A Profile is faster for layout rollback than restoring a full server backup.
-
-### Use a full backup before upgrades or infrastructure changes
-
-Profiles are not a substitute for a `.ldbackup` when changing hosts, NAS mounts, plugins, or other server-level state.
-
-### Diagnose with subtraction
-
-When a visual/performance issue appears, disable one expensive category at a time rather than changing ten settings simultaneously. This makes the actual cause measurable.
-
-### Use read-only Display Links for unattended screens
-
-Do not enroll every wall screen as an Owner device. A read-only viewer has a much smaller security footprint.
-
-### Prefer stable connection addresses
-
-Use the stable `/connect` address plus a one-time code for manual enrollment. Avoid saving temporary direct-code URLs.
-
-### Keep Remote Access private
-
-A private VPN is appropriate for reaching LibreDisplay from away from home. Public port-forwarding is not.
+1. enroll an Owner laptop/phone
+2. create the required display endpoints
+3. create read-only Display Links for the viewers
+4. open those links on each screen device
+5. name endpoints clearly
+6. use Profiles for shared designs
+7. use Scenes only after the baseline displays are stable
 
 ---
 
-## Privacy and security
+## Recipe: recover a server-only Pi when all Owner browsers are gone
 
-LibreDisplay is intentionally self-hosted and does not require a LibreDisplay cloud identity.
+SSH to the Pi:
 
-### Local data
+```bash
+libredisplay status
+libredisplay remote on
+libredisplay connect
+```
 
-Configuration, authorized-device state, profiles, scenes, backups, and other server data stay with your LibreDisplay installation unless you explicitly move or back them up elsewhere.
+Enroll a new Owner device.
 
-### External providers
+If you also want the Pi's own screen back:
 
-Weather, calendars, photo services, integrations, and other external sources necessarily contact the provider you configure. Review provider requirements before adding credentials or private URLs.
+```bash
+libredisplay server-only off
+```
 
-### Remote credentials
+---
 
-Treat these as secrets:
+## Recipe: performance diagnosis without destroying your design
 
-- read-only Display Links
-- direct one-time-code enrollment URLs while valid
-- named-account passwords
-- backups containing sensitive configuration
+1. Save a Profile.
+2. Turn on Lightweight mode.
+3. Observe whether performance improves.
+4. Turn Lightweight mode back off.
+5. Disable video/moving backgrounds.
+6. Reduce weather/NatureScape motion.
+7. Reduce wildlife density.
+8. Check System Health.
+9. Run the target-display performance test.
+10. Re-enable features one at a time.
 
-Normal `/connect` addresses without a code are not sufficient by themselves to authorize a new Owner.
+This preserves the original configuration and identifies the real load source.
 
-### Recommended security posture
+---
 
-- trusted LAN or private VPN only
-- no public port-forwarding
-- revoke old Owner devices
-- use Viewer/Editor roles where Owner is unnecessary
-- use read-only Display Links for wall screens
-- keep backups protected
-- keep the server updated
+## Recipe: prepare for an update
+
+```bash
+libredisplay status
+libredisplay backup
+libredisplay check
+libredisplay update
+```
+
+Also save a Profile if you have recently changed the dashboard layout.
+
+---
+
+## Recipe: migrate to another host
+
+1. create and verify a `.ldbackup`
+2. record NAS/local-media mount requirements
+3. install the matching/supported LibreDisplay release on the new host
+4. restore the backup using supported tooling
+5. verify server health
+6. verify Remote Access
+7. verify all endpoints/integrations
+8. update viewer devices only after the new host is confirmed
+
+---
+
+## Recipe: troubleshoot one broken integration
+
+1. leave the rest of LibreDisplay alone
+2. open the integration's Settings entry
+3. test provider health
+4. verify credentials/URL
+5. verify network reachability
+6. confirm the corresponding block is visible
+7. only then inspect layout or rendering
+
+---
+
+## Operational tips
+
+### Keep one emergency SSH path
+
+This is especially important for Server-only installations.
+
+### Name everything clearly
+
+Use names that identify purpose and location rather than browser type or hardware model.
+
+### Save Profiles before experiments
+
+Profiles make layout experimentation much less stressful.
+
+### Keep full backups off the Pi
+
+A backup on the same failing storage device is not enough for disaster recovery.
+
+### Diagnose by subtraction
+
+Disable one expensive or suspicious component at a time. Ten simultaneous changes destroy useful evidence.
+
+### Use read-only viewer credentials for unattended displays
+
+Do not give every wall screen Owner rights.
+
+### Prefer stable connection addresses
+
+For manual enrollment, use the stable `/connect` address plus the separate one-time code rather than saving temporary direct-code URLs.
+
+---
+
+## Glossary
+
+**Display endpoint**  
+A named dashboard configuration served by the LibreDisplay server.
+
+**Owner device**  
+A trusted browser with administrative authorization created through one-time enrollment.
+
+**Display Link**  
+A read-only credential scoped to a display endpoint.
+
+**Profile**  
+A reusable dashboard/configuration snapshot used for repeatable presentation and quick rollback.
+
+**Scene**  
+A server-side scheduled application of Profiles.
+
+**Display + server**  
+Native Pi mode where the host runs both the server and the managed local Chromium dashboard.
+
+**Server-only**  
+Native Pi mode where the host runs the server but not the managed local Chromium dashboard.
+
+**Lightweight mode**  
+A temporary suppression of expensive visual behavior that preserves your saved visual choices underneath.
+
+**Restore point / previous settings**  
+A configuration-oriented recovery mechanism distinct from a full `.ldbackup`.
+
+**`.ldbackup`**  
+LibreDisplay's sensitive backup archive used for broader server recovery/migration.
 
 ---
 
 ## Quick recovery card
 
-When you SSH into a Pi and do not know what is wrong, run these in order:
+When you SSH into a Pi and do not know what is wrong:
 
 ```bash
 libredisplay status
@@ -1222,19 +2502,48 @@ libredisplay addresses
 libredisplay logs --lines 120
 ```
 
-If you need a new administrative browser:
+New Owner device:
 
 ```bash
 libredisplay remote on
 libredisplay connect
 ```
 
-If you need the Pi's own webpage back:
+Restore the Pi's own dashboard:
 
 ```bash
 libredisplay server-only off
 ```
 
-If the server itself is healthy but another screen cannot connect, troubleshoot LAN/VPN reachability and the connection address before changing LibreDisplay configuration.
+Check only the local server:
+
+```bash
+curl http://127.0.0.1:8787/healthz
+```
+
+Verify a backup without restoring it:
+
+```bash
+libredisplay restore /path/to/backup.ldbackup --verify-only
+```
+
+If the server is healthy but another display cannot connect, investigate LAN/VPN reachability and the display address before changing LibreDisplay configuration.
 
 </details>
+
+---
+
+## Final guidance
+
+LibreDisplay has a large number of controls because it is intended to be customized deeply and left running unattended. The safest way to use that flexibility is to work in layers:
+
+1. make the server healthy
+2. make the data sources healthy
+3. make the target display stable
+4. establish Remote Access and recovery
+5. customize broad presentation
+6. fine-tune layout
+7. add richer motion/integrations gradually
+8. save Profiles and backups at useful milestones
+
+When in doubt, use `libredisplay status` and `libredisplay doctor` before manually editing internal files. When changing how the Pi itself runs, remember that Server-only is a host mode, not a display layout. When adding viewers, use read-only Display Links rather than Owner access. And when experimenting with presentation, preserve a known-good Profile first.
