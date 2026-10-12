@@ -30,7 +30,7 @@ libredisplay server-only on
 libredisplay server-only off
 ```
 
-For people who prefer explicit words, v1.12.3 also accepts:
+For people who prefer explicit words, v1.12.4 also accepts:
 
 ```bash
 libredisplay server-only enable
@@ -287,7 +287,7 @@ libredisplay remote on
 1. Enable Remote Access on the trusted LAN/private VPN.
 2. Choose **Add Owner Device** in Settings, or run `libredisplay connect` over SSH.
 3. On the new device, open one of the displayed `/connect` addresses.
-4. Enter the one-time code, or scan the QR.
+4. Enter the one-time code, or scan the QR. When a code is generated in Settings, LibreDisplay automatically brings the QR card into view and highlights it so it is easy to find.
 5. Give the browser a recognizable name.
 6. The browser becomes an Owner device and appears in the device list.
 

@@ -142,6 +142,7 @@ function noteCacheResponse(url,res,nameOverride=''){
 }
 let ownerEnrollmentState=null;
 let ownerEnrollmentTimer=0;
+let ownerEnrollmentRevealTimer=0;
 function remoteTimeAgo(seconds){const n=Math.max(0,Math.floor(Number(seconds)||0));if(n<60)return n+' sec ago';if(n<3600)return Math.floor(n/60)+' min ago';if(n<86400)return Math.floor(n/3600)+' hr ago';return Math.floor(n/86400)+' day'+(Math.floor(n/86400)===1?'':'s')+' ago';}
 function remoteTimeRemaining(seconds){const n=Math.max(0,Math.floor(Number(seconds)||0));if(!n)return 'expired';if(n<3600)return Math.max(1,Math.ceil(n/60))+' min';if(n<86400)return Math.ceil(n/3600)+' hr';return Math.ceil(n/86400)+' day'+(Math.ceil(n/86400)===1?'':'s');}
 function renderOwnerDevices(payload={}){
@@ -159,7 +160,7 @@ async function loadOwnerDevices(){
 }
 function clearOwnerEnrollmentUi(message=''){
   ownerEnrollmentState=null;if(ownerEnrollmentTimer){clearInterval(ownerEnrollmentTimer);ownerEnrollmentTimer=0;}
-  const panel=document.getElementById('owner-enrollment-panel');panel?.classList.add('hidden');
+  const panel=document.getElementById('owner-enrollment-panel');panel?.classList.add('hidden');panel?.classList.remove('owner-enrollment-reveal');if(ownerEnrollmentRevealTimer){clearTimeout(ownerEnrollmentRevealTimer);ownerEnrollmentRevealTimer=0;}
   const code=document.getElementById('owner-enrollment-code');if(code)code.textContent='----';
   const qr=document.getElementById('owner-enrollment-qr');if(qr)qr.innerHTML='';
   const select=document.getElementById('owner-connect-url-select');if(select)select.replaceChildren();
@@ -172,11 +173,16 @@ function updateOwnerEnrollmentCountdown(){
   if(el)el.textContent=left?`Expires in ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')} · one use only`:'Code expired';
   if(left<=0)clearOwnerEnrollmentUi('The Owner connection code expired. Generate a new one when you are ready.');
 }
+function revealOwnerEnrollment(){
+  const panel=document.getElementById('owner-enrollment-panel'),target=document.getElementById('owner-enrollment-qr-card')||document.getElementById('owner-enrollment-qr');if(!panel||!target)return;
+  panel.classList.remove('owner-enrollment-reveal');void panel.offsetWidth;panel.classList.add('owner-enrollment-reveal');if(ownerEnrollmentRevealTimer)clearTimeout(ownerEnrollmentRevealTimer);ownerEnrollmentRevealTimer=setTimeout(()=>{panel.classList.remove('owner-enrollment-reveal');ownerEnrollmentRevealTimer=0;},1800);
+  const reduced=!!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;requestAnimationFrame(()=>requestAnimationFrame(()=>{try{target.scrollIntoView({behavior:reduced?'auto':'smooth',block:'center',inline:'nearest'});}catch(_e){try{target.scrollIntoView();}catch(_ignored){}}try{target.focus({preventScroll:true});}catch(_e){try{target.focus();}catch(_ignored){}}}));
+}
 function renderOwnerEnrollment(data){
   const ttl=Math.max(1,Number(data?.ttlSeconds)||0);ownerEnrollmentState={...data,_clientExpiresAt:ttl?Date.now()/1000+ttl:Number(data?.expiresAt||0)};const panel=document.getElementById('owner-enrollment-panel'),code=document.getElementById('owner-enrollment-code'),select=document.getElementById('owner-connect-url-select');
   if(code)code.textContent=String(data.code||'----');
   if(select){const options=Array.isArray(data.connectOptions)?data.connectOptions:[];select.innerHTML=options.map((row,i)=>`<option value="${i}">${esc(row.url||'')}</option>`).join('');select.value='0';}
-  panel?.classList.remove('hidden');selectOwnerConnectOption();if(ownerEnrollmentTimer)clearInterval(ownerEnrollmentTimer);ownerEnrollmentTimer=setInterval(updateOwnerEnrollmentCountdown,1000);updateOwnerEnrollmentCountdown();
+  panel?.classList.remove('hidden');selectOwnerConnectOption();if(ownerEnrollmentTimer)clearInterval(ownerEnrollmentTimer);ownerEnrollmentTimer=setInterval(updateOwnerEnrollmentCountdown,1000);updateOwnerEnrollmentCountdown();revealOwnerEnrollment();
 }
 function selectOwnerConnectOption(){
   if(!ownerEnrollmentState)return;const options=Array.isArray(ownerEnrollmentState.connectOptions)?ownerEnrollmentState.connectOptions:[],select=document.getElementById('owner-connect-url-select'),index=Math.max(0,Number(select?.value)||0),row=options[index]||options[0]||{},input=document.getElementById('owner-connect-url'),qr=document.getElementById('owner-enrollment-qr');
