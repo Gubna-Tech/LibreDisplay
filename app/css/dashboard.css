@@ -118,8 +118,11 @@ body {
   font-size:clamp(11px,0.92vw,15px);
   color:rgba(255,255,255,0.74);
   display:flex;
-  align-items:center;
-  gap:5px;
+  align-items:flex-start;
+  flex-wrap:wrap;
+  gap:2px 5px;
+  min-width:0;
+  overflow-wrap:anywhere;
 }
 .event-bar {
   display:inline-block;
@@ -131,10 +134,15 @@ body {
 .event-title {
   font-size:clamp(12px,1.02vw,17px);
   font-weight:500;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  line-height:1.2;
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  overflow-wrap:anywhere;
+  word-break:normal;
+  min-width:0;
   padding-left:9px;
+  padding-right:2px;
 }
 
 #bottom {
