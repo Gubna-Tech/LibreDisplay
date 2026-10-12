@@ -924,7 +924,7 @@ Typical controls include:
 - event range/count behavior
 - optional built-in calendar add-ons
 
-Optional add-ons are off by default. The master add-on control governs participation without erasing the more detailed subgroup choices underneath.
+Optional add-ons are off by default. The master add-on control governs participation without erasing the detailed choices underneath. Each category has an editable label and default color. Open a category to hide individual dates, rename them for your household, or give a specific date its own color while keeping the rest of the category enabled.
 
 ### When events are missing
 

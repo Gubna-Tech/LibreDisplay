@@ -4031,3 +4031,21 @@ html.ld-pi3-static #weather-effects-overlay :is(.hazard-blizzard-flake,.hazard-b
 
 #settings-host-mode #server-only-badge.server-only-active{background:color-mix(in srgb,var(--ld-warning) 18%,var(--ld-surface-3));border:1px solid color-mix(in srgb,var(--ld-warning) 38%,transparent);color:var(--ld-warning)}
 #settings-host-mode .checkline:has(#s-server-only-mode){margin-top:10px;padding:10px 11px;border-radius:10px;background:color-mix(in srgb,var(--ld-accent) 5%,var(--ld-surface-2));border:1px solid color-mix(in srgb,var(--ld-border) 72%,transparent)}
+/* Calendar add-on customization: category defaults plus per-date overrides. */
+.calendar-addon-custom-note{margin:10px 0 7px}
+.calendar-addon-customization{display:grid;gap:8px;margin-top:7px}
+.calendar-addon-editor{border:1px solid rgba(148,163,184,.16);border-radius:10px;background:rgba(15,23,42,.18);overflow:hidden}
+.calendar-addon-editor>summary{display:flex;align-items:center;gap:9px;padding:9px 11px;cursor:pointer;list-style:none}.calendar-addon-editor>summary::-webkit-details-marker{display:none}.calendar-addon-editor>summary::after{content:'›';margin-left:auto;font-size:1.2rem;opacity:.6;transform:rotate(90deg);transition:transform .15s ease}.calendar-addon-editor[open]>summary::after{transform:rotate(-90deg)}
+.calendar-addon-editor>summary>span:not(.calendar-addon-editor-dot){display:flex;flex-direction:column;min-width:0}.calendar-addon-editor>summary b{font-size:.86rem}.calendar-addon-editor>summary small{font-size:.72rem;opacity:.66;margin-top:1px}
+.calendar-addon-editor-dot{width:13px;height:13px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 2px rgba(255,255,255,.08)}
+.calendar-addon-editor-body{padding:10px 11px 11px;border-top:1px solid rgba(148,163,184,.12)}
+.calendar-addon-category-controls{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(190px,.65fr);gap:10px}.calendar-addon-category-controls .s-row{margin:0}
+.calendar-addon-color-control{display:flex;align-items:center;gap:8px}.calendar-addon-color-control input[type=color]{width:50px;min-width:50px;height:34px;padding:2px;border-radius:7px}
+.calendar-addon-item-list{display:grid;gap:6px;margin-top:9px}
+.calendar-addon-item-editor{display:grid;grid-template-columns:66px minmax(170px,1fr) 46px auto;align-items:center;gap:7px;padding:7px 8px;border:1px solid rgba(148,163,184,.12);border-radius:8px;background:rgba(148,163,184,.04)}
+.calendar-addon-item-enabled{display:flex;align-items:center;gap:5px;font-size:.75rem;font-weight:700}.calendar-addon-item-enabled input{margin:0}.calendar-addon-item-title{min-width:0}.calendar-addon-item-color{width:42px!important;min-width:42px!important;height:31px!important;padding:2px!important}.calendar-addon-reset{border:1px solid rgba(148,163,184,.18);border-radius:7px;background:rgba(148,163,184,.07);color:inherit;padding:6px 8px;font:inherit;font-size:.72rem;cursor:pointer}.calendar-addon-reset:hover{background:rgba(148,163,184,.13)}
+@media(max-width:860px){.calendar-addon-category-controls{grid-template-columns:1fr}.calendar-addon-item-editor{grid-template-columns:62px minmax(0,1fr) 44px}.calendar-addon-reset{grid-column:2/4;justify-self:start}}
+
+/* Keep three-letter hourly wind bearings (NNW, SSE, etc.) inside narrow forecast columns. */
+.hr-col .hr-meta .hr-wind{font-size:clamp(11px,.82vw,16px);gap:.18em;max-width:100%;min-width:0}.hr-col .hr-wind-value{letter-spacing:-.02em;min-width:0;white-space:nowrap}
+@media(max-width:1400px){.hr-col .hr-meta .hr-wind{font-size:11px;gap:.16em}}

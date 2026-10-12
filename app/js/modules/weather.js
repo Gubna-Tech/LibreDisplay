@@ -64,7 +64,7 @@ const WD={0:'Clear',1:'Mainly clear',2:'Partly cloudy',3:'Cloudy',
 const WIN={0:'🌙',1:'🌙☁️',2:'🌙☁️',51:'🌧️',53:'🌧️',80:'🌧️'};
 const MOON_PHASE_NORTH=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
 const MOON_PHASE_SOUTH=['🌑','🌘','🌗','🌖','🌕','🌔','🌓','🌒'];
-function weatherLocalDateParts(time){const m=String(time||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/);return m?{year:Number(m[1]),month:Number(m[2]),day:Number(m[3]),hour:Number(m[4]||12),minute:Number(m[5]||0)}:null;}
+function weatherLocalDateParts(time){if(time instanceof Date&&Number.isFinite(time.getTime()))return {year:time.getFullYear(),month:time.getMonth()+1,day:time.getDate(),hour:time.getHours(),minute:time.getMinutes()};const m=String(time||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/);return m?{year:Number(m[1]),month:Number(m[2]),day:Number(m[3]),hour:Number(m[4]||12),minute:Number(m[5]||0)}:null;}
 function lunarPhaseDetails(time,latitude=cfg.lat,utcOffsetSeconds=0){
   // Low-cost astronomical illumination model (Sun/Moon ecliptic coordinates)
   // rather than a fixed synodic-month clock. The latter can drift by hours over

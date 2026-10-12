@@ -12,13 +12,42 @@ const {ensureCfgDefaults}=configApi;
 const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 const {serverPath}=bootstrapApi;const {resilientFetch}=LibreDisplayRuntime.getModule('shared');
 const {setBackgroundStatus}=LibreDisplayRuntime.getModule('backgrounds');
-const {updateCalStatusUI,renderCalendar}=LibreDisplayRuntime.getModule('calendar');
+const {updateCalStatusUI,renderCalendar,calendarAddonDefinitions,calendarAddonCategorySettings,calendarAddonItemSettings}=LibreDisplayRuntime.getModule('calendar');
 const {tick,renderWeather,renderWeatherDetailsSettings,previewAlertSize,syncAlertRuntimeStateFromForm,previewAlertMotionSpeed,setAlertStatus,restartAlertScroller,fetchWeatherAlerts,ensureAlertMotionRunning}=LibreDisplayRuntime.getModule('weather');
 const appearanceApi=LibreDisplayRuntime.getModule('appearance');
 let settingsPreviewMode=false,settingsMounted=false;
 function settingsDomMounted(){return settingsMounted;}
 function applySettingsSessionRoleVisibility(){for(const el of document.querySelectorAll('[data-owner-only="1"]'))el.style.display=(bootstrapApi.SESSION_ROLE==='owner'?'':'none');}
 const syncCalendarAddonControls=()=>{const master=document.getElementById('s-calendar-addons-enabled'),grid=document.querySelector('.calendar-addon-grid');if(!master||!grid)return;const enabled=!!master.checked;grid.classList.toggle('calendar-addons-disabled',!enabled);grid.setAttribute('aria-disabled',enabled?'false':'true');for(const el of grid.querySelectorAll('input[type=\"checkbox\"]'))el.disabled=!enabled;};
+const CALENDAR_ADDON_CONTROL_IDS={civicUS:'s-calendar-addon-civic-us',christian:'s-calendar-addon-christian',jewish:'s-calendar-addon-jewish',islamic:'s-calendar-addon-islamic',astronomy:'s-calendar-addon-astronomy',cultural:'s-calendar-addon-cultural'};
+const calendarAddonEsc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+function renderCalendarAddonCustomization(){
+  const host=document.getElementById('calendar-addon-customization');if(!host||typeof calendarAddonDefinitions!=='function')return;
+  const defs=calendarAddonDefinitions();
+  host.innerHTML=Object.entries(defs).map(([categoryKey,def])=>{
+    const category=calendarAddonCategorySettings(categoryKey,cfg),selected=!!document.getElementById(CALENDAR_ADDON_CONTROL_IDS[categoryKey])?.checked;
+    const rows=def.items.map(item=>{const resolved=calendarAddonItemSettings(categoryKey,item.key,cfg),raw=cfg.calendarAddonItemSettings?.[categoryKey]?.[item.key]||{},customColor=/^#[0-9a-f]{6}$/i.test(String(raw.color||''));return `<div class="calendar-addon-item-editor" data-addon-item="${calendarAddonEsc(item.key)}"><label class="calendar-addon-item-enabled" title="Show this date"><input type="checkbox" data-addon-item-enabled ${resolved.enabled!==false?'checked':''}><span>Show</span></label><input class="calendar-addon-item-title" type="text" maxlength="120" data-addon-item-title value="${calendarAddonEsc(resolved.title)}" aria-label="${calendarAddonEsc(item.title)} display name"><input class="calendar-addon-item-color" type="color" data-addon-item-color data-color-mode="${customColor?'custom':'category'}" value="${calendarAddonEsc(resolved.color)}" aria-label="${calendarAddonEsc(item.title)} color"><button class="calendar-addon-reset" type="button" data-addon-item-reset title="Restore the default name and category color">Reset style</button></div>`;}).join('');
+    return `<details class="calendar-addon-editor" data-addon-category="${calendarAddonEsc(categoryKey)}"><summary><span class="calendar-addon-editor-dot" style="background:${calendarAddonEsc(category.color)}"></span><span><b>${calendarAddonEsc(category.label)}</b><small>${def.items.length} built-in date${def.items.length===1?'':'s'} · ${selected?'category selected':'category currently off'}</small></span></summary><div class="calendar-addon-editor-body"><div class="calendar-addon-category-controls"><div class="s-row"><label>Category label</label><input type="text" maxlength="90" data-addon-category-label value="${calendarAddonEsc(category.label)}"></div><div class="s-row"><label>Default color</label><div class="calendar-addon-color-control"><input type="color" data-addon-category-color value="${calendarAddonEsc(category.color)}"><button class="btn-util" type="button" data-addon-category-reset>Reset label &amp; color</button></div></div></div><div class="settings-inline-help">Turn off any individual date even while this category remains enabled. Rename dates for your household, or give an item its own color; Reset style returns that item to the category color.</div><div class="calendar-addon-item-list">${rows}</div></div></details>`;
+  }).join('');
+  bindCalendarAddonCustomization();
+}
+const updateCalendarAddonEditorSummary=editor=>{
+  const categoryKey=editor?.dataset.addonCategory,defs=calendarAddonDefinitions?.(),def=defs?.[categoryKey];if(!editor||!def)return;
+  const label=String(editor.querySelector('[data-addon-category-label]')?.value||def.label).trim()||def.label,selected=!!document.getElementById(CALENDAR_ADDON_CONTROL_IDS[categoryKey])?.checked,master=!!document.getElementById('s-calendar-addons-enabled')?.checked;
+  const title=editor.querySelector('summary b'),meta=editor.querySelector('summary small');if(title)title.textContent=label;if(meta)meta.textContent=`${def.items.length} built-in date${def.items.length===1?'':'s'} · ${master?(selected?'category selected':'category currently off'):'add-ons currently off'}`;
+};
+const refreshCalendarAddonEditorSummaries=()=>{document.querySelectorAll('#calendar-addon-customization [data-addon-category]').forEach(updateCalendarAddonEditorSummary);};
+function bindCalendarAddonCustomization(){
+  const host=document.getElementById('calendar-addon-customization');if(!host||host.dataset.bound==='1')return;host.dataset.bound='1';
+  const mark=()=>markSettingsDirty();
+  host.addEventListener('input',event=>{const el=event.target;if(!(el instanceof HTMLInputElement))return;const editor=el.closest('[data-addon-category]');if(el.matches('[data-addon-item-color]'))el.dataset.colorMode='custom';if(el.matches('[data-addon-category-color]')){editor?.querySelectorAll('[data-addon-item-color][data-color-mode="category"]').forEach(item=>item.value=el.value);const dot=editor?.querySelector('.calendar-addon-editor-dot');if(dot)dot.style.background=el.value;}if(el.matches('[data-addon-category-label]'))updateCalendarAddonEditorSummary(editor);mark();});
+  host.addEventListener('change',event=>{if(event.target instanceof HTMLInputElement)mark();});
+  host.addEventListener('click',event=>{const button=event.target.closest('button');if(!button)return;const editor=button.closest('[data-addon-category]'),categoryKey=editor?.dataset.addonCategory,defs=calendarAddonDefinitions?.(),def=defs?.[categoryKey];if(!editor||!def)return;
+    if(button.matches('[data-addon-category-reset]')){const label=editor.querySelector('[data-addon-category-label]'),color=editor.querySelector('[data-addon-category-color]');if(label)label.value=def.label;if(color){color.value=def.color;editor.querySelectorAll('[data-addon-item-color][data-color-mode="category"]').forEach(item=>item.value=def.color);const dot=editor.querySelector('.calendar-addon-editor-dot');if(dot)dot.style.background=def.color;}updateCalendarAddonEditorSummary(editor);mark();return;}
+    if(button.matches('[data-addon-item-reset]')){const row=button.closest('[data-addon-item]'),item=def.items.find(x=>x.key===row?.dataset.addonItem),title=row?.querySelector('[data-addon-item-title]'),color=row?.querySelector('[data-addon-item-color]'),categoryColor=editor.querySelector('[data-addon-category-color]')?.value||def.color;if(item&&title)title.value=item.title;if(color){color.value=item?.color||categoryColor;color.dataset.colorMode=item?.color?'custom':'category';}mark();}
+  });
+}
+
 function bindMountedSettingsControls(){
   const lightweight=document.getElementById('s-lightweight-mode'),performanceMode=document.getElementById('s-animation-performance-mode'),pi3Refresh=document.getElementById('s-pi3-static-refresh');
   lightweight?.addEventListener('change',event=>LibreDisplayRuntime.getModule('settings').toggleLightweightMode?.(event.currentTarget.checked));
@@ -127,7 +156,7 @@ function openSetup(startWizard=false){
   try{
     bindCalendarColorControls();
     bindCalendarUxInputs();
-    for(const el of document.querySelectorAll('#settings-calendars [id^="s-calendar-addon-"],#s-calendar-addons-enabled'))if(!el.dataset.addonBound){el.dataset.addonBound='1';el.addEventListener('change',()=>{markSettingsDirty();if(el.id==='s-calendar-addons-enabled')syncCalendarAddonControls();});}
+    for(const el of document.querySelectorAll('#settings-calendars [id^="s-calendar-addon-"],#s-calendar-addons-enabled'))if(!el.dataset.addonBound){el.dataset.addonBound='1';el.addEventListener('change',()=>{markSettingsDirty();if(el.id==='s-calendar-addons-enabled')syncCalendarAddonControls();refreshCalendarAddonEditorSummaries();});}
     renderProfileSelect();
     setProfileStatus('');
     loadScenes();
@@ -163,7 +192,7 @@ function openSetup(startWizard=false){
     document.getElementById('s-calendar-legend').checked=!!cfg.calendarLegend;
     document.getElementById('s-calendar-show-continuation').checked=cfg.calendarShowContinuation!==false;
     document.getElementById('s-calendar-addons-enabled').checked=!!cfg.calendarAddonsEnabled;
-    for(const [id,key] of [['s-calendar-addon-civic-us','calendarAddonCivicUS'],['s-calendar-addon-christian','calendarAddonChristian'],['s-calendar-addon-jewish','calendarAddonJewish'],['s-calendar-addon-islamic','calendarAddonIslamic'],['s-calendar-addon-astronomy','calendarAddonAstronomy'],['s-calendar-addon-cultural','calendarAddonCultural']]){const el=document.getElementById(id);if(el)el.checked=!!cfg[key];}syncCalendarAddonControls();
+    for(const [id,key] of [['s-calendar-addon-civic-us','calendarAddonCivicUS'],['s-calendar-addon-christian','calendarAddonChristian'],['s-calendar-addon-jewish','calendarAddonJewish'],['s-calendar-addon-islamic','calendarAddonIslamic'],['s-calendar-addon-astronomy','calendarAddonAstronomy'],['s-calendar-addon-cultural','calendarAddonCultural']]){const el=document.getElementById(id);if(el)el.checked=!!cfg[key];}syncCalendarAddonControls();renderCalendarAddonCustomization();
     renderCalendarOrderList();
     document.getElementById('s-alerts-enabled').checked=cfg.alertsEnabled;
     document.getElementById('s-alert-test').checked=cfg.alertTestMode;
@@ -375,7 +404,7 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-scenes':'Schedule saved Profiles by display, day and time.',
   'settings-family':'Household members, chores, rewards and touch-mode protection.',
   'settings-location':'Weather location and the label shown on the dashboard.',
-  'settings-calendars':'Calendar feeds, imported files, refresh behavior and display priority.',
+  'settings-calendars':'Calendar feeds, imported files, built-in holiday/date customization, refresh behavior and display priority.',
   'settings-alerts':'Enable severe-weather alerts and control their motion.',
   'settings-alert-appearance':'Power-user filtering and alert-card presentation.',
   'settings-backgrounds':'Picture sources, Google Photos, local/NAS folders, rotation and order.',

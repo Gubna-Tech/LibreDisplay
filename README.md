@@ -12,10 +12,10 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 Use a current Raspberry Pi OS **with Desktop**, then paste this into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.12.6/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.12.7/scripts/install-one-line.sh)"
 ```
 
-The bootstrap validates the pinned **v1.12.6** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
+The bootstrap validates the pinned **v1.12.7** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
 
 > Raspberry Pi OS Lite is not supported by the native kiosk installer. A native Pi can, however, be switched to **Server-only mode** after installation so it runs LibreDisplay without launching a local webpage. Docker/NAS/Linux server deployments are already server-style hosts.
 
@@ -154,7 +154,7 @@ It invalidates Owner sessions, active one-time codes, legacy pairing credentials
 Standard ICS/iCalendar subscription feeds and local `.ics` imports. Sources can be named, colored, ordered, enabled/disabled, and checked independently.
 
 **What are Optional Calendar Add-ons?**  
-Opt-in civic, Christian, Jewish, Islamic, astronomy/clock-change, and cultural events. They are off by default and subgroup choices remain remembered when the master switch is off.
+Opt-in U.S. civic holidays and observances, Christian, Jewish, Islamic, astronomy/clock-change, and cultural events. The U.S. set includes dates such as Presidents’ Day, Columbus/Indigenous Peoples’ Day, Leif Erikson Day, federal Election Day, Flag Day, Patriot Day, Veterans Day, and Thanksgiving. Add-ons are off by default. Each category can be renamed and given its own color, and every built-in date can be individually hidden, renamed, or color-overridden without disabling the rest of its category.
 
 **Why is a calendar missing events?**  
 Check that the source is enabled/reachable, verify timezone expectations, then use the feed check/refresh controls. See the calendar troubleshooting section in [HELP.md](HELP.md).

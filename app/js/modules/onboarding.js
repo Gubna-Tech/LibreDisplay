@@ -339,7 +339,9 @@ function moveCalendarOrder(id,delta){const list=document.getElementById('calenda
 function renderCalendarLegend(){
   const el=document.getElementById('calendar-legend');if(!el)return;const ui=uiCfg();if(!ui.calendarLegend){el.classList.remove('show');el.innerHTML='';return;}
   const order=calendarOrderIds();const rows=(cfg.calendars||[]).filter(c=>(c.url||c.configured)&&c.enabled!==false).sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id));
-  el.innerHTML=rows.map((c,i)=>`<span class="calendar-legend-item" style="opacity:${(Math.min(100,Math.max(40,Number(c.opacity)||100))/100).toFixed(2)}"><span class="calendar-legend-dot" style="background:${c.color||integrationsApi.DEFAULT_CAL_COLORS[i%integrationsApi.DEFAULT_CAL_COLORS.length]}"></span>${esc(c.label||'Calendar')}</span>`).join('');el.classList.toggle('show',rows.length>0);
+  const feedHtml=rows.map((c,i)=>`<span class="calendar-legend-item" style="opacity:${(Math.min(100,Math.max(40,Number(c.opacity)||100))/100).toFixed(2)}"><span class="calendar-legend-dot" style="background:${c.color||integrationsApi.DEFAULT_CAL_COLORS[i%integrationsApi.DEFAULT_CAL_COLORS.length]}"></span>${esc(c.label||'Calendar')}</span>`).join('');
+  const addonRows=calendarApi.calendarAddonLegendRows?.(cfg)||[],addonHtml=addonRows.map(row=>`<span class="calendar-legend-item calendar-legend-addon"><span class="calendar-legend-dot" style="background:${row.color}"></span>${esc(row.label)}</span>`).join('');
+  el.innerHTML=feedHtml+addonHtml;el.classList.toggle('show',rows.length+addonRows.length>0);
 }
 function bindCalendarColorControls(){renderCalendarSourceList(configApi.calendarEditorRows.length?configApi.calendarEditorRows:cfg.calendars||[]);}
 function bindCalendarUxInputs(){}
@@ -396,6 +398,17 @@ function previewWeatherLocationLabel(){
   const el=document.getElementById('wx-location');if(!el)return;const value=String(document.getElementById('s-locname')?.value||'').trim();el.textContent=value;el.classList.toggle('show',!!value);scheduleBuiltInLayoutAutoFit?.();
 }
 
+function readCalendarAddonCustomization(){
+  const addonDefs=calendarApi.calendarAddonDefinitions?.()||{},categorySettings={},itemSettings={};
+  for(const editor of document.querySelectorAll('#calendar-addon-customization [data-addon-category]')){
+    const categoryKey=editor.dataset.addonCategory,def=addonDefs[categoryKey];if(!def)continue;
+    const label=String(editor.querySelector('[data-addon-category-label]')?.value||'').trim().slice(0,90),color=normalizeHexColor(editor.querySelector('[data-addon-category-color]')?.value,def.color);
+    const categoryPatch={};if(label&&label!==def.label)categoryPatch.label=label;if(color!==def.color)categoryPatch.color=color;if(Object.keys(categoryPatch).length)categorySettings[categoryKey]=categoryPatch;
+    const rows={};for(const row of editor.querySelectorAll('[data-addon-item]')){const itemKey=row.dataset.addonItem,item=def.items.find(x=>x.key===itemKey);if(!item)continue;const enabled=!!row.querySelector('[data-addon-item-enabled]')?.checked,title=String(row.querySelector('[data-addon-item-title]')?.value||'').trim().slice(0,120),colorInput=row.querySelector('[data-addon-item-color]'),patch={};if(!enabled)patch.enabled=false;if(title&&title!==item.title)patch.title=title;if(colorInput?.dataset.colorMode==='custom')patch.color=normalizeHexColor(colorInput.value,color);if(Object.keys(patch).length)rows[itemKey]=patch;}if(Object.keys(rows).length)itemSettings[categoryKey]=rows;
+  }
+  return {categorySettings,itemSettings};
+}
+
 async function saveSetup(options={}){
   const city=document.getElementById('s-city').value.trim();
   if(!city){alert('Enter a city name');return;}
@@ -435,6 +448,8 @@ async function saveSetup(options={}){
   cfg.calendarShowContinuation=!!document.getElementById('s-calendar-show-continuation')?.checked;
   cfg.calendarAddonsEnabled=!!document.getElementById('s-calendar-addons-enabled')?.checked;
   for(const [id,key] of [['s-calendar-addon-civic-us','calendarAddonCivicUS'],['s-calendar-addon-christian','calendarAddonChristian'],['s-calendar-addon-jewish','calendarAddonJewish'],['s-calendar-addon-islamic','calendarAddonIslamic'],['s-calendar-addon-astronomy','calendarAddonAstronomy'],['s-calendar-addon-cultural','calendarAddonCultural']])cfg[key]=!!document.getElementById(id)?.checked;
+  const addonCustomization=readCalendarAddonCustomization();
+  cfg.calendarAddonCategorySettings=addonCustomization.categorySettings;cfg.calendarAddonItemSettings=addonCustomization.itemSettings;
   cfg.calendarOrder=readCalendarOrder();
   cfg.alertsEnabled=!!document.getElementById('s-alerts-enabled').checked;
   cfg.alertTestMode=!!document.getElementById('s-alert-test').checked;
@@ -460,7 +475,7 @@ async function saveSetup(options={}){
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
 window.addEventListener('resize',()=>{if(configApi.isWizardMode)applyWizardDisplayScale();});
-LibreDisplayRuntime.exposeModule("onboarding", {applyStarterTemplate,wizardPerformanceState,wizardPerformanceProfile,applyWizardPerformancePreset,wizardPerformanceFeatureChanged,currentWizardDisplayName,beginWizardSession,syncWizardDisplayNameFromEndpoints,wizardPhysicalViewport,wizardDisplayScale,applyWizardDisplayScale,setWizardMode,renderWizardSummary,wizardHealthCard,buildWizardHealthRows,renderWizardHealth,renderWizardExtra,renderWizardStep,wizardCommitDisplayName,wizardCreateSetupBaseline,wizardApplyServerMode,wizardLoadRestorePointCount,runWizardHealthChecks,wizardSaveAndRunChecks,wizardBack,wizardSkip,wizardNext,openFullSettingsFromWizard,startWizardFromSettings,newCalendarId,calendarRowsFromDom,readCalendarInputs,syncCalendarEditorRows,calendarCardHtml,bindCalendarCard,renderCalendarSourceList,addCalendarSource,removeCalendarSource,duplicateCalendarSource,importCalendarFile,calendarOrderIds,calendarPriority,readCalendarOrder,renderCalendarOrderList,moveCalendarOrder,renderCalendarLegend,bindCalendarColorControls,bindCalendarUxInputs,updateCalendarEntryVisibility,toggleEmptyCalendarSlots,normalizeWeatherLocationResult,savedWeatherLocation,weatherLocationTitle,weatherLocationSearchText,renderWeatherLocationSelected,weatherLocationQueryChanged,selectWeatherLocationResult,searchWeatherLocations,previewWeatherLocationLabel,saveSetup}, {
+LibreDisplayRuntime.exposeModule("onboarding", {applyStarterTemplate,wizardPerformanceState,wizardPerformanceProfile,applyWizardPerformancePreset,wizardPerformanceFeatureChanged,currentWizardDisplayName,beginWizardSession,syncWizardDisplayNameFromEndpoints,wizardPhysicalViewport,wizardDisplayScale,applyWizardDisplayScale,setWizardMode,renderWizardSummary,wizardHealthCard,buildWizardHealthRows,renderWizardHealth,renderWizardExtra,renderWizardStep,wizardCommitDisplayName,wizardCreateSetupBaseline,wizardApplyServerMode,wizardLoadRestorePointCount,runWizardHealthChecks,wizardSaveAndRunChecks,wizardBack,wizardSkip,wizardNext,openFullSettingsFromWizard,startWizardFromSettings,newCalendarId,calendarRowsFromDom,readCalendarInputs,syncCalendarEditorRows,calendarCardHtml,bindCalendarCard,renderCalendarSourceList,addCalendarSource,removeCalendarSource,duplicateCalendarSource,importCalendarFile,calendarOrderIds,calendarPriority,readCalendarOrder,renderCalendarOrderList,moveCalendarOrder,renderCalendarLegend,bindCalendarColorControls,bindCalendarUxInputs,updateCalendarEntryVisibility,toggleEmptyCalendarSlots,readCalendarAddonCustomization,normalizeWeatherLocationResult,savedWeatherLocation,weatherLocationTitle,weatherLocationSearchText,renderWeatherLocationSelected,weatherLocationQueryChanged,selectWeatherLocationResult,searchWeatherLocations,previewWeatherLocationLabel,saveSetup}, {
   "STARTER_TEMPLATES": {configurable:true,get:()=>STARTER_TEMPLATES},
   "STARTER_TEMPLATE_LAYOUTS": {configurable:true,get:()=>STARTER_TEMPLATE_LAYOUTS},
   "pendingWeatherLocation": {configurable:true,get:()=>pendingWeatherLocation,set:(value)=>{pendingWeatherLocation=value;}},

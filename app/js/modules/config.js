@@ -38,6 +38,7 @@ let cfg = {
   calendarShowContinuation:true,
   calendarAddonsEnabled:false,
   calendarAddonCivicUS:false,calendarAddonChristian:false,calendarAddonJewish:false,calendarAddonIslamic:false,calendarAddonAstronomy:false,calendarAddonCultural:false,
+  'calendarAddonCategorySettings':{},'calendarAddonItemSettings':{},
   calendarOrder:[],
   alertsEnabled:true,
   alertTestMode:false,
@@ -245,6 +246,9 @@ function ensureCfgDefaults(){
   cfg.calendarTimeStyle=['start','range','none'].includes(cfg.calendarTimeStyle)?cfg.calendarTimeStyle:'start';
   if(typeof cfg.calendarLegend!=='boolean')cfg.calendarLegend=false;
   if(typeof cfg.calendarShowContinuation!=='boolean')cfg.calendarShowContinuation=true;if(typeof cfg.calendarAddonsEnabled!=='boolean')cfg.calendarAddonsEnabled=false;for(const k of ['calendarAddonCivicUS','calendarAddonChristian','calendarAddonJewish','calendarAddonIslamic','calendarAddonAstronomy','calendarAddonCultural'])if(typeof cfg[k]!=='boolean')cfg[k]=false;
+  if(!cfg.calendarAddonCategorySettings||typeof cfg.calendarAddonCategorySettings!=='object'||Array.isArray(cfg.calendarAddonCategorySettings))cfg.calendarAddonCategorySettings={};
+  if(!cfg.calendarAddonItemSettings||typeof cfg.calendarAddonItemSettings!=='object'||Array.isArray(cfg.calendarAddonItemSettings))cfg.calendarAddonItemSettings={};
+  {const defs=LibreDisplayRuntime.getModule('calendar')?.calendarAddonDefinitions?.()||{},categories={},items={};for(const [categoryKey,def] of Object.entries(defs)){const raw=cfg.calendarAddonCategorySettings?.[categoryKey];if(raw&&typeof raw==='object'&&!Array.isArray(raw)){const patch={},label=String(raw.label??'').trim().replace(/[\u0000-\u001f\u007f]/g,'').slice(0,90),color=String(raw.color||'').trim();if(label&&label!==def.label)patch.label=label;if(/^#[0-9a-f]{6}$/i.test(color)&&color.toLowerCase()!==String(def.color||'').toLowerCase())patch.color=color.toLowerCase();if(Object.keys(patch).length)categories[categoryKey]=patch;}const known=new Map((def.items||[]).map(item=>[item.key,item]));const sourceRows=cfg.calendarAddonItemSettings?.[categoryKey];if(sourceRows&&typeof sourceRows==='object'&&!Array.isArray(sourceRows)){const out={};for(const [itemKey,row] of Object.entries(sourceRows)){const item=known.get(itemKey);if(!item||!row||typeof row!=='object'||Array.isArray(row))continue;const patch={},title=String(row.title??'').trim().replace(/[\u0000-\u001f\u007f]/g,'').slice(0,120),color=String(row.color||'').trim();if(row.enabled===false)patch.enabled=false;if(title&&title!==item.title)patch.title=title;if(/^#[0-9a-f]{6}$/i.test(color))patch.color=color.toLowerCase();if(Object.keys(patch).length)out[itemKey]=patch;}if(Object.keys(out).length)items[categoryKey]=out;}}cfg.calendarAddonCategorySettings=categories;cfg.calendarAddonItemSettings=items;}
   if(!Array.isArray(cfg.calendarOrder))cfg.calendarOrder=[];
   if(typeof cfg.alertsEnabled!=='boolean')cfg.alertsEnabled=true;
   if(typeof cfg.alertTestMode!=='boolean')cfg.alertTestMode=false;
