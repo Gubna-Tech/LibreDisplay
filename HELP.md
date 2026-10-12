@@ -30,7 +30,7 @@ libredisplay server-only on
 libredisplay server-only off
 ```
 
-For people who prefer explicit words, v1.12.2 also accepts:
+For people who prefer explicit words, v1.12.3 also accepts:
 
 ```bash
 libredisplay server-only enable

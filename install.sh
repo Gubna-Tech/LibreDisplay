@@ -15,9 +15,14 @@ for arg in "$@"; do
   esac
 done
 
+if [ "$(id -u)" -eq 0 ]; then
+  printf 'Run the LibreDisplay installer as your normal Raspberry Pi user, not root or through sudo.\n' >&2
+  exit 1
+fi
+
 SRC_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
-for required in VERSION app/dashboard.html app/dashboard_server.py app/js/app.js app/css/dashboard.css; do
+for required in VERSION README.md HELP.md LICENSE Dockerfile docker-compose.yml install.sh update.sh uninstall.sh app/dashboard.html app/dashboard_server.py app/qrcode_vendor.zip app/js/app.js app/css/dashboard.css scripts/release-rollback.py scripts/verify-frontend.py; do
   [ -f "$SRC_DIR/$required" ] || { printf 'LibreDisplay release is incomplete: missing %s\n' "$required" >&2; exit 1; }
 done
 
@@ -74,6 +79,16 @@ printf '\nLibreDisplay %s\n' "$VERSION"
 printf '====================\n'
 printf 'Installing to: %s\n' "$INSTALL_DIR"
 
+printf 'Validating release before making package or system changes...\n'
+command -v python3 >/dev/null 2>&1 || {
+  printf 'Python 3 is required to validate this LibreDisplay release safely before installation.\n' >&2
+  exit 1
+}
+printf 'Verifying modular frontend assets...\n'
+python3 "$SRC_DIR/scripts/verify-frontend.py" "$SRC_DIR"
+printf 'Validating release runtime files...\n'
+python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$SRC_DIR" verify-install --expected-version "$VERSION" >/dev/null
+
 printf 'Checking required packages...\n'
 sudo -v
 sudo apt update
@@ -81,9 +96,6 @@ sudo DEBIAN_FRONTEND=noninteractive apt install -y \
   python3 chromium curl ca-certificates unzip labwc raspi-config \
   swayidle wtype qrencode cifs-utils nfs-common \
   fonts-liberation2 fonts-noto-core fonts-noto-color-emoji fonts-dejavu-core
-
-printf 'Verifying modular frontend assets...\n'
-python3 "$SRC_DIR/scripts/verify-frontend.py" "$SRC_DIR"
 
 if [ "$SRC_DIR" != "$INSTALL_DIR" ]; then
   if [ -e "$INSTALL_DIR" ]; then
@@ -96,7 +108,7 @@ if [ "$SRC_DIR" != "$INSTALL_DIR" ]; then
   fi
   mkdir -p "$INSTALL_DIR"
   cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/plugins" "$SRC_DIR/assets" "$INSTALL_DIR/"
-  for file in Dockerfile LICENSE README.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
+  for file in Dockerfile LICENSE README.md HELP.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
     cp "$SRC_DIR/$file" "$INSTALL_DIR/$file"
   done
 fi
@@ -157,7 +169,7 @@ if command -v visudo >/dev/null 2>&1; then sudo visudo -cf "$sudoers_tmp" >/dev/
 sudo install -o root -g root -m 440 "$sudoers_tmp" "/etc/sudoers.d/libredisplay-$SUDOERS_NAME"
 rm -f "$sudoers_tmp"
 find "$INSTALL_DIR" -type f -name '*.md' -exec chmod 644 {} \;
-chmod 644 "$INSTALL_DIR/app/dashboard.html" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.yml" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/LICENSE"
+chmod 644 "$INSTALL_DIR/app/dashboard.html" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.yml" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/LICENSE" "$INSTALL_DIR/README.md" "$INSTALL_DIR/HELP.md"
 find "$INSTALL_DIR/app/js" "$INSTALL_DIR/app/css" -type f -exec chmod 644 {} +
 
 sudo raspi-config nonint do_boot_behaviour B4

@@ -19,6 +19,11 @@ for arg in "$@"; do
   esac
 done
 
+if [ "$(id -u)" -eq 0 ]; then
+  printf 'Run the LibreDisplay uninstaller as your normal Raspberry Pi user, not root or through sudo.\n' >&2
+  exit 1
+fi
+
 INSTALL_DIR="$HOME/libredisplay"
 DATA_DIR="$INSTALL_DIR/data"
 BACKUP_DIR="$HOME/libredisplay-backups"

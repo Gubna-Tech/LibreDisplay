@@ -15,12 +15,48 @@ for arg in "$@"; do
   esac
 done
 
+if [ "$(id -u)" -eq 0 ]; then
+  printf 'Run the LibreDisplay updater as your normal Raspberry Pi user, not root or through sudo.\n' >&2
+  exit 1
+fi
+
 SRC_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 INSTALL_DIR="$HOME/libredisplay"
 DATA_DIR="$INSTALL_DIR/data"
 
+server_only_requested() {
+  if [ -f "$DATA_DIR/server-mode.json" ] && grep -Eq '"serverOnly"[[:space:]]*:[[:space:]]*true' "$DATA_DIR/server-mode.json" 2>/dev/null; then
+    return 0
+  fi
+  if [ -f "$DATA_DIR/libredisplay.env" ] && grep -Eiq "^[[:space:]]*(export[[:space:]]+)?DASHBOARD_NO_BROWSER[[:space:]]*=[[:space:]]*['\"]?(1|true|yes|on)['\"]?[[:space:]]*$" "$DATA_DIR/libredisplay.env" 2>/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
+WAS_RUNTIME_RUNNING=0
+start_installed_server_headlessly() {
+  START_LOG="$DATA_DIR/start.log"
+  nohup /bin/sh -c 'set -a; [ ! -f "$1/data/libredisplay.env" ] || . "$1/data/libredisplay.env"; set +a; exec python3 -I -B "$1/app/dashboard_server.py"' sh "$INSTALL_DIR" >>"$START_LOG" 2>&1 </dev/null &
+}
+
+restart_installed_runtime_after_failure() {
+  [ "$WAS_RUNTIME_RUNNING" -eq 1 ] || return 0
+  START_LOG="$DATA_DIR/start.log"
+  if [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] || server_only_requested; then
+    nohup /bin/sh "$INSTALL_DIR/scripts/start.sh" >>"$START_LOG" 2>&1 </dev/null &
+    printf 'The previous LibreDisplay runtime was restarted after the failed update.\n' >&2
+  else
+    # An SSH update can lack the compositor environment even when the wall display
+    # normally uses Chromium. Restore server availability without starting a
+    # browser in a broken graphics context; the normal kiosk returns on reboot.
+    start_installed_server_headlessly
+    printf 'The previous LibreDisplay server was restarted headlessly after the failed update; reboot when convenient to restore the local kiosk.\n' >&2
+  fi
+}
+
 [ -f "$SRC_DIR/VERSION" ] || { printf 'This does not look like a LibreDisplay release folder.\n' >&2; exit 1; }
-for required in app/dashboard.html app/dashboard_server.py app/js/app.js app/css/dashboard.css; do
+for required in README.md HELP.md LICENSE Dockerfile docker-compose.yml install.sh update.sh uninstall.sh app/dashboard.html app/dashboard_server.py app/qrcode_vendor.zip app/js/app.js app/css/dashboard.css scripts/release-rollback.py scripts/verify-frontend.py; do
   [ -f "$SRC_DIR/$required" ] || { printf 'LibreDisplay release is incomplete: missing %s\n' "$required" >&2; exit 1; }
 done
 [ -f "$SRC_DIR/scripts/verify-frontend.py" ] || { printf 'LibreDisplay release is incomplete: missing frontend verifier.\n' >&2; exit 1; }
@@ -38,17 +74,36 @@ python3 "$SRC_DIR/scripts/verify-frontend.py" "$SRC_DIR"
 
 NEW_VERSION=$(cat "$SRC_DIR/VERSION")
 OLD_VERSION=$(cat "$DATA_DIR/.installed" 2>/dev/null || printf 'unknown')
+printf 'Validating the new release before stopping LibreDisplay...\n'
+python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$SRC_DIR" verify-install --expected-version "$NEW_VERSION" >/dev/null
 
 printf '\nLibreDisplay Update\n'
 printf '===================\n'
 printf 'Current version: %s\n' "$OLD_VERSION"
 printf 'New version:     %s\n' "$NEW_VERSION"
 
+if command -v pgrep >/dev/null 2>&1; then
+  if pgrep -f "$INSTALL_DIR/scripts/start.sh" >/dev/null 2>&1 || pgrep -f "$INSTALL_DIR/app/dashboard_server.py" >/dev/null 2>&1; then
+    WAS_RUNTIME_RUNNING=1
+  fi
+fi
+
 printf 'Stopping LibreDisplay and Chromium...\n'
 pkill -f "$INSTALL_DIR/scripts/start.sh" 2>/dev/null || true
 pkill -f "$INSTALL_DIR/app/dashboard_server.py" 2>/dev/null || true
 pkill -f -- "--user-data-dir=$DATA_DIR/chromium" 2>/dev/null || true
 sleep 1
+
+recover_early_update_failure() {
+  code=$?
+  trap - EXIT HUP INT TERM
+  if [ "$code" -ne 0 ]; then
+    printf 'Update preparation failed; the installed release was not replaced.\n' >&2
+    restart_installed_runtime_after_failure
+  fi
+  exit "$code"
+}
+trap recover_early_update_failure EXIT HUP INT TERM
 
 # Chromium creates transient Singleton* symlinks while its profile is active.
 # Older LibreDisplay backup code rejected those links, so remove only those
@@ -122,6 +177,11 @@ restore_previous_release() {
     rm -f "$INSTALL_DIR/$file"
     mv "$old" "$INSTALL_DIR/$file"
   done
+  for marker in "$OLD_DIR/new-files"/*; do
+    [ -e "$marker" ] || continue
+    file=$(basename "$marker")
+    rm -f "$INSTALL_DIR/$file"
+  done
   if [ -f "$OLD_DIR/installed-version" ]; then
     cp "$OLD_DIR/installed-version" "$DATA_DIR/.installed"
     chmod 600 "$DATA_DIR/.installed" 2>/dev/null || true
@@ -141,17 +201,21 @@ cleanup_update_swap() {
     fi
   fi
   rm -rf "$STAGE_DIR" "$OLD_DIR"
+  if [ "$code" -ne 0 ]; then
+    restart_installed_runtime_after_failure
+  fi
   exit "$code"
 }
+trap - EXIT HUP INT TERM
 trap cleanup_update_swap EXIT HUP INT TERM
 
-mkdir -p "$STAGE_DIR/plugins" "$OLD_DIR/plugins" "$OLD_DIR/new-plugins" "$OLD_DIR/new-code-dirs" "$OLD_DIR/files"
+mkdir -p "$STAGE_DIR/plugins" "$OLD_DIR/plugins" "$OLD_DIR/new-plugins" "$OLD_DIR/new-code-dirs" "$OLD_DIR/new-files" "$OLD_DIR/files"
 cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/assets" "$STAGE_DIR/"
 for src in "$SRC_DIR/plugins"/*; do
   [ -e "$src" ] || continue
   cp -a "$src" "$STAGE_DIR/plugins/"
 done
-for file in Dockerfile LICENSE README.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
+for file in Dockerfile LICENSE README.md HELP.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
   cp "$SRC_DIR/$file" "$STAGE_DIR/$file"
 done
 printf '%s\n' "$OLD_VERSION" > "$OLD_DIR/installed-version"
@@ -182,9 +246,13 @@ for src in "$STAGE_DIR/plugins"/*; do
   mv "$src" "$INSTALL_DIR/plugins/$name"
 done
 
-for file in Dockerfile LICENSE README.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
+for file in Dockerfile LICENSE README.md HELP.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
   [ -f "$STAGE_DIR/$file" ] || continue
-  [ -f "$INSTALL_DIR/$file" ] && mv "$INSTALL_DIR/$file" "$OLD_DIR/files/$file"
+  if [ -f "$INSTALL_DIR/$file" ]; then
+    mv "$INSTALL_DIR/$file" "$OLD_DIR/files/$file"
+  else
+    : > "$OLD_DIR/new-files/$file"
+  fi
   mv "$STAGE_DIR/$file" "$INSTALL_DIR/$file"
 done
 
@@ -224,7 +292,7 @@ if [ "$helper_ready" -eq 1 ]; then
 else
   sudo install -m 755 "$INSTALL_DIR/scripts/libredisplay" /usr/local/bin/libredisplay
 fi
-chmod 644 "$INSTALL_DIR/README.md" "$INSTALL_DIR/LICENSE" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.yml"
+chmod 644 "$INSTALL_DIR/README.md" "$INSTALL_DIR/HELP.md" "$INSTALL_DIR/LICENSE" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.yml"
 
 printf 'Validating the installed release before committing the update...\n'
 python3 "$INSTALL_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" verify-install --expected-version "$NEW_VERSION"
@@ -240,14 +308,20 @@ printf '\nLibreDisplay has been updated to %s.\n' "$NEW_VERSION"
 printf 'Your existing settings, display endpoints, media, and custom plugin folders were kept.\n'
 printf 'A safety backup and version rollback snapshot were created before application files were replaced.\n'
 
+
 if [ "$NO_REBOOT" -eq 1 ]; then
   printf 'Restarting LibreDisplay without rebooting the Pi...\n'
   START_LOG="$DATA_DIR/start.log"
-  if [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
+  if [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] || server_only_requested; then
     nohup /bin/sh "$INSTALL_DIR/scripts/start.sh" >>"$START_LOG" 2>&1 </dev/null &
-    printf 'LibreDisplay restart requested. A host reboot is not required for this update.\n'
+    if server_only_requested; then
+      printf 'LibreDisplay server restart requested in Server-only mode. A host reboot is not required for this update.\n'
+    else
+      printf 'LibreDisplay restart requested. A host reboot is not required for this update.\n'
+    fi
   else
-    printf 'The update is installed. No graphical session was available to restart kiosk mode; reboot when convenient: sudo reboot\n'
+    start_installed_server_headlessly
+    printf 'LibreDisplay server restart requested headlessly. No graphical session was available to restart kiosk mode; reboot when convenient to restore the local display: sudo reboot\n'
   fi
 else
   printf 'Rebooting to start the updated release...\n'

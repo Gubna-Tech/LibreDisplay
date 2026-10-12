@@ -29,6 +29,35 @@ import random
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 
+
+def _env_int(name, default, *, minimum=None, maximum=None):
+    raw = os.environ.get(name)
+    try:
+        value = int(str(raw).strip()) if raw is not None and str(raw).strip() else int(default)
+    except (TypeError, ValueError, OverflowError):
+        value = int(default)
+    if minimum is not None:
+        value = max(int(minimum), value)
+    if maximum is not None:
+        value = min(int(maximum), value)
+    return value
+
+
+def _env_float(name, default, *, minimum=None, maximum=None):
+    raw = os.environ.get(name)
+    try:
+        value = float(str(raw).strip()) if raw is not None and str(raw).strip() else float(default)
+    except (TypeError, ValueError, OverflowError):
+        value = float(default)
+    if not math.isfinite(value):
+        value = float(default)
+    if minimum is not None:
+        value = max(float(minimum), value)
+    if maximum is not None:
+        value = min(float(maximum), value)
+    return value
+
+
 ROOT = Path(__file__).resolve().parent
 # LibreDisplay launches the server with Python isolated mode (-I). Keep the
 # bundled pure-Python QR dependency consolidated in one deterministic archive so
@@ -43,7 +72,7 @@ import qrcode
 from qrcode.constants import ERROR_CORRECT_M
 
 HOST = os.environ.get("DASHBOARD_HOST", "127.0.0.1")
-PORT = int(os.environ.get("DASHBOARD_PORT", "8787"))
+PORT = _env_int("DASHBOARD_PORT", 8787, minimum=1, maximum=65535)
 PROJECT_ROOT = ROOT.parent if ROOT.name == "app" else ROOT
 try:
     APP_VERSION = (PROJECT_ROOT / "VERSION").read_text(encoding="utf-8").strip() or "dev"
@@ -52,9 +81,9 @@ except OSError:
 DATA_ROOT = Path(os.environ.get("DASHBOARD_DATA_DIR", str(PROJECT_ROOT / "data"))).expanduser().resolve()
 MAX_BYTES = 25 * 1024 * 1024
 MAX_STATE_BYTES = 2 * 1024 * 1024
-MAX_MEDIA_FILE_BYTES = int(os.environ.get("DASHBOARD_MAX_MEDIA_FILE_BYTES", str(100 * 1024 * 1024)))
-MAX_MEDIA_ITEMS = int(os.environ.get("DASHBOARD_MAX_MEDIA_ITEMS", "20000"))
-CACHE_MAX_BYTES = int(os.environ.get("DASHBOARD_CACHE_MAX_BYTES", str(512 * 1024 * 1024)))
+MAX_MEDIA_FILE_BYTES = _env_int("DASHBOARD_MAX_MEDIA_FILE_BYTES", 100 * 1024 * 1024, minimum=1)
+MAX_MEDIA_ITEMS = _env_int("DASHBOARD_MAX_MEDIA_ITEMS", 20000, minimum=1)
+CACHE_MAX_BYTES = _env_int("DASHBOARD_CACHE_MAX_BYTES", 512 * 1024 * 1024, minimum=0)
 CONFIG_PATH = DATA_ROOT / "dashboard_config.json"
 CONFIG_BACKUP_PATH = DATA_ROOT / "dashboard_config.previous.json"
 PROFILES_PATH = DATA_ROOT / "dashboard_profiles.json"
@@ -73,9 +102,9 @@ PLUGINS_ROOT = PROJECT_ROOT / "plugins"
 if str(PLUGINS_ROOT) not in sys.path:
     sys.path.insert(0, str(PLUGINS_ROOT))
 REMOTE_COOKIE_NAME = "libredisplay_session"
-REMOTE_COOKIE_MAX_AGE = int(os.environ.get("DASHBOARD_REMOTE_SESSION_SECONDS", str(8 * 60 * 60)))
+REMOTE_COOKIE_MAX_AGE = _env_int("DASHBOARD_REMOTE_SESSION_SECONDS", 8 * 60 * 60, minimum=300)
 DISPLAY_COOKIE_NAME = "libredisplay_display"
-DISPLAY_COOKIE_MAX_AGE = int(os.environ.get("DASHBOARD_DISPLAY_SESSION_SECONDS", str(365 * 24 * 60 * 60)))
+DISPLAY_COOKIE_MAX_AGE = _env_int("DASHBOARD_DISPLAY_SESSION_SECONDS", 365 * 24 * 60 * 60, minimum=3600)
 REMOTE_NETWORKS_RAW = str(os.environ.get("DASHBOARD_REMOTE_NETWORKS", "private")).strip()
 REMOTE_DEFAULT_ENABLED = str(os.environ.get("DASHBOARD_REMOTE_ENABLED", "0")).strip().lower() in {"1", "true", "yes", "on"}
 ALLOWED_HOSTS_RAW = str(os.environ.get("DASHBOARD_ALLOWED_HOSTS", "")).strip()
@@ -84,10 +113,10 @@ REMOTE_SESSIONS_PATH = DATA_ROOT / "remote_sessions.json"
 USERS_PATH = DATA_ROOT / "dashboard_users.json"
 REMOTE_SESSION_LOCK = threading.Lock()
 REMOTE_SESSIONS = {}
-MAX_REMOTE_SESSIONS = max(64, min(4096, int(os.environ.get("DASHBOARD_MAX_REMOTE_SESSIONS", "512"))))
-MAX_REMOTE_SESSIONS_PER_USER = max(8, min(256, int(os.environ.get("DASHBOARD_MAX_REMOTE_SESSIONS_PER_USER", "64"))))
-OWNER_DEVICE_SESSION_SECONDS = max(3600, min(365 * 24 * 60 * 60, int(os.environ.get("DASHBOARD_OWNER_DEVICE_SESSION_SECONDS", str(30 * 24 * 60 * 60)))))
-OWNER_ENROLLMENT_TTL_SECONDS = max(120, min(1800, int(os.environ.get("DASHBOARD_OWNER_ENROLLMENT_SECONDS", "600"))))
+MAX_REMOTE_SESSIONS = _env_int("DASHBOARD_MAX_REMOTE_SESSIONS", 512, minimum=64, maximum=4096)
+MAX_REMOTE_SESSIONS_PER_USER = _env_int("DASHBOARD_MAX_REMOTE_SESSIONS_PER_USER", 64, minimum=8, maximum=256)
+OWNER_DEVICE_SESSION_SECONDS = _env_int("DASHBOARD_OWNER_DEVICE_SESSION_SECONDS", 30 * 24 * 60 * 60, minimum=3600, maximum=365 * 24 * 60 * 60)
+OWNER_ENROLLMENT_TTL_SECONDS = _env_int("DASHBOARD_OWNER_ENROLLMENT_SECONDS", 600, minimum=120, maximum=1800)
 OWNER_ENROLLMENT_LOCK = threading.RLock()
 OWNER_ENROLLMENTS = {}
 OWNER_ENROLLMENT_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -114,14 +143,14 @@ BROKER_LOCK = threading.Lock()
 BROKER_KEY_LOCKS = {}
 BROKER_STATUS = {}
 BROKER_REFRESHING = set()
-BROKER_REFRESH_WORKERS = max(1, min(16, int(os.environ.get("DASHBOARD_BROKER_REFRESH_WORKERS", "4"))))
+BROKER_REFRESH_WORKERS = _env_int("DASHBOARD_BROKER_REFRESH_WORKERS", 4, minimum=1, maximum=16)
 BROKER_REFRESH_EXECUTOR = ThreadPoolExecutor(max_workers=BROKER_REFRESH_WORKERS, thread_name_prefix="libredisplay-broker")
 BROKER_BACKOFF_SECONDS = (5, 15, 30, 60, 120, 300, 600)
 OUTBOUND_RETRY_STATUSES = {408, 425, 429, 500, 502, 503, 504}
 OUTBOUND_RETRY_METHODS = {"GET", "HEAD"}
-OUTBOUND_RETRY_ATTEMPTS = max(1, min(4, int(os.environ.get("DASHBOARD_OUTBOUND_RETRY_ATTEMPTS", "2"))))
-OUTBOUND_RETRY_BASE_SECONDS = max(0.05, min(2.0, float(os.environ.get("DASHBOARD_OUTBOUND_RETRY_BASE_SECONDS", "0.35"))))
-DNS_RESOLVE_WORKERS = max(1, min(16, int(os.environ.get("DASHBOARD_DNS_RESOLVE_WORKERS", "4"))))
+OUTBOUND_RETRY_ATTEMPTS = _env_int("DASHBOARD_OUTBOUND_RETRY_ATTEMPTS", 2, minimum=1, maximum=4)
+OUTBOUND_RETRY_BASE_SECONDS = _env_float("DASHBOARD_OUTBOUND_RETRY_BASE_SECONDS", 0.35, minimum=0.05, maximum=2.0)
+DNS_RESOLVE_WORKERS = _env_int("DASHBOARD_DNS_RESOLVE_WORKERS", 4, minimum=1, maximum=16)
 DNS_RESOLVE_SLOTS = threading.BoundedSemaphore(DNS_RESOLVE_WORKERS)
 OUTBOUND_HEALTH_LOCK = threading.Lock()
 OUTBOUND_HEALTH = {
@@ -1398,7 +1427,7 @@ def configured_media_roots():
 MEDIA_ROOTS = configured_media_roots()
 AUTH_FAILURES = {}
 AUTH_FAILURE_LOCK = threading.Lock()
-MAX_AUTH_FAILURE_CLIENTS = max(64, min(4096, int(os.environ.get("DASHBOARD_MAX_AUTH_FAILURE_CLIENTS", "1024"))))
+MAX_AUTH_FAILURE_CLIENTS = _env_int("DASHBOARD_MAX_AUTH_FAILURE_CLIENTS", 1024, minimum=64, maximum=4096)
 HOUSEHOLD_LOCK = threading.RLock()
 
 
@@ -4260,7 +4289,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return self.text_response(400, "QR text must be between 1 and 2048 characters")
         binary = shutil.which("qrencode")
         if not binary:
-            return self.text_response(503, "Local QR support is not installed")
+            try:
+                svg = qr_svg_markup(value).encode("utf-8")
+                return self.bytes_response(200, svg, "image/svg+xml; charset=utf-8", {"Cache-Control": "no-store"})
+            except Exception:
+                return self.text_response(500, "Could not generate QR code")
         try:
             proc = subprocess.run(
                 [binary, "-o", "-", "-t", "PNG", "-s", "6", "-m", "2"],
@@ -4272,7 +4305,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             )
             if proc.returncode != 0 or not proc.stdout:
                 return self.text_response(400, "Could not generate QR code")
-            return self.bytes_response(200, proc.stdout, "image/png")
+            return self.bytes_response(200, proc.stdout, "image/png", {"Cache-Control": "no-store"})
         except subprocess.TimeoutExpired:
             return self.text_response(504, "QR generation timed out")
         except Exception:

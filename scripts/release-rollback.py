@@ -12,6 +12,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 FORMAT_VERSION = 1
@@ -20,14 +21,14 @@ REQUIRED_CODE_DIRS = ("app", "scripts")
 OPTIONAL_CODE_DIRS = ("assets",)
 CODE_DIRS = REQUIRED_CODE_DIRS + OPTIONAL_CODE_DIRS
 REQUIRED_TOP_FILES = ("VERSION", "install.sh", "update.sh", "uninstall.sh")
-OPTIONAL_TOP_FILES = ("Dockerfile", "LICENSE", "README.md", "docker-compose.yml")
+OPTIONAL_TOP_FILES = ("Dockerfile", "LICENSE", "README.md", "HELP.md", "docker-compose.yml")
 TOP_FILES = OPTIONAL_TOP_FILES + REQUIRED_TOP_FILES
 CHUNK = 1024 * 1024
 PRIVILEGED_HELPER = Path("/usr/local/libexec/libredisplay-privileged")
 UPDATE_TRANSACTION_NAME = "update-transaction.json"
 UPDATE_TRANSACTION_STATES = {"prepared", "replacing", "validated"}
 CORE_RUNTIME_FILES = (
-    "VERSION", "app/dashboard.html", "app/dashboard_server.py", "app/js/app.js",
+    "VERSION", "app/dashboard.html", "app/dashboard_server.py", "app/qrcode_vendor.zip", "app/js/app.js",
     "app/js/module-manifest.json", "scripts/start.sh", "scripts/verify-frontend.py",
     "scripts/release-rollback.py", "scripts/server-backup.py", "install.sh", "update.sh", "uninstall.sh",
 )
@@ -368,6 +369,14 @@ def verify_installed_release(install_dir: Path, expected_version: str = ""):
     version = (install_dir / "VERSION").read_text(encoding="utf-8").strip()
     if expected_version and version != str(expected_version).strip():
         raise RuntimeError(f"Installed LibreDisplay version mismatch: expected {expected_version}, found {version or 'unknown'}")
+    qr_archive = install_dir / "app" / "qrcode_vendor.zip"
+    try:
+        with zipfile.ZipFile(qr_archive) as archive:
+            required_qr = {"qrcode/__init__.py", "qrcode/main.py", "qrcode/constants.py", "qrcode/LICENSE"}
+            if not required_qr.issubset(set(archive.namelist())) or archive.testzip() is not None:
+                raise ValueError("missing or corrupt QR vendor members")
+    except (OSError, zipfile.BadZipFile, ValueError) as exc:
+        raise RuntimeError(f"Installed LibreDisplay QR dependency validation failed: {exc}") from exc
     for rel in CORE_PYTHON_FILES:
         path = install_dir / rel
         try:
