@@ -202,11 +202,12 @@ function calendarFitScale(el){
   if(!el||el.clientWidth<2||el.clientHeight<2)return 1;
   const items=[...el.querySelectorAll(':scope > .day-col')];if(!items.length)return 1;
   const css=getComputedStyle(el),cols=Math.max(1,String(css.gridTemplateColumns||'').split(/\s+/).filter(Boolean).length),rows=Math.max(1,Math.ceil(items.length/cols)),rowGap=Math.max(0,parseFloat(css.rowGap)||0),padTop=Math.max(0,parseFloat(css.paddingTop)||0),padBottom=Math.max(0,parseFloat(css.paddingBottom)||0);
-  const base=Math.max(1,parseFloat(css.getPropertyValue('--ld-layout-calendar-row-base'))||parseFloat(css.gridAutoRows)||150),usableH=Math.max(1,el.clientHeight-padTop-padBottom-rowGap*(rows-1)),rowHeight=Math.max(22,Math.min(base,usableH/rows));
+  const base=Math.max(1,parseFloat(css.getPropertyValue('--ld-layout-calendar-row-base'))||150),usableH=Math.max(1,el.clientHeight-padTop-padBottom-rowGap*(rows-1)),rowHeight=Math.max(22,Math.min(base,usableH/rows));
+  // Calendar typography never auto-shrinks. The computed row is only a minimum:
+  // wrapped events increase the row's max-content height and naturally push
+  // following events (and later calendar rows) down while #top-strip handles overflow.
   el.style.setProperty('--ld-layout-calendar-row',rowHeight.toFixed(2)+'px');
-  let ratio=1;
-  for(const item of items){const iw=Math.max(1,item.clientWidth-2),sw=Math.max(1,item.scrollWidth),sh=Math.max(1,item.scrollHeight);ratio=Math.min(ratio,iw/sw,Math.max(1,rowHeight-2)/sh);}
-  return clampLayoutFit(ratio);
+  return 1;
 }
 function forecastFitScale(block,gridSelector,itemSelector){
   if(!block||block.clientWidth<2||block.clientHeight<2)return 1;

@@ -305,7 +305,7 @@ function applyUiCustomization(source=cfg){
     html.cursor-active #cog{opacity:${Math.min(.95,q(source.settingsCogOpacity,10,90,42)/100+.18).toFixed(2)}}
     #cog::before{display:${source.settingsCogLabel===false?'none':'block'};right:${String(source.settingsCogPosition||'').endsWith('left')?'auto':'54px'};left:${String(source.settingsCogPosition||'').endsWith('left')?'54px':'auto'};transform:${String(source.settingsCogPosition||'').endsWith('left')?'translate(-7px,-50%)':'translate(7px,-50%)'}}
     #cog:hover::before,#cog:focus-visible::before,#cog.cog-discover::before{transform:translate(0,-50%)}
-    #top-strip{height:${calH}px;padding-left:${sidePad}px;padding-right:${sidePad}px;grid-template-columns:repeat(${calCols},minmax(0,1fr));--ld-layout-calendar-row-base:${calCellH}px;grid-auto-rows:var(--ld-layout-calendar-row,var(--ld-layout-calendar-row-base));overflow-y:auto;overflow-x:hidden}
+    #top-strip{height:${calH}px;padding-left:${sidePad}px;padding-right:${sidePad}px;grid-template-columns:repeat(${calCols},minmax(0,1fr));--ld-layout-calendar-row-base:${calCellH}px;grid-auto-rows:minmax(var(--ld-layout-calendar-row,var(--ld-layout-calendar-row-base)),max-content);overflow-y:auto;overflow-x:hidden}
     #bottom{grid-template-columns:${leftW}px minmax(0,1fr);min-height:${bottomH}px;padding-left:${sidePad}px;padding-right:${sidePad}px}
     #wx-left{width:${leftW}px}
     .wx-details{width:${detailW}px;grid-template-columns:repeat(${weatherDetailColumnCount(detailCount)},minmax(0,1fr));display:${detailEnabledCount>0?'grid':'none'}}

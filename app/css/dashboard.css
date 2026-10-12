@@ -65,6 +65,7 @@ body {
   padding:18px 20px 8px;
   gap:4px;
   align-items:stretch;
+  grid-auto-rows:minmax(var(--ld-layout-calendar-row,var(--ld-layout-calendar-row-base,150px)),max-content);
   overflow-y:auto;
   overflow-x:hidden;
   scrollbar-width:none;
@@ -74,7 +75,7 @@ body {
 .day-col {
   flex:1;
   min-width:0;
-  height:100%;
+  height:auto;
   padding:0 10px 8px;
   border-right:1px solid rgba(255,255,255,0.13);
 }
@@ -112,6 +113,8 @@ body {
 .event-item {
   display:flex;
   flex-direction:column;
+  flex:0 0 auto;
+  min-width:0;
   gap:2px;
 }
 .event-time {
@@ -675,8 +678,8 @@ body.custom-layout #wx-hourly-block .wx-hourly { position:absolute;left:0;bottom
 body.custom-layout :is(#top-strip,.wx-main,#clock-block,.wx-details,#wx-forecast,#wx-hourly-block){contain:layout paint;}
 body.custom-layout #calendar-legend { position:fixed; }
 /* Built-in content is fitted inside its Arrange rectangle without changing the
-   rectangle itself. Chromium's zoom participates in layout, so text, gaps,
-   and line boxes shrink together instead of merely being visually transformed. */
+   rectangle itself. Calendar entries are the exception: their typography stays
+   at the user's chosen size and wrapped events grow vertically instead of zooming. */
 body.custom-layout .wx-main > .wx-current,
 body.custom-layout .wx-main > .wx-feels,
 body.custom-layout .wx-main > .wx-cond,
@@ -684,7 +687,6 @@ body.custom-layout .wx-main > .wx-moon-info { zoom:var(--ld-layout-fit-current,1
 body.custom-layout #clock-block > .clock-time,
 body.custom-layout #clock-block > .clock-date { zoom:var(--ld-layout-fit-clock,1); }
 body.custom-layout .wx-details > .wx-detail { zoom:var(--ld-layout-fit-details,1); }
-body.custom-layout #top-strip > .day-col { zoom:var(--ld-layout-fit-calendar,1); }
 body.custom-layout #wx-forecast > .fc-col { zoom:var(--ld-layout-fit-daily,1); }
 body.custom-layout #wx-hourly-block .wx-hourly > .hr-col { zoom:var(--ld-layout-fit-hourly,1); }
 
