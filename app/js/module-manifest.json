@@ -40,7 +40,7 @@
     "module": "config",
     "part": "bundle",
     "path": "/js/modules/config.js",
-    "lines": 586,
+    "lines": 595,
     "functions": 17,
     "bindings": 53,
     "sections": [
@@ -64,7 +64,7 @@
     "module": "weather",
     "part": "bundle",
     "path": "/js/modules/weather.js",
-    "lines": 1573,
+    "lines": 1574,
     "functions": 188,
     "bindings": 14,
     "sections": [
@@ -136,7 +136,7 @@
     "module": "appearance",
     "part": "bundle",
     "path": "/js/modules/appearance.js",
-    "lines": 1042,
+    "lines": 1046,
     "functions": 63,
     "bindings": 12,
     "sections": [
@@ -176,7 +176,7 @@
     "module": "onboarding",
     "part": "bundle",
     "path": "/js/modules/onboarding.js",
-    "lines": 485,
+    "lines": 511,
     "functions": 55,
     "bindings": 4,
     "sections": [
@@ -188,7 +188,7 @@
     "module": "settings",
     "part": "bundle",
     "path": "/js/modules/settings.js",
-    "lines": 1560,
+    "lines": 1571,
     "functions": 82,
     "bindings": 18,
     "sections": [
@@ -202,10 +202,22 @@
   },
   {
     "order": 16,
+    "module": "qol",
+    "part": "bundle",
+    "path": "/js/modules/qol.js",
+    "lines": 164,
+    "functions": 51,
+    "bindings": 0,
+    "sections": [
+      "/js/qol/index.js"
+    ]
+  },
+  {
+    "order": 17,
     "module": "lifecycle",
     "part": "bundle",
     "path": "/js/modules/lifecycle.js",
-    "lines": 120,
+    "lines": 121,
     "functions": 5,
     "bindings": 3,
     "sections": [

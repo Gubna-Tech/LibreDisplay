@@ -40,6 +40,7 @@ function currentWizardDisplayName(){
 }
 function beginWizardSession(){
   configApi.wizardStepIndex=0;
+  configApi.wizardSetupDepth='quick';
   configApi.wizardDisplayNameDraft=currentWizardDisplayName();
   configApi.wizardDisplayNameTouched=false;
   configApi.wizardCreateBaseline=true;
@@ -137,13 +138,37 @@ function buildWizardHealthRows(){
 function renderWizardHealth(){
   const extra=document.getElementById('wizard-extra');if(!extra)return;
   const rows=configApi.wizardHealthRows.length?configApi.wizardHealthRows:buildWizardHealthRows();
-  extra.innerHTML=`<div class="wizard-health-grid">${rows.map(r=>wizardHealthCard(r.name,r.detail,r.state)).join('')}</div><div class="wizard-health-actions"><button class="btn-util" type="button" data-ld-action-click="onboarding.runWizardHealthChecks" ${configApi.wizardHealthRunning?'disabled':''}>${configApi.wizardHealthRunning?'Checking…':'Run checks again'}</button><span class="wizard-health-status">${configApi.wizardHealthRunning?'Testing live data sources and local health. This can take a few seconds.':'Warnings are informational; optional features can stay disabled.'}</span></div>`;
+  extra.innerHTML=`<div class="wizard-health-grid">${rows.map(r=>wizardHealthCard(r.name,r.detail,r.state)).join('')}</div><div class="wizard-health-actions"><button class="btn-util" type="button" data-ld-action-click="onboarding.runWizardHealthChecks" ${configApi.wizardHealthRunning?'disabled':''}>${configApi.wizardHealthRunning?'Checking…':'Run checks again'}</button>${configApi.wizardSetupDepth==='quick'?'<button class="btn-util" type="button" data-ld-action-click="onboarding.openFullSettingsFromWizard">Customize more</button>':''}<span class="wizard-health-status">${configApi.wizardHealthRunning?'Testing live data sources and local health. This can take a few seconds.':'Warnings are informational; optional features can stay disabled. Open the dashboard now, or continue into full Settings.'}</span></div>`;
+}
+const WIZARD_QUICK_KEYS=Object.freeze(['welcome','location','layout','calendar','background','review','health']);
+function wizardActiveSteps(){return configApi.wizardSetupDepth==='full'?configApi.WIZARD_STEPS:configApi.WIZARD_STEPS.filter(step=>WIZARD_QUICK_KEYS.includes(step.key));}
+function wizardActivePosition(){const active=wizardActiveSteps(),key=configApi.WIZARD_STEPS[configApi.wizardStepIndex]?.key;return Math.max(0,active.findIndex(step=>step.key===key));}
+function wizardMove(delta){const active=wizardActiveSteps(),pos=wizardActivePosition(),next=active[Math.max(0,Math.min(active.length-1,pos+delta))];if(!next)return;const index=configApi.WIZARD_STEPS.findIndex(step=>step.key===next.key);if(index>=0)configApi.wizardStepIndex=index;renderWizardStep();}
+function setWizardSetupDepth(mode){configApi.wizardSetupDepth=mode==='full'?'full':'quick';const current=configApi.WIZARD_STEPS[configApi.wizardStepIndex]?.key;if(!wizardActiveSteps().some(step=>step.key===current)){const welcome=configApi.WIZARD_STEPS.findIndex(step=>step.key==='welcome');configApi.wizardStepIndex=Math.max(0,welcome);}renderWizardStep();}
+async function wizardRemoteHandoff(){
+  if(bootstrapApi.SESSION_ROLE!=='owner'){alert('Continue setup from the local Owner display, then connect another device from Displays & Access.');return false;}
+  const status=document.getElementById('wizard-remote-handoff-status');if(status)status.textContent='Preparing a private-network Owner connection…';
+  try{
+    await loadRemoteInfo();
+    if(!configApi.remoteInfo?.remoteEnabled){
+      if(!confirm('Enable Remote Access on your trusted private LAN/VPN so this setup can continue from another device? Do not port-forward LibreDisplay to the public internet.')){if(status)status.textContent='Remote setup was left off. You can continue here.';return false;}
+      const res=await resilientFetch('/api/remote-access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:true}),cache:'no-store'}),data=await res.json().catch(()=>({}));
+      if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));await loadRemoteInfo();
+    }
+    const res=await resilientFetch('/api/owner-enrollment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create'}),cache:'no-store'}),data=await res.json().catch(()=>({}));
+    if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));
+    const option=(Array.isArray(data.connectOptions)?data.connectOptions:[])[0]||{},url=String(option.url||data.primaryUrl||'');
+    const card=document.getElementById('wizard-remote-handoff-card');if(card)card.innerHTML=`<div class="wizard-handoff-ready"><div><b>Scan to continue on your phone or computer</b><span>The one-time Owner connection expires quickly and can be used once. This setup stays open here too.</span><div class="wizard-handoff-code">${escHtml(String(data.code||'----'))}</div><div class="wizard-handoff-url">${escHtml(url)}</div></div><div class="wizard-handoff-qr">${String(option.qrSvg||data.qrSvg||'')}</div></div>`;
+    if(status)status.textContent='Remote setup is ready on your private network.';return true;
+  }catch(error){if(status)status.textContent='Could not prepare remote setup: '+String(error?.message||error);return false;}
 }
 function renderWizardExtra(step){
   const extra=document.getElementById('wizard-extra');if(!extra)return;
   extra.className='wizard-extra'+(step.key==='welcome'?' welcome':'');
   if(step.key==='welcome'){
-    extra.innerHTML='<div class="wizard-feature-grid"><div><b>Guided, not separate</b><span>The wizard uses LibreDisplay’s real Settings controls, so there is no hidden second configuration path.</span></div><div><b>Exact location</b><span>Weather setup requires choosing the exact region, country, coordinates, and timezone before saving.</span></div><div><b>Recoverable</b><span>Optionally create a local baseline restore point immediately after first setup.</span></div></div>';
+    extra.innerHTML=`<div class="wizard-setup-depth"><button type="button" class="wizard-depth-card ${configApi.wizardSetupDepth==='quick'?'selected':''}" data-wizard-depth="quick"><b>Quick setup</b><span>Recommended. Location, starter layout, calendars, background, then save. Everything else keeps safe defaults and remains editable later.</span><em>FASTEST</em></button><button type="button" class="wizard-depth-card ${configApi.wizardSetupDepth==='full'?'selected':''}" data-wizard-depth="full"><b>Full guided setup</b><span>Walk through display naming, performance, alerts, appearance, remote access, Pi host mode, and recovery too.</span><em>ALL OPTIONS</em></button></div><div class="wizard-feature-grid"><div><b>Nothing is locked</b><span>Starter choices are only defaults. Every supported option remains editable in Settings.</span></div><div><b>Exact location</b><span>Weather setup verifies the exact region, country, coordinates, and timezone before saving.</span></div><div><b>Easy recovery</b><span>A private local baseline restore point is created after first setup unless you turn it off in Full setup.</span></div></div><div id="wizard-remote-handoff-card" class="wizard-remote-handoff"><div><b>Prefer your phone or computer?</b><span>Continue setup from a trusted device on the same private network with a one-time Owner QR/code.</span></div><button id="wizard-remote-handoff" class="btn-util" type="button">Set up from another device</button></div><div id="wizard-remote-handoff-status" class="wizard-inline-note">Remote setup stays off unless you choose this option.</div>`;
+    extra.querySelectorAll('[data-wizard-depth]').forEach(btn=>btn.addEventListener('click',()=>setWizardSetupDepth(btn.dataset.wizardDepth)));
+    document.getElementById('wizard-remote-handoff')?.addEventListener('click',wizardRemoteHandoff);
   }else if(step.key==='display'){
     if(bootstrapApi.SESSION_ROLE!=='owner')extra.innerHTML='<div class="wizard-inline-note">Display naming requires Owner access. You can continue with the existing name.</div>';
     else{
@@ -176,19 +201,19 @@ function renderWizardExtra(step){
 }
 function renderWizardStep(){
   if(!configApi.isWizardMode)return;
-  const step=configApi.WIZARD_STEPS[configApi.wizardStepIndex];
+  const step=configApi.WIZARD_STEPS[configApi.wizardStepIndex],activeSteps=wizardActiveSteps(),activePos=wizardActivePosition();
   document.querySelectorAll('.s-section[data-settings-tab]').forEach(el=>el.classList.remove('tab-active'));
   for(const id of step.sections){const section=document.getElementById(id);section?.classList.add('tab-active');section?.classList.remove('section-collapsed');section?.querySelector(':scope > h3')?.setAttribute('aria-expanded','true');}
   const summary=document.getElementById('wizard-summary');summary?.classList.toggle('visible',step.key==='review');
   if(step.key==='review')renderWizardSummary();
   renderWizardExtra(step);
   const label=document.getElementById('wizard-step-label'),modeLabel=document.getElementById('wizard-mode-label'),bar=document.getElementById('wizard-progress-bar'),title=document.getElementById('wizard-title'),desc=document.getElementById('wizard-desc');
-  if(label)label.textContent=`Step ${configApi.wizardStepIndex+1} of ${configApi.WIZARD_STEPS.length}`;
+  if(label)label.textContent=`Step ${activePos+1} of ${activeSteps.length}`;
   if(modeLabel)modeLabel.textContent=cfg.onboardingComplete?'Guided setup':'First-run setup';
-  if(bar)bar.style.width=`${((configApi.wizardStepIndex+1)/configApi.WIZARD_STEPS.length)*100}%`;
+  if(bar)bar.style.width=`${((activePos+1)/activeSteps.length)*100}%`;
   if(title)title.textContent=step.title;if(desc)desc.textContent=step.desc;
   const back=document.getElementById('wizard-back'),skip=document.getElementById('wizard-skip'),next=document.getElementById('wizard-next');
-  if(back)back.disabled=configApi.wizardStepIndex===0||step.key==='health';
+  if(back)back.disabled=activePos===0||step.key==='health';
   if(skip)skip.style.display=step.skippable?'':'none';
   if(next){next.disabled=configApi.wizardHealthRunning;next.textContent=step.key==='review'?'Save & run checks':step.key==='health'?'Open dashboard':step.key==='welcome'?'Start setup':'Next';}
   updateBackgroundSourceUI();
@@ -235,8 +260,8 @@ async function wizardSaveAndRunChecks(){
   renderWizardStep();
   await runWizardHealthChecks();
 }
-function wizardBack(){if(configApi.wizardStepIndex>0&&configApi.WIZARD_STEPS[configApi.wizardStepIndex]?.key!=='health'){configApi.wizardStepIndex--;renderWizardStep();}}
-function wizardSkip(){if(configApi.wizardStepIndex<configApi.WIZARD_STEPS.length-1){configApi.wizardStepIndex++;renderWizardStep();}}
+function wizardBack(){if(wizardActivePosition()>0&&configApi.WIZARD_STEPS[configApi.wizardStepIndex]?.key!=='health')wizardMove(-1);}
+function wizardSkip(){if(wizardActivePosition()<wizardActiveSteps().length-1)wizardMove(1);}
 async function wizardNext(){
   const step=configApi.WIZARD_STEPS[configApi.wizardStepIndex];
   if(step.key==='location'){
@@ -246,7 +271,7 @@ async function wizardNext(){
   }
   if(step.key==='review'){await wizardSaveAndRunChecks();return;}
   if(step.key==='health'){const modeResult=await wizardApplyServerMode();if(!modeResult.ok){alert('LibreDisplay could not apply the selected Pi host mode: '+modeResult.error);return;}closeSetup(false);applySettings();return;}
-  configApi.wizardStepIndex++;renderWizardStep();
+  wizardMove(1);
 }
 function openFullSettingsFromWizard(){setWizardMode(false);switchSettingsTab('overview',false);}
 function startWizardFromSettings(){setWizardMode(true);}
@@ -460,6 +485,7 @@ async function saveSetup(options={}){
   cfg.alertRefreshMin=Math.min(30,Math.max(3,Number(document.getElementById('s-alert-refresh').value)||5));
   configApi.alertRuntimeState=null;
   Object.assign(cfg,appearanceFromForm());
+  LibreDisplayRuntime.getModule('qol')?.applyDraftToConfig?.(cfg);
   if(appearanceApi.settingsLayoutPresetKey!=='current'){
     applyLayoutPresetToSource(cfg,appearanceApi.settingsLayoutPresetKey,{commit:true});
     appearanceApi.settingsLayoutPresetKey='current';
@@ -475,7 +501,7 @@ async function saveSetup(options={}){
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
 window.addEventListener('resize',()=>{if(configApi.isWizardMode)applyWizardDisplayScale();});
-LibreDisplayRuntime.exposeModule("onboarding", {applyStarterTemplate,wizardPerformanceState,wizardPerformanceProfile,applyWizardPerformancePreset,wizardPerformanceFeatureChanged,currentWizardDisplayName,beginWizardSession,syncWizardDisplayNameFromEndpoints,wizardPhysicalViewport,wizardDisplayScale,applyWizardDisplayScale,setWizardMode,renderWizardSummary,wizardHealthCard,buildWizardHealthRows,renderWizardHealth,renderWizardExtra,renderWizardStep,wizardCommitDisplayName,wizardCreateSetupBaseline,wizardApplyServerMode,wizardLoadRestorePointCount,runWizardHealthChecks,wizardSaveAndRunChecks,wizardBack,wizardSkip,wizardNext,openFullSettingsFromWizard,startWizardFromSettings,newCalendarId,calendarRowsFromDom,readCalendarInputs,syncCalendarEditorRows,calendarCardHtml,bindCalendarCard,renderCalendarSourceList,addCalendarSource,removeCalendarSource,duplicateCalendarSource,importCalendarFile,calendarOrderIds,calendarPriority,readCalendarOrder,renderCalendarOrderList,moveCalendarOrder,renderCalendarLegend,bindCalendarColorControls,bindCalendarUxInputs,updateCalendarEntryVisibility,toggleEmptyCalendarSlots,readCalendarAddonCustomization,normalizeWeatherLocationResult,savedWeatherLocation,weatherLocationTitle,weatherLocationSearchText,renderWeatherLocationSelected,weatherLocationQueryChanged,selectWeatherLocationResult,searchWeatherLocations,previewWeatherLocationLabel,saveSetup}, {
+LibreDisplayRuntime.exposeModule("onboarding", {applyStarterTemplate,wizardPerformanceState,wizardPerformanceProfile,applyWizardPerformancePreset,wizardPerformanceFeatureChanged,currentWizardDisplayName,beginWizardSession,syncWizardDisplayNameFromEndpoints,wizardPhysicalViewport,wizardDisplayScale,applyWizardDisplayScale,setWizardMode,renderWizardSummary,wizardHealthCard,buildWizardHealthRows,renderWizardHealth,renderWizardExtra,renderWizardStep,wizardActiveSteps,wizardActivePosition,setWizardSetupDepth,wizardRemoteHandoff,wizardCommitDisplayName,wizardCreateSetupBaseline,wizardApplyServerMode,wizardLoadRestorePointCount,runWizardHealthChecks,wizardSaveAndRunChecks,wizardBack,wizardSkip,wizardNext,openFullSettingsFromWizard,startWizardFromSettings,newCalendarId,calendarRowsFromDom,readCalendarInputs,syncCalendarEditorRows,calendarCardHtml,bindCalendarCard,renderCalendarSourceList,addCalendarSource,removeCalendarSource,duplicateCalendarSource,importCalendarFile,calendarOrderIds,calendarPriority,readCalendarOrder,renderCalendarOrderList,moveCalendarOrder,renderCalendarLegend,bindCalendarColorControls,bindCalendarUxInputs,updateCalendarEntryVisibility,toggleEmptyCalendarSlots,readCalendarAddonCustomization,normalizeWeatherLocationResult,savedWeatherLocation,weatherLocationTitle,weatherLocationSearchText,renderWeatherLocationSelected,weatherLocationQueryChanged,selectWeatherLocationResult,searchWeatherLocations,previewWeatherLocationLabel,saveSetup}, {
   "STARTER_TEMPLATES": {configurable:true,get:()=>STARTER_TEMPLATES},
   "STARTER_TEMPLATE_LAYOUTS": {configurable:true,get:()=>STARTER_TEMPLATE_LAYOUTS},
   "pendingWeatherLocation": {configurable:true,get:()=>pendingWeatherLocation,set:(value)=>{pendingWeatherLocation=value;}},

@@ -231,6 +231,21 @@ The first-time wizard writes the same real configuration used by the full Settin
 
 You can change every major wizard choice later.
 
+### Quick setup or full guided setup
+
+The welcome screen offers two paths:
+
+- **Quick setup** — the recommended first-run path: location, starter layout, calendars, background, review, and health checks. Performance, alerts, remote access, host mode, recovery, and other advanced choices keep safe defaults and remain editable later.
+- **Full guided setup** — walks through every first-run decision, including display naming, performance, alerts, appearance, remote access, Pi host mode, and recovery.
+
+Neither mode removes or locks settings. Quick setup only postpones decisions that a new user does not need to make before seeing a working dashboard.
+
+### Continue setup from another device
+
+If configuring the wall display itself is awkward, choose **Set up from another device** on the welcome screen. LibreDisplay creates a short-lived, one-time Owner connection and brings up a QR/code workflow for a trusted phone, tablet, or computer on the same private network. Remote editing stays disabled unless you explicitly choose this option.
+
+The numbered steps below describe the complete guided path. Quick setup uses the relevant subset and then takes you straight to review and health checks.
+
 ---
 
 ## 1. Name the display
@@ -790,14 +805,28 @@ Use **Essentials** for normal configuration. Use **All** when you need power-use
 
 Settings also includes:
 
-- search
-- category navigation
-- per-category section jump menus
+- search with aliases and direct editing for many matching controls
+- a **Favorites** bucket at the end of the Start here group
+- per-setting favorite stars, exact numeric entry for sliders, and one-control reset buttons
+- a **Modified only** filter that shows settings changed from their defaults
+- category navigation and per-category section jump menus
+- reusable section presets that become **Custom** as soon as you fine-tune a control
+- live preview plus a press-and-hold comparison with the saved dashboard for visual sections
 - expand/collapse controls
 - contextual `?` help tips
 - live saved/unsaved state
 
-If you know a word but not the category, Settings search is usually faster than hunting manually.
+If you know a word but not the category, Settings search is usually faster than hunting manually. Search understands common alternate words such as dog, puppy, pet, companion, wind, forecast, and similar feature terms. When a result can be edited safely in place, LibreDisplay shows the control directly in the search result.
+
+### Favorites and Modified only
+
+Use the star control beside any setting to place it in **Favorites**. Favorites is the last item in the first Start here group, so frequently used controls stay close without changing the organization of the full Settings tree. Favorites are live proxies for the original controls; changing a favorite changes the real setting. Use the up/down actions to organize the bucket.
+
+Use **Modified only** when you want to see what differs from LibreDisplay defaults. Modified controls are marked in their normal sections as well, and the per-control reset returns only that setting to its default instead of wiping a whole section.
+
+### Sliders and presets
+
+Range controls keep the ordinary slider for quick adjustment and add a precise numeric field plus a one-setting reset. Where a section has presets, treat them as starting points rather than locked modes: choosing a preset fills the controls, and changing any individual value turns that section into **Custom**.
 
 ---
 
@@ -926,6 +955,12 @@ Typical controls include:
 
 Optional add-ons are off by default. The master add-on control governs participation without erasing the detailed choices underneath. Each category has an editable label and default color. Open a category to hide individual dates, rename them for your household, or give a specific date its own color while keeping the rest of the category enabled.
 
+### Event rules
+
+Open **Calendars > Event rules** for no-code event presentation rules. A rule can match an event title, calendar, location, or all-day state and can hide the match, add a short prefix such as an emoji, recolor it, or change emphasis. Rules affect LibreDisplay presentation only; they do not edit the source calendar.
+
+Calendar presentation also has Compact, Balanced, and Roomy starting points. These presets never lock the individual event spacing, padding, corner radius, title size, time size, or line-height controls.
+
 ### When events are missing
 
 Check in this order:
@@ -1040,6 +1075,12 @@ This category controls:
 - weather/shelter behavior
 - holiday overlays and special-day scenes
 
+### Dog behavior mix
+
+The simple **Companion activity** control still changes the dog's overall pace. In **All** settings, **Dog behavior mix** adds independent frequency controls for rest, sit, sleep, sniff, watching surroundings, wandering, inspecting the dashboard, surveying the room, stretching, scratching, digging, rolling over, fetch/chase-ball play, and bird watching/chasing.
+
+`100%` is LibreDisplay's natural weighting, `0%` disables that behavior, and higher values make it more likely. Calm, Natural, Playful, and Very active are editable starting presets; changing any behavior immediately makes the mix **Custom**. Use **Preview** beside a behavior when you want to see that action once before deciding how often it should occur.
+
 The dog and seasonal overlays are presentation features; they should not affect weather data itself.
 
 ---
@@ -1145,6 +1186,14 @@ Areas include:
 - physical-display diagnostics
 
 This is where you go when the question is “is LibreDisplay itself healthy?” rather than “how should my dashboard look?”
+
+---
+
+## Multi-display customization without overwriting everything
+
+For homes with more than one LibreDisplay screen, **Displays & Access** can copy only one settings section from one display to another. This is useful when you want to share calendars, weather, backgrounds, companion settings, or another group without replacing the target display's unrelated layout and preferences.
+
+A secondary display can also follow selected **Main** sections as household defaults. Inherited sections are labeled **Inherited from Main**. Editing an inherited section on the secondary display automatically makes that section local again, so inheritance never traps the user in a parent configuration.
 
 ---
 

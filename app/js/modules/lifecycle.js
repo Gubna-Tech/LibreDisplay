@@ -66,6 +66,7 @@ async function init(){
   // first useful frame. Start weather/AQI/background work before accounts,
   // integrations, household data, profiles, and scenes finish hydrating.
   await config.loadCfg();
+  await LibreDisplayRuntime.getModule('qol')?.applyInheritedConfig?.();
   onboarding.bindCalendarColorControls();
   appearance.bindTextColorControls();
   weather.previewAlertSize(cfg.alertCardPct);

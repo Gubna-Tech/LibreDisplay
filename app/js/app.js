@@ -17,6 +17,7 @@ const modulePaths = [
   "/js/modules/system.js",
   "/js/modules/onboarding.js",
   "/js/modules/settings.js",
+  "/js/modules/qol.js",
   "/js/modules/lifecycle.js",
 ];
 try {

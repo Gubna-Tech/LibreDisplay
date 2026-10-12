@@ -218,8 +218,18 @@ printf '%s\n%s\n%s\n%s\n' \
   "swayidle -w timeout 2 'wtype -k F24' &" \
   "sleep 5 && sh \"$INSTALL_DIR/scripts/start.sh\" &" >> "$AUTOSTART_FILE"
 
-printf '\nLibreDisplay %s is installed.\n' "$VERSION"
-printf 'Remote editing is OFF by default. Enable it from the local display only if you need it.\n'
+SETUP_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
+if [ -n "$SETUP_IP" ]; then SETUP_URL="http://$SETUP_IP:8787/"; else SETUP_URL="http://127.0.0.1:8787/"; fi
+printf '\nLibreDisplay %s is ready.\n' "$VERSION"
+printf '==============================\n'
+printf 'After reboot, finish setup in a browser:\n  %s\n' "$SETUP_URL"
+printf 'The first-run screen can create a one-time Owner QR/code if you want to continue setup from a phone or computer on the same trusted private network.\n'
+printf 'Remote editing remains OFF unless you explicitly enable that option.\n'
+if command -v qrencode >/dev/null 2>&1; then
+  printf '\nScan to open LibreDisplay on this network:\n'
+  qrencode -t ANSIUTF8 "$SETUP_URL" 2>/dev/null || true
+fi
+printf '\nUseful commands:\n  libredisplay addresses    Show connection addresses\n  libredisplay connect      Create a one-time Owner connection code\n'
 printf 'To remove LibreDisplay completely later: %s/uninstall.sh --purge\n' "$INSTALL_DIR"
 
 if [ "$NO_REBOOT" -eq 1 ]; then

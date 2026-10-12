@@ -796,7 +796,7 @@ function renderCalendar(events){
   for(let i=0;i<calendarDays;i++){
     const day=new Date(today);day.setDate(today.getDate()+i);
     const dayEnd=new Date(day);dayEnd.setDate(day.getDate()+1);
-    const dayEvts=events.filter(e=>eventOverlapsDay(e,day,dayEnd)).sort((a,b)=>{
+    const dayEvts=events.filter(e=>eventOverlapsDay(e,day,dayEnd)).map(e=>LibreDisplayRuntime.getModule('qol')?.applyCalendarEventRules?.(e,ui)??e).filter(Boolean).sort((a,b)=>{
       if(a.allDay!==b.allDay)return a.allDay?-1:1;
       const at=Math.max(a.start.getTime(),day.getTime()),bt=Math.max(b.start.getTime(),day.getTime());
       const ao=LibreDisplayRuntime.getModule('onboarding').calendarPriority(a.calIdx),bo=LibreDisplayRuntime.getModule('onboarding').calendarPriority(b.calIdx);
@@ -820,13 +820,13 @@ function renderCalendar(events){
     }else{
       evtHTML=dayEvts.map(ev=>{
         const feed=cfg.calendars?.[ev.calIdx]||{};
-        const color=ev.color||feed.color||integrationsApi.DEFAULT_CAL_COLORS[Math.abs(Number(ev.calIdx)||0)%integrationsApi.DEFAULT_CAL_COLORS.length];
+        const color=ev._qolStyle?.color||ev.color||feed.color||integrationsApi.DEFAULT_CAL_COLORS[Math.abs(Number(ev.calIdx)||0)%integrationsApi.DEFAULT_CAL_COLORS.length];
         const opacity=Math.min(100,Math.max(40,Number(feed.opacity)||100))/100;
         const timeStr=eventTimeForDay(ev,day);
         const showTimes=ui.calendarTimeStyle!=='none'&&ui.showEventTimes!==false;
-        return `<div class="event-item" style="opacity:${opacity.toFixed(2)}">
+        const style=ev._qolStyle||{},emphasis=style.emphasis&&style.emphasis!=='normal'?` event-emphasis-${style.emphasis}`:'',background=style.background?`background:${style.background};`:'';const location=ui.calendarShowLocation&&ev.location?`<div class="event-location">${esc(ev.location)}</div>`:'',description=ui.calendarShowDescription&&ev.description?`<div class="event-description">${esc(String(ev.description).slice(0,240))}</div>`:'';return `<div class="event-item${emphasis}" style="opacity:${opacity.toFixed(2)};${background}">
           ${showTimes?`<div class="event-time"><span class="event-bar" style="background:${color}"></span>${timeStr}</div>`:''}
-          <div class="event-title${showTimes?'':' event-title-no-time'}">${showTimes?'':`<span class="event-bar" style="background:${color}"></span>`}${esc(ev.title)}</div>
+          <div class="event-title${showTimes?'':' event-title-no-time'}">${showTimes?'':`<span class="event-bar" style="background:${color}"></span>`}${esc(ev.title)}</div>${location}${description}
         </div>`;
       }).join('');
     }
