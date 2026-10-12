@@ -816,7 +816,7 @@ Settings also includes:
 - contextual `?` help tips
 - live saved/unsaved state
 
-If you know a word but not the category, Settings search is usually faster than hunting manually. Search understands common alternate words such as dog, puppy, pet, companion, wind, forecast, and similar feature terms. When a result can be edited safely in place, LibreDisplay shows the control directly in the search result.
+If you know a word but not the category, Settings search is usually faster than hunting manually. Search opens a dedicated results workspace, ranks setting names and aliases ahead of broader section context, searches advanced controls even while Essentials is selected, and understands common alternate words such as dog, puppy, pet, companion, wind, and forecast. Matching settings show their category and section path, safe current values, and an expandable **Quick edit** control when inline editing makes sense. Press **Enter** from the search box to open the best match, or **Esc** to clear the search and return to the category you were using.
 
 ### Favorites and Modified only
 

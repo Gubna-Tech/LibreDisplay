@@ -67,6 +67,7 @@ function mountSettings(){
 }
 function unmountSettings(){
   if(!settingsMounted)return;
+  document.getElementById('setup')?.classList.remove('settings-search-active');
   LibreDisplayRuntime.getModule('qol')?.resetSettingsSession?.();document.getElementById('settings-mount')?.replaceChildren();settingsMounted=false;LibreDisplayRuntime.getModule('settings').settingsSectionsEnhanced=false;
 }
 function setSettingsPreviewReturnVisible(on){
@@ -144,6 +145,7 @@ function openSetup(startWizard=false){
   clearSettingsInitializationError();
   ensureCfgDefaults();
   const settingsSearch=document.getElementById('s-settings-search');if(settingsSearch)settingsSearch.value='';
+  document.getElementById('setup')?.classList.remove('settings-search-active');const searchStage=document.getElementById('settings-search-stage');if(searchStage)searchStage.hidden=true;document.getElementById('settings-search-results')?.replaceChildren();
   const searchStatus=document.getElementById('settings-search-status');if(searchStatus){searchStatus.style.display='none';searchStatus.textContent='';}
   loadSettingsViewMode();
   enhanceSettingsSections();
@@ -709,6 +711,9 @@ function enhanceSettingsSections(){
   settingsSectionsEnhanced=true;
   enhanceSettingsNavGroups();
   enhanceSettingsRangeGroups();
+  const settingsSearchInput=document.getElementById('s-settings-search');
+  if(settingsSearchInput&&settingsSearchInput.dataset.searchKeyboardBound!=='1'){settingsSearchInput.dataset.searchKeyboardBound='1';settingsSearchInput.addEventListener('keydown',event=>{if(event.key==='Escape'&&settingsSearchInput.value.trim()){event.preventDefault();event.stopPropagation();clearSettingsSearch();return;}if(event.key==='ArrowDown'){const first=document.querySelector('#settings-search-results .settings-search-result-open');if(first){event.preventDefault();first.focus();}return;}if(event.key==='Enter'&&settingsSearchInput.value.trim()&&!event.shiftKey&&!event.ctrlKey&&!event.metaKey&&!event.altKey){const first=document.querySelector('#settings-search-results .settings-search-result-open');if(first){event.preventDefault();first.click();}}});}
+  const settingsSearchStageClear=document.getElementById('settings-search-stage-clear');if(settingsSearchStageClear&&settingsSearchStageClear.dataset.bound!=='1'){settingsSearchStageClear.dataset.bound='1';settingsSearchStageClear.addEventListener('click',clearSettingsSearch);}
   let collapsed=[],hasSavedCollapseState=false;
   try{const raw=sessionStorage.getItem('libredisplay_settings_collapsed');hasSavedCollapseState=raw!==null;collapsed=JSON.parse(raw||'[]');if(!Array.isArray(collapsed))collapsed=[];}catch(e){collapsed=[];}
   const firstSectionByTab=new Set();
@@ -822,10 +827,8 @@ function switchSettingsTab(tab,scrollTop=true){
   try{sessionStorage.setItem('libredisplay_settings_tab',tab);}catch(e){}
   expandActiveSettingsNavGroup(tab);
   if(scrollTop){
-    const search=document.getElementById('s-settings-search');
-    if(search)search.value='';
-    const status=document.getElementById('settings-search-status');
-    if(status){status.style.display='none';status.textContent='';}
+    const search=document.getElementById('s-settings-search');if(search)search.value='';
+    resetSettingsSearchUi({restore:false});
   }
   document.querySelectorAll('.settings-tab-btn').forEach(btn=>{
     const on=btn.dataset.tab===tab;
@@ -879,52 +882,142 @@ const SETTINGS_SEARCH_ALIASES={
   'settings-weather-lightning':'weather effects thunderstorm lightning bolt bolts flash storm cloud rain sheets reduced motion oled dimming',
   'settings-utilities':'backup restore diagnostics recovery cache export import'
 };
-function settingsSectionSearchText(section){
-  const attrs=[...section.querySelectorAll('[data-help],[aria-label],[placeholder],[title]')].flatMap(el=>[el.dataset?.help,el.getAttribute('aria-label'),el.getAttribute('placeholder'),el.getAttribute('title')]).filter(Boolean).join(' ');
-  return `${section.textContent} ${section.id} ${section.dataset.settingsTab||''} ${SETTINGS_SECTION_SUMMARIES[section.id]||''} ${SETTINGS_SEARCH_ALIASES[section.id]||''} ${attrs}`.toLowerCase();
+function settingsSearchNormalize(value){
+  const text=String(value??'');
+  return (typeof text.normalize==='function'?text.normalize('NFKD'):text).replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9%+.#_-]+/g,' ').replace(/\s+/g,' ').trim();
 }
-
+function settingsSearchSectionTitle(section){
+  return section?.querySelector(':scope > h3')?.childNodes?.[0]?.textContent?.trim()||section?.querySelector(':scope > h3')?.textContent?.trim()||section?.id||'Settings';
+}
+function settingsSectionSearchText(section){
+  if(!section)return '';
+  const attrs=[...section.querySelectorAll('[data-help],[aria-label],[placeholder],[title]')].flatMap(el=>[el.dataset?.help,el.getAttribute('aria-label'),el.getAttribute('placeholder'),el.getAttribute('title')]).filter(Boolean).join(' ');
+  const subheads=[...section.querySelectorAll(':scope > .s-subhead,:scope > .howto')].slice(0,6).map(el=>el.textContent||'').join(' ');
+  return settingsSearchNormalize(`${settingsSearchSectionTitle(section)} ${section.id} ${SETTINGS_TAB_TITLES[section.dataset.settingsTab]||section.dataset.settingsTab||''} ${SETTINGS_SECTION_SUMMARIES[section.id]||''} ${SETTINGS_SEARCH_ALIASES[section.id]||''} ${subheads} ${attrs}`);
+}
+function settingsSearchControlTitle(el){
+  if(!el)return 'Setting';
+  if(el.tagName==='BUTTON'){
+    const explicit=String(el.getAttribute('aria-label')||'').trim();if(explicit)return explicit;
+    const copy=el.cloneNode(true);copy.querySelectorAll?.('.help-tip,.settings-nav-count,.settings-update-badge,.settings-favorite-toggle').forEach(x=>x.remove());
+    const text=String(copy.textContent||'').replace(/\s+/g,' ').trim();if(text)return text;
+  }
+  const label=settingsControlLabel(el);if(label){const copy=label.cloneNode(true);copy.querySelectorAll?.('.help-tip,.range-value,.settings-favorite-toggle,button').forEach(x=>x.remove());const text=String(copy.textContent||'').replace(/\s+/g,' ').trim().replace(/[—:-]+$/,'');if(text)return text;}
+  return String(el.getAttribute?.('aria-label')||el.id||'Setting');
+}
 function settingsSearchControlText(el){
-  const label=cleanSettingsLabelText(settingsControlLabel(el));
-  const attrs=[el.id,el.name,el.dataset?.help,el.getAttribute?.('aria-label'),el.getAttribute?.('placeholder'),el.getAttribute?.('title')].filter(Boolean).join(' ');
+  if(!el)return '';
+  const label=settingsSearchControlTitle(el);
+  const attrs=[el.id,el.name,el.dataset?.help,el.dataset?.searchAliases,SETTINGS_CONTROL_HELP[el.id],el.getAttribute?.('aria-label'),el.getAttribute?.('placeholder'),el.getAttribute?.('title')].filter(Boolean).join(' ');
   const options=el.tagName==='SELECT'?[...el.options].map(o=>o.textContent).join(' '):'';
-  const base=`${label} ${attrs} ${options}`.replace(/\s+/g,' ').trim();return (LibreDisplayRuntime.getModule('qol')?.applyControlAliasesToSearchText?.(el,base)||base).toLowerCase();
+  return settingsSearchNormalize(`${label} ${attrs} ${options}`);
+}
+function settingsSearchFieldHit(text,token,weight){
+  if(!text||!token)return 0;
+  if(text===token)return weight*8;
+  if(text.startsWith(token))return weight*6;
+  const words=text.split(' ');
+  if(words.includes(token))return weight*5;
+  if(words.some(word=>word.startsWith(token)))return weight*4;
+  if(text.includes(token))return weight*2;
+  return 0;
+}
+function settingsSearchScore(tokens,query,fields,label=''){
+  let score=0;
+  for(const token of tokens){
+    let best=0;
+    for(const [text,weight,minimum=1] of fields){if(token.length>=minimum)best=Math.max(best,settingsSearchFieldHit(text,token,weight));}
+    if(!best)return 0;score+=best;
+  }
+  if(label){if(label===query)score+=900;else if(label.startsWith(query))score+=620;else if(label.includes(query))score+=360;}
+  return score;
+}
+function settingsSearchSafeCurrentValue(el){
+  if(!el||el.disabled||['password','file','button','submit','reset','hidden'].includes(String(el.type||'').toLowerCase()))return '';
+  if(/(?:password|passwd|secret|token|credential|private[-_]?key|api[-_]?key|access[-_]?key|family[-_]?pin)/i.test(el.id||el.name||''))return '';
+  const value=LibreDisplayRuntime.getModule('qol')?.currentValueLabel?.(el)||'';
+  if(!value)return '';
+  const clean=String(value).replace(/\s+/g,' ').trim();
+  return clean.length>42?clean.slice(0,39)+'…':clean;
+}
+function settingsSearchHighlight(node,text,tokens){
+  const value=String(text||'');if(!value){node.textContent='';return;}
+  const rawTokens=[...new Set(tokens.filter(Boolean))].sort((a,b)=>b.length-a.length);if(!rawTokens.length){node.textContent=value;return;}
+  const escaped=rawTokens.map(token=>token.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).filter(Boolean);if(!escaped.length){node.textContent=value;return;}
+  const pattern=new RegExp(`(${escaped.join('|')})`,'ig');let last=0;
+  for(const match of value.matchAll(pattern)){const index=match.index??0;if(index>last)node.append(document.createTextNode(value.slice(last,index)));const mark=document.createElement('mark');mark.textContent=match[0];node.append(mark);last=index+match[0].length;}
+  if(last<value.length)node.append(document.createTextNode(value.slice(last)));
+}
+function settingsSearchCandidateControls(section){
+  return [...section.querySelectorAll('input:not([type="hidden"]),select,textarea,button:not(.help-tip)')].filter(el=>el.id&&el.id!=='s-settings-search'&&el.dataset?.qolGenerated!=='1'&&!el.matches('.settings-section-reset,.settings-range-toggle'));
+}
+function settingsSearchControlScore(el,section,tokens,query){
+  const label=settingsSearchNormalize(settingsSearchControlTitle(el));
+  const aliases=settingsSearchNormalize(`${el.dataset?.searchAliases||''} ${SETTINGS_CONTROL_HELP[el.id]||''}`);
+  const attrs=settingsSearchNormalize(`${el.id||''} ${el.name||''} ${el.dataset?.help||''} ${el.getAttribute?.('aria-label')||''} ${el.getAttribute?.('placeholder')||''} ${el.getAttribute?.('title')||''}`);
+  const sectionTitle=settingsSearchNormalize(settingsSearchSectionTitle(section));
+  const tab=settingsSearchNormalize(`${SETTINGS_TAB_TITLES[section.dataset.settingsTab]||''} ${SETTINGS_TAB_HINTS[section.dataset.settingsTab]||''}`);
+  const options=el.tagName==='SELECT'?settingsSearchNormalize([...el.options].map(o=>o.textContent).join(' ')):'';
+  return settingsSearchScore(tokens,query,[[label,90],[aliases,58],[attrs,40],[sectionTitle,30],[tab,14],[options,8,4]],label);
+}
+function settingsSearchSectionScore(section,tokens,query){
+  const title=settingsSearchNormalize(settingsSearchSectionTitle(section)),summary=settingsSearchNormalize(SETTINGS_SECTION_SUMMARIES[section.id]||''),aliases=settingsSearchNormalize(SETTINGS_SEARCH_ALIASES[section.id]||''),tab=settingsSearchNormalize(`${SETTINGS_TAB_TITLES[section.dataset.settingsTab]||''} ${SETTINGS_TAB_HINTS[section.dataset.settingsTab]||''}`),id=settingsSearchNormalize(section.id||'');
+  return settingsSearchScore(tokens,query,[[title,92],[aliases,55],[summary,42],[tab,18],[id,12]],title);
+}
+function settingsSearchCloseOtherEditors(current){
+  if(!current?.open)return;for(const details of document.querySelectorAll('.settings-search-quick-edit[open]'))if(details!==current)details.open=false;
+}
+function settingsSearchResultCard(entry,tokens){
+  const section=entry.section,el=entry.el||null,card=document.createElement('article');card.className='settings-search-result '+(el?'settings-search-result-card':'settings-search-section-card');
+  const open=document.createElement('button');open.type='button';open.className='settings-search-result-open';open.dataset.searchOpen='1';
+  const heading=document.createElement('div');heading.className='settings-search-result-heading';
+  const title=document.createElement('b');settingsSearchHighlight(title,entry.title,tokens);heading.append(title);
+  if(section.dataset.settingsLevel==='advanced'){const advanced=document.createElement('span');advanced.className='settings-search-badge settings-search-badge-advanced';advanced.textContent='Advanced';heading.append(advanced);}
+  const breadcrumb=document.createElement('small');breadcrumb.className='settings-search-breadcrumb';breadcrumb.textContent=`${SETTINGS_TAB_TITLES[section.dataset.settingsTab]||section.dataset.settingsTab||'Settings'}  ›  ${settingsSearchSectionTitle(section)}`;
+  const description=document.createElement('span');description.className='settings-search-result-description';description.textContent=el?(String(el.dataset?.help||SETTINGS_CONTROL_HELP[el.id]||'').trim()||`Adjust this option in ${settingsSearchSectionTitle(section)}.`):(SETTINGS_SECTION_SUMMARIES[section.id]||`Open ${SETTINGS_TAB_TITLES[section.dataset.settingsTab]||'this category'}.`);
+  open.append(heading,breadcrumb,description);open.addEventListener('click',()=>openSettingsSearchResult(section.id,el?.id||''));card.append(open);
+  const utility=document.createElement('div');utility.className='settings-search-result-utility';
+  if(el){const current=settingsSearchSafeCurrentValue(el);if(current){const pill=document.createElement('span');pill.className='settings-search-current';pill.textContent=`Current: ${current}`;utility.append(pill);}
+    if(!el.disabled){const direct=LibreDisplayRuntime.getModule('qol')?.searchControlProxy?.(el);if(direct){const details=document.createElement('details');details.className='settings-search-quick-edit';const detailsSummary=document.createElement('summary');detailsSummary.textContent='Quick edit';details.append(detailsSummary,direct);details.addEventListener('toggle',()=>settingsSearchCloseOtherEditors(details));direct.addEventListener('input',()=>{const pill=utility.querySelector('.settings-search-current');const currentValue=settingsSearchSafeCurrentValue(el);if(pill&&currentValue)pill.textContent=`Current: ${currentValue}`;});direct.addEventListener('change',()=>{const pill=utility.querySelector('.settings-search-current');const currentValue=settingsSearchSafeCurrentValue(el);if(pill&&currentValue)pill.textContent=`Current: ${currentValue}`;});utility.append(details);}}
+  }
+  const kind=document.createElement('span');kind.className='settings-search-kind';kind.textContent=el?'Setting':'Section';utility.append(kind);card.append(utility);return card;
+}
+function settingsSearchGroup(host,label,total,entries,tokens,{shown=entries.length}={}){
+  if(!entries.length)return;const group=document.createElement('section');group.className='settings-search-group';const head=document.createElement('div');head.className='settings-search-group-head';const title=document.createElement('h4');title.textContent=label;const count=document.createElement('span');count.textContent=shown<total?`${shown} of ${total}`:String(total);head.append(title,count);const list=document.createElement('div');list.className='settings-search-result-list';for(const entry of entries)list.append(settingsSearchResultCard(entry,tokens));group.append(head,list);host.append(group);
+}
+function settingsSearchEmpty(host,raw){
+  const empty=document.createElement('div');empty.className='settings-search-empty';const title=document.createElement('b');title.textContent=`No settings found for “${raw}”`;const copy=document.createElement('span');copy.textContent='Try a feature, task, category, or plain-language term. Search includes advanced settings automatically.';const suggestions=document.createElement('div');suggestions.className='settings-search-suggestions';for(const query of ['weather','calendar','dog companion','layout','performance']){const button=document.createElement('button');button.type='button';button.className='btn-util';button.textContent=query;button.addEventListener('click',()=>{const input=document.getElementById('s-settings-search');if(input){input.value=query;input.focus();}filterSettings(query);});suggestions.append(button);}empty.append(title,copy,suggestions);host.append(empty);
+}
+function setSettingsSearchActive(active){
+  document.getElementById('setup')?.classList.toggle('settings-search-active',!!active);const stage=document.getElementById('settings-search-stage');if(stage)stage.hidden=!active;
+}
+function resetSettingsSearchUi({restore=true,focus=false}={}){
+  setSettingsSearchActive(false);document.getElementById('settings-search-results')?.replaceChildren();const summary=document.getElementById('settings-search-summary');if(summary)summary.textContent='';const status=document.getElementById('settings-search-status');if(status){status.style.display='none';status.textContent='';}if(restore)applySettingsSectionVisibility();if(focus)document.getElementById('s-settings-search')?.focus();
 }
 function openSettingsSearchResult(sectionId,controlId=''){
   const section=document.getElementById(sectionId);if(!section)return;
-  const search=document.getElementById('s-settings-search');if(search)search.value='';
-  document.getElementById('settings-search-results')?.replaceChildren();
-  const status=document.getElementById('settings-search-status');if(status){status.style.display='none';status.textContent='';}
+  const search=document.getElementById('s-settings-search');if(search)search.value='';resetSettingsSearchUi({restore:false});
   if(section.dataset.settingsLevel==='advanced'){settingsViewMode='all';try{localStorage.setItem('libredisplay_settings_view','all');}catch(e){}}
   switchSettingsTab(section.dataset.settingsTab||'overview',false);toggleSettingsSection(section.id,false);applySettingsSectionVisibility();
-  const target=controlId?document.getElementById(controlId):section;
-  revealSettingsRangeTarget(target);
+  const target=controlId?document.getElementById(controlId):section;revealSettingsRangeTarget(target);
   requestAnimationFrame(()=>{target?.scrollIntoView({behavior:'smooth',block:'center'});if(target&&target!==section){target.focus?.({preventScroll:true});const hit=target.closest('.s-row,.checkline,.utility-actions')||target;hit.classList.add('settings-search-hit');setTimeout(()=>hit.classList.remove('settings-search-hit'),1800);}});
 }
 function filterSettings(value){
-  const raw=String(value||'').trim(),tokens=raw.toLowerCase().split(/\s+/).filter(Boolean);
-  const status=document.getElementById('settings-search-status'),results=document.getElementById('settings-search-results');
-  const sections=[...document.querySelectorAll('.s-section[data-settings-tab]')];
-  if(!tokens.length){results?.replaceChildren();applySettingsSectionVisibility();if(status){status.style.display='none';status.textContent='';}return;}
-  updateSettingsPageHeader(raw);if(results)results.replaceChildren();let matches=0,advancedMatches=0,controlMatches=0;
-  sections.forEach(section=>{
-    section.classList.remove('settings-advanced-hidden');const hay=settingsSectionSearchText(section),on=tokens.every(t=>hay.includes(t));section.classList.toggle('tab-active',on);
-    if(!on)return;section.classList.remove('section-collapsed');section.querySelector(':scope > h3')?.setAttribute('aria-expanded','true');matches++;if(section.dataset.settingsLevel==='advanced')advancedMatches++;
-    if(!results)return;const controls=[...section.querySelectorAll('input:not([type="hidden"]),select,textarea,button:not(.help-tip)')];let sectionHits=0;
-    controls.forEach(el=>{if(controlMatches>=30||!el.id)return;const text=settingsSearchControlText(el);if(!tokens.every(t=>text.includes(t)))return;sectionHits++;controlMatches++;const q=LibreDisplayRuntime.getModule('qol'),card=document.createElement('div');card.className='settings-search-result settings-search-result-card';const open=document.createElement('button');open.type='button';open.className='settings-search-result-open';const title=document.createElement('b');title.textContent=cleanSettingsLabelText(settingsControlLabel(el))||el.getAttribute('aria-label')||el.id;const meta=document.createElement('small');const current=q?.currentValueLabel?.(el)||'';meta.textContent=`${SETTINGS_TAB_TITLES[section.dataset.settingsTab]||section.dataset.settingsTab} · ${section.querySelector(':scope > h3')?.childNodes[0]?.textContent?.trim()||section.id}${current?` · Current: ${current}`:''}`;open.append(title,meta);open.addEventListener('click',()=>openSettingsSearchResult(section.id,el.id));card.append(open);const direct=q?.searchControlProxy?.(el);if(direct)card.append(direct);results.appendChild(card);});
-    if(!sectionHits&&controlMatches<30){const b=document.createElement('button');b.type='button';b.className='settings-search-result section-result';const title=document.createElement('b');title.textContent=section.querySelector(':scope > h3')?.childNodes[0]?.textContent?.trim()||section.id;const meta=document.createElement('small');meta.textContent=`Open ${SETTINGS_TAB_TITLES[section.dataset.settingsTab]||section.dataset.settingsTab}`;b.append(title,meta);b.addEventListener('click',()=>openSettingsSearchResult(section.id));results.appendChild(b);}
-  });
-  document.getElementById('settings-empty-state')?.classList.remove('show');
-  if(status){status.style.display='block';status.textContent=matches?`${controlMatches?`${controlMatches} direct match${controlMatches===1?'':'es'} · `:''}${matches} matching section${matches===1?'':'s'}${advancedMatches?` · ${advancedMatches} advanced`:''}.`:'No settings matched that search.';}
+  const raw=String(value||'').trim(),query=settingsSearchNormalize(raw),tokens=query.split(/\s+/).filter(Boolean);const status=document.getElementById('settings-search-status'),results=document.getElementById('settings-search-results'),summary=document.getElementById('settings-search-summary');
+  if(!tokens.length){resetSettingsSearchUi();return;}
+  const sections=[...document.querySelectorAll('.s-section[data-settings-tab]')].filter(settingsSectionRoleAllowed),controlEntries=[],sectionEntries=[];
+  for(const section of sections){const sectionScore=settingsSearchSectionScore(section,tokens,query);if(sectionScore)sectionEntries.push({section,title:settingsSearchSectionTitle(section),score:sectionScore});for(const el of settingsSearchCandidateControls(section)){const score=settingsSearchControlScore(el,section,tokens,query);if(score)controlEntries.push({section,el,title:settingsSearchControlTitle(el),score});}}
+  const uniqueControls=new Map();for(const entry of controlEntries){const key=`${entry.section.id}|${settingsSearchNormalize(entry.title)}`;const prior=uniqueControls.get(key);const preferred=(entry.el.type==='color'?12:0)-(/(?:^|[-_])hex$/i.test(entry.el.id)?8:0);const priorPreferred=prior?((prior.el.type==='color'?12:0)-(/(?:^|[-_])hex$/i.test(prior.el.id)?8:0)):-Infinity;if(!prior||entry.score>prior.score||(entry.score===prior.score&&preferred>priorPreferred))uniqueControls.set(key,entry);}controlEntries.splice(0,controlEntries.length,...uniqueControls.values());
+  const sortEntries=(a,b)=>b.score-a.score||a.title.length-b.title.length||a.title.localeCompare(b.title)||a.section.id.localeCompare(b.section.id);controlEntries.sort(sortEntries);sectionEntries.sort(sortEntries);
+  const controlLimit=40,sectionLimit=12,shownControls=controlEntries.slice(0,controlLimit),shownSections=sectionEntries.slice(0,sectionLimit),advancedSections=new Set([...controlEntries,...sectionEntries].filter(x=>x.section.dataset.settingsLevel==='advanced').map(x=>x.section.id));
+  setSettingsSearchActive(true);if(results){results.replaceChildren();if(shownControls.length)settingsSearchGroup(results,'Settings',controlEntries.length,shownControls,tokens,{shown:shownControls.length});if(shownSections.length)settingsSearchGroup(results,'Sections',sectionEntries.length,shownSections,tokens,{shown:shownSections.length});if(!shownControls.length&&!shownSections.length)settingsSearchEmpty(results,raw);}
+  const total=controlEntries.length+sectionEntries.length,parts=[];if(controlEntries.length)parts.push(`${controlEntries.length} setting${controlEntries.length===1?'':'s'}`);if(sectionEntries.length)parts.push(`${sectionEntries.length} section${sectionEntries.length===1?'':'s'}`);if(advancedSections.size)parts.push(`${advancedSections.size} advanced section${advancedSections.size===1?'':'s'}`);
+  if(summary)summary.textContent=total?`${parts.join(' · ')}. Results are ranked by setting name, aliases, section context, and help text.`:'Search across every Settings category, including advanced controls.';
+  if(status){status.style.display='block';status.textContent=total?`${controlEntries.length} setting${controlEntries.length===1?'':'s'} · ${sectionEntries.length} section${sectionEntries.length===1?'':'s'}${advancedSections.size?` · ${advancedSections.size} advanced`:''}`:'No matches. Try a broader term.';}
 }
-
 function clearSettingsSearch(){
-  const search=document.getElementById('s-settings-search');
-  if(search)search.value='';
-  filterSettings('');
-  if(search)search.focus();
+  const search=document.getElementById('s-settings-search');if(search)search.value='';resetSettingsSearchUi({restore:true,focus:true});
 }
-
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
 LibreDisplayRuntime.exposeModule("settings", {updateSettingsPageHeader,settingsControlLabel,cleanSettingsLabelText,makeSettingsHelpButton,settingsControlTitle,settingsControlContext,settingsFallbackHelp,enhanceSettingsControlHelp,loadSettingsViewMode,setSettingsViewMode,enhanceSettingsNavGroups,setSettingsNavGroupCollapsed,expandActiveSettingsNavGroup,enhanceSettingsRangeGroups,setSettingsRangeGroupExpanded,revealSettingsRangeTarget,enhanceSettingsSections,saveCollapsedSettingsSections,toggleSettingsSection,setAllSettingsSectionsCollapsed,settingsSectionRoleAllowed,visibleSettingsSectionsForTab,buildSettingsMobileCategory,buildSettingsSectionDirectory,buildSettingsSectionJump,jumpToSettingsSection,applySettingsSectionVisibility,switchSettingsTab,settingsSectionSearchText,settingsSearchControlText,openSettingsSearchResult,filterSettings,clearSettingsSearch}, {
