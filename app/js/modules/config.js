@@ -141,7 +141,7 @@ let cfg = {
   burnInShiftPx:2,
   burnInShiftTransitionSec:1.2,
   onboardingComplete:false,
-  _schemaVersion:6,
+  _schemaVersion:7,
   _savedAt:0
 };
 const CFG_DEFAULTS=JSON.parse(JSON.stringify(cfg));
@@ -203,7 +203,7 @@ const BLOCK_TYPE_INFO={
   icon:{name:'Icon',icon:'★',desc:'Add a simple emoji or symbol as a movable visual element.'},
   integration:{name:'Integration',icon:'◇',desc:'Add a server-side integration plugin.'}
 };
-const CONFIG_SCHEMA_VERSION=6;
+const CONFIG_SCHEMA_VERSION=7;
 const PERSISTED_PART_FONT_FAMILIES=['','Inter','system','Noto Sans','DejaVu Sans','Liberation Sans','Trebuchet MS','DejaVu Serif','Georgia','monospace'];
 function normalizePersistedPartStyleValue(raw={}){const weight=String(raw?.fontWeight||'');return {scale:Math.min(200,Math.max(50,Number(raw?.scale)||100)),fontFamily:PERSISTED_PART_FONT_FAMILIES.includes(raw?.fontFamily)?raw.fontFamily:'',textColor:/^#[0-9a-f]{6}$/i.test(raw?.textColor||'')?String(raw.textColor).toLowerCase():'',opacity:Math.min(100,Math.max(20,Number(raw?.opacity)||100)),fontWeight:['','200','300','400','500','600','700','800','900'].includes(weight)?weight:'',lineHeight:Math.min(180,Math.max(80,Number(raw?.lineHeight)||100)),letterSpacing:Math.min(6,Math.max(-2,Number(raw?.letterSpacing)||0)),textAlign:['auto','left','center','right'].includes(raw?.textAlign)?raw.textAlign:'auto',visible:raw?.visible!==false};}
 function normalizeIntegrationPartStyleMap(config={}){const raw=config._partStyles&&typeof config._partStyles==='object'&&!Array.isArray(config._partStyles)?config._partStyles:{},out={};for(const [key,value] of Object.entries(raw)){const safe=/^[a-zA-Z0-9_-]{1,64}$/.test(key);if(!safe||!value||typeof value!=='object'||Array.isArray(value))continue;out[key]=normalizePersistedPartStyleValue(value);}return out;}
@@ -215,7 +215,8 @@ function migrateConfig2To3(input){const out={...input};const has=k=>Object.proto
 function migrateConfig3To4(input){const out={...input};const has=k=>Object.prototype.hasOwnProperty.call(out,k),legacyOn=out.burnInProtection===true,scheduled=out.burnInDimMode==='schedule';if(!has('burnInIdleDimmingEnabled'))out.burnInIdleDimmingEnabled=legacyOn&&!scheduled;if(!has('burnInQuietHoursEnabled'))out.burnInQuietHoursEnabled=legacyOn&&scheduled;if(!has('burnInQuietWakeEnabled'))out.burnInQuietWakeEnabled=true;if(!has('burnInPauseAnimationsDimmed'))out.burnInPauseAnimationsDimmed=true;if(!has('burnInDeepTrigger'))out.burnInDeepTrigger=scheduled?'quiet':'idle';if(!has('burnInCareEnabled'))out.burnInCareEnabled=!!(out.burnInIdleDimmingEnabled||out.burnInQuietHoursEnabled||out.burnInDeepProtection||out.burnInPixelShift);return out;}
 function migrateConfig4To5(input){const out={...input};if(out.alertMotionSpeedV2!==true&&Number(out.alertMotionPx)===12)out.alertMotionPx=36;out.alertMotionSpeedV2=true;return out;}
 function migrateConfig5To6(input){const out={...input};if(!Array.isArray(out.settingsFavorites))out.settingsFavorites=[];if(!out.settingsInheritance||typeof out.settingsInheritance!=='object'||Array.isArray(out.settingsInheritance))out.settingsInheritance={parentEndpoint:'main',sections:[]};if(!Array.isArray(out.calendarEventRules))out.calendarEventRules=[];if(!out.weatherDogBehaviorWeights||typeof out.weatherDogBehaviorWeights!=='object'||Array.isArray(out.weatherDogBehaviorWeights))out.weatherDogBehaviorWeights={rest:100,sit:100,sleep:100,sniff:100,watch:100,wander:100,inspect:100,survey:100,stretch:100,scratch:100,dig:100,roll:100,fetch:100,bird:100};if(!out.weatherDogBehaviorPreset)out.weatherDogBehaviorPreset='natural';return out;}
-const CONFIG_MIGRATIONS=Object.freeze({0:migrateConfig0To1,1:migrateConfig1To2,2:migrateConfig2To3,3:migrateConfig3To4,4:migrateConfig4To5,5:migrateConfig5To6});
+function migrateConfig6To7(input){const out={...input},raw=out.settingsInheritance;if(raw&&typeof raw==='object'&&!Array.isArray(raw)){const inheritance={...raw},sections=Array.isArray(inheritance.sections)?[...inheritance.sections]:[];if(sections.includes('companions')&&!sections.includes('holidays'))sections.push('holidays');inheritance.sections=sections;out.settingsInheritance=inheritance;}return out;}
+const CONFIG_MIGRATIONS=Object.freeze({0:migrateConfig0To1,1:migrateConfig1To2,2:migrateConfig2To3,3:migrateConfig3To4,4:migrateConfig4To5,5:migrateConfig5To6,6:migrateConfig6To7});
 function configMigrationInfo(raw,target=CONFIG_SCHEMA_VERSION){const from=configSchemaVersion(raw),requested=Number(target),to=Number.isInteger(requested)&&requested>=0?requested:CONFIG_SCHEMA_VERSION;return {from,to,future:from>to,steps:from<to?Array.from({length:to-from},(_,i)=>`${from+i}→${from+i+1}`):[]};}
 function migrateConfigSnapshot(raw,{target=CONFIG_SCHEMA_VERSION,rejectFuture=false}={}){if(!raw||typeof raw!=='object'||Array.isArray(raw))return {};let out=JSON.parse(JSON.stringify(raw)),version=configSchemaVersion(out),requested=Number(target),goal=Number.isInteger(requested)&&requested>=0?requested:CONFIG_SCHEMA_VERSION;if(version>goal){if(rejectFuture)throw new Error(`This configuration uses schema ${version}, but this LibreDisplay build supports schema ${goal}. Upgrade LibreDisplay before importing or applying it.`);return out;}while(version<goal){const migrate=CONFIG_MIGRATIONS[version];if(typeof migrate!=='function')throw new Error(`No LibreDisplay configuration migration is registered for schema ${version} → ${version+1}.`);out=migrate(out);version++;out._schemaVersion=version;}return out;}
 function ensureCfgDefaults(){
@@ -531,7 +532,7 @@ async function persistProfiles(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("config", {configSchemaVersion,configMigrationInfo,migrateConfigSnapshot,migrateConfig0To1,migrateConfig1To2,migrateConfig2To3,migrateConfig3To4,migrateConfig4To5,migrateConfig5To6,ensureCfgDefaults,loadCfg,persistCfgToServer,saveCfg,normalizeProfileStore,activeProfileIdForEndpoint,setActiveProfileForEndpoint,loadProfiles,persistProfiles}, {
+LibreDisplayRuntime.exposeModule("config", {configSchemaVersion,configMigrationInfo,migrateConfigSnapshot,migrateConfig0To1,migrateConfig1To2,migrateConfig2To3,migrateConfig3To4,migrateConfig4To5,migrateConfig5To6,migrateConfig6To7,ensureCfgDefaults,loadCfg,persistCfgToServer,saveCfg,normalizeProfileStore,activeProfileIdForEndpoint,setActiveProfileForEndpoint,loadProfiles,persistProfiles}, {
   "CONFIG_SCHEMA_VERSION": {configurable:true,get:()=>CONFIG_SCHEMA_VERSION},
   "CONFIG_MIGRATIONS": {configurable:true,get:()=>CONFIG_MIGRATIONS},
   "calendarEditorRows": {configurable:true,get:()=>calendarEditorRows,set:(value)=>{calendarEditorRows=value;}},

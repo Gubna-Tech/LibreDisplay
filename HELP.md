@@ -940,7 +940,7 @@ If a local/NAS background is blank, verify the mount/path before changing visual
 
 ## Calendars
 
-Calendars covers both calendar sources and how events participate in the dashboard.
+Calendars covers calendar sources and how events participate in the dashboard.
 
 Typical controls include:
 
@@ -951,9 +951,6 @@ Typical controls include:
 - ordering
 - refresh behavior
 - event range/count behavior
-- optional built-in calendar add-ons
-
-Optional add-ons are off by default. The master add-on control governs participation without erasing the detailed choices underneath. Each category has an editable label and default color. Open a category to hide individual dates, rename them for your household, or give a specific date its own color while keeping the rest of the category enabled.
 
 ### Event rules
 
@@ -971,6 +968,24 @@ Check in this order:
 4. timezone expectations
 5. display range/event-count filters
 6. layout visibility
+
+---
+
+## Holidays
+
+Holidays sits beside Calendars in the **Calendar & Holidays** Settings bucket so date-based features are kept together instead of being mixed with the dog companion.
+
+### Calendar holidays & observances
+
+Built-in calendar add-ons are off by default. The master add-on control governs participation without erasing the detailed choices underneath. Each category has an editable label and default color. Open a category to hide individual dates, rename them for your household, or give a specific date its own color while keeping the rest of the category enabled.
+
+Built-in groups include civic holidays and observances, Christian dates, Jewish dates, Islamic dates, astronomy and clock changes, and cultural or seasonal dates.
+
+### Holiday overlays & scenes
+
+Holiday overlays are optional special-day scenery. Enable the master switch, choose the holidays LibreDisplay may celebrate, adjust overlay intensity, and use Holiday Test to preview a scene without changing the system date.
+
+Calendar add-ons control which built-in dates appear as calendar events. Holiday overlays control special-day visual scenery. They are related by date, but each can be enabled and customized independently.
 
 ---
 
@@ -1066,14 +1081,17 @@ On Pi hardware, wildlife density and motion interact with the rest of NatureScap
 
 ---
 
-## Companion & Holidays
+## Companion
+
+Companion is dedicated to the dog so its controls stay separate from calendar and holiday features.
 
 This category controls:
 
 - dog companion behavior
-- dog breed/appearance options
-- weather/shelter behavior
-- holiday overlays and special-day scenes
+- dog breed and appearance options
+- accessories
+- activity and behavior weighting
+- weather and shelter behavior
 
 ### Dog behavior mix
 
@@ -1081,7 +1099,7 @@ The simple **Companion activity** control still changes the dog's overall pace. 
 
 `100%` is LibreDisplay's natural weighting, `0%` disables that behavior, and higher values make it more likely. Calm, Natural, Playful, and Very active are editable starting presets; changing any behavior immediately makes the mix **Custom**. Use the single **Preview dashboard** action at the bottom of Settings to check the overall companion presentation without adding a Preview button to every behavior row.
 
-The dog and seasonal overlays are presentation features; they should not affect weather data itself.
+The dog is a presentation feature; it should not affect weather data itself.
 
 ---
 

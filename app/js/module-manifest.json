@@ -40,7 +40,7 @@
     "module": "config",
     "part": "bundle",
     "path": "/js/modules/config.js",
-    "lines": 595,
+    "lines": 596,
     "functions": 17,
     "bindings": 53,
     "sections": [
@@ -188,7 +188,7 @@
     "module": "settings",
     "part": "bundle",
     "path": "/js/modules/settings.js",
-    "lines": 1720,
+    "lines": 1727,
     "functions": 82,
     "bindings": 18,
     "sections": [
@@ -205,7 +205,7 @@
     "module": "qol",
     "part": "bundle",
     "path": "/js/modules/qol.js",
-    "lines": 156,
+    "lines": 157,
     "functions": 51,
     "bindings": 0,
     "sections": [

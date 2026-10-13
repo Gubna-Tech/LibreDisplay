@@ -159,7 +159,7 @@ function openSetup(startWizard=false){
   try{
     bindCalendarColorControls();
     bindCalendarUxInputs();
-    for(const el of document.querySelectorAll('#settings-calendars [id^="s-calendar-addon-"],#s-calendar-addons-enabled'))if(!el.dataset.addonBound){el.dataset.addonBound='1';el.addEventListener('change',()=>{markSettingsDirty();if(el.id==='s-calendar-addons-enabled')syncCalendarAddonControls();refreshCalendarAddonEditorSummaries();});}
+    for(const el of document.querySelectorAll('#settings-calendar-addons [id^="s-calendar-addon-"],#s-calendar-addons-enabled'))if(!el.dataset.addonBound){el.dataset.addonBound='1';el.addEventListener('change',()=>{markSettingsDirty();if(el.id==='s-calendar-addons-enabled')syncCalendarAddonControls();refreshCalendarAddonEditorSummaries();});}
     renderProfileSelect();
     setProfileStatus('');
     loadScenes();
@@ -327,19 +327,20 @@ LibreDisplayRuntime.exposeModule("settings", {settingsDomMounted,mountSettings,u
 // Settings tabs, section metadata, help registry, search, and navigation.
 const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 
-const SETTINGS_TABS=['overview','device','favorites','layout','look','backgrounds','calendars','weather','weatherfx','weatheralerts','nature','wildlife','companions','family','integrations','displaycare','displays','system'];
+const SETTINGS_TABS=['overview','device','favorites','layout','look','backgrounds','calendars','holidays','weather','weatherfx','weatheralerts','nature','wildlife','companions','family','integrations','displaycare','displays','system'];
 const SETTINGS_TAB_TITLES={
   overview:'Home',
   device:'Device & Performance',
   favorites:'Favorites',
   calendars:'Calendars',
+  holidays:'Holidays',
   backgrounds:'Backgrounds',
   weather:'Weather',
   weatherfx:'Weather Effects',
   weatheralerts:'Weather Alerts',
   nature:'Nature & Seasons',
   wildlife:'Wildlife',
-  companions:'Companion & Holidays',
+  companions:'Companion',
   look:'Personalization',
   displaycare:'Display Care',
   layout:'Layout',
@@ -350,8 +351,10 @@ const SETTINGS_TAB_TITLES={
 };
 const SETTINGS_TAB_GROUPS={
   overview:'Start here',device:'Start here',favorites:'Start here',
-  layout:'Dashboard',look:'Dashboard',backgrounds:'Dashboard',calendars:'Dashboard',
-  weather:'Weather & Nature',weatherfx:'Weather & Nature',weatheralerts:'Weather & Nature',nature:'Weather & Nature',wildlife:'Weather & Nature',companions:'Weather & Nature',
+  layout:'Dashboard',look:'Dashboard',backgrounds:'Dashboard',
+  calendars:'Calendar & Holidays',holidays:'Calendar & Holidays',
+  weather:'Weather',weatherfx:'Weather',weatheralerts:'Weather',
+  nature:'Nature & Companions',wildlife:'Nature & Companions',companions:'Nature & Companions',
   family:'Household & Services',integrations:'Household & Services',
   displaycare:'Displays & System',displays:'Displays & System',system:'Displays & System'
 };
@@ -360,13 +363,14 @@ const SETTINGS_TAB_HINTS={
   device:'Detected hardware, recommended settings, performance mode, and Raspberry Pi-specific behavior.',
   favorites:'Your starred controls, collected into one easy-to-reach workspace.',
   calendars:'Calendar feeds, imported files, event presentation, refresh timing, and display rules.',
+  holidays:'Built-in calendar observances, holiday dates, special-day overlays, and holiday preview scenes.',
   backgrounds:'Photo sources, local or NAS folders, slideshow rotation, and background presentation.',
   weather:'Weather location, units, refresh behavior, and the optional Weather Details element.',
   weatherfx:'Normal-weather atmosphere: rain, snow, fog, clouds, sun, wind, and lightning.',
   weatheralerts:'Severe-weather cards, filtering, alert motion, and hazard-driven full-screen scenery.',
   nature:'Season behavior, leaves, grass, petals, winter crystals, and cold-weather atmosphere.',
   wildlife:'Bees, butterflies, fireflies, other insects, birds, owls, and regional wildlife behavior.',
-  companions:'Dog companion behavior and special-day holiday overlays, previews, and customization.',
+  companions:'Dog companion behavior, breed, accessories, activity, shelter behavior, and customization.',
   look:'Themes, typography, language, accessibility, and the Settings-button experience.',
   displaycare:'OLED and always-on display protection: pixel shift, dimming, quiet hours, and deep protection.',
   layout:'Starter templates, dashboard arrangement, content sizing, spacing, ranges, and geometry.',
@@ -413,7 +417,8 @@ const SETTINGS_SECTION_SUMMARIES={
   'settings-scenes':'Schedule saved Profiles by display, day and time.',
   'settings-family':'Household members, chores, rewards and touch-mode protection.',
   'settings-location':'Weather location and the label shown on the dashboard.',
-  'settings-calendars':'Calendar feeds, imported files, built-in holiday/date customization, refresh behavior and display priority.',
+  'settings-calendars':'Calendar feeds, imported files, refresh behavior, event presentation, and display priority.',
+  'settings-calendar-addons':'Built-in calendar holidays, observances, astronomy dates, clock changes, labels, colors, and per-date visibility.',
   'settings-calendar-presentation':'Fine-tune event spacing, typography, card styling, location and description visibility.',
   'settings-calendar-rules':'Create no-code match rules to hide, prefix, recolor or emphasize events without changing the source calendar.',
   'settings-alerts':'Enable severe-weather alerts and control their motion.',
@@ -699,7 +704,7 @@ function setSettingsViewMode(mode){
 function settingsNavGroupButtons(label){const buttons=[];for(let node=label?.nextElementSibling;node&&node.classList?.contains('settings-tab-btn');node=node.nextElementSibling)buttons.push(node);return buttons;}
 function saveSettingsNavGroups(){const collapsed=[...document.querySelectorAll('.settings-nav-group-label.nav-group-collapsed')].map(x=>x.dataset.settingsNavGroup).filter(Boolean);try{localStorage.setItem('libredisplay_settings_nav_groups',JSON.stringify(collapsed));}catch(_e){}}
 function setSettingsNavGroupCollapsed(label,collapsed,save=true){if(!label)return;label.classList.toggle('nav-group-collapsed',!!collapsed);label.setAttribute('aria-expanded',collapsed?'false':'true');for(const btn of settingsNavGroupButtons(label))btn.classList.toggle('settings-nav-group-hidden',!!collapsed);if(save)saveSettingsNavGroups();}
-function enhanceSettingsNavGroups(){let collapsed=[];try{const raw=localStorage.getItem('libredisplay_settings_nav_groups');collapsed=raw===null?['dashboard','weather-nature','services','system']:JSON.parse(raw||'[]');if(!Array.isArray(collapsed))collapsed=[];}catch(_e){collapsed=['dashboard','weather-nature','services','system'];}for(const label of document.querySelectorAll('.settings-nav-group-label[data-settings-nav-group]')){if(label.dataset.navEnhanced==='1')continue;label.dataset.navEnhanced='1';label.setAttribute('role','button');label.setAttribute('tabindex','0');const name=label.textContent.trim();label.innerHTML=`<span>${name}</span><b class="settings-nav-group-caret" aria-hidden="true">⌄</b>`;const toggle=()=>setSettingsNavGroupCollapsed(label,!label.classList.contains('nav-group-collapsed'));label.addEventListener('click',toggle);label.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();toggle();}});setSettingsNavGroupCollapsed(label,collapsed.includes(label.dataset.settingsNavGroup),false);}}
+function enhanceSettingsNavGroups(){let collapsed=[];const defaults=['dashboard','calendar-holidays','weather','nature-companions','services','system'];try{const raw=localStorage.getItem('libredisplay_settings_nav_groups');collapsed=raw===null?defaults:JSON.parse(raw||'[]');if(!Array.isArray(collapsed))collapsed=[];if(collapsed.includes('weather-nature'))collapsed=[...collapsed.filter(x=>x!=='weather-nature'),'weather','nature-companions'];if(collapsed.includes('dashboard')&&!collapsed.includes('calendar-holidays'))collapsed.push('calendar-holidays');collapsed=[...new Set(collapsed)];}catch(_e){collapsed=defaults;}for(const label of document.querySelectorAll('.settings-nav-group-label[data-settings-nav-group]')){if(label.dataset.navEnhanced==='1')continue;label.dataset.navEnhanced='1';label.setAttribute('role','button');label.setAttribute('tabindex','0');const name=label.textContent.trim();label.innerHTML=`<span>${name}</span><b class="settings-nav-group-caret" aria-hidden="true">⌄</b>`;const toggle=()=>setSettingsNavGroupCollapsed(label,!label.classList.contains('nav-group-collapsed'));label.addEventListener('click',toggle);label.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();toggle();}});setSettingsNavGroupCollapsed(label,collapsed.includes(label.dataset.settingsNavGroup),false);}}
 function expandActiveSettingsNavGroup(tab=activeSettingsTab){const btn=document.querySelector(`.settings-tab-btn[data-tab="${tab}"]`);if(!btn)return;let label=btn.previousElementSibling;while(label&&!label.classList?.contains('settings-nav-group-label'))label=label.previousElementSibling;if(label?.classList?.contains('nav-group-collapsed'))setSettingsNavGroupCollapsed(label,false);}
 function savedExpandedRangeGroups(){try{const raw=JSON.parse(localStorage.getItem('libredisplay_settings_range_groups')||'[]');return new Set(Array.isArray(raw)?raw:[]);}catch(_e){return new Set();}}
 function saveExpandedRangeGroups(){const keys=[...document.querySelectorAll('.settings-range-toggle[aria-expanded="true"]')].map(x=>x.dataset.rangeGroup).filter(Boolean);try{localStorage.setItem('libredisplay_settings_range_groups',JSON.stringify(keys));}catch(_e){}}
@@ -849,6 +854,7 @@ const SETTINGS_SEARCH_ALIASES={
   'settings-pi3-static':'pi3 raspberry pi 3 static still scene refresh cadence leaves clouds dog performance quality interval',
   'settings-lightweight':'lightweight low power performance slow lag animations overlays video backgrounds resource cpu memory restore visuals',
   'settings-calendars':'calendar calendars calander agenda events ics google proton outlook icloud',
+  'settings-calendar-addons':'calendar calendars holiday holidays observance observances dates civic christian jewish islamic astronomy equinox solstice daylight saving cultural seasonal',
   'settings-alerts':'alerts warning warnings severe weather test preview rotate rotation scroll scrolling motion',
   'settings-weather-motion':'weather animation animations preview test lab immersive fullscreen overlay motion effects',
   'settings-weather-rain':'weather rain drizzle precipitation drops splash splashes density wet streaks',
@@ -1704,6 +1710,7 @@ const DASHBOARD_EVENT_HANDLERS=Object.freeze({
   h263:function(event){LibreDisplayRuntime.getModule('layout').setSelectedFrameFitContent(this.checked)},
   h264:function(event){switchSettingsTab('device')},
   h265:function(event){switchSettingsTab('favorites')},
+  h266:function(event){switchSettingsTab('holidays')},
 });
 const DASHBOARD_DELEGATED_EVENTS=Object.freeze(['click','input','change','keydown','dragstart','dragend','dragover','drop']);
 function delegatedEventElement(event,attr){const target=event?.target;return target&&typeof target.closest==='function'?target.closest('['+attr+']'):null;}
