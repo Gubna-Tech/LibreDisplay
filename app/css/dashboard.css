@@ -3774,6 +3774,11 @@ html.ld-bench-no-canvas #weather-effects-overlay .weather-fx-pi-sprite-layer{dis
 html.ld-pi4-device #weather-effects-overlay :is(.weather-fx-bird-wing-far,.weather-fx-bird-wing-near){will-change:transform!important;backface-visibility:hidden!important}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-dog-v2{contain:layout style;isolation:isolate;backface-visibility:hidden!important}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-dog-v2 :is(.dogv2-pose-stage,.dogv2-tail,.dogv2-bandana-cloth){will-change:transform!important;backface-visibility:hidden!important}
+html.ld-pi4-device #weather-effects-overlay .weather-fx-pi-leaf-actor{will-change:transform!important;contain:layout style paint;backface-visibility:hidden!important}
+html.ld-pi4-device #weather-effects-overlay .weather-fx-bird{will-change:transform!important;transform-style:flat}
+html.ld-pi4-device #weather-effects-overlay .weather-fx-bird :is(.weather-fx-bird-wing-far,.weather-fx-bird-wing-near){will-change:transform!important;backface-visibility:hidden!important}
+html.ld-pi4-device #weather-effects-overlay .weather-fx-dog-v2.dog-moving :is(.dogv2-leg,.dogv2-pose-stage),
+html.ld-pi4-device #weather-effects-overlay .weather-fx-dog-v2 :is(.dogv2-head-group,.dogv2-tail,.dogv2-bandana-cloth){will-change:transform!important;backface-visibility:hidden!important}
 
 /* Weather geometry refinement: soften artifact-prone layers while preserving depth. */
 .weather-fx-hazard-storm .hazard-storm-gust-front{display:none!important;border:0!important;background:none!important}
