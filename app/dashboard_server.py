@@ -58,6 +58,30 @@ def _env_float(name, default, *, minimum=None, maximum=None):
     return value
 
 
+def _finite_float(value, default=0.0, *, minimum=None, maximum=None):
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        number = float(default)
+    if not math.isfinite(number):
+        number = float(default)
+    if not math.isfinite(number):
+        number = 0.0
+    if minimum is not None:
+        number = max(float(minimum), number)
+    if maximum is not None:
+        number = min(float(maximum), number)
+    return number
+
+
+def _reject_nonfinite_json_constant(value):
+    raise ValueError(f"Non-finite JSON number is not allowed: {value}")
+
+
+def strict_json_loads(value):
+    return json.loads(value, parse_constant=_reject_nonfinite_json_constant)
+
+
 ROOT = Path(__file__).resolve().parent
 # LibreDisplay launches the server with Python isolated mode (-I). Keep the
 # bundled pure-Python QR dependency consolidated in one deterministic archive so
@@ -218,7 +242,7 @@ def atomic_write_json_file(path, payload, backup_path=None):
     tmp = Path(tmp_name)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            json.dump(payload, fh, ensure_ascii=False, indent=2)
+            json.dump(payload, fh, ensure_ascii=False, indent=2, allow_nan=False)
             fh.write("\n")
             fh.flush()
             os.fsync(fh.fileno())
@@ -3313,7 +3337,7 @@ def integration_payload(endpoint_id, block_id, force_live=False):
     cache_key = integration_cache_key(plugin_id, clean_settings)
     def fetcher():
         result = plugin["module"].fetch(clean_settings, IntegrationContext(endpoint_id, plugin_id))
-        body = json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        body = json.dumps(result, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode("utf-8")
         if len(body) > MAX_STATE_BYTES:
             raise OverflowError("Integration result is too large")
         return body, "application/json; charset=utf-8"
@@ -3338,8 +3362,22 @@ def integration_clean_settings(block, plugin):
         if field.get("type") == "checkbox":
             value = bool(value)
         elif field.get("type") == "number":
-            try: value = float(value)
-            except Exception: value = field.get("default")
+            fallback = field.get("default")
+            if value in (None, ""):
+                value = fallback
+            if value not in (None, ""):
+                try:
+                    value = float(value)
+                    if not math.isfinite(value):
+                        raise ValueError("non-finite number")
+                    if field.get("min") is not None:
+                        value = max(float(field.get("min")), value)
+                    if field.get("max") is not None:
+                        value = min(float(field.get("max")), value)
+                except (TypeError, ValueError, OverflowError):
+                    value = fallback
+                    if value not in (None, ""):
+                        value = _finite_float(value, 0.0)
         else:
             value = str(value or "")[:4096]
         if field.get("required") and (value is None or value == ""):
@@ -3761,7 +3799,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
         super().end_headers()
 
     def json_response(self, status, payload, extra_headers=None):
-        data = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        try:
+            data = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode("utf-8")
+        except (TypeError, ValueError):
+            status = 500
+            data = b'{"ok":false,"error":"Response contained invalid JSON data."}'
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
@@ -3933,7 +3975,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             raise ValueError("Request body is missing or too large")
         raw = self.rfile.read(length)
         try:
-            return json.loads(raw.decode("utf-8"))
+            return strict_json_loads(raw.decode("utf-8"))
         except Exception as exc:
             raise ValueError(f"Invalid JSON: {exc}") from exc
 
@@ -4205,7 +4247,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             size = path.stat().st_size
             if size <= 0 or size > MAX_MEDIA_FILE_BYTES:
                 return self.text_response(413, "Motion JPEG file is too large")
-            fps = max(1.0, min(30.0, float(params.get("fps", ["12"])[0] or 12)))
+            fps = _finite_float(params.get("fps", ["12"])[0] or 12, 12.0, minimum=1.0, maximum=30.0)
             self.send_response(200); self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=libredisplayframe"); self.send_header("Cache-Control", "no-store"); self.send_header("Connection", "close"); self.end_headers()
             delay = 1.0 / fps
             while True:
@@ -4828,8 +4870,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 visual_viewport_height = max(0, min(20000, int((body or {}).get("visualViewportHeight") or viewport_height)))
                 screen_width = max(0, min(20000, int((body or {}).get("screenWidth") or width)))
                 screen_height = max(0, min(20000, int((body or {}).get("screenHeight") or height)))
-                font_probe_width = max(0.0, min(50000.0, float((body or {}).get("fontProbeWidth") or 0)))
-                font_probe_height = max(0.0, min(5000.0, float((body or {}).get("fontProbeHeight") or 0)))
+                font_probe_width = _finite_float((body or {}).get("fontProbeWidth") or 0, 0.0, minimum=0.0, maximum=50000.0)
+                font_probe_height = _finite_float((body or {}).get("fontProbeHeight") or 0, 0.0, minimum=0.0, maximum=5000.0)
                 row = {
                     "endpoint": endpoint_id,
                     "deviceId": device_id,
@@ -4842,10 +4884,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     "viewportHeight": viewport_height,
                     "visualViewportWidth": visual_viewport_width,
                     "visualViewportHeight": visual_viewport_height,
-                    "visualViewportScale": max(0.25, min(8.0, float((body or {}).get("visualViewportScale") or 1))),
+                    "visualViewportScale": _finite_float((body or {}).get("visualViewportScale") or 1, 1.0, minimum=0.25, maximum=8.0),
                     "screenWidth": screen_width,
                     "screenHeight": screen_height,
-                    "dpr": max(0.25, min(8.0, float((body or {}).get("dpr") or 1))),
+                    "dpr": _finite_float((body or {}).get("dpr") or 1, 1.0, minimum=0.25, maximum=8.0),
                     "fontProbeWidth": font_probe_width,
                     "fontProbeHeight": font_probe_height,
                     "fontName": str((body or {}).get("fontName") or "").strip()[:80],

@@ -2,7 +2,7 @@
 set -eu
 umask 077
 
-VERSION="1.13.4"
+VERSION="1.13.5"
 REPOSITORY="Gubna-Tech/LibreDisplay"
 INSTALL_DIR="$HOME/libredisplay"
 TMP_ROOT=""
@@ -37,13 +37,60 @@ ARCHIVE="$TMP_ROOT/LibreDisplay.zip"
 EXTRACT="$TMP_ROOT/extracted"
 ASSET_URL="https://github.com/$REPOSITORY/releases/download/v$VERSION/LibreDisplay-v$VERSION.zip"
 TAG_URL="https://github.com/$REPOSITORY/archive/refs/tags/v$VERSION.zip"
+SOURCE_KIND="asset"
 
 printf '\nLibreDisplay %s one-command installer\n' "$VERSION"
 printf '========================================\n'
 printf 'Downloading the pinned v%s release from GitHub...\n' "$VERSION"
 if ! curl --fail --location --silent --show-error --retry 3 --retry-delay 2 --proto '=https' --tlsv1.2 "$ASSET_URL" -o "$ARCHIVE"; then
   printf 'Versioned release asset was unavailable; falling back to the GitHub tag archive...\n'
+  SOURCE_KIND="tag"
   curl --fail --location --silent --show-error --retry 3 --retry-delay 2 --proto '=https' --tlsv1.2 "$TAG_URL" -o "$ARCHIVE"
+fi
+
+if [ "$SOURCE_KIND" = "asset" ]; then
+  python3 - "$ARCHIVE" "$REPOSITORY" "$VERSION" <<'PY'
+from pathlib import Path
+import hashlib, hmac, json, re, sys, urllib.error, urllib.request
+
+archive=Path(sys.argv[1]); repository=sys.argv[2]; version=sys.argv[3]
+api=f"https://api.github.com/repos/{repository}/releases/tags/v{version}"
+request=urllib.request.Request(api, headers={
+    "User-Agent": f"LibreDisplay/{version} installer",
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+})
+try:
+    with urllib.request.urlopen(request, timeout=15) as response:
+        release=json.loads(response.read().decode("utf-8"))
+except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
+    print(f"Release metadata was unavailable ({exc}); continuing with archive structure/version verification.", file=sys.stderr)
+else:
+    expected_name=f"LibreDisplay-v{version}.zip"
+    asset=next((row for row in (release.get("assets") or []) if str(row.get("name") or "") == expected_name), None)
+    if not asset:
+        raise SystemExit(f"GitHub release metadata does not contain the expected asset: {expected_name}")
+    try:
+        expected_size=int(asset.get("size") or 0)
+    except (TypeError, ValueError, OverflowError):
+        expected_size=0
+    if expected_size and archive.stat().st_size != expected_size:
+        raise SystemExit("Downloaded release size does not match GitHub release metadata.")
+    digest=str(asset.get("digest") or "").strip().lower()
+    if digest:
+        if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+            raise SystemExit("GitHub release metadata contains an invalid asset digest.")
+        hasher=hashlib.sha256()
+        with archive.open("rb") as fh:
+            for chunk in iter(lambda: fh.read(1024*1024), b""):
+                hasher.update(chunk)
+        actual="sha256:"+hasher.hexdigest()
+        if not hmac.compare_digest(actual, digest):
+            raise SystemExit("Downloaded release failed GitHub SHA-256 verification.")
+        print("GitHub release asset SHA-256 verified.")
+    else:
+        print("GitHub did not provide an asset digest; continuing with archive structure/version verification.", file=sys.stderr)
+PY
 fi
 mkdir -p "$EXTRACT"
 
