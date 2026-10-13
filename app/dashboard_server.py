@@ -170,6 +170,7 @@ BROKER_REFRESHING = set()
 BROKER_REFRESH_WORKERS = _env_int("DASHBOARD_BROKER_REFRESH_WORKERS", 4, minimum=1, maximum=16)
 BROKER_REFRESH_EXECUTOR = ThreadPoolExecutor(max_workers=BROKER_REFRESH_WORKERS, thread_name_prefix="libredisplay-broker")
 BROKER_BACKOFF_SECONDS = (5, 15, 30, 60, 120, 300, 600)
+BROKER_SOFT_TRANSIENT_KINDS = {"dns", "network", "timeout", "refused", "unreachable", "tls", "provider", "rate-limit"}
 OUTBOUND_RETRY_STATUSES = {408, 425, 429, 500, 502, 503, 504}
 OUTBOUND_RETRY_METHODS = {"GET", "HEAD"}
 OUTBOUND_RETRY_ATTEMPTS = _env_int("DASHBOARD_OUTBOUND_RETRY_ATTEMPTS", 2, minimum=1, maximum=4)
@@ -969,6 +970,19 @@ def broker_backoff_seconds(failures):
     return BROKER_BACKOFF_SECONDS[min(count - 1, len(BROKER_BACKOFF_SECONDS) - 1)]
 
 
+def broker_transient_grace_active(status, cached, ttl, now=None):
+    if not cached or not isinstance(status, dict):
+        return False
+    failures = max(0, int(status.get("consecutiveFailures") or 0))
+    kind = str(status.get("errorKind") or "").strip().lower()
+    if failures != 1 or kind not in BROKER_SOFT_TRANSIENT_KINDS:
+        return False
+    stamp = int(time.time()) if now is None else int(now)
+    age = max(0, stamp - int(cached[2] or 0))
+    grace_age = max(300, min(3600, int(ttl or 300) * 2))
+    return age <= grace_age
+
+
 def broker_release_transient_backoff():
     transient = {"dns", "network", "timeout", "refused", "unreachable", "tls"}
     released = 0
@@ -1069,6 +1083,9 @@ def broker_fetch(key, ttl_seconds, fetcher, source="", force=False):
     if not force and retry_at > now:
         if cached:
             age = max(0, now - cached[2])
+            if broker_transient_grace_active(status, cached, ttl, now):
+                broker_record(key, source=source, status="recovering", savedAt=cached[2], age=age, lastSuccessAt=cached[2], refreshing=False)
+                return cached[0], cached[1], "refreshing", age
             broker_record(key, source=source, status="stale", savedAt=cached[2], age=age, lastSuccessAt=cached[2], refreshing=False)
             return cached[0], cached[1], "stale", age
         raise RuntimeError(f"Provider temporarily unavailable; automatic retry in {retry_at-now}s")
@@ -1081,7 +1098,11 @@ def broker_fetch(key, ttl_seconds, fetcher, source="", force=False):
     if not force and cached:
         age = max(0, now - cached[2])
         recovering = max(0, int(status.get("consecutiveFailures") or 0)) > 0 or bool(status.get("error"))
-        if recovering:
+        soft_recovery = recovering and broker_transient_grace_active(status, cached, ttl, now)
+        if soft_recovery:
+            broker_record(key, source=source, status="recovering", savedAt=cached[2], age=age, lastSuccessAt=cached[2], refreshing=True)
+            response_state = "refreshing"
+        elif recovering:
             broker_record(key, source=source, status="stale", savedAt=cached[2], age=age, lastSuccessAt=cached[2], refreshing=True)
             response_state = "stale"
         else:
@@ -1358,6 +1379,40 @@ def plugin_manifests():
         return [dict(row["manifest"]) for row in PLUGINS.values()]
 
 
+_SERVER_HARDWARE_TIER_CACHE = None
+
+def server_hardware_tier():
+    global _SERVER_HARDWARE_TIER_CACHE
+    if _SERVER_HARDWARE_TIER_CACHE is not None:
+        return _SERVER_HARDWARE_TIER_CACHE
+    model = ""
+    try:
+        model = Path("/proc/device-tree/model").read_bytes().replace(b"\x00", b"").decode("utf-8", "replace").strip().lower()
+    except Exception:
+        pass
+    if "raspberry pi 3" in model or "raspberry pi zero" in model:
+        tier = "pi3"
+    elif "raspberry pi 4" in model:
+        tier = "pi4"
+    elif "raspberry pi 5" in model:
+        tier = "pi5"
+    elif "raspberry pi" in model:
+        tier = "pi-constrained"
+    else:
+        tier = "generic"
+    _SERVER_HARDWARE_TIER_CACHE = tier
+    return tier
+
+
+def integration_request_timeout_seconds(requested=25):
+    try:
+        value = float(requested)
+    except (TypeError, ValueError):
+        value = 25.0
+    cap = 18.0 if server_hardware_tier() == "pi3" else 10.0
+    return min(cap, max(3.0, value))
+
+
 class IntegrationContext:
     def __init__(self, endpoint_id, plugin_id):
         self.endpoint_id = endpoint_id
@@ -1365,7 +1420,7 @@ class IntegrationContext:
 
     def fetch_bytes(self, url, *, headers=None, timeout=25, max_bytes=MAX_BYTES):
         target = str(url or "").strip()
-        status, response_headers, data, _ = resilient_safe_fetch(target, headers=headers or {"User-Agent": "LibreDisplay integration"}, timeout=min(10, max(3, timeout)), max_bytes=max_bytes)
+        status, response_headers, data, _ = resilient_safe_fetch(target, headers=headers or {"User-Agent": "LibreDisplay integration"}, timeout=integration_request_timeout_seconds(timeout), max_bytes=max_bytes)
         if status >= 400:
             raise RuntimeError(f"HTTP {status}")
         return data, response_headers.get("Content-Type", "application/octet-stream")
@@ -1379,7 +1434,7 @@ class IntegrationContext:
 
     def request(self, url, *, method="GET", headers=None, body=None, timeout=25, max_bytes=MAX_BYTES):
         target = str(url or "").strip()
-        status, response_headers, data, final_url = resilient_safe_fetch(target, method=method, headers=headers or {"User-Agent": "LibreDisplay integration"}, body=body, timeout=min(10, max(3, timeout)), max_bytes=max_bytes, redirects=0)
+        status, response_headers, data, final_url = resilient_safe_fetch(target, method=method, headers=headers or {"User-Agent": "LibreDisplay integration"}, body=body, timeout=integration_request_timeout_seconds(timeout), max_bytes=max_bytes, redirects=0)
         if status in {301, 302, 303, 307, 308}:
             raise ValueError("Integration endpoint redirected; configure the canonical API URL")
         return status, response_headers, data, final_url
@@ -1388,7 +1443,7 @@ class IntegrationContext:
         if self.plugin_id not in TRUSTED_PRIVATE_PLUGINS:
             raise PermissionError("This integration is not allowed to access private/LAN addresses")
         target = str(url or "").strip()
-        status, response_headers, data, final_url = resilient_safe_fetch(target, method=method, headers=headers or {"User-Agent": "LibreDisplay trusted integration"}, body=body, timeout=min(10, max(3, timeout)), max_bytes=max_bytes, redirects=0, allow_private=True, private_only=require_private, verify_tls=verify_tls)
+        status, response_headers, data, final_url = resilient_safe_fetch(target, method=method, headers=headers or {"User-Agent": "LibreDisplay trusted integration"}, body=body, timeout=integration_request_timeout_seconds(timeout), max_bytes=max_bytes, redirects=0, allow_private=True, private_only=require_private, verify_tls=verify_tls)
         if status in {301, 302, 303, 307, 308}:
             raise ValueError("Integration endpoint redirected; configure the canonical collection URL")
         return status, response_headers, data, final_url

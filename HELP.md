@@ -1881,12 +1881,12 @@ Prioritize stability.
 Recommended starting point:
 
 - Automatic performance mode
-- static full-quality weather/NatureScape scenes
+- static full-quality weather/NatureScape scenery with low-load dog roaming
 - moderate static-scene refresh cadence
 - no video background while diagnosing
 - conservative wildlife/motion density
 
-Pi 3 Automatic is designed to reduce continuous animation cost without requiring the artwork itself to become low quality.
+Pi 3 Automatic is designed to reduce continuous animation cost without requiring the artwork itself to become low quality. High-cost scenery remains static between refreshes, while the dog companion can still wander around the display on a lightweight movement cadence.
 
 Troubleshooting order:
 
