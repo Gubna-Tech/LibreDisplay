@@ -313,13 +313,19 @@ async function pollServerConfig(){
 }
 let liveEventSource=null,heartbeatTimer=null,heartbeatResizeTimer=null;
 let physicalDisplayBenchmarkState=null;
+let heartbeatMetricsCache=null,heartbeatMetricsDirty=true,heartbeatPerformanceCache=null,heartbeatPerformanceCacheAt=0,heartbeatPerformanceRefreshPending=false;
+const HEARTBEAT_PERFORMANCE_CACHE_MS=60000;
 function displayDeviceId(){let id='';try{id=localStorage.getItem('libredisplay_device_id')||'';}catch(e){}if(!/^[A-Za-z0-9_-]{12,80}$/.test(id)){id='d'+Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem('libredisplay_device_id',id);}catch(e){}}return id;}
-function displayViewportMetrics(){
+function displayViewportMetrics(force=false){
+  if(!force&&!heartbeatMetricsDirty&&heartbeatMetricsCache)return heartbeatMetricsCache;
   const root=document.documentElement,app=document.getElementById('app'),appRect=app?.getBoundingClientRect?.(),vv=window.visualViewport,fontProbe=measureDashboardFontProbe(cfg?.fontFamily||'Inter');
   const viewportWidth=Math.max(1,Math.round(root?.clientWidth||innerWidth||screen.width||1)),viewportHeight=Math.max(1,Math.round(root?.clientHeight||innerHeight||screen.height||1));
   const layoutWidth=Math.max(1,Math.round(appRect?.width||viewportWidth)),layoutHeight=Math.max(1,Math.round(appRect?.height||viewportHeight));
-  return {width:layoutWidth,height:layoutHeight,layoutWidth,layoutHeight,viewportWidth,viewportHeight,visualViewportWidth:Math.max(1,Math.round(vv?.width||viewportWidth)),visualViewportHeight:Math.max(1,Math.round(vv?.height||viewportHeight)),visualViewportScale:Number(vv?.scale)||1,screenWidth:Math.round(screen.width||layoutWidth),screenHeight:Math.round(screen.height||layoutHeight),dpr:Number(devicePixelRatio)||1,fontProbeWidth:Number(fontProbe.width.toFixed(3))||0,fontProbeHeight:Number(fontProbe.height.toFixed(3))||0,fontName:String(cfg?.fontFamily||'Inter')};
+  heartbeatMetricsCache={width:layoutWidth,height:layoutHeight,layoutWidth,layoutHeight,viewportWidth,viewportHeight,visualViewportWidth:Math.max(1,Math.round(vv?.width||viewportWidth)),visualViewportHeight:Math.max(1,Math.round(vv?.height||viewportHeight)),visualViewportScale:Number(vv?.scale)||1,screenWidth:Math.round(screen.width||layoutWidth),screenHeight:Math.round(screen.height||layoutHeight),dpr:Number(devicePixelRatio)||1,fontProbeWidth:Number(fontProbe.width.toFixed(3))||0,fontProbeHeight:Number(fontProbe.height.toFixed(3))||0,fontName:String(cfg?.fontFamily||'Inter')};
+  heartbeatMetricsDirty=false;return heartbeatMetricsCache;
 }
+const refreshHeartbeatPerformanceCache=()=>{heartbeatPerformanceCache=LibreDisplayRuntime.getModule('performance').frontendPerformanceSnapshot();heartbeatPerformanceCacheAt=Date.now();heartbeatPerformanceRefreshPending=false;return heartbeatPerformanceCache;};
+const heartbeatPerformanceSnapshot=(force=false)=>{const performance=LibreDisplayRuntime.getModule('performance'),stale=!heartbeatPerformanceCache||Date.now()-heartbeatPerformanceCacheAt>=HEARTBEAT_PERFORMANCE_CACHE_MS;if(force||!heartbeatPerformanceCache)return refreshHeartbeatPerformanceCache();if(stale&&!heartbeatPerformanceRefreshPending){heartbeatPerformanceRefreshPending=true;performance.runWhenIdle(()=>{try{refreshHeartbeatPerformanceCache();}catch(_e){heartbeatPerformanceRefreshPending=false;}},1600);}return heartbeatPerformanceCache;};
 function dispatchPendingPhysicalDisplayCommand(command){
   if(!bootstrapApi.LOCAL_CLIENT_MODE||!command||command.action!=='performance-benchmark')return false;
   const requestId=String(command.requestId||'').replace(/[^A-Za-z0-9_-]+/g,'-').slice(0,96);if(!requestId)return false;
@@ -327,23 +333,23 @@ function dispatchPendingPhysicalDisplayCommand(command){
   if(currentId===requestId&&['running','complete','error'].includes(currentState))return false;
   const event={data:JSON.stringify(command)};setTimeout(()=>LibreDisplayRuntime.getModule('performance').runExclusiveTask('display-performance-benchmark',()=>runPhysicalDisplayBenchmarkRequest(event)),0);return true;
 }
-async function sendDisplayHeartbeat(connectivityRecovered=false){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;try{const m=displayViewportMetrics(),frontendPerformance={...LibreDisplayRuntime.getModule('performance').frontendPerformanceSnapshot(),connectivity:connectivitySnapshot()};const response=await resilientFetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:bootstrapApi.READ_ONLY_DISPLAY_MODE?'viewer':(bootstrapApi.LOCAL_CLIENT_MODE?'local':'admin'),version:bootstrapApi.DASHBOARD_BUILD,userAgent:navigator.userAgent,frontendPerformance,displayPerformanceBenchmark:bootstrapApi.LOCAL_CLIENT_MODE?physicalDisplayBenchmarkState:undefined,connectivityRecovered:!!connectivityRecovered}),cache:'no-store'},{timeoutMs:5000,retry:false});if(response.ok&&bootstrapApi.LOCAL_CLIENT_MODE){const payload=await response.json().catch(()=>({}));dispatchPendingPhysicalDisplayCommand(payload?.pendingCommand);}}catch(e){}}
+async function sendDisplayHeartbeat(connectivityRecovered=false,options={}){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;try{const force=options?.full===true,m=displayViewportMetrics(force),frontendPerformance={...heartbeatPerformanceSnapshot(force),connectivity:connectivitySnapshot()};const response=await resilientFetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:bootstrapApi.READ_ONLY_DISPLAY_MODE?'viewer':(bootstrapApi.LOCAL_CLIENT_MODE?'local':'admin'),version:bootstrapApi.DASHBOARD_BUILD,userAgent:navigator.userAgent,frontendPerformance,displayPerformanceBenchmark:bootstrapApi.LOCAL_CLIENT_MODE?physicalDisplayBenchmarkState:undefined,connectivityRecovered:!!connectivityRecovered}),cache:'no-store'},{timeoutMs:5000,retry:false});if(response.ok&&bootstrapApi.LOCAL_CLIENT_MODE){const payload=await response.json().catch(()=>({}));dispatchPendingPhysicalDisplayCommand(payload?.pendingCommand);}}catch(e){}}
 function parseDisplayBenchmarkEvent(event){try{return JSON.parse(String(event?.data||'{}'))||{};}catch{return {};}}
 async function runPhysicalDisplayBenchmarkRequest(event){
   if(!bootstrapApi.LOCAL_CLIENT_MODE)return;
   const request=parseDisplayBenchmarkEvent(event),requestId=String(request.requestId||'').replace(/[^A-Za-z0-9_-]+/g,'-').slice(0,96)||('bench-'+Date.now().toString(36));
   const requestedAt=Number(request.requestedAt)||Math.floor(Date.now()/1000),startedAt=new Date().toISOString(),performance=LibreDisplayRuntime.getModule('performance'),stageTotal=Math.max(1,Number(performance.displayBenchmarkStageCount?.())||1);
   physicalDisplayBenchmarkState={requestId,state:'running',requestedAt:new Date(requestedAt*1000).toISOString(),startedAt,stageKey:'preparing',stageLabel:'Preparing physical display benchmark',stageIndex:0,stageTotal};
-  await sendDisplayHeartbeat(false);
+  await sendDisplayHeartbeat(false,{full:true});
   try{
     const result=await performance.runDisplayPerformanceBenchmark({onStage:stage=>{physicalDisplayBenchmarkState={...physicalDisplayBenchmarkState,state:'running',stageKey:stage.key||'',stageLabel:stage.label||'',stageIndex:Number(stage.index)||0,stageTotal:Number(stage.total)||stageTotal};}});
     physicalDisplayBenchmarkState={requestId,state:'complete',requestedAt:physicalDisplayBenchmarkState.requestedAt,startedAt,resultStartedAt:result.startedAt||startedAt,finishedAt:result.finishedAt||new Date().toISOString(),stageKey:'complete',stageLabel:'Completed',stageIndex:stageTotal,stageTotal,result};
   }catch(error){
     physicalDisplayBenchmarkState={requestId,state:'error',requestedAt:physicalDisplayBenchmarkState?.requestedAt||new Date(requestedAt*1000).toISOString(),startedAt,finishedAt:new Date().toISOString(),stageKey:'error',stageLabel:'Failed',stageIndex:0,stageTotal,error:String(error?.message||error||'Display benchmark failed').slice(0,400)};
   }
-  await sendDisplayHeartbeat(false);
+  await sendDisplayHeartbeat(false,{full:true});
 }
-function scheduleDisplayHeartbeat(delay=100){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;if(heartbeatResizeTimer)clearTimeout(heartbeatResizeTimer);heartbeatResizeTimer=setTimeout(()=>{heartbeatResizeTimer=null;LibreDisplayRuntime.getModule('performance').runExclusiveTask('display-heartbeat',sendDisplayHeartbeat);},Math.max(0,delay));}
+function scheduleDisplayHeartbeat(delay=100){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;heartbeatMetricsDirty=true;if(heartbeatResizeTimer)clearTimeout(heartbeatResizeTimer);heartbeatResizeTimer=setTimeout(()=>{heartbeatResizeTimer=null;LibreDisplayRuntime.getModule('performance').runExclusiveTask('display-heartbeat',()=>sendDisplayHeartbeat(false,{full:true}));},Math.max(0,delay));}
 function bindDisplayViewportHeartbeat(){
   if(window.__ldViewportHeartbeatBound)return;window.__ldViewportHeartbeatBound=true;
   window.addEventListener('resize',()=>scheduleDisplayHeartbeat(80),{passive:true});
@@ -361,12 +367,12 @@ function startLiveDisplayConnection(){
     liveEventSource.addEventListener('config',()=>LibreDisplayRuntime.getModule('performance').runExclusiveTask('remote-config-poll',pollServerConfig));liveEventSource.addEventListener('household',async()=>{await loadHousehold(false);refreshFamilyBlocks();});liveEventSource.addEventListener('refresh',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE){LibreDisplayRuntime.getModule('settings').refreshDataNow();scheduleDisplayHeartbeat(40);}});liveEventSource.addEventListener('heartbeat',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)scheduleDisplayHeartbeat(0);});liveEventSource.addEventListener('performance-benchmark',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'performance-benchmark',...command});}});liveEventSource.addEventListener('reload',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)location.reload();});liveEventSource.addEventListener('reauth',()=>location.reload());
   }catch(e){noteServerTransportError();}
   const performance=LibreDisplayRuntime.getModule('performance');
-  bindDisplayViewportHeartbeat();performance.runExclusiveTask('display-heartbeat',sendDisplayHeartbeat);
+  bindDisplayViewportHeartbeat();performance.runExclusiveTask('display-heartbeat',()=>sendDisplayHeartbeat(false,{full:true}));
   performance.stopManagedInterval('display-heartbeat');
-  heartbeatTimer=performance.startManagedInterval('display-heartbeat',sendDisplayHeartbeat,bootstrapApi.LOCAL_CLIENT_MODE?5000:30000,{skipWhenHidden:false,resumeOnVisible:false});
+  heartbeatTimer=performance.startManagedInterval('display-heartbeat',sendDisplayHeartbeat,bootstrapApi.LOCAL_CLIENT_MODE?15000:30000,{skipWhenHidden:false,resumeOnVisible:false,initialDelayMs:bootstrapApi.LOCAL_CLIENT_MODE?15000:30000});
   updateOfflinePill();
 }
-function startRemoteConfigPolling(){const performance=LibreDisplayRuntime.getModule('performance');performance.stopManagedInterval('remote-config-poll');configApi.remoteConfigPollTimer=performance.startManagedInterval('remote-config-poll',pollServerConfig,bootstrapApi.REMOTE_SETTINGS_MODE?5000:30000,{skipWhenHidden:true,resumeOnVisible:true,immediate:true});}
+function startRemoteConfigPolling(){const performance=LibreDisplayRuntime.getModule('performance'),editor=bootstrapApi.REMOTE_SETTINGS_MODE,interval=editor?5000:45000;performance.stopManagedInterval('remote-config-poll');configApi.remoteConfigPollTimer=performance.startManagedInterval('remote-config-poll',pollServerConfig,interval,{skipWhenHidden:true,resumeOnVisible:true,immediate:editor,initialDelayMs:editor?5000:17000,idle:!editor,idleTimeoutMs:1800});}
 
 function settingsRecoveryMessage(error){
   const raw=String(error?.message||error||'Settings initialization did not finish.').replace(/\s+/g,' ').trim();

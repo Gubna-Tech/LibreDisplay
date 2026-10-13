@@ -7,6 +7,7 @@
 const {resilientFetch}=LibreDisplayRuntime.getModule('shared');
 const managedIntervals=new Map();
 const managedRuns=new Map();
+const managedIntervalStats=new Map();
 let longTaskCount=0,longTaskTotalMs=0,longTaskMaxMs=0,longTaskObserverActive=false,longTaskEntries=[];
 const ANIMATION_MODES=new Set(['auto','smooth','balanced','fidelity']);
 let animationGovernor={running:false,raf:0,lastSample:0,samples:[],sampleTotal:0,fps:0,targetFps:30,droppedPct:0,quality:.72,lastAdjust:0,lastProbe:0,probes:0,frames:0,dropped:0,rescue:false,rescueSince:0,recoverySince:0,dashboardSamples:[],dashboardTotal:0,settingsSamples:[],settingsTotal:0,dashboardFps:0,settingsFps:0};
@@ -151,27 +152,36 @@ function runExclusiveTask(key,task){
 function stopManagedInterval(key){
   const name=String(key||'');
   const entry=managedIntervals.get(name);
-  if(entry?.timer)clearInterval(entry.timer);
+  if(entry?.timer)clearTimeout(entry.timer);
+  if(entry?.idleHandle&&typeof cancelIdleCallback==='function')cancelIdleCallback(entry.idleHandle);
   if(entry?.visibilityHandler)document.removeEventListener('visibilitychange',entry.visibilityHandler);
   managedIntervals.delete(name);
 }
 
+const managedIntervalSnapshot=()=>[...managedIntervals.entries()].map(([key,entry])=>{const stats=managedIntervalStats.get(key)||{};return {key,intervalMs:entry.intervalMs||0,nextInMs:entry.nextAt?Math.max(0,Math.round(entry.nextAt-Date.now())):0,runs:stats.runs||0,totalMs:Number((stats.totalMs||0).toFixed(1)),maxMs:Number((stats.maxMs||0).toFixed(1)),lastMs:Number((stats.lastMs||0).toFixed(1)),coalesced:stats.coalesced||0,hiddenSkips:stats.hiddenSkips||0,idle:!!entry.idle};});
+
 function startManagedInterval(key,task,intervalMs,options={}){
   const name=String(key||'task');
   stopManagedInterval(name);
-  const ms=Math.max(1000,Number(intervalMs)||1000);
-  const skipWhenHidden=options.skipWhenHidden!==false;
-  const run=()=>{
-    if(skipWhenHidden&&document.hidden)return Promise.resolve(undefined);
-    return runExclusiveTask(name,task);
+  const ms=Math.max(1000,Number(intervalMs)||1000),skipWhenHidden=options.skipWhenHidden!==false,idle=options.idle===true,idleTimeoutMs=Math.max(100,Number(options.idleTimeoutMs)||1200),initialDelay=Math.max(0,Number(options.initialDelayMs??ms)||0);
+  if(!managedIntervalStats.has(name))managedIntervalStats.set(name,{runs:0,totalMs:0,maxMs:0,lastMs:0,coalesced:0,hiddenSkips:0});
+  const entry={timer:0,idleHandle:0,visibilityHandler:null,intervalMs:ms,nextAt:0,idle,stopped:false};
+  const schedule=delay=>{if(entry.stopped||managedIntervals.get(name)!==entry)return;entry.nextAt=Date.now()+Math.max(0,delay);entry.timer=setTimeout(dispatch,Math.max(0,delay));};
+  const invoke=async()=>{
+    if(entry.stopped||managedIntervals.get(name)!==entry)return;
+    const stats=managedIntervalStats.get(name);
+    if(skipWhenHidden&&document.hidden){stats.hiddenSkips++;schedule(ms);return;}
+    if(managedRuns.has(name)){stats.coalesced++;schedule(ms);return;}
+    const started=performance.now();
+    try{await runExclusiveTask(name,task);}finally{const elapsed=performance.now()-started;stats.runs++;stats.totalMs+=elapsed;stats.lastMs=elapsed;stats.maxMs=Math.max(stats.maxMs,elapsed);schedule(ms);}
   };
-  const entry={timer:setInterval(run,ms),visibilityHandler:null,intervalMs:ms};
+  const dispatch=()=>{entry.timer=0;if(entry.stopped||managedIntervals.get(name)!==entry)return;if(idle&&typeof requestIdleCallback==='function'){entry.idleHandle=requestIdleCallback(()=>{entry.idleHandle=0;void invoke();},{timeout:idleTimeoutMs});}else void invoke();};
   if(skipWhenHidden&&options.resumeOnVisible!==false){
-    entry.visibilityHandler=()=>{if(!document.hidden)run();};
+    entry.visibilityHandler=()=>{if(!document.hidden&&!entry.stopped){if(entry.timer)clearTimeout(entry.timer);entry.timer=0;dispatch();}};
     document.addEventListener('visibilitychange',entry.visibilityHandler);
   }
   managedIntervals.set(name,entry);
-  if(options.immediate)run();
+  if(options.immediate)dispatch();else schedule(initialDelay);
   return entry.timer;
 }
 
@@ -338,6 +348,7 @@ function frontendPerformanceSnapshot(){
     reducedMotion:document.documentElement.classList.contains('ld-reduce-motion'),
     activeIntervals:managedIntervals.size,
     activeExclusiveRuns:managedRuns.size,
+    maintenanceTasks:managedIntervalSnapshot(),
     longTaskObserverActive,
     layoutAutoFit:layoutAutoFitSnapshot(),
     integrationObservers:integrationObserverTelemetrySnapshot(),
@@ -369,6 +380,6 @@ queueMicrotask(hydrateRuntimeHardware);
 observeFrontendLongTasks();
 startAnimationGovernor();
 
-LibreDisplayRuntime.exposeModule('performance',{hardwareTierFromModel,hydrateRuntimeHardware,frontendCapabilities,frontendPixelLoad,baseVisualPerformanceBudget,visualPerformanceBudget,animationPerformanceMode:currentAnimationPerformanceMode,animationModeProfile,animationPerformanceFrameMs,compositorMotionFrameMs,animationPerformanceSnapshot,browserGraphicsSnapshot,startAnimationGovernor,refreshAnimationPerformanceMode,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,runWhenIdle,sampleDisplayFrameRate,displayBenchmarkStageCount,runDisplayPerformanceBenchmark,diagnoseDisplayBenchmark,frontendPerformanceSnapshot,animationWorkloadSnapshot,animationCostSnapshot,domWorkloadSnapshot,integrationObserverTelemetrySnapshot,weatherCanvasTelemetrySnapshot,observeFrontendLongTasks,recentLongTaskSnapshot,backgroundRuntimeTelemetrySnapshot},{displayBenchmarkRunning:{configurable:true,get:()=>displayBenchmarkRunning}},{globals:false});
+LibreDisplayRuntime.exposeModule('performance',{hardwareTierFromModel,hydrateRuntimeHardware,frontendCapabilities,frontendPixelLoad,baseVisualPerformanceBudget,visualPerformanceBudget,animationPerformanceMode:currentAnimationPerformanceMode,animationModeProfile,animationPerformanceFrameMs,compositorMotionFrameMs,animationPerformanceSnapshot,browserGraphicsSnapshot,startAnimationGovernor,refreshAnimationPerformanceMode,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,managedIntervalSnapshot,runWhenIdle,sampleDisplayFrameRate,displayBenchmarkStageCount,runDisplayPerformanceBenchmark,diagnoseDisplayBenchmark,frontendPerformanceSnapshot,animationWorkloadSnapshot,animationCostSnapshot,domWorkloadSnapshot,integrationObserverTelemetrySnapshot,weatherCanvasTelemetrySnapshot,observeFrontendLongTasks,recentLongTaskSnapshot,backgroundRuntimeTelemetrySnapshot},{displayBenchmarkRunning:{configurable:true,get:()=>displayBenchmarkRunning}},{globals:false});
 }
 // End source section: /js/core/performance.js

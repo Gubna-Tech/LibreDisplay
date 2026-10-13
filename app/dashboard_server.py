@@ -2780,6 +2780,7 @@ def normalize_frontend_performance(value):
     forecast_rendering = value.get("forecastRendering") if isinstance(value.get("forecastRendering"), dict) else {}
     heap = value.get("heap") if isinstance(value.get("heap"), dict) else {}
     connectivity = value.get("connectivity") if isinstance(value.get("connectivity"), dict) else {}
+    maintenance_tasks = value.get("maintenanceTasks") if isinstance(value.get("maintenanceTasks"), list) else []
     payload = {
         "cores": bounded_int(value.get("cores"), 0, 256),
         "memoryGB": bounded_float(value.get("memoryGB"), 0, 1024, 2),
@@ -2846,6 +2847,20 @@ def normalize_frontend_performance(value):
                 "cells": bounded_int((forecast_rendering.get(key) or {}).get("cells"), 0, 100),
             } for key in ("daily", "hourly") if isinstance(forecast_rendering.get(key), dict)
         } if forecast_rendering else {},
+        "maintenanceTasks": [
+            {
+                "key": re.sub(r"[^A-Za-z0-9:_-]+", "-", str(row.get("key") or ""))[:80],
+                "intervalMs": bounded_int(row.get("intervalMs"), 0, 24 * 60 * 60 * 1000),
+                "nextInMs": bounded_int(row.get("nextInMs"), 0, 24 * 60 * 60 * 1000),
+                "runs": bounded_int(row.get("runs"), 0, 10**9),
+                "totalMs": bounded_float(row.get("totalMs"), 0, 10**12, 1),
+                "maxMs": bounded_float(row.get("maxMs"), 0, 10**9, 1),
+                "lastMs": bounded_float(row.get("lastMs"), 0, 10**9, 1),
+                "coalesced": bounded_int(row.get("coalesced"), 0, 10**9),
+                "hiddenSkips": bounded_int(row.get("hiddenSkips"), 0, 10**9),
+                "idle": bool(row.get("idle")),
+            } for row in maintenance_tasks[:32] if isinstance(row, dict) and str(row.get("key") or "").strip()
+        ],
     }
     if heap:
         payload["heap"] = {

@@ -52,7 +52,7 @@
     "module": "performance",
     "part": "bundle",
     "path": "/js/modules/performance.js",
-    "lines": 374,
+    "lines": 385,
     "functions": 25,
     "bindings": 1,
     "sections": [
@@ -94,7 +94,7 @@
     "module": "backgrounds",
     "part": "bundle",
     "path": "/js/modules/backgrounds.js",
-    "lines": 880,
+    "lines": 878,
     "functions": 71,
     "bindings": 3,
     "sections": [
@@ -121,7 +121,7 @@
     "module": "layout",
     "part": "bundle",
     "path": "/js/modules/layout.js",
-    "lines": 1159,
+    "lines": 1160,
     "functions": 199,
     "bindings": 32,
     "sections": [
@@ -151,7 +151,7 @@
     "module": "remote",
     "part": "bundle",
     "path": "/js/modules/remote.js",
-    "lines": 408,
+    "lines": 414,
     "functions": 43,
     "bindings": 10,
     "sections": [

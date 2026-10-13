@@ -229,9 +229,9 @@ function updateScreenCareState(source=uiCfg()){
 }
 function applyScreenCarePreferences(source=cfg){
   updateScreenCareState(source);
-  if(screenCareTimer)clearInterval(screenCareTimer);
-  if(source?.burnInCareEnabled&&(source?.burnInIdleDimmingEnabled||source?.burnInQuietHoursEnabled||source?.burnInDeepProtection))screenCareTimer=setInterval(()=>updateScreenCareState(uiCfg()),5000);
   const performance=LibreDisplayRuntime.getModule('performance');
+  performance.stopManagedInterval('screen-care-state');screenCareTimer=null;
+  if(source?.burnInCareEnabled&&(source?.burnInIdleDimmingEnabled||source?.burnInQuietHoursEnabled||source?.burnInDeepProtection))screenCareTimer=performance.startManagedInterval('screen-care-state',()=>updateScreenCareState(uiCfg()),15000,{skipWhenHidden:true,resumeOnVisible:true,initialDelayMs:9300,idle:true,idleTimeoutMs:1600});
   performance.stopManagedInterval('screen-care-pixel-shift');
   if(source?.burnInCareEnabled&&source?.burnInPixelShift){
     if(!screenCareCanShift(source))resetScreenCareShift();

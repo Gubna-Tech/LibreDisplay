@@ -599,7 +599,6 @@ function deferBackgroundLayerCleanup(layer){if(!layer)return;if(backgroundCleanu
 
 async function revealBackgroundLayer(layer,remoteUrl){
   const transitionStarted=performance.now();backgroundRuntimeEvent('transition-start');
-  const layoutApi=LibreDisplayRuntime.getModule('layout'),fitWasSuspended=layoutApi?.builtInLayoutAutoFitSnapshot?.().suspended===true;if(!fitWasSuspended)layoutApi?.setBuiltInLayoutAutoFitSuspended?.(true,{reschedule:false});
   try{
     const active=activeBackgroundLayer(),hasCurrent=!!(active&&active.classList.contains('show')&&backgroundMediaHasVisual(active));
     layer.style.zIndex='1';if(active&&active!==layer)active.style.zIndex='0';layer.classList.remove('show','ld-bg-retired');layer.classList.add('ld-bg-transitioning');
@@ -607,7 +606,6 @@ async function revealBackgroundLayer(layer,remoteUrl){
     if(active&&active!==layer){active.classList.add('ld-bg-retired');active.classList.remove('show');await nextAnimationFrame();deferBackgroundLayerCleanup(active);}
     layer.classList.remove('ld-bg-transitioning');layer.style.zIndex='0';configApi.bgActiveLayerId=layer.id;configApi.bgLastUrl=remoteUrl;rememberLastBackground(remoteUrl);
   }finally{
-    if(!fitWasSuspended){layoutApi?.setBuiltInLayoutAutoFitSuspended?.(false,{reschedule:false});layoutApi?.scheduleBuiltInLayoutAutoFitDeferred?.(null,650);}
     const elapsed=performance.now()-transitionStarted;backgroundRuntime.transitions++;backgroundRuntime.lastTransitionMs=Number(elapsed.toFixed(1));backgroundRuntime.maxTransitionMs=Math.max(backgroundRuntime.maxTransitionMs,backgroundRuntime.lastTransitionMs);backgroundRuntimeEvent('transition-end',{ms:backgroundRuntime.lastTransitionMs});
   }
 }
