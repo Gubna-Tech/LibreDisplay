@@ -188,7 +188,7 @@
     "module": "settings",
     "part": "bundle",
     "path": "/js/modules/settings.js",
-    "lines": 1664,
+    "lines": 1720,
     "functions": 82,
     "bindings": 18,
     "sections": [
