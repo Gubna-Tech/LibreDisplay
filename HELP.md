@@ -1021,6 +1021,8 @@ Areas include:
 
 These effects are separate from weather data. You can keep a forecast visible while reducing or disabling expensive fullscreen visuals.
 
+LibreDisplay maps the full Open-Meteo/WMO condition set used by the dashboard, including freezing drizzle and freezing rain. In Pi 3 Automatic mode, the fullscreen weather scene is intentionally static between synchronized scene refreshes: rain, snow, fog, clouds, storm structure, and other atmospheric layers are placed across the window and reseeded with the same scene timer used by NatureScape. Rain, freezing rain/drizzle, snow, and storms replace seasonal leaves/grass while active. Pi 4 and Pi 5 Automatic modes keep their animated weather paths, including moving precipitation, cloud/fog motion, and storm atmosphere.
+
 ---
 
 ## Weather Alerts
@@ -1040,6 +1042,8 @@ It includes:
 - visibility/heat/fire-weather presentation
 
 Use test/preview behavior to tune presentation instead of waiting for a real alert.
+
+On Pi 3 Automatic mode, severe-weather scenes follow the same synchronized static-scene refresh cadence as normal weather overlays and remain still between refreshes. Pi 4 and Pi 5 retain animated hazard scenes. Weather-driven scenes that conflict with seasonal foliage suppress leaves and grass while the hazard is active.
 
 Hazard visuals should never be treated as a substitute for official safety instructions from local authorities.
 
@@ -1913,13 +1917,13 @@ Heavy combinations can include:
 - many wildlife actors
 - several translucent/blurred panels
 
-Automatic performance mode is the recommended default because it can adapt pacing to measured headroom.
+Automatic performance mode is the recommended default because it can adapt pacing to measured headroom. Pi 4 Automatic keeps animated weather and severe-weather overlays active; precipitation and cloud/fog motion are not replaced by the Pi 3 static-scene model.
 
 ---
 
 ## Raspberry Pi 5
 
-Pi 5 generally supports richer motion and denser presentation while maintaining good headroom.
+Pi 5 generally supports richer motion and denser presentation while maintaining good headroom. Automatic mode retains animated weather and severe-weather overlays, including moving precipitation, cloud/fog motion, and storm atmosphere.
 
 Avoid using the extra hardware as a reason to duplicate unnecessary animation layers. Stable unattended rendering is still the priority.
 

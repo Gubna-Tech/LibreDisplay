@@ -3166,6 +3166,17 @@ html.ld-pi3-static #weather-effects-overlay::before,
 html.ld-pi3-static #weather-effects-overlay::after{animation:none!important;filter:none!important}
 html.ld-pi3-static #weather-effects-overlay .weather-fx-lightning-bolt,
 html.ld-pi3-static #weather-effects-overlay .weather-fx-splash{display:none!important}
+/* Pi 3 Automatic uses still weather scenes. Put precipitation and atmosphere at their seeded
+   static positions so disabling animation does not strand rain/snow/fog above the viewport. */
+html.ld-pi3-static #weather-effects-overlay .weather-fx-particle{top:var(--fx-static-y,50vh)!important}
+html.ld-pi3-static #weather-effects-overlay :is(.weather-fx-rain,.weather-fx-storm) .weather-fx-primary{transform:rotate(var(--fx-angle,0deg)) scale(var(--fx-scale,1))!important;opacity:var(--fx-alpha,.78)!important}
+html.ld-pi3-static #weather-effects-overlay .weather-fx-snow .weather-fx-primary{transform:scale(var(--fx-scale,1))!important;opacity:var(--fx-alpha,.88)!important}
+html.ld-pi3-static #weather-effects-overlay .weather-fx-fog .weather-fx-primary{transform:scale(var(--fx-scale,1))!important;opacity:var(--fx-alpha,.42)!important}
+html.ld-pi3-static #weather-effects-overlay .weather-fx-fog-bank{opacity:var(--fog-bank-alpha,.36)!important;transform:none!important}
+html.ld-pi3-static #weather-effects-overlay .weather-fx-rain-sheet{opacity:var(--sheet-alpha,.18)!important;transform:rotate(var(--sheet-angle,13deg))!important}
+html.ld-pi3-static #weather-effects-overlay .weather-fx-blowing-snow{opacity:var(--snow-veil-alpha,.22)!important;transform:none!important}
+html.ld-pi3-static #weather-effects-overlay .weather-fx-blowing-snow i{opacity:.78!important;transform:none!important}
+html.ld-pi3-static #weather-effects-overlay .weather-fx-lightning-bolt{display:block!important;opacity:.52!important;transform:scale(var(--bolt-scale,1))!important}
 html.ld-pi3-device:not(.ld-pi3-static) #weather-effects-overlay :is(.weather-fx-bird,.weather-fx-dog-v2,.weather-fx-cloud-mass,.weather-fx-fog-bank){filter:none!important;box-shadow:none!important}
 html.ld-pi4-device #weather-effects-overlay{contain:layout style}
 html.ld-pi4-device #weather-effects-overlay{isolation:isolate;transform:translateZ(0);backface-visibility:hidden}

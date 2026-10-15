@@ -53,15 +53,15 @@ function startClock(){
 startClock();
 
 const WI={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',
-  51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',
+  51:'🌦️',53:'🌦️',55:'🌧️',56:'🌧️',57:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',66:'🌧️',67:'🌧️',
   71:'🌨️',73:'❄️',75:'❄️',77:'🌨️',80:'🌦️',81:'🌧️',82:'🌧️',
   85:'🌨️',86:'❄️',95:'⛈️',96:'⛈️',99:'⛈️'};
 const WD={0:'Clear',1:'Mainly clear',2:'Partly cloudy',3:'Cloudy',
-  45:'Foggy',48:'Icy fog',51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',
-  61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',
+  45:'Foggy',48:'Icy fog',51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',56:'Light freezing drizzle',57:'Heavy freezing drizzle',
+  61:'Light rain',63:'Rain',65:'Heavy rain',66:'Light freezing rain',67:'Heavy freezing rain',71:'Light snow',73:'Snow',
   75:'Heavy snow',77:'Snow grains',80:'Light showers',81:'Rain showers',82:'Heavy showers',
   85:'Snow showers',86:'Heavy snow showers',95:'Thunderstorm',96:'Thunderstorm with hail',99:'Severe thunderstorm with hail'};
-const WIN={0:'🌙',1:'🌙☁️',2:'🌙☁️',51:'🌧️',53:'🌧️',80:'🌧️'};
+const WIN={0:'🌙',1:'🌙☁️',2:'🌙☁️',51:'🌧️',53:'🌧️',56:'🌧️',57:'🌧️',66:'🌧️',67:'🌧️',80:'🌧️'};
 const MOON_PHASE_NORTH=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
 const MOON_PHASE_SOUTH=['🌑','🌘','🌗','🌖','🌕','🌔','🌓','🌒'];
 function weatherLocalDateParts(time){if(time instanceof Date&&Number.isFinite(time.getTime()))return {year:time.getFullYear(),month:time.getMonth()+1,day:time.getDate(),hour:time.getHours(),minute:time.getMinutes()};const m=String(time||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/);return m?{year:Number(m[1]),month:Number(m[2]),day:Number(m[3]),hour:Number(m[4]||12),minute:Number(m[5]||0)}:null;}
@@ -717,7 +717,9 @@ let currentOwlSceneSpecies=[];
 const EFFECT_TUNING_KEYS=['weatherRainDensity','weatherRainSize','weatherRainWidth','weatherRainSpeed','weatherRainOpacity','weatherRainAngle','weatherRainDepth','weatherRainSplash','weatherRainSplashSize','weatherRainGlow','weatherSnowDensity','weatherSnowSize','weatherSnowSpeed','weatherSnowDrift','weatherSnowOpacity','weatherSnowSpin','weatherSnowDepth','weatherFogDensity','weatherFogSpeed','weatherFogOpacity','weatherFogBlur','weatherFogLayerHeight','weatherCloudDensity','weatherCloudOpacity','weatherCloudSpeed','weatherCloudScale','weatherSunGlow','weatherSunRaySpeed','weatherLightningSize','weatherLightningFlash','weatherLightningBolts','weatherSeasonLeavesIntensity','weatherSeasonLeavesSize','weatherSeasonLeavesSpeed','weatherSeasonLeavesWind','weatherSeasonLeavesOpacity','weatherSeasonGrassIntensity','weatherSeasonGrassHeight','weatherSeasonGrassSway','weatherSeasonGrassOpacity','weatherSeasonPetalIntensity','weatherSeasonPetalSize','weatherSeasonPetalSpeed','weatherSeasonPetalOpacity','weatherSeasonBeeIntensity','weatherSeasonBeeSize','weatherSeasonBeeSpeed','weatherSeasonBeeOpacity','weatherSeasonButterflyIntensity','weatherSeasonButterflySize','weatherSeasonButterflySpeed','weatherSeasonButterflyOpacity','weatherSeasonButterflyDiversity','weatherSeasonFireflyIntensity','weatherSeasonFireflySize','weatherSeasonFireflySpeed','weatherSeasonFireflyGlow','weatherSeasonFireflyOpacity','weatherSeasonBirdIntensity','weatherSeasonBirdSize','weatherSeasonBirdSpeed','weatherSeasonBirdFlock','weatherSeasonBirdOpacity','weatherSeasonBirdHeight','weatherSeasonBirdDiversity','weatherSeasonBirdRare','weatherDogActivity','weatherDogSize','weatherDogOpacity','weatherDogCompanion','weatherSeasonOwlIntensity','weatherSeasonOwlSize','weatherSeasonOwlSpeed','weatherSeasonOwlOpacity','weatherSeasonOwlDiversity','weatherSeasonDragonflyIntensity','weatherSeasonDragonflySize','weatherSeasonDragonflySpeed','weatherSeasonDragonflyOpacity','weatherSeasonLadybugIntensity','weatherSeasonLadybugSize','weatherSeasonLadybugSpeed','weatherSeasonLadybugOpacity','weatherSeasonMothIntensity','weatherSeasonMothSize','weatherSeasonMothSpeed','weatherSeasonMothOpacity','weatherSeasonCrystalIntensity','weatherSeasonCrystalSize','weatherSeasonCrystalSpeed','weatherSeasonCrystalOpacity','weatherSeasonSnowmen','weatherSeasonSnowmanIntensity','weatherSeasonSnowmanSize','weatherSeasonSnowmanOpacity','weatherColdFrostWidth','weatherColdFrostOpacity'];
 const WEATHER_TEST_PROFILES={
   drizzle:{label:'Light drizzle',weather_code:53,precipitation:1.2,cloud_cover:92,wind_speed_10m:8,wind_direction_10m:210,is_day:1},
+  'freezing-drizzle':{label:'Freezing drizzle',weather_code:56,precipitation:1.3,cloud_cover:96,wind_speed_10m:9,wind_direction_10m:215,is_day:1},
   rain:{label:'Rain',weather_code:63,precipitation:4,cloud_cover:100,wind_speed_10m:14,wind_direction_10m:220,is_day:1},
+  'freezing-rain':{label:'Freezing rain',weather_code:66,precipitation:3,cloud_cover:100,wind_speed_10m:13,wind_direction_10m:225,is_day:1},
   'heavy-rain':{label:'Heavy rain',weather_code:65,precipitation:12,cloud_cover:100,wind_speed_10m:25,wind_direction_10m:235,is_day:1},
   storm:{label:'Thunderstorm',weather_code:95,precipitation:9,cloud_cover:100,wind_speed_10m:31,wind_direction_10m:245,is_day:1},
   snow:{label:'Snow',weather_code:73,precipitation:4,cloud_cover:98,wind_speed_10m:10,wind_direction_10m:160,is_day:1},
@@ -735,7 +737,7 @@ function weatherVisualCondition(code){
   const c=Number(code);
   if([95,96,99].includes(c))return 'storm';
   if([71,73,75,77,85,86].includes(c))return 'snow';
-  if([51,53,55,61,63,65,80,81,82].includes(c))return 'rain';
+  if([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(c))return 'rain';
   if([45,48].includes(c))return 'fog';
   if([1,2].includes(c))return 'partly';
   if(c===3)return 'cloud';
@@ -780,7 +782,7 @@ function syncWeatherGlyphVisibility(source,widgetOn){
 
 function liveIntensityMultiplier(condition,data){
   const current=data?.current||{},code=Number(current.weather_code),precip=Number(current.precipitation),cloud=Number(current.cloud_cover),wind=Number(current.wind_speed_10m);
-  const severity={51:.62,53:.76,55:.92,61:.76,63:1,65:1.15,80:.82,81:1.04,82:1.20,71:.72,73:1,75:1.18,77:.8,85:.88,86:1.16,95:1.08,96:1.18,99:1.28}[code]||1;
+  const severity={51:.62,53:.76,55:.92,56:.70,57:.94,61:.76,63:1,65:1.15,66:.82,67:1.16,80:.82,81:1.04,82:1.20,71:.72,73:1,75:1.18,77:.8,85:.88,86:1.16,95:1.08,96:1.18,99:1.28}[code]||1;
   if(condition==='rain'||condition==='snow'||condition==='storm'){
     const precipBoost=Number.isFinite(precip)?wxClamp(.68+Math.sqrt(Math.max(0,precip))*.23,.68,1.45,1):1;
     const windBoost=Number.isFinite(wind)?wxClamp(.86+wind/120,.86,1.22,1):1;
@@ -792,7 +794,7 @@ function liveIntensityMultiplier(condition,data){
 }
 function weatherPhenomenonProfile(condition,data){
   const current=data?.current||{},code=Number(current.weather_code),precip=Number(current.precipitation);
-  if(condition==='rain'){if([51,53].includes(code))return {key:'drizzle',speed:.62,size:.58,width:.62,alpha:.68,splash:.08,angle:.66,density:1};if([55,61,80].includes(code)||(Number.isFinite(precip)&&precip<2))return {key:'light-rain',speed:.78,size:.76,width:.78,alpha:.80,splash:.35,angle:.82,density:1};if([65,82].includes(code)||(Number.isFinite(precip)&&precip>=8))return {key:'heavy-rain',speed:1.08,size:.82,width:.90,alpha:.88,splash:1.05,angle:.96,density:1.18};return {key:'rain',speed:1,size:1,width:1,alpha:.94,splash:1,angle:1,density:1};}
+  if(condition==='rain'){if([51,53,56].includes(code))return {key:'drizzle',speed:.62,size:.58,width:.62,alpha:.68,splash:.08,angle:.66,density:1};if([55,57,61,66,80].includes(code)||(Number.isFinite(precip)&&precip<2))return {key:'light-rain',speed:.78,size:.76,width:.78,alpha:.80,splash:.35,angle:.82,density:1};if([65,67,82].includes(code)||(Number.isFinite(precip)&&precip>=8))return {key:'heavy-rain',speed:1.08,size:.82,width:.90,alpha:.88,splash:1.05,angle:.96,density:1.18};return {key:'rain',speed:1,size:1,width:1,alpha:.94,splash:1,angle:1,density:1};}
   if(condition==='storm'){const severe=[96,99].includes(code)||(Number.isFinite(precip)&&precip>=12);return {key:severe?'severe-storm':'storm',speed:severe?1.22:1.16,size:severe?.90:.86,width:severe?.98:.95,alpha:severe?.94:.92,splash:severe?1.22:1.14,angle:severe?1.16:1.10,density:severe?1.28:1.24};}
   if(condition==='snow'){if([71,85].includes(code)||(Number.isFinite(precip)&&precip<2))return {key:'flurries',speed:.68,size:1.2,drift:.72,alpha:.78,density:1};if([75,86].includes(code)||(Number.isFinite(precip)&&precip>=7))return {key:'heavy-snow',speed:1.08,size:1.16,drift:1.42,alpha:1,density:6.0};if(code===77)return {key:'snow-grains',speed:1.3,size:.52,drift:.78,alpha:.82,density:1};return {key:'snow',speed:.92,size:1.02,drift:1.08,alpha:.96,density:3.0};}
   if(condition==='fog'){const humidity=Number(current.relative_humidity_2m);return {key:code===48?'freezing-fog':'fog',density:Number.isFinite(humidity)?wxClamp(.8+humidity/250,.9,1.22,1):1};}
@@ -819,9 +821,9 @@ function effectPauseReason(source){
 }
 function effectPaused(source){return !!effectPauseReason(source);}
 function seededUnit(i,salt){const bucket=staticSceneBucket?staticSceneBucket*97.173:0;const x=Math.sin((i+1)*12.9898+(salt+bucket)*78.233)*43758.5453;return x-Math.floor(x);}
-function weatherStaticSceneBucket(condition,source){const caps=performanceApi.frontendCapabilities(),budget=performanceApi.visualPerformanceBudget();if(!caps.pi3Class||budget.motionAllowed!==false)return 0;if(!source?.weatherAnimationsEnabled||weatherReducedMotionActive(source))return 0;if(!['clear','partly','cloud','rain','snow','storm','fog'].includes(condition))return 0;const seconds=[30,60,90,120,180,300].includes(Number(source?.pi3StaticSceneRefreshSec))?Number(source.pi3StaticSceneRefreshSec):60;return Math.floor(Date.now()/(seconds*1000))%4096;}
+function weatherStaticSceneBucket(condition,source){const caps=performanceApi.frontendCapabilities(),budget=performanceApi.visualPerformanceBudget();if(!caps.pi3Class||budget.motionAllowed!==false)return 0;if(!source?.weatherAnimationsEnabled||weatherReducedMotionActive(source))return 0;if(!source?.weatherFullscreenEffects||String(condition||'none')==='none')return 0;const seconds=[30,60,90,120,180,300].includes(Number(source?.pi3StaticSceneRefreshSec))?Number(source.pi3StaticSceneRefreshSec):60;return Math.floor(Date.now()/(seconds*1000))%4096;}
 function precipitationMarkup(kind,count){const cls=kind==='snow'?'ld-wx-flake':kind==='hail'?'ld-wx-hailstone':'ld-wx-drop';return Array.from({length:count},(_,i)=>`<i class="${cls}" style="--i:${i}"></i>`).join('');}
-function weatherVisualDescriptor(code,windSpeed=NaN,source=null){const c=Number(code),condition=weatherVisualCondition(c),heavy=[55,65,75,82,86,99].includes(c),light=[51,61,71,80,85].includes(c),hail=[96,99].includes(c),storm=[95,96,99].includes(c),threshold=(source?.useFahrenheit===false?35:22),windy=Number.isFinite(Number(windSpeed))&&Number(windSpeed)>=threshold;return {condition,intensity:heavy?'heavy':light?'light':'moderate',hail,storm,windy};}
+function weatherVisualDescriptor(code,windSpeed=NaN,source=null){const c=Number(code),condition=weatherVisualCondition(c),heavy=[55,57,65,67,75,82,86,99].includes(c),light=[51,56,61,66,71,80,85].includes(c),hail=[96,99].includes(c),storm=[95,96,99].includes(c),threshold=(source?.useFahrenheit===false?35:22),windy=Number.isFinite(Number(windSpeed))&&Number(windSpeed)>=threshold;return {condition,intensity:heavy?'heavy':light?'light':'moderate',hail,storm,windy};}
 function weatherIconMarkup(code,fallback='',source=null,isDay=true,details={}){
   source=weatherEffectSource(source);details=details&&typeof details==='object'?details:{};
   const descriptor=weatherVisualDescriptor(code,details.windSpeed,source),condition=descriptor.condition,safeFallback=String(fallback||''),widgetOn=!!source?.weatherAnimationsEnabled&&!!source?.weatherWidgetAnimations&&!effectPaused(source),glyphActive=weatherGlyphEnabled(condition,source||{}),daylight=isDay!==false;
@@ -981,7 +983,7 @@ function weatherWildlifeWeatherFactors(data,condition){
   const code=Number(data?.current?.weather_code),precip=Number(data?.current?.precipitation),wind=Number(data?.current?.wind_speed_10m);let insects=1,birds=1,reason='';
   if(condition==='storm'){insects=0;birds=0;reason='thunderstorm';}
   else if(condition==='snow'){insects=0;birds=([71,85].includes(code)||(Number.isFinite(precip)&&precip<=1))?.18:0;reason='snow';}
-  else if(condition==='rain'){const light=[51,53,61,80].includes(code)||(Number.isFinite(precip)&&precip<=1.5),moderate=[55,63,81].includes(code)||(Number.isFinite(precip)&&precip<=4);insects=light?.05:0;birds=light?.42:moderate?.14:0;reason=light?'light precipitation':'rain';}
+  else if(condition==='rain'){const light=[51,53,56,61,66,80].includes(code)||(Number.isFinite(precip)&&precip<=1.5),moderate=[55,57,63,81].includes(code)||(Number.isFinite(precip)&&precip<=4);insects=light?.05:0;birds=light?.42:moderate?.14:0;reason=light?'light precipitation':'rain';}
   else if(condition==='fog'){insects=0;birds=.08;reason='fog';}
   if(Number.isFinite(wind)){insects*=wxClamp(1-Math.max(0,wind-14)/28,0,1,1);birds*=wxClamp(1-Math.max(0,wind-26)/42,0,1,1);if(wind>=58){insects=0;birds=0;reason='strong wind';}}
   return {insects,birds,reason};
