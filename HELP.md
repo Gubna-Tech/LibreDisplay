@@ -1161,6 +1161,8 @@ Example: you can enable pixel shifting all day while leaving Quiet Hours disable
 
 For OLED users, combine the protections that match the room and screen instead of blindly enabling every option.
 
+Pixel shift moves the complete persistent dashboard presentation, including fullscreen weather/NatureScape and fixed status controls. Quiet Hours only wakes on local input when **Temporarily wake on local input during quiet hours** is enabled. Deep brightness at 0% renders a fully black software output; it does not power off the monitor or replace the display manufacturer's own panel-care features.
+
 ---
 
 ## Displays & Access

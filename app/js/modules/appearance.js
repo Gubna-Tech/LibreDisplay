@@ -172,11 +172,10 @@ function screenCareQuietScheduleState(source=uiCfg(),now=new Date()){
   return {active:true,elapsedMs:elapsedMin*60000};
 }
 function noteScreenCareActivity(){
-  const source=uiCfg();screenCareLastActivity=Date.now();
-  if(source?.burnInQuietHoursEnabled&&source?.burnInQuietWakeEnabled!==false&&screenCareQuietScheduleState(source).active){const wakeMin=Math.min(30,Math.max(1,Number(source?.burnInQuietWakeMin)||5));screenCareScheduleWakeUntil=Date.now()+wakeMin*60000;}else screenCareScheduleWakeUntil=0;
-  if(screenCareDimmed){screenCareDimmed=false;document.body.classList.remove('ld-burnin-dim');document.documentElement.style.setProperty('--ld-burnin-overlay','0');}
+  const source=uiCfg(),now=Date.now(),quiet=source?.burnInQuietHoursEnabled?screenCareQuietScheduleState(source):{active:false};screenCareLastActivity=now;
+  if(quiet.active&&source?.burnInQuietWakeEnabled!==false){const wakeMin=Math.min(30,Math.max(1,Number(source?.burnInQuietWakeMin)||5));screenCareScheduleWakeUntil=now+wakeMin*60000;}else screenCareScheduleWakeUntil=0;
   if(source?.burnInShiftMode==='idle')resetScreenCareShift();
-  try{LibreDisplayRuntime.getModule('weatherEffects').refreshWeatherEffects();}catch(_e){}
+  updateScreenCareState(source);
 }
 function screenCareAvailable(){
   if(layoutEditorActive||remoteLayoutProxyActive||LAYOUT_PREVIEW_MODE)return false;
