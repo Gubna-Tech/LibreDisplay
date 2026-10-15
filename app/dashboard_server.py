@@ -3284,6 +3284,7 @@ def system_health_payload():
                 "dpr": dpr,
                 "version": str(kiosk.get("version") or "")[:40],
                 "frontendPerformance": normalize_frontend_performance(kiosk.get("frontendPerformance")),
+                "providerCache": normalize_provider_cache_status(kiosk.get("providerCache")),
                 "displayPerformanceBenchmark": normalize_display_performance_benchmark(kiosk.get("displayPerformanceBenchmark")),
             }
         except Exception:
@@ -3573,6 +3574,28 @@ def public_integration_error(message):
 def safe_response_header_value(value, limit=512):
     text = re.sub(r"[\x00-\x1f\x7f]+", " ", str(value or "")).strip()
     return text[:limit]
+
+
+def normalize_provider_cache_status(value):
+    rows = []
+    if not isinstance(value, list):
+        return rows
+    def bounded_int(raw, maximum):
+        try:
+            return max(0, min(maximum, int(raw or 0)))
+        except Exception:
+            return 0
+    for item in value[:12]:
+        if not isinstance(item, dict):
+            continue
+        name = re.sub(r"[\x00-\x1f\x7f]+", " ", str(item.get("name") or "remote data")).strip()[:80]
+        rows.append({
+            "name": name or "remote data",
+            "ageMs": bounded_int(item.get("ageMs"), 86400000),
+            "lastStaleMs": bounded_int(item.get("lastStaleMs"), 86400000),
+            "expiresInMs": bounded_int(item.get("expiresInMs"), 1800000),
+        })
+    return rows
 
 
 def integration_status_rows(endpoint_id):
@@ -4965,6 +4988,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     "version": str((body or {}).get("version") or "").strip()[:40],
                     "userAgent": str((body or {}).get("userAgent") or "").strip()[:220],
                     "frontendPerformance": normalize_frontend_performance((body or {}).get("frontendPerformance")),
+                    "providerCache": normalize_provider_cache_status((body or {}).get("providerCache")),
                     "displayPerformanceBenchmark": normalize_display_performance_benchmark((body or {}).get("displayPerformanceBenchmark")),
                     "lastSeen": time.time(),
                 }

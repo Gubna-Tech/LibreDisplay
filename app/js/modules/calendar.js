@@ -652,7 +652,7 @@ async function fetchCal(cal,calIdx,{preferFormUrl=false}={}){
     }else if(cal?.id){
       const target=serverPath('/api/calendar-source?id='+encodeURIComponent(cal.id));
       const res=await resilientFetch(target,{cache:'no-store'},{timeoutMs:18000,attempts:2});
-      LibreDisplayRuntime.getModule('remote').noteCacheResponse('calendar:'+cal.id,res);
+      LibreDisplayRuntime.getModule('remote').noteCacheResponse('calendar:'+cal.id,res,'calendar',{leaseMs:Math.max(120000,Math.min(1800000,(Number(cfg.calendarRefreshMin)||15)*120000))});
       if(!res.ok){const msg=await res.text().catch(()=>res.statusText);throw new Error('Calendar source HTTP '+res.status+(msg?' — '+msg:''));}
       text=await res.text();
     }else{

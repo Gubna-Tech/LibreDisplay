@@ -86,17 +86,24 @@ let serverConnectionState='online',serverReconnectRefreshPending=false,serverRec
 let serverRecoveryTimer=null,serverRecoveryRunning=false,serverRecoveryAttempt=0;
 const SERVER_RECONNECT_NOTICE_DELAY_MS=8000;
 const STALE_PROVIDER_NOTICE_DELAY_MS=20000;
+const STALE_PROVIDER_DEFAULT_LEASE_MS=10*60*1000;
+const STALE_PROVIDER_MIN_LEASE_MS=60*1000;
+const STALE_PROVIDER_MAX_LEASE_MS=30*60*1000;
 const SERVER_RECOVERY_DELAYS_MS=[1000,3000,8000,15000,30000,60000];
 let staleProviderNoticeTimer=null;
+function staleProviderLeaseMs(value=STALE_PROVIDER_DEFAULT_LEASE_MS){return Math.max(STALE_PROVIDER_MIN_LEASE_MS,Math.min(STALE_PROVIDER_MAX_LEASE_MS,Number(value)||STALE_PROVIDER_DEFAULT_LEASE_MS));}
+function pruneStaleCacheSources(now=Date.now()){let removed=0;for(const [key,row] of [...configApi.staleCacheSources.entries()]){const expiresAt=Number(row?.expiresAt)||0;if(expiresAt&&expiresAt<=now){configApi.staleCacheSources.delete(key);removed++;}}return removed;}
+function staleCacheSnapshot(){const now=Date.now();pruneStaleCacheSources(now);return [...configApi.staleCacheSources.values()].slice(0,12).map(row=>({name:String(row?.name||'remote data').slice(0,80),ageMs:Math.max(0,now-(Number(row?.at)||now)),lastStaleMs:Math.max(0,now-(Number(row?.lastStaleAt)||Number(row?.at)||now)),expiresInMs:Math.max(0,(Number(row?.expiresAt)||now)-now)}));}
 function updateOfflinePill(){
   const pill=document.getElementById('offline-pill');if(!pill)return;
-  const now=Date.now(),staleRows=[...configApi.staleCacheSources.values()],oldest=staleRows.length?Math.min(...staleRows.map(x=>Number(x?.at)||now)):now,exclusiveRuns=Number(LibreDisplayRuntime.getModule('performance').animationPerformanceSnapshot?.().activeExclusiveRuns)||0,staleReady=staleRows.length>0&&!exclusiveRuns&&(now-oldest)>=STALE_PROVIDER_NOTICE_DELAY_MS,serverDown=serverConnectionState!=='online';
+  const now=Date.now();pruneStaleCacheSources(now);const staleRows=[...configApi.staleCacheSources.values()],oldest=staleRows.length?Math.min(...staleRows.map(x=>Number(x?.at)||now)):now,exclusiveRuns=Number(LibreDisplayRuntime.getModule('performance').animationPerformanceSnapshot?.().activeExclusiveRuns)||0,staleReady=staleRows.length>0&&!exclusiveRuns&&(now-oldest)>=STALE_PROVIDER_NOTICE_DELAY_MS,serverDown=serverConnectionState!=='online';
   const active=staleReady||serverDown;let state='online',text='';
   if(serverDown){state='reconnecting';text=staleReady?'Connection interrupted · showing last known data':'Connection interrupted · retrying automatically';}
   else if(staleReady){state='cached';text='Provider delayed · showing last known data';}
   pill.dataset.state=state;pill.classList.toggle('show',active);if(pill.textContent!==text)pill.textContent=text;
-  if(staleRows.length&&!staleReady&&!staleProviderNoticeTimer){const wait=Math.max(250,STALE_PROVIDER_NOTICE_DELAY_MS-(now-oldest));staleProviderNoticeTimer=setTimeout(()=>{staleProviderNoticeTimer=null;updateOfflinePill();},wait);}
-  if(!staleRows.length&&staleProviderNoticeTimer){clearTimeout(staleProviderNoticeTimer);staleProviderNoticeTimer=null;}
+  if(staleProviderNoticeTimer){clearTimeout(staleProviderNoticeTimer);staleProviderNoticeTimer=null;}
+  const wakeAt=[];for(const row of staleRows){const first=Number(row?.at)||now,expires=Number(row?.expiresAt)||0;if(first+STALE_PROVIDER_NOTICE_DELAY_MS>now)wakeAt.push(first+STALE_PROVIDER_NOTICE_DELAY_MS);if(expires>now)wakeAt.push(expires);}
+  if(wakeAt.length){const wait=Math.max(250,Math.min(...wakeAt)-now);staleProviderNoticeTimer=setTimeout(()=>{staleProviderNoticeTimer=null;updateOfflinePill();},wait);}
   updateSettingsOverview?.();
 }
 function clearServerRecoveryTimer(){if(serverRecoveryTimer){clearTimeout(serverRecoveryTimer);serverRecoveryTimer=null;}}
@@ -132,13 +139,12 @@ function noteServerTransportError(){
   if(serverConnectionState==='reconnecting'||serverReconnectNoticeTimer)return;
   serverReconnectNoticeTimer=setTimeout(()=>{serverReconnectNoticeTimer=null;if(liveEventSource?.readyState!==EventSource.OPEN){setServerConnectionState('reconnecting');scheduleServerRecovery('event-stream',0);}},SERVER_RECONNECT_NOTICE_DELAY_MS);
 }
-function noteCacheResponse(url,res,nameOverride=''){
+function noteCacheResponse(url,res,nameOverride='',options={}){
   const name=String(nameOverride||cacheSourceName(url)||'remote data');
-  const key=String(url||name);
-  const state=String(res?.headers?.get('X-LibreDisplay-Cache')||'').toLowerCase();
-  if(res?.ok&&state==='stale')configApi.staleCacheSources.set(key,{name,at:Date.now()});
+  const key=String(url||name),state=String(res?.headers?.get('X-LibreDisplay-Cache')||'').toLowerCase(),now=Date.now();
+  if(res?.ok&&state==='stale'){const previous=configApi.staleCacheSources.get(key),leaseMs=staleProviderLeaseMs(options?.leaseMs);configApi.staleCacheSources.set(key,{name,at:Number(previous?.at)||now,lastStaleAt:now,expiresAt:now+leaseMs});}
   else if(res?.ok)configApi.staleCacheSources.delete(key);
-  updateOfflinePill();
+  updateOfflinePill();return state;
 }
 let ownerEnrollmentState=null;
 let ownerEnrollmentTimer=0;
@@ -333,7 +339,7 @@ function dispatchPendingPhysicalDisplayCommand(command){
   if(currentId===requestId&&['running','complete','error'].includes(currentState))return false;
   const event={data:JSON.stringify(command)};setTimeout(()=>LibreDisplayRuntime.getModule('performance').runExclusiveTask('display-performance-benchmark',()=>runPhysicalDisplayBenchmarkRequest(event)),0);return true;
 }
-async function sendDisplayHeartbeat(connectivityRecovered=false,options={}){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;try{const force=options?.full===true,m=displayViewportMetrics(force),frontendPerformance={...heartbeatPerformanceSnapshot(force),connectivity:connectivitySnapshot()};const response=await resilientFetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:bootstrapApi.READ_ONLY_DISPLAY_MODE?'viewer':(bootstrapApi.LOCAL_CLIENT_MODE?'local':'admin'),version:bootstrapApi.DASHBOARD_BUILD,userAgent:navigator.userAgent,frontendPerformance,displayPerformanceBenchmark:bootstrapApi.LOCAL_CLIENT_MODE?physicalDisplayBenchmarkState:undefined,connectivityRecovered:!!connectivityRecovered}),cache:'no-store'},{timeoutMs:5000,retry:false});if(response.ok&&bootstrapApi.LOCAL_CLIENT_MODE){const payload=await response.json().catch(()=>({}));dispatchPendingPhysicalDisplayCommand(payload?.pendingCommand);}}catch(e){}}
+async function sendDisplayHeartbeat(connectivityRecovered=false,options={}){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;try{const force=options?.full===true,m=displayViewportMetrics(force),frontendPerformance={...heartbeatPerformanceSnapshot(force),connectivity:connectivitySnapshot()};const response=await resilientFetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:bootstrapApi.READ_ONLY_DISPLAY_MODE?'viewer':(bootstrapApi.LOCAL_CLIENT_MODE?'local':'admin'),version:bootstrapApi.DASHBOARD_BUILD,userAgent:navigator.userAgent,frontendPerformance,providerCache:staleCacheSnapshot(),displayPerformanceBenchmark:bootstrapApi.LOCAL_CLIENT_MODE?physicalDisplayBenchmarkState:undefined,connectivityRecovered:!!connectivityRecovered}),cache:'no-store'},{timeoutMs:5000,retry:false});if(response.ok&&bootstrapApi.LOCAL_CLIENT_MODE){const payload=await response.json().catch(()=>({}));dispatchPendingPhysicalDisplayCommand(payload?.pendingCommand);}}catch(e){}}
 function parseDisplayBenchmarkEvent(event){try{return JSON.parse(String(event?.data||'{}'))||{};}catch{return {};}}
 async function runPhysicalDisplayBenchmarkRequest(event){
   if(!bootstrapApi.LOCAL_CLIENT_MODE)return;
@@ -397,7 +403,7 @@ function clearSettingsInitializationError(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
+LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
   "displayEndpoints": {configurable:true,get:()=>displayEndpoints,set:(value)=>{displayEndpoints=value;}},
   "displayDevices": {configurable:true,get:()=>displayDevices,set:(value)=>{displayDevices=value;}},
   "endpointsRemoteEnabled": {configurable:true,get:()=>endpointsRemoteEnabled,set:(value)=>{endpointsRemoteEnabled=value;}},

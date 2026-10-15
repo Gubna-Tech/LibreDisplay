@@ -86,7 +86,7 @@ async function fetchRemoteText(url,ttlSec=300){
   const direct=String(url||'').startsWith('/calendar-files/');
   const target=direct?serverPath(url):serverPath('/api/broker?ttl='+encodeURIComponent(Math.max(5,Number(ttlSec)||300))+'&url='+encodeURIComponent(url));
   const res=await resilientFetch(target,{cache:'no-store'},{timeoutMs:18000,attempts:2});
-  LibreDisplayRuntime.getModule('remote').noteCacheResponse(url,res);
+  LibreDisplayRuntime.getModule('remote').noteCacheResponse(url,res,'',{leaseMs:Math.max(120000,Math.min(1800000,(Math.max(5,Number(ttlSec)||300))*2000))});
   if(!res.ok){const msg=await res.text().catch(()=>res.statusText);throw new Error('Data broker HTTP '+res.status+(msg?' — '+msg:''));}
   return await res.text();
 }

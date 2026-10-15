@@ -94,8 +94,8 @@
     "module": "backgrounds",
     "part": "bundle",
     "path": "/js/modules/backgrounds.js",
-    "lines": 878,
-    "functions": 71,
+    "lines": 885,
+    "functions": 75,
     "bindings": 3,
     "sections": [
       "/js/backgrounds/google-photos.js",
@@ -151,8 +151,8 @@
     "module": "remote",
     "part": "bundle",
     "path": "/js/modules/remote.js",
-    "lines": 414,
-    "functions": 43,
+    "lines": 420,
+    "functions": 46,
     "bindings": 10,
     "sections": [
       "/js/remote/index.js"
