@@ -1881,12 +1881,12 @@ Prioritize stability.
 Recommended starting point:
 
 - Automatic performance mode
-- static full-quality weather/NatureScape scenery with low-load dog roaming
+- static full-quality weather/NatureScape scenery with scene-refresh dog repositioning
 - moderate static-scene refresh cadence
 - no video background while diagnosing
 - conservative wildlife/motion density
 
-Pi 3 Automatic is designed to reduce continuous animation cost without requiring the artwork itself to become low quality. High-cost scenery remains static between refreshes, while the dog companion can still wander around the display on a lightweight movement cadence.
+Pi 3 Automatic is designed to remove continuous scene-motion cost without reducing artwork quality. Weather, severe-weather, leaves, grass, wildlife, and the dog remain static between the configured scene refreshes. Outside shelter conditions the dog is placed at a new safe position when the scene refreshes, which gives the impression that it wandered while avoiding low-quality walking animation. During rain, snow, storms, and severe-weather scenes, leaves and grass are hidden and the dog can remain safely sheltered in its home without changing shelter position.
 
 Troubleshooting order:
 

@@ -13,10 +13,10 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 Use a current Raspberry Pi OS **with Desktop**, then paste this into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.13.11/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.13.12/scripts/install-one-line.sh)"
 ```
 
-The bootstrap validates the pinned **v1.13.11** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
+The bootstrap validates the pinned **v1.13.12** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
 
 > Raspberry Pi OS Lite is not supported by the native kiosk installer. A native Pi can, however, be switched to **Server-only mode** after installation so it runs LibreDisplay without launching a local webpage. Docker/NAS/Linux server deployments are already server-style hosts.
 
@@ -175,7 +175,7 @@ The local server and local content keep working. External providers cannot fetch
 Start with Automatic/Balanced performance choices and reduce expensive fullscreen/seasonal/background motion before disabling core dashboard features.
 
 **Why can Pi 3 look less animated than Pi 4/5?**  
-Automatic mode deliberately keeps high-cost scenery static on weaker hardware to keep unattended displays responsive. On Pi 3, the dog companion can still wander using a lightweight movement path.
+Automatic mode deliberately keeps high-cost scenery static on weaker hardware to keep unattended displays responsive. On Pi 3, the dog stays still between synchronized scene refreshes and is repositioned with the refreshed scene instead of continuously walking.
 
 **How do I diagnose slow rendering?**  
 Use **Settings > System > Display performance bottleneck test**, or run `libredisplay doctor` and the field-readiness tooling described in [HELP.md](HELP.md).
