@@ -216,6 +216,9 @@ CONFIG_RECOVERY_STATE_PATH = DATA_ROOT / "config-recovery-state.json"
 BROWSER_LAUNCH_STATE_PATH = DATA_ROOT / "browser-launch-state.json"
 BROWSER_STDERR_PATH = DATA_ROOT / "chromium-stderr.log"
 PRIVILEGED_HELPER = Path("/usr/local/libexec/libredisplay-privileged")
+DEVICE_REBOOT_CAP_LOCK = threading.Lock()
+DEVICE_REBOOT_CAP_CACHE = {"checkedAt": 0.0, "capable": False, "reason": ""}
+DEVICE_REBOOT_CAP_TTL_SECONDS = 300
 ROLLBACK_RUN_LOCK = threading.Lock()
 ROLLBACK_RUN_STATE = {"state": "idle", "startedAt": 0, "targetVersion": "", "snapshotId": "", "error": ""}
 
@@ -2507,6 +2510,56 @@ def in_app_update_capability():
     return False, "Run one terminal update to enable browser-based updates on this installation."
 
 
+def device_reboot_capability(force=False):
+    mode = update_deployment_mode()
+    if mode != "native":
+        if mode == "docker":
+            return False, "Restart the Docker host from its host operating system."
+        return False, "Full-device restart is available on native LibreDisplay installations."
+    if not PRIVILEGED_HELPER.is_file() or shutil.which("sudo") is None:
+        return False, "Run the native installer/update once to enable browser-based device restart."
+    now = time.monotonic()
+    with DEVICE_REBOOT_CAP_LOCK:
+        age = now - float(DEVICE_REBOOT_CAP_CACHE.get("checkedAt") or 0)
+        if not force and age >= 0 and age < DEVICE_REBOOT_CAP_TTL_SECONDS:
+            return bool(DEVICE_REBOOT_CAP_CACHE.get("capable")), str(DEVICE_REBOOT_CAP_CACHE.get("reason") or "")
+    capable = False
+    reason = "Run the native installer/update once to enable browser-based device restart."
+    try:
+        result = subprocess.run(
+            ["sudo", "-n", str(PRIVILEGED_HELPER), "probe"],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=3, check=False,
+        )
+        if result.returncode == 0:
+            capable, reason = True, ""
+    except Exception:
+        pass
+    with DEVICE_REBOOT_CAP_LOCK:
+        DEVICE_REBOOT_CAP_CACHE.update({"checkedAt": now, "capable": capable, "reason": reason})
+    return capable, reason
+
+
+def _reboot_device_after_delay(delay_seconds=1.0):
+    time.sleep(max(0.25, float(delay_seconds)))
+    try:
+        subprocess.run(
+            ["sudo", "-n", str(PRIVILEGED_HELPER), "reboot"],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=10, check=False,
+        )
+    except Exception:
+        pass
+
+
+def start_device_reboot():
+    capable, reason = device_reboot_capability(force=True)
+    if not capable:
+        raise RuntimeError(reason or "Full-device restart is unavailable on this installation.")
+    threading.Thread(target=_reboot_device_after_delay, kwargs={"delay_seconds": 1.0}, daemon=True).start()
+    return {"ok": True, "state": "scheduled"}
+
+
 def update_status_deployment_fields():
     mode = update_deployment_mode()
     capable, reason = in_app_update_capability()
@@ -2795,6 +2848,8 @@ def release_rollback_payload():
     return {
         "ok": True,
         "deployment": update_deployment_mode(),
+        "canRebootDevice": can_reboot_device,
+        "deviceRebootReason": reboot_reason,
         "canRollback": capable,
         "reason": reason,
         "snapshots": release_rollback_rows(),
@@ -3318,6 +3373,7 @@ def system_health_payload():
             "quarantinedFile": str(config_recovery.get("quarantinedFile") or "")[:160],
         },
     }
+    can_reboot_device, reboot_reason = device_reboot_capability()
     return {
         "ok": True,
         "version": APP_VERSION,
@@ -4707,6 +4763,15 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 REMOTE_SESSIONS.pop(str(token), None)
             persist_remote_sessions()
             self.send_response(200); self.send_header("Content-Type", "application/json; charset=utf-8"); self.send_header("Set-Cookie", f"{REMOTE_COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict"); payload=b'{"ok":true}'; self.send_header("Content-Length",str(len(payload))); self.end_headers(); self.wfile.write(payload); return
+        if parsed.path == "/api/system-reboot":
+            if not self.require_owner():
+                return
+            try:
+                return self.json_response(202, start_device_reboot())
+            except RuntimeError as exc:
+                return self.json_response(409, {"ok": False, "error": str(exc)})
+            except Exception:
+                return self.json_response(500, {"ok": False, "error": "Could not restart the LibreDisplay device."})
         if parsed.path == "/api/update-now":
             if not self.require_owner():
                 return

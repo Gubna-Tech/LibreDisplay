@@ -281,6 +281,27 @@ async function startReleaseRollback(snapshotId,targetVersion){
   try{const r=await resilientFetch(serverPath('/api/release-rollback'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:snapshotId}),cache:'no-store'},{timeoutMs:15000,retry:false}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||`HTTP ${r.status}`);setReleaseRollbackStatus(`Restoring v${targetVersion}… A recovery snapshot of the current installation is being created first.`,'warn');monitorReleaseRollback(targetVersion);}catch(e){setReleaseRollbackStatus('Could not start rollback: '+(e?.message||e),'bad');}
 }
 
+function setDeviceRestartStatus(text,state=''){const el=document.getElementById('system-device-restart-status');if(!el)return;el.dataset.active=text?'1':'';el.textContent=text||'';el.style.color=state==='bad'?'#fca5a5':state==='warn'?'#fbbf24':state==='good'?'#86efac':'';}
+async function monitorDeviceRestart(){
+  let sawOffline=false;
+  for(let attempt=0;attempt<90;attempt++){
+    await sleepMs(attempt<8?1500:3000);
+    try{
+      const r=await resilientFetch(serverPath('/api/system-health'),{cache:'no-store'},{timeoutMs:3500,retry:false});
+      if(r.status===403&&sawOffline){setDeviceRestartStatus('The device restarted, but this remote Owner session expired. Sign in again to continue.','warn');return;}
+      if(r.ok&&sawOffline){setDeviceRestartStatus('Device is back online. Reloading Settings…','good');await sleepMs(900);location.reload();return;}
+    }catch(_e){sawOffline=true;setDeviceRestartStatus('Device is restarting. Waiting for LibreDisplay to come back online…','warn');}
+  }
+  setDeviceRestartStatus('The restart is taking longer than expected. Reopen or reload LibreDisplay when the device is back online.','warn');
+}
+async function restartEntireDevice(){
+  if(!systemHealthState?.canRebootDevice)return;
+  const warning=`Restart the entire LibreDisplay device now?\n\nThis reboots the host operating system, not just LibreDisplay. The local display and remote Settings will be unavailable briefly.${bootstrapApi.REMOTE_SETTINGS_MODE?'\n\nYour remote Owner session may need to sign in again after the reboot.':''}`;
+  if(!confirm(warning))return;
+  const button=document.getElementById('system-device-restart-button');if(button)button.disabled=true;setDeviceRestartStatus('Sending full-device restart request…','warn');
+  try{const r=await resilientFetch(serverPath('/api/system-reboot'),{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'},{timeoutMs:10000,retry:false}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||`HTTP ${r.status}`);setDeviceRestartStatus('Restart requested. Waiting for the device to go offline…','warn');monitorDeviceRestart();}catch(e){if(button)button.disabled=false;setDeviceRestartStatus('Could not restart the device: '+(e?.message||e),'bad');}
+}
+
 function formatHealthBytes(bytes){
   let n=Number(bytes)||0;const units=['B','KB','MB','GB','TB'];let i=0;
   while(n>=1024&&i<units.length-1){n/=1024;i++;}
@@ -295,6 +316,9 @@ function formatHealthUptime(seconds){
 function renderSystemHealth(){
   const d=systemHealthState;
   const set=(id,text,state='')=>setHealth(id,text,state);
+  const restartButton=document.getElementById('system-device-restart-button'),restartStatus=document.getElementById('system-device-restart-status');
+  if(restartButton)restartButton.disabled=!d?.canRebootDevice;
+  if(restartStatus&&!restartStatus.dataset.active){restartStatus.textContent=d?.canRebootDevice?'Ready to restart the entire device.':(d?.deviceRebootReason||'Full-device restart is unavailable on this deployment.');restartStatus.style.color=d?.canRebootDevice?'':'#fbbf24';}
   if(!d?.ok){for(const id of ['system-health-deployment','system-health-uptime','system-health-storage','system-health-data','system-health-host','system-health-hardware','system-health-memory','system-health-load','system-health-browser','system-health-pi-runtime','system-health-chromium','system-health-connectivity','system-health-integrity','system-health-recovery'])set(id,'Unavailable','warn');return;}
   set('system-health-deployment',`${d.deployment||'unknown'} · v${d.version||bootstrapApi.DASHBOARD_BUILD}`,'good');
   set('system-health-uptime',d.uptimeSeconds==null?'Unavailable':formatHealthUptime(d.uptimeSeconds),d.uptimeSeconds==null?'warn':'good');
@@ -578,7 +602,7 @@ document.getElementById('setup')?.addEventListener('change',e=>{
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("system", {markSettingsDirty,markSettingsClean,setHealth,renderServerMode,loadServerMode,setServerOnlyMode,handleServerOnlyToggle,renderSoftwareUpdateStatus,checkSoftwareUpdate,settingsPanelOpen,autoDetectSoftwareUpdate,startSoftwareUpdateAutoDetection,stopSoftwareUpdateAutoDetection,setSoftwareUpdateActionStatus,sleepMs,monitorSoftwareUpdate,startSoftwareUpdate,setReleaseRollbackStatus,renderReleaseRollbacks,loadReleaseRollbacks,monitorReleaseRollback,startReleaseRollback,formatHealthBytes,formatHealthUptime,renderSystemHealth,renderSystemHealthRefreshStatus,loadSystemHealth,stopSystemHealthAutoRefresh,startSystemHealthAutoRefresh,providerHealthPill,renderProviderHealth,refreshProviderHealth,updateSettingsOverview,physicalDisplayBenchmarkState,renderDisplayPerformanceBenchmark,runSystemDisplayPerformanceBenchmark,buildDiagnosticsPayload,diagnosticsJson,copyDiagnostics,downloadDiagnostics,restorePreviousSettings}, {
+LibreDisplayRuntime.exposeModule("system", {markSettingsDirty,markSettingsClean,setHealth,renderServerMode,loadServerMode,setServerOnlyMode,handleServerOnlyToggle,renderSoftwareUpdateStatus,checkSoftwareUpdate,settingsPanelOpen,autoDetectSoftwareUpdate,startSoftwareUpdateAutoDetection,stopSoftwareUpdateAutoDetection,setSoftwareUpdateActionStatus,sleepMs,monitorSoftwareUpdate,startSoftwareUpdate,setReleaseRollbackStatus,renderReleaseRollbacks,loadReleaseRollbacks,monitorReleaseRollback,startReleaseRollback,formatHealthBytes,formatHealthUptime,renderSystemHealth,renderSystemHealthRefreshStatus,loadSystemHealth,stopSystemHealthAutoRefresh,startSystemHealthAutoRefresh,providerHealthPill,renderProviderHealth,refreshProviderHealth,updateSettingsOverview,physicalDisplayBenchmarkState,renderDisplayPerformanceBenchmark,runSystemDisplayPerformanceBenchmark,setDeviceRestartStatus,monitorDeviceRestart,restartEntireDevice,buildDiagnosticsPayload,diagnosticsJson,copyDiagnostics,downloadDiagnostics,restorePreviousSettings}, {
   "settingsInitializing": {configurable:true,get:()=>settingsInitializing,set:(value)=>{settingsInitializing=value;}},
   "serverModeState": {configurable:true,get:()=>serverModeState,set:(value)=>{serverModeState=value;}},
   "settingsDirty": {configurable:true,get:()=>settingsDirty,set:(value)=>{settingsDirty=value;}},

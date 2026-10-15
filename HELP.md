@@ -1200,6 +1200,7 @@ Areas include:
 - Raspberry Pi host mode
 - display readiness and kiosk resilience
 - System Health
+- full-device restart
 - update controls
 - update history and rollback
 - backup and recovery
@@ -1785,6 +1786,14 @@ libredisplay restore /path/to/backup.ldbackup --verify-only
 ```
 
 A backup you have never successfully verified is less useful than one you know LibreDisplay can read.
+
+---
+
+## Restart the entire device
+
+From **Settings > System & Maintenance > Restart device**, an Owner can request a full host reboot on native LibreDisplay installations. This is different from refreshing the dashboard or restarting Chromium: the operating system itself restarts, so the local display and remote Settings are unavailable briefly. LibreDisplay asks for confirmation before sending the reboot request. Docker and source/development deployments leave host restart to the host administrator.
+
+From SSH, the equivalent host-level action is the normal operating-system reboot command.
 
 ---
 
