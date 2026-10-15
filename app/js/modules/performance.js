@@ -353,7 +353,7 @@ function frontendPerformanceSnapshot(){
     layoutAutoFit:layoutAutoFitSnapshot(),
     integrationObservers:integrationObserverTelemetrySnapshot(),
     forecastRendering:forecastRenderTelemetrySnapshot(),
-    weatherCanvas:weatherCanvasTelemetrySnapshot(),
+    weatherCanvas:weatherCanvasTelemetrySnapshot(),'dogRuntime':(()=>{try{return LibreDisplayRuntime.getModule('weatherScenery')?.dogRuntimeSnapshot?.()||null;}catch{return null;}})(),
     'backgroundRuntime':backgroundRuntimeTelemetrySnapshot(),
     longTasks:{count:longTaskCount,totalMs:Math.round(longTaskTotalMs),maxMs:Math.round(longTaskMaxMs),recent:recentLongTaskSnapshot()},
     ...(heap?{heap}: {})
