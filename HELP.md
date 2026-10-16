@@ -1265,6 +1265,8 @@ When an individual part is selected, its size control is intentionally visual an
 
 The on-canvas resize handle follows the same rule: dragging that handle changes the part's **visual Size**, not its Width/Height footprint. The editor outline stays on the original footprint while the text or icon can draw larger and overlap nearby content. Use the explicit **Width** and **Height** geometry controls only when you intentionally want to change the footprint itself.
 
+Visual Size also follows the selected part's horizontal alignment. **Auto/Left** keeps the left edge anchored so larger content grows to the right. **Center** keeps the center point anchored so content grows equally in both directions. **Right** keeps the right edge anchored so larger content grows to the left. The editor footprint does not move or resize just because the visual content grows.
+
 If the enlarged part reaches another part, overlap is allowed. That is intentional: resize first, then move the selected part if you want a different composition. Moving a Flow part can switch it to Free positioning; scaling it does not.
 
 ---
