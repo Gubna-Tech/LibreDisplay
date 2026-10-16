@@ -1,5 +1,5 @@
 // LibreDisplay frontend bootstrap.
-// Public release modules are consolidated by logical feature while preserving source-section scope.
+// Load the frontend modules in deterministic feature order.
 const modulePaths = [
   "/js/runtime.js",
   "/js/modules/bootstrap.js",
