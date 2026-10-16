@@ -2412,6 +2412,8 @@ body[class*="layout-preset-"]::before{pointer-events:none}
 
 /* NatureScape is foreground scenery within the atmospheric layer: above cloud/fog masses, below dangerous-weather overlays. */
 #weather-effects-overlay .weather-fx-seasonal{z-index:2}
+#weather-effects-overlay .weather-fx-bird{z-index:3;backface-visibility:hidden}
+#weather-effects-overlay .weather-fx-cloud-mass{backface-visibility:hidden}
 #weather-effects-overlay .weather-fx-edge-frost{z-index:2}
 
 #weather-effects-overlay .weather-fx-dog{position:absolute;z-index:4;left:3vw;bottom:3.2vh;width:132px;height:82px;pointer-events:none;opacity:var(--dog-opacity,1);transform-origin:50% 100%;--dog-coat:#9b6a37;--dog-dark:#4d3525;--dog-light:#d6aa72;--dog-mark:transparent;--dog-body-w:75px;--dog-body-h:34px;--dog-body-x:29px;--dog-body-y:31px;--dog-head:34px;--dog-head-x:12px;--dog-head-y:20px;--dog-muzzle-w:22px;--dog-muzzle-h:14px;--dog-leg-h:28px;--dog-tail-w:42px;--dog-tail-rot:-24deg;--dog-ear-w:15px;--dog-ear-h:20px;animation:ldDogLife var(--dog-cycle,72s) linear infinite;filter:drop-shadow(0 4px 4px rgba(0,0,0,.28))}
@@ -3048,6 +3050,9 @@ html.ld-pi4-4k #weather-effects-overlay .holiday-sparkle:nth-of-type(even){displ
 html.ld-pi4-device #weather-effects-overlay :is(.weather-fx-pi-canvas,.weather-fx-pi-cloud-canvas){filter:none!important;box-shadow:none!important}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-overcast-deck{animation:none!important;transform:none!important}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-bird{z-index:3}
+/* Pi 5 uses DOM cloud masses rather than the Pi 4 cloud sprite path. Keep flying wildlife on a stable compositor layer so cloud overlap cannot flash the bird/owl actor in and out. */
+html.ld-pi5-device #weather-effects-overlay .weather-fx-bird{z-index:3;will-change:transform!important;contain:layout style;backface-visibility:hidden;filter:none!important;box-shadow:none!important}
+html.ld-pi5-device #weather-effects-overlay .weather-fx-cloud-mass{backface-visibility:hidden;filter:none!important;-webkit-filter:none!important}
 
 html.ld-pi-steady #weather-effects-overlay :is(.weather-fx-grass-blade,.weather-fx-season-grass,.weather-fx-cloud-mass,.weather-fx-fog-bank,.holiday-foundation,.holiday-overlay .holiday-sparkle,.holiday-overlay .holiday-confetti){animation-duration:calc(var(--weather-speed-factor,1) * 18s)!important}
 html.ld-pi-smooth #weather-effects-overlay :is(.weather-fx-grass-blade,.weather-fx-season-grass,.holiday-foundation,.holiday-overlay .holiday-sparkle,.holiday-overlay .holiday-confetti,.holiday-overlay .holiday-heart,.holiday-overlay .holiday-bat,.holiday-overlay .holiday-ghost){animation:none!important}
