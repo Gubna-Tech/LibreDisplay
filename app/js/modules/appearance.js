@@ -262,7 +262,7 @@ function applyCurrentWeatherPartLayout(main,source=cfg){
   const free=source?.currentWeatherLayout==='free',rows=source?.currentWeatherPartLayout&&typeof source.currentWeatherPartLayout==='object'?source.currentWeatherPartLayout:{};
   for(const [key,selector] of Object.entries(CURRENT_WEATHER_PART_SELECTORS)){
     const el=main.querySelector(selector);if(!el)continue;el.removeAttribute('data-free-weather-part');for(const prop of ['position','left','top','width','height','zIndex'])el.style.removeProperty(prop);
-    if(!free)continue;const row=rows[key];if(!row)continue;const x=Math.min(100,Math.max(0,Number(row.x)||0)),y=Math.min(100,Math.max(0,Number(row.y)||0)),w=Math.min(100,Math.max(4,Number(row.w)||20)),hRaw=Number(row.h),h=Number.isFinite(hRaw)&&hRaw>0?Math.min(100,Math.max(2,hRaw)):0,z=Math.min(99,Math.max(0,Math.round(Number(row.z)||1)));el.dataset.freeWeatherPart=key;el.style.position='absolute';el.style.left=`${x}%`;el.style.top=`${y}%`;el.style.width=`${w}%`;if(h>0)el.style.height=`${h}%`;el.style.zIndex=String(z);
+    if(!free)continue;const row=rows[key];if(!row)continue;const x=Math.min(200,Math.max(-100,Number(row.x)||0)),y=Math.min(200,Math.max(-100,Number(row.y)||0)),w=Math.min(200,Math.max(2,Number(row.w)||20)),hRaw=Number(row.h),h=Number.isFinite(hRaw)&&hRaw>0?Math.min(200,Math.max(2,hRaw)):0,z=Math.min(99,Math.max(0,Math.round(Number(row.z)||1)));el.dataset.freeWeatherPart=key;el.style.position='absolute';el.style.left=`${x}%`;el.style.top=`${y}%`;el.style.width=`${w}%`;if(h>0)el.style.height=`${h}%`;el.style.zIndex=String(z);
   }
 }
 
@@ -357,7 +357,7 @@ function applyUiCustomization(source=cfg){
     .alert-text{font-size:${scaledClamp(14,1.14,21,al*ps('alerts','body'))};${pe('alerts','body')}}
     .alert-meta{font-size:${scaledClamp(10,.74,13,al*ps('alerts','meta'))};display:${source.alertShowMeta===false?'none':'block'};${pe('alerts','meta')}}
     #top-strip,#wx-left,#wx-right,#clock-block{ text-shadow:0 2px 8px rgba(0,0,0,${shadowAlpha.toFixed(3)}) }
-  `+buildCustomLayoutPartCss(source);
+  `+LibreDisplayRuntime.getModule('layout').buildBuiltInPartLayoutCss(source)+buildCustomLayoutPartCss(source);
   const root=document.documentElement;
   root.style.setProperty('--bg-shade-top',(q(source.bgShadeTop,0,85,52)/100).toFixed(2));
   root.style.setProperty('--bg-shade-bottom',(q(source.bgShadeBottom,0,85,55)/100).toFixed(2));

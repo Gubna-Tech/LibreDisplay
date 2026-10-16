@@ -1713,6 +1713,21 @@ const DASHBOARD_EVENT_HANDLERS=Object.freeze({
   h264:function(event){switchSettingsTab('device')},
   h265:function(event){switchSettingsTab('favorites')},
   h266:function(event){switchSettingsTab('holidays')},
+  h267:function(event){setSelectedPartFineStyle('fontStyle',this.value)},
+  h268:function(event){setSelectedPartFineStyle('textDecoration',this.value)},
+  h269:function(event){setSelectedPartFineStyle('backgroundColor',this.value,true)},
+  h270:function(event){setSelectedPartFineStyle('backgroundOpacity',this.value,true)},
+  h271:function(event){setSelectedPartFineStyle('paddingX',this.value)},
+  h272:function(event){setSelectedPartFineStyle('paddingY',this.value)},
+  h273:function(event){setSelectedPartFineStyle('backgroundRadius',this.value)},
+  h274:function(event){LibreDisplayRuntime.getModule('layout').setBuiltInPartMode(this.value)},
+  h275:function(event){LibreDisplayRuntime.getModule('layout').setBuiltInPartGeometry('x',this.value)},
+  h276:function(event){LibreDisplayRuntime.getModule('layout').setBuiltInPartGeometry('y',this.value)},
+  h277:function(event){LibreDisplayRuntime.getModule('layout').setBuiltInPartGeometry('w',this.value)},
+  h278:function(event){LibreDisplayRuntime.getModule('layout').setBuiltInPartGeometry('h',this.value)},
+  h279:function(event){LibreDisplayRuntime.getModule('layout').setBuiltInPartGeometry('z',this.value)},
+  h280:function(event){LibreDisplayRuntime.getModule('layout').resetBuiltInPartArrangement()},
+  h281:function(event){LibreDisplayRuntime.getModule('layout').resetAllBuiltInPartArrangements()},
 });
 const DASHBOARD_DELEGATED_EVENTS=Object.freeze(['click','input','change','keydown','dragstart','dragend','dragover','drop']);
 function delegatedEventElement(event,attr){const target=event?.target;return target&&typeof target.closest==='function'?target.closest('['+attr+']'):null;}
