@@ -163,7 +163,7 @@ function invalidateWeatherIfLocationChanged(force=false){
 function weatherWindUnitParam(source=cfg){return source?.useFahrenheit===false?'kmh':'mph';}
 function weatherWindUnitLabel(source=cfg){return source?.useFahrenheit===false?'km/h':'mph';}
 function weatherWindDirectionLabel(value){const n=Number(value);if(!Number.isFinite(n))return '';const dirs=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'],deg=((n%360)+360)%360;return dirs[Math.round(deg/22.5)%16];}
-const HOURLY_WIND_COLOR_STOPS=[[0,[249,252,255]],[5,[214,235,255]],[10,[113,183,255]],[13,[190,211,218]],[15,[246,216,88]],[20,[244,158,64]],[25,[235,98,63]],[30,[169,47,59]]];
+const HOURLY_WIND_COLOR_STOPS=[[0,[249,252,255]],[5,[210,233,255]],[10,[130,187,255]],[14,[58,122,235]],[15,[245,214,70]],[20,[244,158,64]],[25,[235,98,63]],[30,[169,47,59]]];
 function hourlyWindVisual(speed,direction,source=cfg){
   const value=Number(speed),deg=Number(direction),rawMph=Number.isFinite(value)?(source?.useFahrenheit===false?value/1.609344:value):0,mph=Math.max(0,rawMph),colorMph=Math.min(30,mph);let color='rgb(169 47 59)';
   for(let i=0;i<HOURLY_WIND_COLOR_STOPS.length-1;i++){const [a,ac]=HOURLY_WIND_COLOR_STOPS[i],[b,bc]=HOURLY_WIND_COLOR_STOPS[i+1];if(colorMph<=b){const t=(colorMph-a)/(b-a),rgb=ac.map((v,j)=>Math.round(v+(bc[j]-v)*t));color=`rgb(${rgb[0]} ${rgb[1]} ${rgb[2]})`;break;}}
