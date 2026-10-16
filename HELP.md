@@ -1265,9 +1265,9 @@ When an individual part is selected, its size control is intentionally visual an
 
 The on-canvas resize handle follows the same rule: dragging that handle changes the part's **visual Size**, not its Width/Height footprint. The editor outline stays on the original footprint while the text or icon can draw larger and overlap nearby content. Use the explicit **Width** and **Height** geometry controls only when you intentionally want to change the footprint itself.
 
-Visual Size also follows the selected part's horizontal alignment. **Auto/Left** keeps the left edge anchored so larger content grows to the right. **Center** keeps the center point anchored so content grows equally in both directions. **Right** keeps the right edge anchored so larger content grows to the left. The editor footprint does not move or resize just because the visual content grows.
+Visual Size follows both horizontal and vertical anchors. **Auto/Left**, **Center**, and **Right** choose the fixed horizontal edge or center; **Auto/Middle**, **Top**, and **Bottom** choose the fixed vertical center or edge. This lets a selected part grow in the direction you expect without moving its editor footprint or rearranging siblings.
 
-If the enlarged part reaches another part, overlap is allowed. That is intentional: resize first, then move the selected part if you want a different composition. Moving a Flow part can switch it to Free positioning; scaling it does not.
+If the enlarged or moved part reaches another part, overlap is allowed. That is intentional. Moving a Flow part can switch only that selected part to Free positioning while its original Flow footprint stays reserved, so nearby parts do not collapse into the space it came from. Scaling it does not enter Free mode. Use **Quick position** for top-left, top-center, top-right, middle-left, center, middle-right, bottom-left, bottom-center, or bottom-right placement within the part's parent.
 
 ---
 
@@ -1275,9 +1275,9 @@ If the enlarged part reaches another part, overlap is allowed. That is intention
 
 **Flow** keeps the selected part in its normal layout relationship while still allowing independent visual styling and size. This is the safer default for unattended displays.
 
-**Free** takes the selected part out of normal flow so you can set its own X/Y position, width, height, and Z order. Use Free when you intentionally want exact coordinates or overlap.
+**Free** gives the selected part independent X/Y placement and Z order while preserving its original Flow footprint by default. The visual part may move across or overlap nearby content, but surrounding parts stay where they were. Explicit **Width** and **Height** controls are the deliberate way to change that part's footprint. Existing saved layouts that already used legacy absolute Free placement remain compatible.
 
-Switching a built-in child part into editing/freeform work preserves the parent integration's current fit rather than recalculating the whole block around that child. This prevents one edited part from making its siblings unexpectedly smaller or larger.
+Switching a built-in child part into editing/freeform work preserves the parent integration's current fit rather than recalculating the whole block around that child. Current Weather uses the same isolated behavior: moving Temperature, Condition, Icon, or another child does not convert the full Current Weather composition to Free or rearrange its other children.
 
 Selecting an element or individual part is selection-only. A normal click must not change fit, geometry, Flow/Free mode, or the position/size of surrounding content. Free positioning begins only after you intentionally drag the selected part far enough to move it.
 
