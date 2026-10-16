@@ -163,11 +163,10 @@ function invalidateWeatherIfLocationChanged(force=false){
 function weatherWindUnitParam(source=cfg){return source?.useFahrenheit===false?'kmh':'mph';}
 function weatherWindUnitLabel(source=cfg){return source?.useFahrenheit===false?'km/h':'mph';}
 function weatherWindDirectionLabel(value){const n=Number(value);if(!Number.isFinite(n))return '';const dirs=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'],deg=((n%360)+360)%360;return dirs[Math.round(deg/22.5)%16];}
-const HOURLY_WIND_COLOR_STOPS=[[0,[249,252,255]],[5,[210,233,255]],[10,[130,187,255]],[14,[58,122,235]],[15,[245,214,70]],[20,[244,158,64]],[25,[235,98,63]],[30,[169,47,59]]];
+const HOURLY_WIND_COLORS=['#F9FCFF','#F2F8FF','#EBF4FF','#E3F0FF','#D9EAFF','#CFE4FF','#C2DBFF','#B4D2FF','#A4C7FF','#92BBFF','#7EAEFF','#68A0FF','#5292FF','#3D84F7','#2A76E8','#FFE45C','#FFD84F','#FFCC44','#FFC03A','#FFB330','#FFA528','#FF9722','#FF891E','#FF7B1B','#F96C1B','#F25E1D','#EA5120','#E14424','#D53829','#C82D2F','#B22234'];
 function hourlyWindVisual(speed,direction,source=cfg){
-  const value=Number(speed),deg=Number(direction),rawMph=Number.isFinite(value)?(source?.useFahrenheit===false?value/1.609344:value):0,mph=Math.max(0,rawMph),colorMph=Math.min(30,mph);let color='rgb(169 47 59)';
-  for(let i=0;i<HOURLY_WIND_COLOR_STOPS.length-1;i++){const [a,ac]=HOURLY_WIND_COLOR_STOPS[i],[b,bc]=HOURLY_WIND_COLOR_STOPS[i+1];if(colorMph<=b){const t=(colorMph-a)/(b-a),rgb=ac.map((v,j)=>Math.round(v+(bc[j]-v)*t));color=`rgb(${rgb[0]} ${rgb[1]} ${rgb[2]})`;break;}}
-  if(!Number.isFinite(value))return {level:'calm',degrees:0,mph:0,label:'Calm',color:'rgb(249 252 255)'};
+  const value=Number(speed),deg=Number(direction),rawMph=Number.isFinite(value)?(source?.useFahrenheit===false?value/1.609344:value):0,mph=Math.max(0,rawMph),colorIndex=Math.min(30,Math.round(mph)),color=HOURLY_WIND_COLORS[colorIndex]||HOURLY_WIND_COLORS[30];
+  if(!Number.isFinite(value))return {level:'calm',degrees:0,mph:0,label:'Calm',color:HOURLY_WIND_COLORS[0]};
   const level=mph>=30?'severe':mph>=25?'high':mph>=20?'strong':mph>=15?'caution':mph>=10?'breeze':mph>=5?'light':'calm',label={calm:'Calm wind',light:'Light wind',breeze:'Breezy',caution:'Noticeable wind',strong:'Strong wind',high:'Very strong wind',severe:'Severe wind'}[level]||'Wind';
   return {level,degrees:Number.isFinite(deg)?((deg%360)+360)%360:0,mph,label,color};
 }
