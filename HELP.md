@@ -1279,7 +1279,7 @@ If the enlarged part reaches another part, overlap is allowed. That is intention
 
 Switching a built-in child part into editing/freeform work preserves the parent integration's current fit rather than recalculating the whole block around that child. This prevents one edited part from making its siblings unexpectedly smaller or larger.
 
-Selecting an element does not automatically put it into Free mode.
+Selecting an element or individual part is selection-only. A normal click must not change fit, geometry, Flow/Free mode, or the position/size of surrounding content. Free positioning begins only after you intentionally drag the selected part far enough to move it.
 
 ---
 
@@ -1304,7 +1304,7 @@ First-class built-in parts can expose controls for:
 
 Calendar entries expose separate parts for event title, time, location, and description, so each can be colored, highlighted, resized, layered, or positioned independently. Background/highlight opacity is useful when text needs more contrast without covering the dashboard artwork completely.
 
-Hourly Forecast exposes Hour, Icon, Temperature, Rain, and Wind separately. Daily Forecast, Current Weather, Clock, Weather Details, and Alerts also expose their meaningful internal parts independently.
+Hourly Forecast exposes Hour, Icon, Temperature, Rain, and Wind separately. Daily Forecast, Current Weather, Clock, Weather Details, and Alerts also expose their meaningful internal parts independently. For Weather Alerts, a manual appearance change to an alert part is shared across every alert card of that type; changing one Alert Title, Body, Expiry, Details, or Icon updates all current and scrolling alert instances rather than only the card you clicked.
 
 ---
 
