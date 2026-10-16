@@ -1263,7 +1263,9 @@ Arrange has two different editing levels. Keep them separate:
 
 When an individual part is selected, its size control is intentionally visual and layout-independent. Enlarging Hourly Wind, for example, must enlarge **Wind only**. Hour, Icon, Temperature, Rain, and the parent forecast fit should not shrink, grow, or move in response.
 
-If the enlarged part reaches another part, overlap is allowed. That is intentional: resize first, then move the selected part if you want a different composition.
+The on-canvas resize handle follows the same rule: dragging that handle changes the part's **visual Size**, not its Width/Height footprint. The editor outline stays on the original footprint while the text or icon can draw larger and overlap nearby content. Use the explicit **Width** and **Height** geometry controls only when you intentionally want to change the footprint itself.
+
+If the enlarged part reaches another part, overlap is allowed. That is intentional: resize first, then move the selected part if you want a different composition. Moving a Flow part can switch it to Free positioning; scaling it does not.
 
 ---
 
