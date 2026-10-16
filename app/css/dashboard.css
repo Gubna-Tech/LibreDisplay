@@ -3826,19 +3826,18 @@ html.ld-pi3-static #weather-effects-overlay .weather-fx-leaf-hq-static .weather-
 .hr-col .hr-meta .hr-metric{display:flex;align-items:center;justify-content:center;min-height:1.08em;font-family:inherit;font-size:clamp(13.5px,.94vw,19px);font-weight:650;line-height:1.08;letter-spacing:0;font-variant-numeric:tabular-nums;white-space:nowrap}
 .hr-col .hr-meta .hr-temp{color:rgba(255,255,255,.96)}
 .hr-col .hr-meta .hr-rain{color:#b9e3ff}
-.hr-col .hr-meta .hr-wind{gap:.34em;font-weight:650}
+.hr-col .hr-meta .hr-wind{gap:.34em;font-weight:650;color:var(--wind-gradient-color,#f9fcff);--wind-arrow-color:currentColor}
 .hr-col .hr-wind-arrows{display:inline-flex;align-items:center;justify-content:center;line-height:1;color:var(--wind-arrow-color,currentColor)}
 .hr-col .hr-wind-arrow{display:inline-block;transform:rotate(calc(var(--wind-angle,0deg) + 180deg)) scaleX(var(--wind-arrow-width,1));transform-origin:50% 50%;font-size:var(--wind-arrow-size,1em);font-weight:var(--wind-arrow-weight,700);line-height:.88;-webkit-text-stroke:var(--wind-arrow-stroke,0) currentColor;text-shadow:var(--wind-arrow-glow,none)}
-.hr-col .hr-wind-value{display:inline-block;color:var(--wind-text-color,currentColor)}
-.hr-col .hr-wind.wind-calm{--wind-arrow-size:.86em;--wind-arrow-weight:575;--wind-arrow-width:.95;--wind-arrow-color:#f5f7fa;--wind-text-color:#f7f9fb;color:#f7f9fb}
-.hr-col .hr-wind.wind-light{--wind-arrow-size:.92em;--wind-arrow-weight:640;--wind-arrow-width:.98;--wind-arrow-color:#d9ecff;--wind-text-color:#e7f3ff;color:#e7f3ff}
-.hr-col .hr-wind.wind-breeze{--wind-arrow-size:1em;--wind-arrow-weight:720;--wind-arrow-width:1.01;--wind-arrow-color:#79bfff;--wind-text-color:#9ed2ff;color:#9ed2ff}
-.hr-col .hr-wind.wind-caution{--wind-arrow-size:1.08em;--wind-arrow-weight:800;--wind-arrow-width:1.04;--wind-arrow-stroke:.10px;--wind-arrow-color:#f3d04f;--wind-text-color:#f6da68;color:#f6da68}
-.hr-col .hr-wind.wind-strong{--wind-arrow-size:1.16em;--wind-arrow-weight:875;--wind-arrow-width:1.08;--wind-arrow-stroke:.18px;--wind-arrow-color:#f09a3e;--wind-text-color:#f4a653;--wind-arrow-glow:0 0 .24em rgba(240,154,62,.20);color:#f4a653}
-.hr-col .hr-wind.wind-high{--wind-arrow-size:1.23em;--wind-arrow-weight:900;--wind-arrow-width:1.12;--wind-arrow-stroke:.28px;--wind-arrow-color:#e4543b;--wind-text-color:#eb684d;--wind-arrow-glow:0 0 .30em rgba(228,84,59,.25);color:#eb684d}
-.hr-col .hr-wind.wind-severe{--wind-arrow-size:1.30em;--wind-arrow-weight:900;--wind-arrow-width:1.16;--wind-arrow-stroke:.40px;--wind-arrow-color:#a92f3b;--wind-text-color:#c7434d;--wind-arrow-glow:0 0 .38em rgba(169,47,59,.32);color:#c7434d}
+.hr-col .hr-wind-value{display:inline-block;color:inherit}
+.hr-col .hr-wind.wind-calm{--wind-arrow-size:.86em;--wind-arrow-weight:575;--wind-arrow-width:.95}
+.hr-col .hr-wind.wind-light{--wind-arrow-size:.92em;--wind-arrow-weight:640;--wind-arrow-width:.98}
+.hr-col .hr-wind.wind-breeze{--wind-arrow-size:1em;--wind-arrow-weight:720;--wind-arrow-width:1.01}
+.hr-col .hr-wind.wind-caution{--wind-arrow-size:1.08em;--wind-arrow-weight:800;--wind-arrow-width:1.04;--wind-arrow-stroke:.10px}
+.hr-col .hr-wind.wind-strong{--wind-arrow-size:1.16em;--wind-arrow-weight:875;--wind-arrow-width:1.08;--wind-arrow-stroke:.18px;--wind-arrow-glow:0 0 .24em rgba(240,154,62,.20)}
+.hr-col .hr-wind.wind-high{--wind-arrow-size:1.23em;--wind-arrow-weight:900;--wind-arrow-width:1.12;--wind-arrow-stroke:.28px;--wind-arrow-glow:0 0 .30em rgba(228,84,59,.25)}
+.hr-col .hr-wind.wind-severe{--wind-arrow-size:1.30em;--wind-arrow-weight:900;--wind-arrow-width:1.16;--wind-arrow-stroke:.40px;--wind-arrow-glow:0 0 .38em rgba(169,47,59,.32)}
 @media(max-width:1400px){.hr-col .hr-meta .hr-metric{font-size:12.5px}.hr-col .hr-meta{gap:2px}}
-.hr-col .hr-meta .hr-wind.wind-calm{color:#f7f9fb!important}.hr-col .hr-meta .hr-wind.wind-light{color:#e7f3ff!important}.hr-col .hr-meta .hr-wind.wind-breeze{color:#9ed2ff!important}.hr-col .hr-meta .hr-wind.wind-caution{color:#f6da68!important}.hr-col .hr-meta .hr-wind.wind-strong{color:#f4a653!important}.hr-col .hr-meta .hr-wind.wind-high{color:#eb684d!important}.hr-col .hr-meta .hr-wind.wind-severe{color:#c7434d!important}
 
 /* Weather-scene refinement */
 html.ld-pi3-static #weather-effects-overlay .weather-fx-leaf-hq-static{transform:rotate(var(--pi3-leaf-angle,0deg))!important}
