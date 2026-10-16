@@ -295,7 +295,7 @@ function applyUiCustomization(source=cfg){
   const blur=q(source.bgBlurPx,0,12,0);
   const transition=q(source.bgTransitionSec,0,4,1.5);
   const alertOpacity=q(source.alertOpacityPct,55,100,100)/100;
-  const part=(key,name)=>normalizePartStyleValue(source.layoutPartStyle?.[key]?.[name]||{}),ps=(key,name)=>part(key,name).scale/100,pe=(key,name)=>partStyleExtras(part(key,name)),moonGroup=part('current','moonSummary'),moonGroupScale=moonGroup.scale/100,moonGroupHidden=moonGroup.visible===false?'display:none!important;':'';
+  const part=(key,name)=>normalizePartStyleValue(source.layoutPartStyle?.[key]?.[name]||{}),ps=(key,name)=>part(key,name).scale/100,pe=(key,name)=>partStyleExtras(part(key,name)),moonGroup=part('current','moonSummary'),moonGroupScale=1,moonGroupHidden=moonGroup.visible===false?'display:none!important;':'';
   let style=document.getElementById('user-ui-overrides');
   if(!style){style=document.createElement('style');style.id='user-ui-overrides';document.head.appendChild(style);}
   style.textContent=`
@@ -316,46 +316,46 @@ function applyUiCustomization(source=cfg){
     #calendar-legend{top:${calH+3}px;left:${sidePad}px;right:${sidePad}px}
     #alert-zone{top:${calH+(source.calendarLegend?36:14)}px;bottom:${bottomH+30}px;left:${sidePad}px;right:${sidePad}px}
     #bg,#bg-next{filter:blur(${blur}px);transform:${blur?`scale(${(1+blur/300).toFixed(3)})`:'none'};transition:opacity ${transition}s cubic-bezier(.22,.61,.36,1)}
-    .day-num{font-size:${scaledClamp(30,2.55,42,cal*ps('calendar','dayNumber'))};color:${textColor};${pe('calendar','dayNumber')}}
-    .day-label{font-size:${scaledClamp(14,1.18,20,cal*ps('calendar','dayLabel'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('calendar','dayLabel')}}
-    .no-events{font-size:${scaledClamp(12,1,17,cal*ps('calendar','emptyText'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${tertiary.toFixed(3)});${pe('calendar','emptyText')}}
-    .event-time{font-size:${scaledClamp(11,.92,15,cal*ps('calendar','eventText')*ps('calendar','eventTime'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.86).toFixed(3)});${pe('calendar','eventText')}${pe('calendar','eventTime')}}
-    .event-title{font-size:${scaledClamp(12,1.02,17,cal*ps('calendar','eventText')*ps('calendar','eventTitle'))};color:${textColor};padding-left:${source.showEventTimes===false?'0':'9px'};${pe('calendar','eventText')}${pe('calendar','eventTitle')}}
+    .day-num{font-size:${scaledClamp(30,2.55,42,cal)};color:${textColor};${pe('calendar','dayNumber')}}
+    .day-label{font-size:${scaledClamp(14,1.18,20,cal)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('calendar','dayLabel')}}
+    .no-events{font-size:${scaledClamp(12,1,17,cal)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${tertiary.toFixed(3)});${pe('calendar','emptyText')}}
+    .event-time{font-size:${scaledClamp(11,.92,15,cal*ps('calendar','eventText'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.86).toFixed(3)});${pe('calendar','eventText')}${pe('calendar','eventTime')}}
+    .event-title{font-size:${scaledClamp(12,1.02,17,cal*ps('calendar','eventText'))};color:${textColor};padding-left:${source.showEventTimes===false?'0':'9px'};${pe('calendar','eventText')}${pe('calendar','eventTitle')}}
     .event-title-no-time{display:flex;align-items:center;gap:6px;padding-left:0}
-    .wx-location{font-size:${scaledClamp(11,.82,15,cur*ps('current','locationLabel'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.9).toFixed(3)});${pe('current','locationLabel')}}
-    .wx-temp{font-size:${scaledClamp(66,5.9,96,cur*ps('current','temperature'))};color:${textColor};${pe('current','temperature')}}
-    .wx-icon-big{font-size:${scaledClamp(36,3.4,54,cur*ps('current','icon'))};${pe('current','icon')}}
-    .wx-feels{font-size:${scaledClamp(17,1.25,23,cur*ps('current','feelsLike'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('current','feelsLike')}}
-    .wx-cond{font-size:${scaledClamp(17,1.25,23,cur*ps('current','condition'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('current','condition')}}
-    .wx-moon-info{--ld-moon-user-scale:${(moonGroupScale*ps('current','moonIcon')).toFixed(4)};${moonGroupHidden}}
+    .wx-location{font-size:${scaledClamp(11,.82,15,cur)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.9).toFixed(3)});${pe('current','locationLabel')}}
+    .wx-temp{font-size:${scaledClamp(66,5.9,96,cur)};color:${textColor};${pe('current','temperature')}}
+    .wx-icon-big{font-size:${scaledClamp(36,3.4,54,cur)};${pe('current','icon')}}
+    .wx-feels{font-size:${scaledClamp(17,1.25,23,cur)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('current','feelsLike')}}
+    .wx-cond{font-size:${scaledClamp(17,1.25,23,cur)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('current','condition')}}
+    .wx-moon-info{--ld-moon-user-scale:1;${moonGroupHidden}}
     .wx-moon-mini{${pe('current','moonSummary')}${pe('current','moonIcon')}}
-    .wx-moon-pct{font-size:${scaledClamp(14,1,17,cur*moonGroupScale*ps('current','moonIllumination'))}!important;${pe('current','moonSummary')}${pe('current','moonIllumination')}}
-    .wx-moon-phase-name{font-size:${scaledClamp(12.5,.86,15,cur*moonGroupScale*ps('current','moonPhase'))}!important;${pe('current','moonSummary')}${pe('current','moonPhase')}}
-    .wx-moon-next{font-size:${scaledClamp(11.5,.75,13,cur*moonGroupScale*ps('current','moonEvent'))}!important;${pe('current','moonSummary')}${pe('current','moonEvent')}}
-    .clock-time{font-size:${scaledClamp(66,6,102,clk*ps('clock','time'))};color:${textColor};${pe('clock','time')}}
-    .clock-time.wide-time{font-size:${scaledClamp(62,5.55,94,clk*ps('clock','time'))}}
-    .clock-sec{font-size:${scaledClamp(20,1.8,30,clk*ps('clock','seconds'))};color:${textColor};${pe('clock','seconds')}}
-    .clock-date{font-size:${scaledClamp(16,1.35,24,clk*ps('clock','date'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('clock','date')}}
-    .fc-col .fc-day-name{font-size:${scaledClamp(13,.95,18,dailyFc*ps('daily','day'))}!important;color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('daily','day')}}
-    .fc-col .fc-icon{font-size:${scaledClamp(23,1.7,32,dailyFc*ps('daily','icon'))}!important;${pe('daily','icon')}}
-    .fc-col .fc-rain{font-size:${scaledClamp(11,.8,15,dailyFc*ps('daily','precip'))}!important;${pe('daily','precip')}}
-    .fc-col .fc-temps .fc-hi{font-size:${scaledClamp(13,.95,18,dailyFc*ps('daily','temperature')*ps('daily','highTemperature'))}!important;${pe('daily','temperature')}${pe('daily','highTemperature')}}
-    .fc-col .fc-temps .fc-lo{font-size:${scaledClamp(13,.95,18,dailyFc*ps('daily','temperature')*ps('daily','lowTemperature'))}!important;${pe('daily','temperature')}${pe('daily','lowTemperature')}}
-    .hr-col .hr-time{font-size:${scaledClamp(14,1,19,hourlyFc*ps('hourly','time'))}!important;color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('hourly','time')}}
-    .hr-col .hr-icon{font-size:${scaledClamp(24,1.85,34,hourlyFc*ps('hourly','icon'))}!important;${pe('hourly','icon')}}
-    .hr-col .hr-meta .hr-temp.hr-metric{font-size:${scaledClamp(12.5,.94,19,hourlyFc*ps('hourly','metrics')*ps('hourly','temperature'))}!important;${pe('hourly','metrics')}${pe('hourly','temperature')}}
-    .hr-col .hr-meta .hr-rain.hr-metric{font-size:${scaledClamp(12.5,.94,19,hourlyFc*ps('hourly','metrics')*ps('hourly','precip'))}!important;${pe('hourly','metrics')}${pe('hourly','precip')}}
-    .hr-col .hr-meta .hr-wind.hr-metric{font-size:${scaledClamp(11,.82,16,hourlyFc*ps('hourly','metrics')*ps('hourly','wind'))}!important;${pe('hourly','metrics')}${pe('hourly','wind')}}
+    .wx-moon-pct{font-size:${scaledClamp(14,1,17,cur)}!important;${pe('current','moonSummary')}${pe('current','moonIllumination')}}
+    .wx-moon-phase-name{font-size:${scaledClamp(12.5,.86,15,cur)}!important;${pe('current','moonSummary')}${pe('current','moonPhase')}}
+    .wx-moon-next{font-size:${scaledClamp(11.5,.75,13,cur)}!important;${pe('current','moonSummary')}${pe('current','moonEvent')}}
+    .clock-time{font-size:${scaledClamp(66,6,102,clk)};color:${textColor};${pe('clock','time')}}
+    .clock-time.wide-time{font-size:${scaledClamp(62,5.55,94,clk)}}
+    .clock-sec{font-size:${scaledClamp(20,1.8,30,clk)};color:${textColor};${pe('clock','seconds')}}
+    .clock-date{font-size:${scaledClamp(16,1.35,24,clk)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('clock','date')}}
+    .fc-col .fc-day-name{font-size:${scaledClamp(13,.95,18,dailyFc)}!important;color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('daily','day')}}
+    .fc-col .fc-icon{font-size:${scaledClamp(23,1.7,32,dailyFc)}!important;${pe('daily','icon')}}
+    .fc-col .fc-rain{font-size:${scaledClamp(11,.8,15,dailyFc)}!important;${pe('daily','precip')}}
+    .fc-col .fc-temps .fc-hi{font-size:${scaledClamp(13,.95,18,dailyFc*ps('daily','temperature'))}!important;${pe('daily','temperature')}${pe('daily','highTemperature')}}
+    .fc-col .fc-temps .fc-lo{font-size:${scaledClamp(13,.95,18,dailyFc*ps('daily','temperature'))}!important;${pe('daily','temperature')}${pe('daily','lowTemperature')}}
+    .hr-col .hr-time{font-size:${scaledClamp(14,1,19,hourlyFc)}!important;color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('hourly','time')}}
+    .hr-col .hr-icon{font-size:${scaledClamp(24,1.85,34,hourlyFc)}!important;${pe('hourly','icon')}}
+    .hr-col .hr-meta .hr-temp.hr-metric{font-size:${scaledClamp(12.5,.94,19,hourlyFc*ps('hourly','metrics'))}!important;${pe('hourly','metrics')}${pe('hourly','temperature')}}
+    .hr-col .hr-meta .hr-rain.hr-metric{font-size:${scaledClamp(12.5,.94,19,hourlyFc*ps('hourly','metrics'))}!important;${pe('hourly','metrics')}${pe('hourly','precip')}}
+    .hr-col .hr-meta .hr-wind.hr-metric{font-size:${scaledClamp(11,.82,16,hourlyFc*ps('hourly','metrics'))}!important;${pe('hourly','metrics')}${pe('hourly','wind')}}
     .hr-col .hr-temp{color:${textColor};}
-    .wx-detail .wd-icon{font-size:${(21*det/100*ps('details','icon')).toFixed(2)}px;${pe('details','icon')}}
-    .wx-detail .wd-label{font-size:${scaledClamp(13,.92,17,det*ps('details','label'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.82).toFixed(3)});${pe('details','label')}}
-    .wx-detail .wd-val{font-size:${scaledClamp(15,1,19,det*ps('details','value'))};color:${textColor};${pe('details','value')}}
+    .wx-detail .wd-icon{font-size:${(21*det/100).toFixed(2)}px;${pe('details','icon')}}
+    .wx-detail .wd-label{font-size:${scaledClamp(13,.92,17,det)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.82).toFixed(3)});${pe('details','label')}}
+    .wx-detail .wd-val{font-size:${scaledClamp(15,1,19,det)};color:${textColor};${pe('details','value')}}
     .alert-card{opacity:${alertOpacity.toFixed(2)}}
-    .alert-icon{font-size:${scaledClamp(42,3.4,60,al*ps('alerts','icon'))};${pe('alerts','icon')}}
-    .alert-title{font-size:${scaledClamp(18,1.45,28,al*ps('alerts','title'))};${pe('alerts','title')}}
-    .alert-expiry{font-size:${scaledClamp(11,.88,15,al*ps('alerts','expiry'))};display:${source.alertShowExpiry===false?'none':'block'};${pe('alerts','expiry')}}
-    .alert-text{font-size:${scaledClamp(14,1.14,21,al*ps('alerts','body'))};${pe('alerts','body')}}
-    .alert-meta{font-size:${scaledClamp(10,.74,13,al*ps('alerts','meta'))};display:${source.alertShowMeta===false?'none':'block'};${pe('alerts','meta')}}
+    .alert-icon{font-size:${scaledClamp(42,3.4,60,al)};${pe('alerts','icon')}}
+    .alert-title{font-size:${scaledClamp(18,1.45,28,al)};${pe('alerts','title')}}
+    .alert-expiry{font-size:${scaledClamp(11,.88,15,al)};display:${source.alertShowExpiry===false?'none':'block'};${pe('alerts','expiry')}}
+    .alert-text{font-size:${scaledClamp(14,1.14,21,al)};${pe('alerts','body')}}
+    .alert-meta{font-size:${scaledClamp(10,.74,13,al)};display:${source.alertShowMeta===false?'none':'block'};${pe('alerts','meta')}}
     #top-strip,#wx-left,#wx-right,#clock-block{ text-shadow:0 2px 8px rgba(0,0,0,${shadowAlpha.toFixed(3)}) }
   `+LibreDisplayRuntime.getModule('layout').buildBuiltInPartLayoutCss(source)+buildCustomLayoutPartCss(source);
   const root=document.documentElement;
