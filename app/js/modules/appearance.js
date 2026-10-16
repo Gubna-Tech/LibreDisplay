@@ -295,7 +295,7 @@ function applyUiCustomization(source=cfg){
   const blur=q(source.bgBlurPx,0,12,0);
   const transition=q(source.bgTransitionSec,0,4,1.5);
   const alertOpacity=q(source.alertOpacityPct,55,100,100)/100;
-  const part=(key,name)=>normalizePartStyleValue(source.layoutPartStyle?.[key]?.[name]||{}),ps=(key,name)=>part(key,name).scale/100,pe=(key,name)=>partStyleExtras(part(key,name));
+  const part=(key,name)=>normalizePartStyleValue(source.layoutPartStyle?.[key]?.[name]||{}),ps=(key,name)=>part(key,name).scale/100,pe=(key,name)=>partStyleExtras(part(key,name)),moonGroup=part('current','moonSummary'),moonGroupScale=moonGroup.scale/100,moonGroupHidden=moonGroup.visible===false?'display:none!important;':'';
   let style=document.getElementById('user-ui-overrides');
   if(!style){style=document.createElement('style');style.id='user-ui-overrides';document.head.appendChild(style);}
   style.textContent=`
@@ -327,22 +327,25 @@ function applyUiCustomization(source=cfg){
     .wx-icon-big{font-size:${scaledClamp(36,3.4,54,cur*ps('current','icon'))};${pe('current','icon')}}
     .wx-feels{font-size:${scaledClamp(17,1.25,23,cur*ps('current','feelsLike'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('current','feelsLike')}}
     .wx-cond{font-size:${scaledClamp(17,1.25,23,cur*ps('current','condition'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('current','condition')}}
-    .wx-moon-info{--ld-moon-user-scale:${ps('current','moonIcon').toFixed(4)};${pe('current','moonSummary')}}
-    .wx-moon-mini{${pe('current','moonIcon')}}
-    .wx-moon-pct{font-size:${scaledClamp(14,1,17,cur*ps('current','moonIllumination'))};${pe('current','moonIllumination')}}
-    .wx-moon-phase-name{font-size:${scaledClamp(12.5,.86,15,cur*ps('current','moonPhase'))};${pe('current','moonPhase')}}
-    .wx-moon-next{font-size:${scaledClamp(11.5,.75,13,cur*ps('current','moonEvent'))};${pe('current','moonEvent')}}
+    .wx-moon-info{--ld-moon-user-scale:${(moonGroupScale*ps('current','moonIcon')).toFixed(4)};${moonGroupHidden}}
+    .wx-moon-mini{${pe('current','moonSummary')}${pe('current','moonIcon')}}
+    .wx-moon-pct{font-size:${scaledClamp(14,1,17,cur*moonGroupScale*ps('current','moonIllumination'))}!important;${pe('current','moonSummary')}${pe('current','moonIllumination')}}
+    .wx-moon-phase-name{font-size:${scaledClamp(12.5,.86,15,cur*moonGroupScale*ps('current','moonPhase'))}!important;${pe('current','moonSummary')}${pe('current','moonPhase')}}
+    .wx-moon-next{font-size:${scaledClamp(11.5,.75,13,cur*moonGroupScale*ps('current','moonEvent'))}!important;${pe('current','moonSummary')}${pe('current','moonEvent')}}
     .clock-time{font-size:${scaledClamp(66,6,102,clk*ps('clock','time'))};color:${textColor};${pe('clock','time')}}
     .clock-time.wide-time{font-size:${scaledClamp(62,5.55,94,clk*ps('clock','time'))}}
     .clock-sec{font-size:${scaledClamp(20,1.8,30,clk*ps('clock','seconds'))};color:${textColor};${pe('clock','seconds')}}
     .clock-date{font-size:${scaledClamp(16,1.35,24,clk*ps('clock','date'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('clock','date')}}
-    .fc-col .fc-day-name{font-size:${scaledClamp(13,.95,18,dailyFc*ps('daily','day'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('daily','day')}}
-    .fc-col .fc-icon{font-size:${scaledClamp(23,1.7,32,dailyFc*ps('daily','icon'))};${pe('daily','icon')}}
-    .fc-col .fc-rain{font-size:${scaledClamp(11,.8,15,dailyFc*ps('daily','precip'))};${pe('daily','precip')}}
-    .fc-col .fc-temps{font-size:${scaledClamp(13,.95,18,dailyFc*ps('daily','temperature'))};color:${textColor};${pe('daily','temperature')}}
-    .hr-col .hr-time{font-size:${scaledClamp(14,1,19,hourlyFc*ps('hourly','time'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('hourly','time')}}
-    .hr-col .hr-icon{font-size:${scaledClamp(24,1.85,34,hourlyFc*ps('hourly','icon'))};${pe('hourly','icon')}}
-    .hr-col .hr-metric{font-size:${scaledClamp(13.5,.94,19,hourlyFc*ps('hourly','metrics'))};${pe('hourly','metrics')}}
+    .fc-col .fc-day-name{font-size:${scaledClamp(13,.95,18,dailyFc*ps('daily','day'))}!important;color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('daily','day')}}
+    .fc-col .fc-icon{font-size:${scaledClamp(23,1.7,32,dailyFc*ps('daily','icon'))}!important;${pe('daily','icon')}}
+    .fc-col .fc-rain{font-size:${scaledClamp(11,.8,15,dailyFc*ps('daily','precip'))}!important;${pe('daily','precip')}}
+    .fc-col .fc-temps .fc-hi{font-size:${scaledClamp(13,.95,18,dailyFc*ps('daily','temperature')*ps('daily','highTemperature'))}!important;${pe('daily','temperature')}${pe('daily','highTemperature')}}
+    .fc-col .fc-temps .fc-lo{font-size:${scaledClamp(13,.95,18,dailyFc*ps('daily','temperature')*ps('daily','lowTemperature'))}!important;${pe('daily','temperature')}${pe('daily','lowTemperature')}}
+    .hr-col .hr-time{font-size:${scaledClamp(14,1,19,hourlyFc*ps('hourly','time'))}!important;color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('hourly','time')}}
+    .hr-col .hr-icon{font-size:${scaledClamp(24,1.85,34,hourlyFc*ps('hourly','icon'))}!important;${pe('hourly','icon')}}
+    .hr-col .hr-meta .hr-temp.hr-metric{font-size:${scaledClamp(12.5,.94,19,hourlyFc*ps('hourly','metrics')*ps('hourly','temperature'))}!important;${pe('hourly','metrics')}${pe('hourly','temperature')}}
+    .hr-col .hr-meta .hr-rain.hr-metric{font-size:${scaledClamp(12.5,.94,19,hourlyFc*ps('hourly','metrics')*ps('hourly','precip'))}!important;${pe('hourly','metrics')}${pe('hourly','precip')}}
+    .hr-col .hr-meta .hr-wind.hr-metric{font-size:${scaledClamp(11,.82,16,hourlyFc*ps('hourly','metrics')*ps('hourly','wind'))}!important;${pe('hourly','metrics')}${pe('hourly','wind')}}
     .hr-col .hr-temp{color:${textColor};}
     .wx-detail .wd-icon{font-size:${(21*det/100*ps('details','icon')).toFixed(2)}px;${pe('details','icon')}}
     .wx-detail .wd-label{font-size:${scaledClamp(13,.92,17,det*ps('details','label'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.82).toFixed(3)});${pe('details','label')}}

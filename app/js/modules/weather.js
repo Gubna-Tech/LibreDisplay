@@ -165,7 +165,7 @@ function weatherWindUnitLabel(source=cfg){return source?.useFahrenheit===false?'
 function weatherWindDirectionLabel(value){const n=Number(value);if(!Number.isFinite(n))return '';const dirs=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'],deg=((n%360)+360)%360;return dirs[Math.round(deg/22.5)%16];}
 function hourlyWindVisual(speed,direction,source=cfg){
   const value=Number(speed),deg=Number(direction);if(!Number.isFinite(value))return {level:'calm',degrees:0,mph:0,label:'Calm'};
-  const mph=source?.useFahrenheit===false?value/1.609344:value,level=mph>=30?'severe':mph>=25?'high':mph>=20?'strong':mph>=15?'caution':mph>=8?'breeze':'calm',label={calm:'Light wind',breeze:'Breezy',caution:'Noticeable wind',strong:'Strong wind',high:'Very strong wind',severe:'Severe wind'}[level]||'Wind';
+  const mph=source?.useFahrenheit===false?value/1.609344:value,level=mph>=30?'severe':mph>=25?'high':mph>=20?'strong':mph>=15?'caution':mph>=10?'breeze':mph>=5?'light':'calm',label={calm:'Calm wind',light:'Light wind',breeze:'Breezy',caution:'Noticeable wind',strong:'Strong wind',high:'Very strong wind',severe:'Severe wind'}[level]||'Wind';
   return {level,degrees:Number.isFinite(deg)?((deg%360)+360)%360:0,mph,label};
 }
 function weatherWindUnitMatches(raw,source=cfg){
