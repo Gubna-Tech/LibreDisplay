@@ -3050,9 +3050,9 @@ html.ld-pi4-4k #weather-effects-overlay .holiday-sparkle:nth-of-type(even){displ
 html.ld-pi4-device #weather-effects-overlay :is(.weather-fx-pi-canvas,.weather-fx-pi-cloud-canvas){filter:none!important;box-shadow:none!important}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-overcast-deck{animation:none!important;transform:none!important}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-bird{z-index:3}
-/* Pi 5 uses DOM cloud masses rather than the Pi 4 cloud sprite path. Keep flying wildlife on a stable compositor layer so cloud overlap cannot flash the bird/owl actor in and out. */
-html.ld-pi5-device #weather-effects-overlay .weather-fx-bird{z-index:3;will-change:transform!important;contain:layout style;backface-visibility:hidden;filter:none!important;box-shadow:none!important}
-html.ld-pi5-device #weather-effects-overlay .weather-fx-cloud-mass{backface-visibility:hidden;filter:none!important;-webkit-filter:none!important}
+/* Flying wildlife must keep its full visual overflow. Pi 4 wildlife scenes deliberately use DOM cloud masses instead of the canvas cloud-actor surface so a bird/owl never crosses a different hardware-compositor surface. */
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-bird{z-index:3;overflow:visible!important;contain:none!important;backface-visibility:visible!important;filter:none!important;box-shadow:none!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-cloud-mass{backface-visibility:hidden;filter:none!important;-webkit-filter:none!important;will-change:auto!important}
 
 html.ld-pi-steady #weather-effects-overlay :is(.weather-fx-grass-blade,.weather-fx-season-grass,.weather-fx-cloud-mass,.weather-fx-fog-bank,.holiday-foundation,.holiday-overlay .holiday-sparkle,.holiday-overlay .holiday-confetti){animation-duration:calc(var(--weather-speed-factor,1) * 18s)!important}
 html.ld-pi-smooth #weather-effects-overlay :is(.weather-fx-grass-blade,.weather-fx-season-grass,.holiday-foundation,.holiday-overlay .holiday-sparkle,.holiday-overlay .holiday-confetti,.holiday-overlay .holiday-heart,.holiday-overlay .holiday-bat,.holiday-overlay .holiday-ghost){animation:none!important}
