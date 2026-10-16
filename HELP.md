@@ -1254,19 +1254,59 @@ This avoids confusing data-source problems with geometry problems.
 
 ---
 
+## Whole blocks versus individual parts
+
+Arrange has two different editing levels. Keep them separate:
+
+- **Whole block / integration** controls move or scale the complete widget and everything inside it.
+- **Individual part** controls target one visible piece such as Hourly Wind, Hourly Temperature, a Calendar event title, the Clock date, or a Weather Details value.
+
+When an individual part is selected, its size control is intentionally visual and layout-independent. Enlarging Hourly Wind, for example, must enlarge **Wind only**. Hour, Icon, Temperature, Rain, and the parent forecast fit should not shrink, grow, or move in response.
+
+If the enlarged part reaches another part, overlap is allowed. That is intentional: resize first, then move the selected part if you want a different composition.
+
+---
+
 ## Flow versus free placement
 
-Flow-style layout behavior is safer for unattended displays because elements participate in predictable relationships.
+**Flow** keeps the selected part in its normal layout relationship while still allowing independent visual styling and size. This is the safer default for unattended displays.
 
-Free placement is useful when you intentionally need exact coordinates or overlap, but it can create conflicts if several blocks occupy the same region.
+**Free** takes the selected part out of normal flow so you can set its own X/Y position, width, height, and Z order. Use Free when you intentionally want exact coordinates or overlap.
 
-Selecting an element does not automatically mean you should put it into free placement.
+Switching a built-in child part into editing/freeform work preserves the parent integration's current fit rather than recalculating the whole block around that child. This prevents one edited part from making its siblings unexpectedly smaller or larger.
+
+Selecting an element does not automatically put it into Free mode.
+
+---
+
+## Part styling
+
+First-class built-in parts can expose controls for:
+
+- visual size
+- font family
+- text color and opacity
+- weight, italic, underline, and line-through
+- line height and letter spacing
+- text alignment
+- visibility
+- background/highlight color and opacity
+- horizontal and vertical padding
+- corner radius
+- Flow / Free positioning
+- X and Y position
+- width and height
+- layer/Z order
+
+Calendar entries expose separate parts for event title, time, location, and description, so each can be colored, highlighted, resized, layered, or positioned independently. Background/highlight opacity is useful when text needs more contrast without covering the dashboard artwork completely.
+
+Hourly Forecast exposes Hour, Icon, Temperature, Rain, and Wind separately. Daily Forecast, Current Weather, Clock, Weather Details, and Alerts also expose their meaningful internal parts independently.
 
 ---
 
 ## Geometry
 
-Arrange mode can expose controls such as:
+Whole blocks and Free-position parts can expose controls such as:
 
 - X position
 - Y position
