@@ -297,7 +297,9 @@ async function pollServerConfig(){
     const migratedRemote=(remote&&typeof remote==='object')?configApi.migrateConfigSnapshot(remote):null;
     const mergedRemote=migratedRemote?{...configApi.CFG_DEFAULTS,...migratedRemote,_savedAt:remoteSaved}:null;
     const remoteChanged=!!mergedRemote&&(remoteSaved!==localSaved||(remoteSaved===0&&localSaved===0&&JSON.stringify(mergedRemote)!==JSON.stringify({...cfg,_savedAt:0})));
-    const shouldApplyRemote=remoteChanged&&(!bootstrapApi.LOCAL_CLIENT_MODE||remoteSaved>localSaved||(remoteSaved===0&&localSaved===0));
+    // Server snapshots are authoritative. Do not let a kiosk's browser clock or stale
+    // localStorage timestamp suppress a remotely saved Arrange layout.
+    const shouldApplyRemote=remoteChanged;
     if(shouldApplyRemote){
       cfg=mergedRemote;ensureCfgDefaults();
       if(bootstrapApi.LOCAL_CLIENT_MODE){try{localStorage.setItem(bootstrapApi.CFG_KEY,JSON.stringify(cfg));}catch(e){}}
@@ -343,7 +345,7 @@ function dispatchPendingPhysicalDisplayCommand(command){
   if(currentId===requestId&&['running','complete','error'].includes(currentState))return false;
   const event={data:JSON.stringify(command)};setTimeout(()=>LibreDisplayRuntime.getModule('performance').runExclusiveTask('display-performance-benchmark',()=>runPhysicalDisplayBenchmarkRequest(event)),0);return true;
 }
-async function sendDisplayHeartbeat(connectivityRecovered=false,options={}){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;try{const force=options?.full===true,m=displayViewportMetrics(force),frontendPerformance={...heartbeatPerformanceSnapshot(force),connectivity:connectivitySnapshot()};const response=await resilientFetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:bootstrapApi.READ_ONLY_DISPLAY_MODE?'viewer':(bootstrapApi.LOCAL_CLIENT_MODE?'local':'admin'),version:bootstrapApi.DASHBOARD_BUILD,userAgent:navigator.userAgent,frontendPerformance,providerCache:staleCacheSnapshot(),displayPerformanceBenchmark:bootstrapApi.LOCAL_CLIENT_MODE?physicalDisplayBenchmarkState:undefined,connectivityRecovered:!!connectivityRecovered}),cache:'no-store'},{timeoutMs:5000,retry:false});if(response.ok&&bootstrapApi.LOCAL_CLIENT_MODE){const payload=await response.json().catch(()=>({}));dispatchPendingPhysicalDisplayCommand(payload?.pendingCommand);}}catch(e){}}
+async function sendDisplayHeartbeat(connectivityRecovered=false,options={}){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;try{const force=options?.full===true,m=displayViewportMetrics(force),frontendPerformance={...heartbeatPerformanceSnapshot(force),connectivity:connectivitySnapshot()};const response=await resilientFetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:bootstrapApi.READ_ONLY_DISPLAY_MODE?'viewer':(bootstrapApi.LOCAL_CLIENT_MODE?'local':'admin'),version:bootstrapApi.DASHBOARD_BUILD,userAgent:navigator.userAgent,configSavedAt:Number(cfg?._savedAt||0),frontendPerformance,providerCache:staleCacheSnapshot(),displayPerformanceBenchmark:bootstrapApi.LOCAL_CLIENT_MODE?physicalDisplayBenchmarkState:undefined,connectivityRecovered:!!connectivityRecovered}),cache:'no-store'},{timeoutMs:5000,retry:false});if(response.ok&&bootstrapApi.LOCAL_CLIENT_MODE){const payload=await response.json().catch(()=>({}));dispatchPendingPhysicalDisplayCommand(payload?.pendingCommand);}}catch(e){}}
 function parseDisplayBenchmarkEvent(event){try{return JSON.parse(String(event?.data||'{}'))||{};}catch{return {};}}
 async function runPhysicalDisplayBenchmarkRequest(event){
   if(!bootstrapApi.LOCAL_CLIENT_MODE)return;

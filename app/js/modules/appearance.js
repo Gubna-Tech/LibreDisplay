@@ -280,7 +280,9 @@ function applyUiCustomization(source=cfg){
   const calH=q(source.calendarBandHeight,120,210,150), bottomH=q(source.bottomPanelHeight,270,410,330);
   const leftW=q(source.leftPanelWidth,410,560,470), sidePad=q(source.sidePaddingPx,10,48,28);
   const dailyCols=Math.min(14,Math.max(3,Number(source.dailyForecastDays)||Number(source.forecastColumns)||12));
-  const hourlyCols=Math.min(24,Math.max(3,Number(source.hourlyForecastHours)||Number(source.forecastColumns)||12));
+  const hourlyStyle=source.hourlyCardStyle==='showcase'?'showcase':'compact',hourlyTheme=['none','beach','forest','mountain','prairie','wetlands','alpine','arctic','jungle','tropical','cityscape'].includes(source.hourlyCardBackgroundTheme)?source.hourlyCardBackgroundTheme:'mountain';
+  document.body.dataset.hourlyCardStyle=hourlyStyle;document.body.dataset.hourlyCardTheme=hourlyTheme;
+  const hourlyCols=hourlyStyle==='showcase'?Math.min(8,Math.max(3,Number(source.hourlyForecastHours)||8)):Math.min(24,Math.max(3,Number(source.hourlyForecastHours)||Number(source.forecastColumns)||12));
   const calCols=Math.min(10,Math.max(2,Number(source.calendarColumns)||7));
   const calCellH=Math.min(240,Math.max(90,Number(source.calendarCellHeight)||150));
   const textColor=normalizeHexColor(source.primaryTextColor,'#ffffff');
@@ -415,6 +417,8 @@ function appearanceFromForm(){
     forecastRowGapPx:Number(document.getElementById('s-forecast-row-gap')?.value)||18,
     forecastColumns:Number(document.getElementById('s-daily-days')?.value)||12,
     hourlyForecastHours:Number(document.getElementById('s-hourly-hours')?.value)||12,
+    hourlyCardStyle:document.getElementById('s-hourly-card-style')?.value||cfg.hourlyCardStyle||'compact',
+    hourlyCardBackgroundTheme:document.getElementById('s-hourly-card-theme')?.value||cfg.hourlyCardBackgroundTheme||'mountain',
     dailyForecastDays:Number(document.getElementById('s-daily-days')?.value)||12,
     calendarDays:Number(document.getElementById('s-calendar-days')?.value)||7,
     calendarColumns:Number(document.getElementById('s-calendar-columns')?.value)||7,
@@ -584,7 +588,7 @@ function setAppearanceForm(v){
     's-font-family':v.fontFamily,'s-secondary-opacity':v.secondaryOpacity,'s-text-shadow':v.textShadowPct,
     's-ui-calendar':v.uiCalendarPct,'s-ui-current':v.uiCurrentPct,'s-ui-clock':v.uiClockPct,'s-ui-forecast':v.uiForecastPct,'s-ui-details':v.uiDetailsPct,'s-ui-alert':v.uiAlertPct,
     's-calendar-height':v.calendarBandHeight,'s-bottom-height':v.bottomPanelHeight,'s-left-width':v.leftPanelWidth,'s-side-padding':v.sidePaddingPx,'s-forecast-gap':v.forecastGapPx,'s-forecast-row-gap':v.forecastRowGapPx,
-    's-hourly-hours':v.hourlyForecastHours||v.forecastColumns||12,'s-daily-days':v.dailyForecastDays||v.forecastColumns||12,'s-calendar-days':v.calendarDays,'s-calendar-columns':v.calendarColumns||7,'s-calendar-cell-height':v.calendarCellHeight||150,'s-calendar-scroll-mode':v.calendarScrollMode||'off','s-calendar-scroll-speed':v.calendarScrollSpeed||12,'s-calendar-event-gap':v.calendarEventGapPx??7,'s-calendar-event-padding':v.calendarEventPaddingPx??4,'s-calendar-event-title-size':v.calendarEventTitlePct??100,'s-calendar-event-time-size':v.calendarEventTimePct??100,'s-calendar-event-line-height':v.calendarEventLineHeightPct??120,'s-calendar-event-radius':v.calendarEventRadiusPx??6,'s-calendar-event-card-opacity':v.calendarEventCardOpacity??0,'s-layout-grid':v.layoutGridPx||20,'s-layout-surface':v.layoutSurfaceStyle||'clean','s-current-weather-layout':v.currentWeatherLayout||'stacked','s-current-weather-gap':v.currentWeatherGapPx??10,'s-current-weather-moon-width':v.currentWeatherMoonWidthPx||184,'s-calendar-max-events':v.calendarMaxEvents,'s-time-format':v.timeFormat,'s-date-format':v.dateFormat,
+    's-hourly-hours':v.hourlyForecastHours||v.forecastColumns||12,'s-hourly-card-style':v.hourlyCardStyle||'compact','s-hourly-card-theme':v.hourlyCardBackgroundTheme||'mountain','s-daily-days':v.dailyForecastDays||v.forecastColumns||12,'s-calendar-days':v.calendarDays,'s-calendar-columns':v.calendarColumns||7,'s-calendar-cell-height':v.calendarCellHeight||150,'s-calendar-scroll-mode':v.calendarScrollMode||'off','s-calendar-scroll-speed':v.calendarScrollSpeed||12,'s-calendar-event-gap':v.calendarEventGapPx??7,'s-calendar-event-padding':v.calendarEventPaddingPx??4,'s-calendar-event-title-size':v.calendarEventTitlePct??100,'s-calendar-event-time-size':v.calendarEventTimePct??100,'s-calendar-event-line-height':v.calendarEventLineHeightPct??120,'s-calendar-event-radius':v.calendarEventRadiusPx??6,'s-calendar-event-card-opacity':v.calendarEventCardOpacity??0,'s-layout-grid':v.layoutGridPx||20,'s-layout-surface':v.layoutSurfaceStyle||'clean','s-current-weather-layout':v.currentWeatherLayout||'stacked','s-current-weather-gap':v.currentWeatherGapPx??10,'s-current-weather-moon-width':v.currentWeatherMoonWidthPx||184,'s-calendar-max-events':v.calendarMaxEvents,'s-time-format':v.timeFormat,'s-date-format':v.dateFormat,
     's-bg-top':v.bgShadeTop,'s-bg-bottom':v.bgShadeBottom,'s-bg-blur':v.bgBlurPx,'s-bg-transition':v.bgTransitionSec,'s-bg-fit':v.bgFit,'s-bg-position':v.bgPosition,
     's-alert-opacity':v.alertOpacityPct,'s-alert-min-severity':v.alertMinSeverity,'s-cog-position':v.settingsCogPosition||'bottom-right','s-cog-opacity':v.settingsCogOpacity??42,'s-cog-size':v.settingsCogSize||46
   };

@@ -58,6 +58,7 @@ let cfg = {
   calendarMaxEvents:4,
   showNoEvents:true,
   showPrecip:true,showHourlyWind:true,
+  hourlyCardStyle:'compact',hourlyCardBackgroundTheme:'mountain',
   timeFormat:'12',
   showSeconds:true,
   showAmPm:true,
@@ -296,7 +297,9 @@ function ensureCfgDefaults(){
   cfg.sidePaddingPx=Math.min(48,Math.max(10,num(cfg.sidePaddingPx,28)));
   cfg.forecastRowGapPx=Math.min(36,Math.max(4,num(cfg.forecastRowGapPx,18)));
   cfg.forecastColumns=[6,8,10,12].includes(Number(cfg.forecastColumns))?Number(cfg.forecastColumns):12;
-  cfg.hourlyForecastHours=[3,6,9,12,18,24].includes(Number(cfg.hourlyForecastHours))?Number(cfg.hourlyForecastHours):cfg.forecastColumns;
+  cfg.hourlyForecastHours=[3,6,8,9,12,18,24].includes(Number(cfg.hourlyForecastHours))?Number(cfg.hourlyForecastHours):cfg.forecastColumns;
+  cfg.hourlyCardStyle=['compact','showcase'].includes(cfg.hourlyCardStyle)?cfg.hourlyCardStyle:'compact';
+  cfg.hourlyCardBackgroundTheme=['none','beach','forest','mountain','prairie','wetlands','alpine','arctic','jungle','tropical','cityscape'].includes(cfg.hourlyCardBackgroundTheme)?cfg.hourlyCardBackgroundTheme:'mountain';
   cfg.dailyForecastDays=[3,5,7,10,12,14].includes(Number(cfg.dailyForecastDays))?Number(cfg.dailyForecastDays):Math.min(14,cfg.forecastColumns);
   cfg.calendarDays=[3,5,6,7,14,21,30,45,60].includes(Number(cfg.calendarDays))?Number(cfg.calendarDays):7;
   cfg.calendarColumns=Math.min(10,Math.max(2,Number(cfg.calendarColumns)||7));
@@ -439,17 +442,19 @@ async function loadCfg(){
       if(data?.exists&&data.config&&typeof data.config==='object')serverObj=data.config;
     }
   }catch(e){serverConfigAvailable=false;serverConfigLastError=String(e?.message||e);}
-  const ls=Number(localObj?._savedAt)||0, ss=Number(serverObj?._savedAt)||0;
-  // The Pi/server is authoritative for every remote browser. Browser-local config is
-  // only a recovery fallback when the server cannot provide a saved configuration.
-  // This keeps remote displays/settings visually identical to the wall display even
-  // when that browser has an older or newer localStorage snapshot.
-  const serverWins=!!serverObj&&(!localObj||!bootstrapApi.LOCAL_CLIENT_MODE||ss>=ls);
+  const ss=Number(serverObj?._savedAt)||0;
+  // The Pi/server is authoritative whenever a server snapshot exists. Browser-local
+  // config is recovery-only. This prevents a wall kiosk with a newer local clock or
+  // stale localStorage timestamp from resurrecting an older layout after a remote save.
+  const serverWins=!!serverObj;
   const chosen=serverWins?serverObj:localObj,migration=chosen?configMigrationInfo(chosen):null;
   if(chosen){const migrated=migrateConfigSnapshot(chosen);cfg={...CFG_DEFAULTS,...migrated};if(serverWins)cfg._savedAt=ss;}
   ensureCfgDefaults();
-  if(chosen&&migration?.steps.length){try{localStorage.setItem(bootstrapApi.CFG_KEY,JSON.stringify(cfg));}catch(e){}if(serverWins&&serverConfigAvailable)void persistCfgToServer(JSON.parse(JSON.stringify(cfg)));}
-  if(serverConfigAvailable&&bootstrapApi.LOCAL_CLIENT_MODE&&localObj&&(!serverObj||ls>ss))void persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
+  if(serverWins){try{localStorage.setItem(bootstrapApi.CFG_KEY,JSON.stringify(cfg));}catch(e){}}
+  if(chosen&&migration?.steps.length&&serverWins&&serverConfigAvailable)void persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
+  // Recovery-only exception: if the server has no snapshot at all, a local kiosk
+  // may seed the server from its cached config. Once a server snapshot exists, it wins.
+  if(serverConfigAvailable&&bootstrapApi.LOCAL_CLIENT_MODE&&localObj&&!serverObj)void persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
 }
 
 function stableConfigJson(value){

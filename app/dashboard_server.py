@@ -1136,7 +1136,7 @@ def queue_device_command(endpoint_id, action, payload=None):
         "expiresAt": now + DEVICE_COMMAND_TTL_SECONDS,
     }
     if isinstance(payload, dict):
-        for key in ("requestId", "requestedAt"):
+        for key in ("requestId", "requestedAt", "targetSavedAt"):
             if key in payload:
                 command[key] = payload[key]
     with DEVICE_COMMAND_LOCK:
@@ -1157,7 +1157,7 @@ def pending_device_command(endpoint_id):
         return dict(command)
 
 
-def take_device_command(endpoint_id):
+def take_device_command(endpoint_id, observed_saved_at=0):
     endpoint_id = endpoint_slug(endpoint_id or "main")
     now = int(time.time())
     with DEVICE_COMMAND_LOCK:
@@ -1168,6 +1168,15 @@ def take_device_command(endpoint_id):
             DEVICE_PENDING_COMMANDS.pop(endpoint_id, None)
             return None
         if command.get("action") == "performance-benchmark":
+            return dict(command)
+        target_saved_at = int(command.get("targetSavedAt") or 0)
+        if target_saved_at > 0:
+            if int(observed_saved_at or 0) >= target_saved_at:
+                DEVICE_PENDING_COMMANDS.pop(endpoint_id, None)
+                return None
+            # Keep config-sync commands durable until the kiosk reports that it
+            # actually loaded the saved configuration. The browser reload itself
+            # ends the current heartbeat, so this does not create a reload loop.
             return dict(command)
         DEVICE_PENDING_COMMANDS.pop(endpoint_id, None)
         return dict(command)
@@ -5078,13 +5087,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 if bool((body or {}).get("connectivityRecovered")):
                     broker_release_transient_backoff()
                 pending_command = None
+                observed_saved_at = max(0, int((body or {}).get("configSavedAt") or 0))
                 if row["mode"] == "local" and self.client_is_loopback():
                     previous_kiosk = load_json_path(KIOSK_HEARTBEAT_PATH, {})
                     previous_benchmark = normalize_display_performance_benchmark(previous_kiosk.get("displayPerformanceBenchmark")) if isinstance(previous_kiosk, dict) else {}
                     benchmark = row["displayPerformanceBenchmark"] or previous_benchmark
                     if row["displayPerformanceBenchmark"]:
                         acknowledge_device_command(endpoint_id, row["displayPerformanceBenchmark"])
-                    pending_command = take_device_command(endpoint_id)
+                    pending_command = take_device_command(endpoint_id, observed_saved_at)
                     atomic_write_json_file(KIOSK_HEARTBEAT_PATH, {
                         "lastSeen": row["lastSeen"],
                         "endpoint": endpoint_id,
@@ -5119,6 +5129,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 if action not in {"refresh", "reload", "heartbeat", "performance-benchmark"}:
                     raise ValueError("Unknown device action")
                 event_payload = {"requestedAt": int(time.time())}
+                target_saved_at = max(0, int((body or {}).get("targetSavedAt") or 0))
+                if target_saved_at:
+                    event_payload["targetSavedAt"] = target_saved_at
                 if action == "performance-benchmark":
                     if not self.owner_authorized():
                         return self.json_response(403, {"ok": False, "error": "Owner access is required to run a display performance benchmark."})
