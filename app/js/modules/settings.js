@@ -277,9 +277,10 @@ function applySettings(){
   }
   const details=cfg.weatherDetailsEnabled||{},hasAirBlock=(cfg.customBlocks||[]).some(b=>b?.type==='airquality');
   if(hasAirBlock||details.airquality||details.uvindex)setTimeout(()=>LibreDisplayRuntime.getModule('blocks').getAirQualityData().catch(()=>{}),0);
-  configApi.weatherTimer=performance.startManagedInterval('weather-refresh',weather.fetchWeather,cfg.weatherRefreshMin*60*1000,{skipWhenHidden:true,resumeOnVisible:true});
-  configApi.calendarTimer=performance.startManagedInterval('calendar-refresh',calendar.loadCalendars,cfg.calendarRefreshMin*60*1000,{skipWhenHidden:true,resumeOnVisible:true});
-  configApi.alertTimer=performance.startManagedInterval('alert-refresh',weather.fetchWeatherAlerts,cfg.alertRefreshMin*60*1000,{skipWhenHidden:true,resumeOnVisible:true});
+  const piDisplay=performance.frontendCapabilities().pi4Class||performance.frontendCapabilities().pi5Class,maintenanceOptions={skipWhenHidden:true,resumeOnVisible:true,idle:piDisplay,idleTimeoutMs:piDisplay?4200:1200};
+  configApi.weatherTimer=performance.startManagedInterval('weather-refresh',weather.fetchWeather,cfg.weatherRefreshMin*60*1000,maintenanceOptions);
+  configApi.calendarTimer=performance.startManagedInterval('calendar-refresh',calendar.loadCalendars,cfg.calendarRefreshMin*60*1000,maintenanceOptions);
+  configApi.alertTimer=performance.startManagedInterval('alert-refresh',weather.fetchWeatherAlerts,cfg.alertRefreshMin*60*1000,maintenanceOptions);
   try{LibreDisplayRuntime.getModule('settings').updateLightweightModeUi?.();LibreDisplayRuntime.getModule('settings').updateAnimationPerformanceUi?.();LibreDisplayRuntime.getModule('settings').updateDevicePerformanceGuide?.();}catch(_e){}
 }
 

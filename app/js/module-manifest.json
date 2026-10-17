@@ -52,7 +52,7 @@
     "module": "performance",
     "part": "bundle",
     "path": "/js/modules/performance.js",
-    "lines": 385,
+    "lines": 386,
     "functions": 25,
     "bindings": 1,
     "sections": [
@@ -64,8 +64,8 @@
     "module": "weather",
     "part": "bundle",
     "path": "/js/modules/weather.js",
-    "lines": 1634,
-    "functions": 192,
+    "lines": 1648,
+    "functions": 193,
     "bindings": 14,
     "sections": [
       "/js/weather/index.js",
@@ -80,7 +80,7 @@
     "module": "calendar",
     "part": "bundle",
     "path": "/js/modules/calendar.js",
-    "lines": 879,
+    "lines": 888,
     "functions": 43,
     "bindings": 2,
     "sections": [
@@ -188,7 +188,7 @@
     "module": "settings",
     "part": "bundle",
     "path": "/js/modules/settings.js",
-    "lines": 1747,
+    "lines": 1748,
     "functions": 82,
     "bindings": 18,
     "sections": [

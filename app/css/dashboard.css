@@ -3052,6 +3052,8 @@ html.ld-pi4-device #weather-effects-overlay .weather-fx-overcast-deck{animation:
 html.ld-pi4-device #weather-effects-overlay .weather-fx-bird{z-index:3}
 /* Flying wildlife must keep its full visual overflow. Pi 4 wildlife scenes deliberately use DOM cloud masses instead of the canvas cloud-actor surface so a bird/owl never crosses a different hardware-compositor surface. */
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-bird{z-index:3;overflow:visible!important;contain:none!important;backface-visibility:visible!important;filter:none!important;box-shadow:none!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay :is(.weather-fx-bird,.weather-fx-dog-v2){will-change:transform,opacity!important;transform-style:preserve-3d}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay :is(.weather-fx-bird-wing-far,.weather-fx-bird-wing-near){will-change:transform!important;backface-visibility:hidden}
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-cloud-mass{backface-visibility:hidden;filter:none!important;-webkit-filter:none!important;will-change:auto!important}
 
 html.ld-pi-steady #weather-effects-overlay :is(.weather-fx-grass-blade,.weather-fx-season-grass,.weather-fx-cloud-mass,.weather-fx-fog-bank,.holiday-foundation,.holiday-overlay .holiday-sparkle,.holiday-overlay .holiday-confetti){animation-duration:calc(var(--weather-speed-factor,1) * 18s)!important}
@@ -3360,6 +3362,8 @@ html.ld-pi4-device.ld-wildlife-rescue #weather-effects-overlay .weather-fx-bird-
    full-screen compositor hints and atmosphere drift. Foreground wildlife/precipitation
    remain animated; only subtle full-screen gradient breathing/drift is held static. */
 html.ld-pi4-device .bg-layer{will-change:auto!important}
+html.ld-pi4-device .bg-layer{transition-duration:.22s!important}
+html.ld-pi5-device .bg-layer{transition-duration:.38s!important}
 html.ld-pi4-device #weather-effects-overlay::before{animation:none!important;transform:none!important;will-change:auto!important}
 html.ld-pi4-device #weather-effects-overlay:not(.show){visibility:hidden}
 html.ld-pi4-device #weather-effects-overlay.show{visibility:visible}

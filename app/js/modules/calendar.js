@@ -852,6 +852,15 @@ function startCalendarAutoScroll(){
   if(ui.calendarScrollMode!=='auto'||document.documentElement.classList.contains('ld-reduce-motion'))return;
   requestAnimationFrame(()=>{
     if(strip.scrollHeight<=strip.clientHeight+2)return;
+    const caps=LibreDisplayRuntime.getModule('performance').frontendCapabilities();
+    if(caps.pi4Class||caps.pi5Class){
+      // On Pi displays, repeated scrollTop reads/writes every 50 ms force layout on
+      // the same main thread that used to drive dog motion. Use infrequent native
+      // smooth-scroll steps instead so the compositor owns the transition.
+      let dir=1;const max=Math.max(0,strip.scrollHeight-strip.clientHeight),speed=Math.min(60,Math.max(2,Number(uiCfg().calendarScrollSpeed)||12));if(max<=1)return;const dwell=Math.max(3200,Math.min(11000,Math.round(max/Math.max(2,speed)*1000*.42)));
+      configApi.calendarAutoScrollTimer=setInterval(()=>{if(!document.body.contains(strip)){stopCalendarAutoScroll();return;}strip.scrollTo({top:dir>0?max:0,behavior:'smooth'});dir*=-1;},dwell);
+      return;
+    }
     let dir=1,pauseUntil=Date.now()+1200;
     let last=Date.now();
     configApi.calendarAutoScrollTimer=setInterval(()=>{
