@@ -191,11 +191,11 @@ function runWhenIdle(task,timeout=1200){
   return setTimeout(task,16);
 }
 
-let animationWorkloadCache={sampledAt:0,totalAnimations:0,birds:0,dog:0,weather:0,deadhead:0,other:0,weatherNodes:0,playingVideos:0};
+let animationWorkloadCache={sampledAt:0,totalAnimations:0,birds:0,dog:0,weather:0,deadhead:0,other:0,weatherNodes:0,playingVideos:0,singleTimelineActors:0,nestedActorAnimations:0};
 function animationWorkloadSnapshot(force=false){
   const now=Number(performance?.now?.())||Date.now();
   const ttl=frontendCapabilities().piClass?15000:3000;if(!force&&now-Number(animationWorkloadCache.sampledAt||0)<ttl)return animationWorkloadCache;
-  const out={sampledAt:Math.round(now),totalAnimations:0,birds:0,dog:0,weather:0,deadhead:0,other:0,weatherNodes:0,playingVideos:0};
+  const out={sampledAt:Math.round(now),totalAnimations:0,birds:0,dog:0,weather:0,deadhead:0,other:0,weatherNodes:0,playingVideos:0,singleTimelineActors:0,nestedActorAnimations:0};
   try{
     const animations=typeof document.getAnimations==='function'?document.getAnimations():[];
     for(const animation of animations){
@@ -203,6 +203,8 @@ function animationWorkloadSnapshot(force=false){
       out.totalAnimations++;
       const target=animation?.effect?.target;
       if(!(target instanceof Element)){out.other++;continue;}
+      const singleActor=target.closest('.weather-fx-pi-single-motion,.dog-pi-single-motion');
+      if(singleActor&&target!==singleActor)out.nestedActorAnimations++;
       if(target.closest('.weather-fx-bird,.weather-fx-owl'))out.birds++;
       else if(target.closest('.weather-fx-dog-v2'))out.dog++;
       else if(target.closest('#weather-effects-overlay'))out.weather++;
@@ -210,6 +212,7 @@ function animationWorkloadSnapshot(force=false){
       else out.other++;
     }
     out.weatherNodes=document.querySelectorAll('#weather-effects-overlay *').length;
+    out.singleTimelineActors=document.querySelectorAll('.weather-fx-pi-single-motion,.dog-pi-single-motion').length;
     out.playingVideos=[...document.querySelectorAll('video')].filter(v=>!v.paused&&!v.ended&&v.readyState>=2).length;
   }catch{}
   animationWorkloadCache=out;return out;

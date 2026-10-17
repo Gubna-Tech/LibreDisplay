@@ -300,7 +300,7 @@ function ensureCfgDefaults(){
   cfg.forecastRowGapPx=Math.min(36,Math.max(4,num(cfg.forecastRowGapPx,18)));
   cfg.forecastColumns=[6,8,10,12].includes(Number(cfg.forecastColumns))?Number(cfg.forecastColumns):12;
   cfg.hourlyForecastHours=[3,6,8,9,12,18,24].includes(Number(cfg.hourlyForecastHours))?Number(cfg.hourlyForecastHours):cfg.forecastColumns;
-  cfg.hourlyCardStyle=['compact','showcase'].includes(cfg.hourlyCardStyle)?cfg.hourlyCardStyle:'compact';
+  cfg.hourlyCardStyle=['compact','cardless','showcase'].includes(cfg.hourlyCardStyle)?cfg.hourlyCardStyle:'compact';
   cfg.hourlyCardBackgroundTheme=['none','beach','forest','mountain','prairie','wetlands','alpine','arctic','jungle','tropical','cityscape','lake','desert','canyon','countryside','coastal','tundra'].includes(cfg.hourlyCardBackgroundTheme)?cfg.hourlyCardBackgroundTheme:'mountain';
   cfg.hourlyCompactCardColor=/^#[0-9a-f]{6}$/i.test(String(cfg.hourlyCompactCardColor||''))?String(cfg.hourlyCompactCardColor).toUpperCase():'#0B1420';
   for(const [k,d,min,max] of [['hourlyCompactCardOpacity',52,0,100],['hourlyCompactCardBorderOpacity',18,0,100],['hourlyCompactCardRadiusPx',11,0,30],['hourlyCompactCardBlurPx',6,0,24],['hourlyShowcaseCardOpacity',96,0,100],['hourlyShowcaseSceneOpacity',100,0,100],['hourlyShowcaseOverlayOpacity',36,0,100],['hourlyShowcaseDetailOpacity',82,0,100],['hourlyShowcaseCardRadiusPx',16,0,30],['hourlyShowcaseTextShadowPct',72,0,140]]){const n=Number(cfg[k]);cfg[k]=Number.isFinite(n)?Math.min(max,Math.max(min,n)):d;}

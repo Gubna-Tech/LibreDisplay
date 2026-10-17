@@ -1006,12 +1006,13 @@ If the location is wrong, reselect the geographic result. Editing only the displ
 
 ### Hourly forecast cards
 
-Hourly Forecast has two presentation styles:
+Hourly Forecast has three presentation styles:
 
 - **Compact glass** keeps the dense wallboard row and places each hour on a restrained translucent micro-card so text remains readable over busy backgrounds. Wind uses neutral text inside a dark pill with a narrow severity accent instead of painting the entire value in a competing color.
+- **Cardless** keeps the Compact information layout but removes the card surface, border, shadow, blur, and scene artwork. Time, icon, temperature, precipitation, wind, and their Arrange controls remain visible and independently editable for a cleaner wallboard look.
 - **Showcase scenes** uses up to eight larger cards with a static scenic layer and condition-aware atmosphere. It is intended for a more visual forecast presentation when the Hourly Forecast block has enough room.
 
-Showcase scene families include **Atmosphere only, Beach / ocean, Forest, Mountain, Prairie, Wetlands, Alpine, Arctic, Jungle, Tropical, and Cityscape**. The scene family is decorative; the actual time, condition, temperature, precipitation, and wind still come from the weather data. Rain, snow, storms, fog, day/night state, and cloud condition styling are layered independently of the selected landscape family.
+Showcase scene families include **Atmosphere only, Beach / ocean, Coastal cliffs, Lake, Forest, Mountain, Canyon, Prairie, Countryside, Wetlands, Alpine, Arctic, Tundra, Desert, Jungle, Tropical, and Cityscape**. The scene family is decorative; the actual time, condition, temperature, precipitation, and wind still come from the weather data. Rain, snow, storms, fog, day/night state, and cloud condition styling are layered independently of the selected landscape family.
 
 The card theme setting is saved with the display configuration, so different LibreDisplay endpoints can use different hourly-card presentations. Compact mode remains the best choice when the dashboard uses a dense 12–24 hour strip or when maximum information density matters.
 

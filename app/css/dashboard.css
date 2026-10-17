@@ -4261,6 +4261,8 @@ body[data-hourly-card-style="showcase"] .hr-col[data-card-theme="tundra"]{--hr-t
 .hr-col .hr-meta .hr-wind::before{content:"";position:absolute;left:3px;top:22%;bottom:22%;width:3px;border-radius:999px;background:var(--wind-gradient-color,#91cdff);box-shadow:0 0 7px color-mix(in srgb,var(--wind-gradient-color,#91cdff) 55%,transparent)}
 .hr-col .hr-wind-value,.hr-col .hr-wind-arrows{color:inherit!important}
 .hr-col .hr-scene-art{display:none}
+body[data-hourly-card-style="cardless"] .hr-col{background:transparent!important;border-color:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;overflow:visible}
+body[data-hourly-card-style="cardless"] .hr-col::before,body[data-hourly-card-style="cardless"] .hr-col::after,body[data-hourly-card-style="cardless"] .hr-scene-art{display:none!important}
 body[data-hourly-card-style="showcase"] .wx-hourly{align-items:stretch}
 body[data-hourly-card-style="showcase"] .hr-col{min-height:198px;justify-content:flex-start;padding:12px 8px 10px;border-radius:var(--hourly-showcase-radius,16px);opacity:var(--hourly-showcase-card-opacity,.96);border-color:rgba(255,255,255,.20);background:var(--hr-card-sky,linear-gradient(180deg,#4f9ddd 0%,#8bc8ec 55%,#385a78 100%));box-shadow:inset 0 1px rgba(255,255,255,.20),0 5px 18px rgba(0,0,0,.20);text-shadow:0 2px 5px rgba(0,0,0,var(--hourly-showcase-shadow,.72))}
 body[data-hourly-card-style="showcase"] .hr-col::before{content:"";position:absolute;inset:0;z-index:0;background:var(--hr-weather-overlay,linear-gradient(180deg,transparent 20%,rgba(2,8,15,.20) 100%));opacity:var(--hourly-showcase-overlay-opacity,.36);pointer-events:none}
@@ -4313,3 +4315,20 @@ html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-haza
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-hazard-winter-pi .hazard-blizzard-veil,
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-hazard-winter-pi .hazard-blizzard-ground{animation:none!important;filter:none!important;box-shadow:none!important}
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-hazard-winter-pi :is(.hazard-blizzard-flake,.hazard-blizzard-heavyflake,.hazard-blizzard-nearflake,.hazard-blizzard-gust,.hazard-blizzard-sheet){display:none!important}
+
+/* Pi motion continuity: keep detailed artwork but flatten nested CSS/SVG animation into one actor timeline. */
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay{transform:none!important;isolation:auto!important;backface-visibility:visible!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion,
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion *,
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion::before,
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion::after,
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion,
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion *,
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion *::before,
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion *::after{animation:none!important;transition:none!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion{will-change:transform!important;contain:none!important;backface-visibility:hidden!important;transform-style:flat!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion :is(.weather-fx-bird-wing-near,.weather-fx-bird-vector-wing-near){transform:rotate(-8deg) scaleY(.9)!important;will-change:auto!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion :is(.weather-fx-bird-wing-far,.weather-fx-bird-vector-wing-far){transform:rotate(7deg) scaleY(.82)!important;will-change:auto!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion{will-change:transform!important;contain:layout style!important;isolation:auto!important;backface-visibility:hidden!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion *{will-change:auto!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion.dog-moving .dogv2-pose-stage{transform:translateY(-1px) rotate(.2deg)!important}

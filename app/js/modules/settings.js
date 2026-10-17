@@ -529,7 +529,7 @@ const SETTINGS_CONTROL_HELP={
   's-forecast-gap':'Changes horizontal space between forecast columns. Reduce it when many forecast periods must fit on a smaller display.',
   's-forecast-row-gap':'Changes vertical space between the Daily and Hourly forecast rows in the default layout.',
   's-hourly-hours':'Sets how many upcoming hourly forecast periods are rendered. Showcase scenes displays up to eight cards so the scenic treatment has enough room.',
-  's-hourly-card-style':'Compact glass keeps the existing dense forecast row but turns each hour into a readable translucent micro-card. Showcase scenes uses larger scenic cards for a more immersive weather presentation. Configure both from Weather → Hourly weather cards.',
+  's-hourly-card-style':'Compact glass uses translucent micro-cards. Cardless removes only the card surface while leaving every forecast value visible and independently editable. Showcase scenes uses larger scenic cards. Configure all three from Weather → Hourly weather cards.',
   's-hourly-card-theme':'Selects the local scenic family behind Showcase hourly cards. Scene layers respond to forecast condition, precipitation intensity, and day/night state.',
   's-daily-days':'Sets how many daily forecast columns are rendered. Choose fewer days for larger, less crowded forecast content.',
   's-calendar-days':'Sets how many calendar days are loaded into the dashboard calendar band.',
