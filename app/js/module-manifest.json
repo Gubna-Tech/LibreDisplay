@@ -52,8 +52,8 @@
     "module": "performance",
     "part": "bundle",
     "path": "/js/modules/performance.js",
-    "lines": 386,
-    "functions": 25,
+    "lines": 388,
+    "functions": 26,
     "bindings": 1,
     "sections": [
       "/js/core/performance.js"
@@ -80,8 +80,8 @@
     "module": "calendar",
     "part": "bundle",
     "path": "/js/modules/calendar.js",
-    "lines": 888,
-    "functions": 43,
+    "lines": 940,
+    "functions": 46,
     "bindings": 2,
     "sections": [
       "/js/calendar/ics-parser.js",

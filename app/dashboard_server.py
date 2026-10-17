@@ -2908,9 +2908,13 @@ def normalize_frontend_performance(value):
     if tier not in {"standard", "constrained", "pi3", "pi4", "pi5", "pi-constrained"}:
         tier = "constrained" if bool(value.get("constrained")) else "standard"
     animation = value.get("animation") if isinstance(value.get("animation"), dict) else {}
+    frame_stalls = animation.get("frameStalls") if isinstance(animation.get("frameStalls"), dict) else {}
     workload = value.get("animationWorkload") if isinstance(value.get("animationWorkload"), dict) else {}
     graphics = value.get("graphics") if isinstance(value.get("graphics"), dict) else {}
     long_tasks = value.get("longTasks") if isinstance(value.get("longTasks"), dict) else {}
+    long_task_recent = long_tasks.get("recent") if isinstance(long_tasks.get("recent"), list) else []
+    calendar_runtime = value.get("calendarRuntime") if isinstance(value.get("calendarRuntime"), dict) else {}
+    background_runtime = value.get("backgroundRuntime") if isinstance(value.get("backgroundRuntime"), dict) else {}
     layout_auto_fit = value.get("layoutAutoFit") if isinstance(value.get("layoutAutoFit"), dict) else {}
     forecast_rendering = value.get("forecastRendering") if isinstance(value.get("forecastRendering"), dict) else {}
     heap = value.get("heap") if isinstance(value.get("heap"), dict) else {}
@@ -2938,6 +2942,19 @@ def normalize_frontend_performance(value):
             "quality": bounded_float(animation.get("quality"), 0, 2, 2),
             "renderer": str(animation.get("renderer") or "")[:80],
             "running": bool(animation.get("running")),
+            "frameStalls": {
+                "count": bounded_int(frame_stalls.get("count"), 0, 10**9),
+                "totalMs": bounded_int(frame_stalls.get("totalMs"), 0, 10**12),
+                "maxMs": bounded_float(frame_stalls.get("maxMs"), 0, 10**9, 1),
+                "lastMs": bounded_float(frame_stalls.get("lastMs"), 0, 10**9, 1),
+                "lastAt": bounded_int(frame_stalls.get("lastAt"), 0, 10**15),
+                "recent10s": bounded_int(frame_stalls.get("recent10s"), 0, 100000),
+                "recent": [
+                    {"ms": bounded_float(row.get("ms"), 0, 10**9, 1), "ageMs": bounded_int(row.get("ageMs"), 0, 10**9)}
+                    for row in (frame_stalls.get("recent") if isinstance(frame_stalls.get("recent"), list) else [])[-8:]
+                    if isinstance(row, dict)
+                ],
+            } if frame_stalls else {},
         } if animation else {},
         "animationWorkload": {
             "totalAnimations": bounded_int(workload.get("totalAnimations"), 0, 10000),
@@ -2961,6 +2978,10 @@ def normalize_frontend_performance(value):
             "count": bounded_int(long_tasks.get("count"), 0, 10**9),
             "totalMs": bounded_int(long_tasks.get("totalMs"), 0, 10**12),
             "maxMs": bounded_int(long_tasks.get("maxMs"), 0, 10**9),
+            "recent": [
+                {"startTimeMs": bounded_float(row.get("startTimeMs"), 0, 10**12, 1), "durationMs": bounded_float(row.get("durationMs"), 0, 10**9, 1), "ageMs": bounded_int(row.get("ageMs"), 0, 10**9)}
+                for row in long_task_recent[-16:] if isinstance(row, dict)
+            ],
         },
         "layoutAutoFit": {
             "runs": bounded_int(layout_auto_fit.get("runs"), 0, 10**9),
@@ -2982,6 +3003,33 @@ def normalize_frontend_performance(value):
                 "cells": bounded_int((forecast_rendering.get(key) or {}).get("cells"), 0, 100),
             } for key in ("daily", "hourly") if isinstance(forecast_rendering.get(key), dict)
         } if forecast_rendering else {},
+        "calendarRuntime": {
+            "fetches": bounded_int(calendar_runtime.get("fetches"), 0, 10**9),
+            "cacheHits": bounded_int(calendar_runtime.get("cacheHits"), 0, 10**9),
+            "parseRuns": bounded_int(calendar_runtime.get("parseRuns"), 0, 10**9),
+            "expandRuns": bounded_int(calendar_runtime.get("expandRuns"), 0, 10**9),
+            "lastParseMs": bounded_float(calendar_runtime.get("lastParseMs"), 0, 10**9, 1),
+            "maxParseMs": bounded_float(calendar_runtime.get("maxParseMs"), 0, 10**9, 1),
+            "lastExpandMs": bounded_float(calendar_runtime.get("lastExpandMs"), 0, 10**9, 1),
+            "maxExpandMs": bounded_float(calendar_runtime.get("maxExpandMs"), 0, 10**9, 1),
+            "lastRenderMs": bounded_float(calendar_runtime.get("lastRenderMs"), 0, 10**9, 1),
+            "maxRenderMs": bounded_float(calendar_runtime.get("maxRenderMs"), 0, 10**9, 1),
+            "lastRefreshMs": bounded_float(calendar_runtime.get("lastRefreshMs"), 0, 10**9, 1),
+            "maxRefreshMs": bounded_float(calendar_runtime.get("maxRefreshMs"), 0, 10**9, 1),
+            "lastEventCount": bounded_int(calendar_runtime.get("lastEventCount"), 0, 1000000),
+            "feedCacheEntries": bounded_int(calendar_runtime.get("feedCacheEntries"), 0, 1000),
+            "addonCacheReady": bool(calendar_runtime.get("addonCacheReady")),
+            "lastFeedLabel": str(calendar_runtime.get("lastFeedLabel") or "")[:120],
+            "lastFeedRevision": str(calendar_runtime.get("lastFeedRevision") or "")[:64],
+        } if calendar_runtime else {},
+        "backgroundRuntime": {
+            "transitions": bounded_int(background_runtime.get("transitions"), 0, 10**9),
+            "lastTransitionMs": bounded_float(background_runtime.get("lastTransitionMs"), 0, 10**9, 1),
+            "maxTransitionMs": bounded_float(background_runtime.get("maxTransitionMs"), 0, 10**9, 1),
+            "preloads": bounded_int(background_runtime.get("preloads"), 0, 10**9),
+            "lastPreloadMs": bounded_float(background_runtime.get("lastPreloadMs"), 0, 10**9, 1),
+            "maxPreloadMs": bounded_float(background_runtime.get("maxPreloadMs"), 0, 10**9, 1),
+        } if background_runtime else {},
         "maintenanceTasks": [
             {
                 "key": re.sub(r"[^A-Za-z0-9:_-]+", "-", str(row.get("key") or ""))[:80],
@@ -4605,10 +4653,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 data = path.read_bytes()
                 if len(data) > 1500000:
                     raise OverflowError("Calendar file is too large")
-                return self.bytes_response(200, data, "text/calendar; charset=utf-8", {"X-LibreDisplay-Broker": "local"})
+                return self.bytes_response(200, data, "text/calendar; charset=utf-8", {"X-LibreDisplay-Broker": "local", "X-LibreDisplay-Calendar-Revision": hashlib.sha256(data).hexdigest()[:24]})
             ttl = max(60, min(86400, int(config.get("calendarRefreshMin") or 15) * 60))
             data, content_type, state, age = broker_remote_url(target, ttl)
-            return self.bytes_response(200, data, content_type, {"X-LibreDisplay-Broker": state, "X-LibreDisplay-Broker-Age": str(age), "X-LibreDisplay-Cache": "stale" if state == "stale" else ("refreshing" if state == "refreshing" else "fresh")})
+            revision = hashlib.sha256(data).hexdigest()[:24]
+            return self.bytes_response(200, data, content_type, {"X-LibreDisplay-Broker": state, "X-LibreDisplay-Broker-Age": str(age), "X-LibreDisplay-Cache": "stale" if state == "stale" else ("refreshing" if state == "refreshing" else "fresh"), "X-LibreDisplay-Calendar-Revision": revision})
         except OverflowError:
             return self.text_response(413, "Calendar source is too large")
         except ValueError as exc:

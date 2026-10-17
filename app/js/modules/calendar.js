@@ -90,13 +90,15 @@ const WINDOWS_TZ_TO_IANA={
   'Atlantic Standard Time':'America/Halifax','Newfoundland Standard Time':'America/St_Johns'
 };
 
+const normalizedTzCache=new Map();
 function normalizeTZID(tzid){
-  let z=String(tzid||'').trim().replace(/^"|"$/g,'');
-  if(!z)return '';
-  if(WINDOWS_TZ_TO_IANA[z])return WINDOWS_TZ_TO_IANA[z];
+  const raw=String(tzid||'').trim().replace(/^"|"$/g,'');
+  if(!raw)return '';
+  if(normalizedTzCache.has(raw))return normalizedTzCache.get(raw);
+  let z=WINDOWS_TZ_TO_IANA[raw]||raw;
   const iana=z.match(/(?:^|\/)((?:Africa|America|Antarctica|Arctic|Asia|Atlantic|Australia|Europe|Indian|Pacific)\/[A-Za-z0-9_+\-\/]+)$/);
   if(iana)z=iana[1];
-  try{new Intl.DateTimeFormat('en-US',{timeZone:z}).format(new Date());return z;}catch(_){return '';}
+  try{new Intl.DateTimeFormat('en-US',{timeZone:z}).format(new Date());normalizedTzCache.set(raw,z);return z;}catch(_){normalizedTzCache.set(raw,'');return '';}
 }
 
 function rawDateParts(input){
@@ -108,14 +110,15 @@ function rawDateParts(input){
   return {y:+m[1],mo:+m[2]-1,d:+m[3],h:+m[4],mi:+m[5],sc:+(m[6]||0),isDate:false,isUTC:!!m[7]};
 }
 
+const zoneDateFormatterCache=new Map();
 function dateFromZoneParts(y,mo,d,h,mi,sc,tzid){
   try{
     const zone=normalizeTZID(tzid)||tzid;
     let guess=Date.UTC(y,mo,d,h,mi,sc);
-    const fmt=new Intl.DateTimeFormat('en-CA',{
+    let fmt=zoneDateFormatterCache.get(zone);if(!fmt){fmt=new Intl.DateTimeFormat('en-CA',{
       timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',
       hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'
-    });
+    });zoneDateFormatterCache.set(zone,fmt);}
     const target=Date.UTC(y,mo,d,h,mi,sc);
     for(let n=0;n<4;n++){
       const p={};
@@ -290,7 +293,7 @@ function rruleWarnings(rule){
   return Object.keys(rule).filter(k=>!supported.has(k)).map(k=>'RRULE '+k+' is not fully supported');
 }
 
-function generateRuleStarts(ev,rangeEnd,defaultTz=''){
+function generateRuleStarts(ev,rangeEnd,defaultTz='',rangeStart=null){
   const startProp=firstProp(ev,'DTSTART');
   if(!startProp)return {dates:[],warnings:[]};
   const spec=dateSpecFromProp(startProp,defaultTz);
@@ -308,6 +311,7 @@ function generateRuleStarts(ev,rangeEnd,defaultTz=''){
   const byMonthDays=rule.BYMONTHDAY?rule.BYMONTHDAY.split(',').map(Number).filter(Number.isFinite):[];
   const byDays=parseByDayList(rule.BYDAY);
   const dates=[];
+  const canFastForward=countLimit===Infinity&&rangeStart instanceof Date&&Number.isFinite(rangeStart.getTime())&&rangeStart>start;
   let generated=0,guard=0;
   const accept=(year,month,day)=>{
     if(generated>=countLimit)return false;
@@ -324,6 +328,12 @@ function generateRuleStarts(ev,rangeEnd,defaultTz=''){
 
   if(freq==='DAILY'){
     const cursor=new Date(Date.UTC(spec.y,spec.mo,spec.d));
+    if(canFastForward){
+      const targetUtc=Date.UTC(rangeStart.getFullYear(),rangeStart.getMonth(),rangeStart.getDate());
+      const startUtc=cursor.getTime(),elapsedDays=Math.max(0,Math.floor((targetUtc-startUtc)/864e5));
+      const cycles=Math.floor(elapsedDays/interval);
+      if(cycles>2)cursor.setUTCDate(cursor.getUTCDate()+(cycles-2)*interval);
+    }
     while(guard++<200000){
       const y=cursor.getUTCFullYear(),m=cursor.getUTCMonth(),d=cursor.getUTCDate();
       const actual=makeDateFromSpec(spec,y,m,d);
@@ -341,7 +351,14 @@ function generateRuleStarts(ev,rangeEnd,defaultTz=''){
     const startDay=new Date(Date.UTC(spec.y,spec.mo,spec.d));
     const startDow=startDay.getUTCDay();
     const week0=new Date(startDay);week0.setUTCDate(week0.getUTCDate()-((startDow-wkst+7)%7));
-    for(let w=0;guard++<50000;w+=interval){
+    let firstWeek=0;
+    if(canFastForward){
+      const targetUtc=Date.UTC(rangeStart.getFullYear(),rangeStart.getMonth(),rangeStart.getDate());
+      const elapsedWeeks=Math.max(0,Math.floor((targetUtc-week0.getTime())/(7*864e5)));
+      const cycles=Math.floor(elapsedWeeks/interval);
+      firstWeek=Math.max(0,(cycles-2)*interval);
+    }
+    for(let w=firstWeek;guard++<50000;w+=interval){
       const base=new Date(week0);base.setUTCDate(base.getUTCDate()+w*7);
       const weekCandidates=[];
       for(const dow of targetDays){
@@ -365,7 +382,13 @@ function generateRuleStarts(ev,rangeEnd,defaultTz=''){
       if(stop)break;
     }
   }else if(freq==='MONTHLY'){
-    for(let monthIndex=0;guard++<10000;monthIndex+=interval){
+    let firstMonth=0;
+    if(canFastForward){
+      const elapsedMonths=Math.max(0,(rangeStart.getFullYear()-spec.y)*12+rangeStart.getMonth()-spec.mo);
+      const cycles=Math.floor(elapsedMonths/interval);
+      firstMonth=Math.max(0,(cycles-2)*interval);
+    }
+    for(let monthIndex=firstMonth;guard++<10000;monthIndex+=interval){
       const absolute=spec.mo+monthIndex;
       const y=spec.y+Math.floor(absolute/12),m=((absolute%12)+12)%12;
       const firstActual=makeDateFromSpec(spec,y,m,1);
@@ -377,7 +400,13 @@ function generateRuleStarts(ev,rangeEnd,defaultTz=''){
       if(stop)break;
     }
   }else if(freq==='YEARLY'){
-    for(let yearIndex=0;guard++<1000;yearIndex+=interval){
+    let firstYear=0;
+    if(canFastForward){
+      const elapsedYears=Math.max(0,rangeStart.getFullYear()-spec.y);
+      const cycles=Math.floor(elapsedYears/interval);
+      firstYear=Math.max(0,(cycles-2)*interval);
+    }
+    for(let yearIndex=firstYear;guard++<1000;yearIndex+=interval){
       const y=spec.y+yearIndex;
       const jan=makeDateFromSpec(spec,y,0,1);
       if((until&&jan>until)||jan>=rangeEnd||generated>=countLimit)break;
@@ -536,7 +565,10 @@ function expandCalendarFeed(parsed,rangeStart,rangeEnd,calIdx){
     if(propValue(master,'RRULE',''))stats.recurring++;
     if(String(propValue(master,'STATUS','')).toUpperCase()==='CANCELLED')continue;
 
-    const generation=generateRuleStarts(master,rangeEnd,defaultTz);
+    const generationStart=new Date(rangeStart);
+    if(masterSpan.allDay&&masterSpan.days)generationStart.setDate(generationStart.getDate()-Math.max(1,masterSpan.days));
+    else if(masterSpan.ms)generationStart.setTime(generationStart.getTime()-Math.max(0,masterSpan.ms));
+    const generation=generateRuleStarts(master,rangeEnd,defaultTz,generationStart);
     stats.warnings.push(...generation.warnings);
     const starts=[...generation.dates];
     const rdates=collectExceptionDates(master,'RDATE',defaultTz,masterAllDay);
@@ -617,6 +649,12 @@ const weatherApi=LibreDisplayRuntime.getModule('weather');
 const {fmtTime,parseICS,normalizeCalendarUrl,expandCalendarFeed}=LibreDisplayRuntime.getModule('calendar');
 
 let calStatuses=[];
+const calendarFeedCache=new Map();
+let calendarAddonEventCache={key:'',events:[]};
+const calendarRuntime={fetches:0,cacheHits:0,parseRuns:0,expandRuns:0,lastParseMs:0,maxParseMs:0,lastExpandMs:0,maxExpandMs:0,lastRenderMs:0,maxRenderMs:0,lastRefreshMs:0,maxRefreshMs:0,lastFeedLabel:'',lastFeedRevision:'',lastEventCount:0};
+function calendarRuntimeSnapshot(){return {...calendarRuntime,feedCacheEntries:calendarFeedCache.size,addonCacheReady:!!calendarAddonEventCache.key};}
+function calendarFeedCacheKey(cal,url,calIdx){return String(cal?.id||url||('calendar-'+calIdx));}
+function calendarAddonCacheKey(referenceDate=null){const d=referenceDate instanceof Date?referenceDate:new Date(),day=[d.getFullYear(),d.getMonth()+1,d.getDate()].join('-');return day+'|'+JSON.stringify([!!cfg.calendarAddonsEnabled,!!cfg.calendarAddonCivicUS,!!cfg.calendarAddonChristian,!!cfg.calendarAddonJewish,!!cfg.calendarAddonIslamic,!!cfg.calendarAddonAstronomy,!!cfg.calendarAddonCultural,cfg.calendarAddonCategorySettings||{},cfg.calendarAddonItemSettings||{}]);}
 
 function updateCalStatusUI(){
   const el=document.getElementById('cal-status');
@@ -644,6 +682,17 @@ function updateCalStatusUI(){
 async function fetchCal(cal,calIdx,{preferFormUrl=false}={}){
   const label=cal?.label||`Calendar ${calIdx+1}`;
   const url=normalizeCalendarUrl(cal?.url||'');
+  const cacheKey=calendarFeedCacheKey(cal,url,calIdx);
+  const now=new Date();now.setHours(0,0,0,0);
+  const customCalendarBlocks=(cfg.customBlocks||[]).filter(b=>b.type==='calendarview');
+  const customHorizon=customCalendarBlocks.reduce((m,b)=>Math.max(m,Number(b.config?.days)||0),0);
+  const days=Math.max(62,Number(uiCfg().calendarDays)||7,customHorizon);
+  const cut=new Date(now);cut.setDate(cut.getDate()+days+1);
+  let rangeStart=new Date(now);
+  if(customCalendarBlocks.some(b=>['month','week'].includes(b.config?.mode))){rangeStart=new Date(now.getFullYear(),now.getMonth(),1);rangeStart.setDate(rangeStart.getDate()-7);}
+  const rangeKey=rangeStart.getTime()+'|'+cut.getTime();
+  let revision='';
+  calendarRuntime.fetches++;calendarRuntime.lastFeedLabel=label;
   try{
     if(!cal?.id&&!url)throw new Error('No calendar source configured');
     let text;
@@ -654,6 +703,10 @@ async function fetchCal(cal,calIdx,{preferFormUrl=false}={}){
       const res=await resilientFetch(target,{cache:'no-store'},{timeoutMs:18000,attempts:2});
       LibreDisplayRuntime.getModule('remote').noteCacheResponse('calendar:'+cal.id,res,'calendar',{leaseMs:Math.max(120000,Math.min(1800000,(Number(cfg.calendarRefreshMin)||15)*120000))});
       if(!res.ok){const msg=await res.text().catch(()=>res.statusText);throw new Error('Calendar source HTTP '+res.status+(msg?' — '+msg:''));}
+      revision=String(res.headers.get('X-LibreDisplay-Calendar-Revision')||'');
+      const cached=calendarFeedCache.get(cacheKey);
+      if(revision&&cached?.revision===revision&&cached?.rangeKey===rangeKey){calendarRuntime.cacheHits++;calendarRuntime.lastFeedRevision=revision;calStatuses[calIdx]={...cached.status,label,checkedAt:Date.now(),cached:true};updateCalStatusUI();return cached.events;}
+      calendarRuntime.lastFeedRevision=revision;
       text=await res.text();
     }else{
       text=await fetchRemoteText(url,(cfg.calendarRefreshMin||15)*60);
@@ -662,22 +715,16 @@ async function fetchCal(cal,calIdx,{preferFormUrl=false}={}){
       if(/<html|<!doctype/i.test(text))throw new Error('The link returned a web page instead of an ICS calendar');
       throw new Error('The link did not return ICS calendar data');
     }
-    const parsed=parseICS(text);
-    const now=new Date();now.setHours(0,0,0,0);
-    const customCalendarBlocks=(cfg.customBlocks||[]).filter(b=>b.type==='calendarview');
-    const customHorizon=customCalendarBlocks.reduce((m,b)=>Math.max(m,Number(b.config?.days)||0),0);
-    const days=Math.max(62,Number(uiCfg().calendarDays)||7,customHorizon);
-    const cut=new Date(now);cut.setDate(cut.getDate()+days+1);
-    let rangeStart=new Date(now);
-    if(customCalendarBlocks.some(b=>['month','week'].includes(b.config?.mode))){rangeStart=new Date(now.getFullYear(),now.getMonth(),1);rangeStart.setDate(rangeStart.getDate()-7);}
-    const expanded=expandCalendarFeed(parsed,rangeStart,cut,calIdx);
+    const parseStarted=performance.now(),parsed=parseICS(text),parseMs=performance.now()-parseStarted;calendarRuntime.parseRuns++;calendarRuntime.lastParseMs=Number(parseMs.toFixed(1));calendarRuntime.maxParseMs=Math.max(calendarRuntime.maxParseMs,calendarRuntime.lastParseMs);
+    const expandStarted=performance.now(),expanded=expandCalendarFeed(parsed,rangeStart,cut,calIdx),expandMs=performance.now()-expandStarted;calendarRuntime.expandRuns++;calendarRuntime.lastExpandMs=Number(expandMs.toFixed(1));calendarRuntime.maxExpandMs=Math.max(calendarRuntime.maxExpandMs,calendarRuntime.lastExpandMs);
     const st=expanded.stats;
     const upcomingCount=expanded.events.filter(e=>(e.end||e.start)>=now).length;
     calStatuses[calIdx]={
       label,ok:true,raw:st.raw,upcoming:upcomingCount,
       recurring:st.recurring,overrides:st.overrides,multiDay:st.multiDay,
-      timezones:st.timezones.size,warning:st.warnings.join('; '),checkedAt:Date.now()
+      timezones:st.timezones.size,warning:st.warnings.join('; '),checkedAt:Date.now(),parseMs:Number(parseMs.toFixed(1)),expandMs:Number(expandMs.toFixed(1))
     };
+    calendarFeedCache.set(cacheKey,{revision,rangeKey,events:expanded.events,status:{...calStatuses[calIdx],cached:false}});
     updateCalStatusUI();
     return expanded.events;
   }catch(ex){
@@ -711,9 +758,12 @@ function lastWeekdayOfMonth(year,month,weekday){const d=new Date(year,month+1,0)
 function calendarAddonSeasonMoment(year,season){const t=(year-2000)/1000,coeff={march:[2451623.80984,365242.37404,.05169,-.00411,-.00057],june:[2451716.56767,365241.62603,.00325,.00888,-.00030],september:[2451810.21715,365242.01767,-.11575,.00337,.00078],december:[2451900.05952,365242.74049,-.06223,-.00823,.00032]}[season];if(!coeff)return null;const jd=coeff.reduce((sum,c,i)=>sum+c*(t**i),0),ms=(jd-2440587.5)*86400000,d=new Date(ms);return Number.isFinite(d.getTime())?d:null;}
 function calendarAddonHarvestMoon(year){const equinox=calendarAddonSeasonMoment(year,'september')||new Date(year,8,22,12),rows=[];for(let d=new Date(year,7,15,12);d<=new Date(year,9,15,12);d.setDate(d.getDate()+1)){const details=LibreDisplayRuntime.getModule('weatherEffects').lunarPhaseDetails?.(d);if(!details)continue;rows.push({date:new Date(d),delta:Math.abs((Number(details.phase)||0)-.5)});}const peaks=rows.filter((row,i)=>row.delta<=(rows[i-1]?.delta??Infinity)&&row.delta<=(rows[i+1]?.delta??Infinity));if(!peaks.length)return null;peaks.sort((a,b)=>Math.abs(a.date-equinox)-Math.abs(b.date-equinox));return peaks[0].date;}
 function easterSunday(year){const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31)-1,day=((h+l-7*m+114)%31)+1;return new Date(year,month,day);}
-function calendarPartsFor(date,calendar){try{const f=new Intl.DateTimeFormat(`en-US-u-ca-${calendar}`,{month:'long',day:'numeric'}),parts=f.formatToParts(date),month=parts.find(x=>x.type==='month')?.value||'',day=Number(parts.find(x=>x.type==='day')?.value)||0;return {month:month.toLowerCase().replace(/[^a-z]/g,''),day};}catch(_e){return {month:'',day:0};}}
+const calendarPartsFormatterCache=new Map();
+function calendarPartsFor(date,calendar){try{let f=calendarPartsFormatterCache.get(calendar);if(!f){f=new Intl.DateTimeFormat(`en-US-u-ca-${calendar}`,{month:'long',day:'numeric'});calendarPartsFormatterCache.set(calendar,f);}const parts=f.formatToParts(date),month=parts.find(x=>x.type==='month')?.value||'',day=Number(parts.find(x=>x.type==='day')?.value)||0;return {month:month.toLowerCase().replace(/[^a-z]/g,''),day};}catch(_e){return {month:'',day:0};}}
 function builtInCalendarEvents(referenceDate=null){
   if(!cfg.calendarAddonsEnabled)return [];
+  const cacheKey=calendarAddonCacheKey(referenceDate);
+  if(!referenceDate&&calendarAddonEventCache.key===cacheKey)return calendarAddonEventCache.events;
   const now=referenceDate instanceof Date?new Date(referenceDate):new Date();
   const from=new Date(now.getFullYear(),now.getMonth(),now.getDate()-7),to=new Date(now.getFullYear()+1,11,31),events=[];
   const add=(categoryKey,itemKey,d)=>{const def=CALENDAR_ADDON_DEFINITIONS[categoryKey],item=def?.items?.find(x=>x.key===itemKey),settings=calendarAddonItemSettings(categoryKey,itemKey);if(!def||!item||settings?.enabled===false||!(d instanceof Date)||!Number.isFinite(d.getTime()))return;if(d>=from&&d<=to)events.push(calendarAddonEvent(settings.title,d,settings.color,categoryKey,itemKey));};
@@ -752,10 +802,10 @@ function builtInCalendarEvents(referenceDate=null){
     if(cfg.calendarAddonJewish){const p=calendarPartsFor(d,'hebrew');if((p.month==='tishri'||p.month==='tishrei')&&p.day===1)add('jewish','roshHashanah',d);if((p.month==='tishri'||p.month==='tishrei')&&p.day===10)add('jewish','yomKippur',d);if(p.month==='kislev'&&p.day===25)add('jewish','hanukkah',d);}
     if(cfg.calendarAddonIslamic){const p=calendarPartsFor(d,'islamic');if(p.month==='ramadan'&&p.day===1)add('islamic','ramadan',d);if((p.month==='shawwal'||p.month==='shawal')&&p.day===1)add('islamic','eidFitr',d);if((p.month==='dhualhijjah'||p.month==='dhualhijja'||p.month==='zulhijjah')&&p.day===10)add('islamic','eidAdha',d);}
   }}
-  const seen=new Set();return events.filter(e=>{const k=e.calendarAddonCategory+'|'+e.calendarAddonItem+'|'+e.start.toDateString();if(seen.has(k))return false;seen.add(k);return true;});
+  const seen=new Set(),out=events.filter(e=>{const k=e.calendarAddonCategory+'|'+e.calendarAddonItem+'|'+e.start.toDateString();if(seen.has(k))return false;seen.add(k);return true;});if(!referenceDate)calendarAddonEventCache={key:cacheKey,events:out};return out;
 }
 async function loadCalendars(){
-  const addons=builtInCalendarEvents();
+  const refreshStarted=performance.now(),addons=builtInCalendarEvents();
   if(!cfg.calendars||!cfg.calendars.length){calStatuses=[];updateCalStatusUI();renderCalendar(addons);updateSettingsOverview();return;}
   const active=cfg.calendars.map((c,i)=>({c,i})).filter(x=>x.c.enabled!==false);
   if(!active.length){calStatuses=cfg.calendars.map(c=>({label:c.label,disabled:true}));updateCalStatusUI();renderCalendar(addons);updateSettingsOverview();return;}
@@ -765,6 +815,7 @@ async function loadCalendars(){
   const all=results.flat().concat(addons).sort((a,b)=>a.start-b.start||a.title.localeCompare(b.title));
   renderCalendar(all);
   updateSettingsOverview();
+  const refreshMs=performance.now()-refreshStarted;calendarRuntime.lastRefreshMs=Number(refreshMs.toFixed(1));calendarRuntime.maxRefreshMs=Math.max(calendarRuntime.maxRefreshMs,calendarRuntime.lastRefreshMs);calendarRuntime.lastEventCount=all.length;
 }
 
 function eventOverlapsDay(ev,day,dayEnd){
@@ -786,7 +837,7 @@ function eventTimeForDay(ev,day){
 }
 
 function renderCalendar(events){
-  const ui=uiCfg();
+  const renderStarted=performance.now(),ui=uiCfg();
   window.__lastCalendarEvents=Array.isArray(events)?events:[];
   const strip=document.getElementById('top-strip');
   strip.innerHTML='';
@@ -837,6 +888,7 @@ function renderCalendar(events){
   LibreDisplayRuntime.getModule('onboarding').renderCalendarLegend();
   startCalendarAutoScroll();
   refreshCustomDataBlocks(['calendarview']);
+  const renderMs=performance.now()-renderStarted;calendarRuntime.lastRenderMs=Number(renderMs.toFixed(1));calendarRuntime.maxRenderMs=Math.max(calendarRuntime.maxRenderMs,calendarRuntime.lastRenderMs);
 }
 
 function stopCalendarAutoScroll(){
@@ -881,7 +933,7 @@ function startCalendarAutoScroll(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("calendar", {updateCalStatusUI,fetchCal,loadCalendars,builtInCalendarEvents,calendarAddonDefinitions,calendarAddonCategorySettings,calendarAddonItemSettings,calendarAddonLegendRows,calendarAddonSeasonMoment,calendarAddonHarvestMoon,eventOverlapsDay,eventTimeForDay,renderCalendar,stopCalendarAutoScroll,startCalendarAutoScroll}, {
+LibreDisplayRuntime.exposeModule("calendar", {updateCalStatusUI,fetchCal,loadCalendars,builtInCalendarEvents,calendarAddonDefinitions,calendarAddonCategorySettings,calendarAddonItemSettings,calendarAddonLegendRows,calendarAddonSeasonMoment,calendarAddonHarvestMoon,eventOverlapsDay,eventTimeForDay,renderCalendar,stopCalendarAutoScroll,startCalendarAutoScroll,calendarRuntimeSnapshot}, {
   "calStatuses": {configurable:true,get:()=>calStatuses,set:(value)=>{calStatuses=value;}}
 }, {globalFunctions:[],globalStates:[]});
 }

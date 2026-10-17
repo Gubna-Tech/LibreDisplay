@@ -330,6 +330,7 @@ async function runDisplayPerformanceBenchmark(options={}){
 
 function forecastRenderTelemetrySnapshot(){try{return LibreDisplayRuntime.getModule('weather')?.forecastRenderSnapshot?.()||{};}catch{return {};}}
 function backgroundRuntimeTelemetrySnapshot(){try{return LibreDisplayRuntime.getModule('backgrounds')?.backgroundRuntimeSnapshot?.()||{};}catch{return {};}}
+function calendarRuntimeTelemetrySnapshot(){try{return LibreDisplayRuntime.getModule('calendar')?.calendarRuntimeSnapshot?.()||{};}catch{return {};}}
 function recentLongTaskSnapshot(){const now=Math.max(0,Number(performance?.now?.())||0);return longTaskEntries.slice(-16).map(row=>({startTimeMs:Number(row.startTime.toFixed(1)),durationMs:Number(row.duration.toFixed(1)),ageMs:Math.max(0,Math.round(now-row.startTime-row.duration))}));}
 function frontendPerformanceSnapshot(){
   const heap=performance?.memory?{
@@ -356,6 +357,7 @@ function frontendPerformanceSnapshot(){
     forecastRendering:forecastRenderTelemetrySnapshot(),
     weatherCanvas:weatherCanvasTelemetrySnapshot(),'dogRuntime':(()=>{try{return LibreDisplayRuntime.getModule('weatherScenery')?.dogRuntimeSnapshot?.()||null;}catch{return null;}})(),
     'backgroundRuntime':backgroundRuntimeTelemetrySnapshot(),
+    'calendarRuntime':calendarRuntimeTelemetrySnapshot(),
     longTasks:{count:longTaskCount,totalMs:Math.round(longTaskTotalMs),maxMs:Math.round(longTaskMaxMs),recent:recentLongTaskSnapshot()},
     ...(heap?{heap}: {})
   };
@@ -381,6 +383,6 @@ queueMicrotask(hydrateRuntimeHardware);
 observeFrontendLongTasks();
 startAnimationGovernor();
 
-LibreDisplayRuntime.exposeModule('performance',{hardwareTierFromModel,hydrateRuntimeHardware,frontendCapabilities,frontendPixelLoad,baseVisualPerformanceBudget,visualPerformanceBudget,animationPerformanceMode:currentAnimationPerformanceMode,animationModeProfile,animationPerformanceFrameMs,compositorMotionFrameMs,animationPerformanceSnapshot,browserGraphicsSnapshot,startAnimationGovernor,refreshAnimationPerformanceMode,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,managedIntervalSnapshot,runWhenIdle,sampleDisplayFrameRate,displayBenchmarkStageCount,runDisplayPerformanceBenchmark,diagnoseDisplayBenchmark,frontendPerformanceSnapshot,animationWorkloadSnapshot,animationCostSnapshot,domWorkloadSnapshot,integrationObserverTelemetrySnapshot,weatherCanvasTelemetrySnapshot,observeFrontendLongTasks,recentLongTaskSnapshot,backgroundRuntimeTelemetrySnapshot},{displayBenchmarkRunning:{configurable:true,get:()=>displayBenchmarkRunning}},{globals:false});
+LibreDisplayRuntime.exposeModule('performance',{hardwareTierFromModel,hydrateRuntimeHardware,frontendCapabilities,frontendPixelLoad,baseVisualPerformanceBudget,visualPerformanceBudget,animationPerformanceMode:currentAnimationPerformanceMode,animationModeProfile,animationPerformanceFrameMs,compositorMotionFrameMs,animationPerformanceSnapshot,browserGraphicsSnapshot,startAnimationGovernor,refreshAnimationPerformanceMode,effectiveVisualConfig,lightweightModeSummary,applyFrontendPerformanceClass,runExclusiveTask,startManagedInterval,stopManagedInterval,managedIntervalSnapshot,runWhenIdle,sampleDisplayFrameRate,displayBenchmarkStageCount,runDisplayPerformanceBenchmark,diagnoseDisplayBenchmark,frontendPerformanceSnapshot,animationWorkloadSnapshot,animationCostSnapshot,domWorkloadSnapshot,integrationObserverTelemetrySnapshot,weatherCanvasTelemetrySnapshot,observeFrontendLongTasks,recentLongTaskSnapshot,backgroundRuntimeTelemetrySnapshot,calendarRuntimeTelemetrySnapshot},{displayBenchmarkRunning:{configurable:true,get:()=>displayBenchmarkRunning}},{globals:false});
 }
 // End source section: /js/core/performance.js
