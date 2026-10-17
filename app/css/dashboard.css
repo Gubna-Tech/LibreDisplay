@@ -4300,3 +4300,12 @@ body[data-hourly-card-style="showcase"] .hr-col[data-card-theme="countryside"]{-
 body[data-hourly-card-style="showcase"] .hr-col[data-card-theme="coastal"]{--hr-theme-ground:linear-gradient(180deg,#376f86 0 38%,#438aa0 39% 53%,#423d3a 54% 100%);--hr-theme-shape:polygon(0 42%,27% 47%,45% 33%,58% 68%,72% 52%,100% 58%,100% 100%,0 100%);--hr-theme-detail:linear-gradient(177deg,transparent 0 56%,rgba(255,255,255,.24) 57% 59%,transparent 60%)}
 body[data-hourly-card-style="showcase"] .hr-col[data-card-theme="tundra"]{--hr-theme-ground:linear-gradient(180deg,#78909a,#46575a);--hr-theme-shape:polygon(0 66%,20% 61%,42% 67%,63% 58%,82% 64%,100% 59%,100% 100%,0 100%);--hr-theme-detail:repeating-linear-gradient(87deg,transparent 0 16px,rgba(197,211,202,.12) 17px 18px)}
 @media(max-width:1400px){.hr-col{padding:5px 3px 4px;border-radius:8px}.hr-col .hr-meta .hr-wind{padding:.18em .42em .18em .58em}.hr-col .hr-meta .hr-wind::before{left:2px;width:2px}body[data-hourly-card-style="showcase"] .hr-col{min-height:145px;padding:8px 5px 7px;border-radius:12px}}
+
+/* Pi precipitation/hazard compositor budget. Detailed precipitation
+   motion is owned by the shared canvas on Pi 4/5; alerts must not create
+   hundreds of independently animated DOM flakes. */
+.weather-fx-hazard-cold{animation:none!important;filter:none!important;box-shadow:none!important;pointer-events:none}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-hazard-winter-pi{animation:none!important;filter:none!important;box-shadow:none!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-hazard-winter-pi .hazard-blizzard-veil,
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-hazard-winter-pi .hazard-blizzard-ground{animation:none!important;filter:none!important;box-shadow:none!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-hazard-winter-pi :is(.hazard-blizzard-flake,.hazard-blizzard-heavyflake,.hazard-blizzard-nearflake,.hazard-blizzard-gust,.hazard-blizzard-sheet){display:none!important}
