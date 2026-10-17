@@ -58,6 +58,7 @@ const LAYOUT_PART_DEFS={
     {key:'lowTemperature',label:'Low temperatures',selector:'.fc-lo',parent:'.fc-col'}
   ],
   hourly:[
+    {key:'card',label:'Hourly card surfaces',selector:'.hr-col',movable:false},
     {key:'time',label:'Hour labels',selector:'.hr-time',parent:'.hr-col'},
     {key:'icon',label:'Forecast icons',selector:'.hr-icon',parent:'.hr-col'},
     {key:'temperature',label:'Temperatures',selector:'.hr-temp',parent:'.hr-col'},

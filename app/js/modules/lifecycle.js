@@ -68,7 +68,7 @@ async function init(){
   await config.loadCfg();
   await LibreDisplayRuntime.getModule('qol')?.applyInheritedConfig?.();
   onboarding.bindCalendarColorControls();
-  appearance.bindTextColorControls();
+  appearance.bindTextColorControls();appearance.bindHourlyCardColorControls?.();
   weather.previewAlertSize(cfg.alertCardPct);
   weather.previewAlertMotionSpeed(cfg.alertMotionPx);
   appearance.applyUiCustomization(cfg);

@@ -207,7 +207,7 @@ function openSetup(startWizard=false){
     syncAlertRuntimeStateFromForm();
     previewAlertSize(cfg.alertCardPct);
     previewAlertMotionSpeed(cfg.alertMotionPx);
-    bindTextColorControls();
+    bindTextColorControls();bindHourlyCardColorControls();
     setAppearanceForm(cfg);
     appearanceApi.settingsLayoutPresetKey='current';
     renderLayoutPresetGallery();
@@ -402,6 +402,7 @@ function updateSettingsPageHeader(searchQuery=''){
   }
 }
 const SETTINGS_SECTION_SUMMARIES={
+  'settings-hourly-weather-cards':'Configure Compact and Showcase Hourly Forecast cards, including card surfaces, scenic backgrounds, condition mapping, opacity, blur, radius, and other presentation controls.',
   'settings-overview':'Health checks and the most common dashboard actions.',
   'settings-favorites':'Your starred controls gathered into one quick-access workspace.',
   'settings-device-guide':'Device-aware recommendations for Pi 3, Pi 4, Pi 5, and other hardware.',
@@ -527,8 +528,8 @@ const SETTINGS_CONTROL_HELP={
   's-forecast-gap':'Changes horizontal space between forecast columns. Reduce it when many forecast periods must fit on a smaller display.',
   's-forecast-row-gap':'Changes vertical space between the Daily and Hourly forecast rows in the default layout.',
   's-hourly-hours':'Sets how many upcoming hourly forecast periods are rendered. Showcase scenes displays up to eight cards so the scenic treatment has enough room.',
-  's-hourly-card-style':'Compact glass keeps the existing dense forecast row but turns each hour into a readable translucent micro-card. Showcase scenes uses larger scenic cards for a more immersive weather presentation.',
-  's-hourly-card-theme':'Selects the static scene family behind Showcase hourly cards. The scene is generated locally with CSS and is tinted for expected weather plus day/night conditions.',
+  's-hourly-card-style':'Compact glass keeps the existing dense forecast row but turns each hour into a readable translucent micro-card. Showcase scenes uses larger scenic cards for a more immersive weather presentation. Configure both from Weather → Hourly weather cards.',
+  's-hourly-card-theme':'Selects the local scenic family behind Showcase hourly cards. Scene layers respond to forecast condition, precipitation intensity, and day/night state.',
   's-daily-days':'Sets how many daily forecast columns are rendered. Choose fewer days for larger, less crowded forecast content.',
   's-calendar-days':'Sets how many calendar days are loaded into the dashboard calendar band.',
   's-calendar-columns':'Sets how many calendar day columns are visible per row before additional days continue vertically.',
