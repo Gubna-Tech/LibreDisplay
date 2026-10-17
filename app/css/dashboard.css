@@ -4316,19 +4316,18 @@ html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-haza
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-hazard-winter-pi .hazard-blizzard-ground{animation:none!important;filter:none!important;box-shadow:none!important}
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-hazard-winter-pi :is(.hazard-blizzard-flake,.hazard-blizzard-heavyflake,.hazard-blizzard-nearflake,.hazard-blizzard-gust,.hazard-blizzard-sheet){display:none!important}
 
-/* Pi motion continuity: keep detailed artwork but flatten nested CSS/SVG animation into one actor timeline. */
+/* Pi motion continuity: keep bird/owl artwork on one travel timeline while preserving articulated dog state animation. */
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay{transform:none!important;isolation:auto!important;backface-visibility:visible!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay.show::before{filter:none!important;transform:none!important}
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion,
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion *,
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion::before,
-html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion::after,
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion::after{animation:none!important;transition:none!important}
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion,
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion *,
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion *::before,
-html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion *::after{animation:none!important;transition:none!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion *::after{transition:none!important}
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion{will-change:transform!important;contain:none!important;backface-visibility:hidden!important;transform-style:flat!important}
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion :is(.weather-fx-bird-wing-near,.weather-fx-bird-vector-wing-near){transform:rotate(-8deg) scaleY(.9)!important;will-change:auto!important}
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion :is(.weather-fx-bird-wing-far,.weather-fx-bird-vector-wing-far){transform:rotate(7deg) scaleY(.82)!important;will-change:auto!important}
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion{will-change:transform!important;contain:layout style!important;isolation:auto!important;backface-visibility:hidden!important}
-html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion *{will-change:auto!important}
-html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion.dog-moving .dogv2-pose-stage{transform:translateY(-1px) rotate(.2deg)!important}
