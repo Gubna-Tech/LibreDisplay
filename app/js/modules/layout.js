@@ -716,7 +716,9 @@ async function saveLayoutEditor(){
       return;
     }
     stopLayoutEditorUi();layoutEditorOriginal=null;layoutCustomBlocksOriginal=[];applyUiCustomization(cfg);updateLayoutModeStatus(cfg);
-    if(LAYOUT_PREVIEW_MODE&&window.parent!==window)notifyLayoutPreviewParent('saved');
+    requestAnimationFrame(()=>{applyUiCustomization(cfg);updateLayoutModeStatus(cfg);LibreDisplayRuntime.getModule('layout').scheduleBuiltInLayoutAutoFitDeferred?.();});
+    const displayApply=await LibreDisplayRuntime.getModule('layout').requestSavedLayoutDisplayApply();
+    if(LAYOUT_PREVIEW_MODE&&window.parent!==window){if(!displayApply.ok)console.warn('Arrange layout saved, but the target display reload request could not be delivered immediately.',displayApply.error||'');notifyLayoutPreviewParent('saved');}
   }finally{
     layoutSaveInFlight=false;
     if(saveButton){saveButton.disabled=false;saveButton.textContent='Save & Lock';}
@@ -1204,8 +1206,19 @@ LibreDisplayRuntime.exposeModule("layout", {remoteLayoutFrame,remoteLayoutInnerD
 const layoutApi=()=>LibreDisplayRuntime.getModule("layout");
 // Arrange save/cancel/reset commands, keyboard nudging, and resize reconciliation.
 const {saveCfg}=LibreDisplayRuntime.getModule('config');
-const {normalizeHexColor}=LibreDisplayRuntime.getModule('shared');
+const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
+const {serverPath}=bootstrapApi;
+const {normalizeHexColor,resilientFetch}=LibreDisplayRuntime.getModule('shared');
 
+async function requestSavedLayoutDisplayApply(force=false){
+  if(!force&&!LAYOUT_PREVIEW_MODE)return {ok:true,requested:false};
+  try{
+    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'reload'}),cache:'no-store'},{timeoutMs:7000,attempts:2});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data?.ok)throw new Error(data?.error||`HTTP ${response.status}`);
+    return {ok:true,requested:true,endpoint:String(data.endpoint||bootstrapApi.ACTIVE_ENDPOINT)};
+  }catch(error){return {ok:false,requested:true,error:String(error?.message||error)};}
+}
 
 function cancelLayoutEditor(){
   const hadSession=layoutEditorActive||!!layoutApi().layoutEditorOriginal;
@@ -1264,6 +1277,6 @@ function hexRgb(hex){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("layout", {cancelLayoutEditor,resetLayoutEditorDraft,resetSelectedLayoutBlock,resetSavedBlockLayout,nudgeSelectedLayoutBlock,hexRgb}, {}, {globalFunctions:['cancelLayoutEditor','resetLayoutEditorDraft','resetSelectedLayoutBlock','resetSavedBlockLayout','nudgeSelectedLayoutBlock','hexRgb']});
+LibreDisplayRuntime.exposeModule("layout", {requestSavedLayoutDisplayApply,cancelLayoutEditor,resetLayoutEditorDraft,resetSelectedLayoutBlock,resetSavedBlockLayout,nudgeSelectedLayoutBlock,hexRgb}, {}, {globalFunctions:['cancelLayoutEditor','resetLayoutEditorDraft','resetSelectedLayoutBlock','resetSavedBlockLayout','nudgeSelectedLayoutBlock','hexRgb']});
 }
 // End source section: /js/layout/persistence.js

@@ -163,7 +163,7 @@ function invalidateWeatherIfLocationChanged(force=false){
 function weatherWindUnitParam(source=cfg){return source?.useFahrenheit===false?'kmh':'mph';}
 function weatherWindUnitLabel(source=cfg){return source?.useFahrenheit===false?'km/h':'mph';}
 function weatherWindDirectionLabel(value){const n=Number(value);if(!Number.isFinite(n))return '';const dirs=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'],deg=((n%360)+360)%360;return dirs[Math.round(deg/22.5)%16];}
-const HOURLY_WIND_COLORS=['#F9F9F9','#F1F5E9','#EAF0DC','#E2ECD0','#DAE8C4','#D2E5B9','#C9E1AE','#C1DDA7','#BAD9A0','#B2D599','#AAD193','#A2CD8C','#9AC986','#91C580','#89C27A','#80BE75','#8FB660','#9EAE4D','#ADA43D','#BB9932','#C2912D','#C78729','#CD7E29','#D2732B','#D6692F','#D76031','#D75734','#D64D38','#D6433B','#D4383F','#D32C44'];
+const HOURLY_WIND_COLORS=['#F7FBFF','#EAF6FF','#D9EEFF','#C5E5FF','#ADDAFF','#91CDFF','#72BDFF','#51ABFF','#3499FA','#2088F4','#1477EE','#1766E4','#1C56D9','#2349CE','#2C3FC3','#393ABB','#493AB5','#5838AF','#6736AA','#7535A5','#7F33A0','#86319E','#8D309B','#942E96','#9C2C90','#AA2880','#BA246C','#CD2056','#DF1C42','#F0182E','#FF151F'];
 function hourlyWindVisual(speed,direction,source=cfg){
   const value=Number(speed),deg=Number(direction),rawMph=Number.isFinite(value)?(source?.useFahrenheit===false?value/1.609344:value):0,mph=Math.max(0,rawMph),colorIndex=Math.min(30,Math.round(mph)),color=HOURLY_WIND_COLORS[colorIndex]||HOURLY_WIND_COLORS[30];
   if(!Number.isFinite(value))return {level:'calm',degrees:0,mph:0,label:'Calm',color:HOURLY_WIND_COLORS[0]};

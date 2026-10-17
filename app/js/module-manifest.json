@@ -121,9 +121,9 @@
     "module": "layout",
     "part": "bundle",
     "path": "/js/modules/layout.js",
-    "lines": 1269,
-    "functions": 202,
-    "bindings": 33,
+    "lines": 1282,
+    "functions": 203,
+    "bindings": 35,
     "sections": [
       "/js/layout/index.js",
       "/js/layout/integration-layout.js",
@@ -151,7 +151,7 @@
     "module": "remote",
     "part": "bundle",
     "path": "/js/modules/remote.js",
-    "lines": 420,
+    "lines": 424,
     "functions": 46,
     "bindings": 10,
     "sections": [

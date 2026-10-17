@@ -1157,6 +1157,22 @@ def pending_device_command(endpoint_id):
         return dict(command)
 
 
+def take_device_command(endpoint_id):
+    endpoint_id = endpoint_slug(endpoint_id or "main")
+    now = int(time.time())
+    with DEVICE_COMMAND_LOCK:
+        command = DEVICE_PENDING_COMMANDS.get(endpoint_id)
+        if not isinstance(command, dict):
+            return None
+        if int(command.get("expiresAt") or 0) <= now:
+            DEVICE_PENDING_COMMANDS.pop(endpoint_id, None)
+            return None
+        if command.get("action") == "performance-benchmark":
+            return dict(command)
+        DEVICE_PENDING_COMMANDS.pop(endpoint_id, None)
+        return dict(command)
+
+
 def acknowledge_device_command(endpoint_id, benchmark_state):
     endpoint_id = endpoint_slug(endpoint_id or "main")
     if not isinstance(benchmark_state, dict):
@@ -5068,7 +5084,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     benchmark = row["displayPerformanceBenchmark"] or previous_benchmark
                     if row["displayPerformanceBenchmark"]:
                         acknowledge_device_command(endpoint_id, row["displayPerformanceBenchmark"])
-                    pending_command = pending_device_command(endpoint_id)
+                    pending_command = take_device_command(endpoint_id)
                     atomic_write_json_file(KIOSK_HEARTBEAT_PATH, {
                         "lastSeen": row["lastSeen"],
                         "endpoint": endpoint_id,
@@ -5110,6 +5126,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     if not request_id:
                         request_id = "bench-" + secrets.token_hex(8)
                     event_payload["requestId"] = request_id
+                if action in {"reload", "refresh", "performance-benchmark"}:
                     queue_device_command(endpoint_id, action, event_payload)
                 publish_event(endpoint_id, action, event_payload)
                 return self.json_response(200, {"ok": True, "endpoint": endpoint_id, "action": action, **({"requestId": event_payload["requestId"]} if action == "performance-benchmark" else {})})

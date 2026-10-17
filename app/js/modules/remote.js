@@ -333,7 +333,11 @@ function displayViewportMetrics(force=false){
 const refreshHeartbeatPerformanceCache=()=>{heartbeatPerformanceCache=LibreDisplayRuntime.getModule('performance').frontendPerformanceSnapshot();heartbeatPerformanceCacheAt=Date.now();heartbeatPerformanceRefreshPending=false;return heartbeatPerformanceCache;};
 const heartbeatPerformanceSnapshot=(force=false)=>{const performance=LibreDisplayRuntime.getModule('performance'),stale=!heartbeatPerformanceCache||Date.now()-heartbeatPerformanceCacheAt>=HEARTBEAT_PERFORMANCE_CACHE_MS;if(force||!heartbeatPerformanceCache)return refreshHeartbeatPerformanceCache();if(stale&&!heartbeatPerformanceRefreshPending){heartbeatPerformanceRefreshPending=true;performance.runWhenIdle(()=>{try{refreshHeartbeatPerformanceCache();}catch(_e){heartbeatPerformanceRefreshPending=false;}},1600);}return heartbeatPerformanceCache;};
 function dispatchPendingPhysicalDisplayCommand(command){
-  if(!bootstrapApi.LOCAL_CLIENT_MODE||!command||command.action!=='performance-benchmark')return false;
+  if(!bootstrapApi.LOCAL_CLIENT_MODE||!command)return false;
+  const action=String(command.action||'');
+  if(action==='reload'){setTimeout(()=>location.reload(),0);return true;}
+  if(action==='refresh'){setTimeout(()=>{LibreDisplayRuntime.getModule('settings').refreshDataNow();scheduleDisplayHeartbeat(40);},0);return true;}
+  if(action!=='performance-benchmark')return false;
   const requestId=String(command.requestId||'').replace(/[^A-Za-z0-9_-]+/g,'-').slice(0,96);if(!requestId)return false;
   const currentId=String(physicalDisplayBenchmarkState?.requestId||''),currentState=String(physicalDisplayBenchmarkState?.state||'');
   if(currentId===requestId&&['running','complete','error'].includes(currentState))return false;
