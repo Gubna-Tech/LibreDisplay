@@ -4741,7 +4741,29 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 item["online"] = age < 75
                 item["ageSeconds"] = int(age)
                 rows.append(item)
-        rows.sort(key=lambda r: (str(r.get("endpoint")), str(r.get("name") or r.get("deviceId"))))
+        # The physical kiosk heartbeat is also persisted so a remote Arrange session
+        # can target the real wall coordinate space after a server/browser restart.
+        # Never synthesize a viewer row as the physical target.
+        kiosk = load_json_path(KIOSK_HEARTBEAT_PATH, {})
+        if isinstance(kiosk, dict) and float(kiosk.get("lastSeen") or 0) > 0:
+            endpoint_id = endpoint_slug(kiosk.get("endpoint") or "main")
+            device_id = str(kiosk.get("deviceId") or "physical-kiosk")[:80]
+            already_live = any(str(r.get("endpoint") or "main") == endpoint_id and str(r.get("mode") or "") == "local" for r in rows)
+            if not already_live:
+                age = max(0, now - float(kiosk.get("lastSeen") or 0))
+                item = dict(kiosk)
+                item.update({
+                    "endpoint": endpoint_id,
+                    "deviceId": device_id,
+                    "mode": "local",
+                    "persistedKiosk": True,
+                    "online": age < 75,
+                    "ageSeconds": int(age),
+                })
+                item["width"] = int(item.get("layoutWidth") or item.get("viewportWidth") or item.get("width") or 0)
+                item["height"] = int(item.get("layoutHeight") or item.get("viewportHeight") or item.get("height") or 0)
+                rows.append(item)
+        rows.sort(key=lambda r: (str(r.get("endpoint")), 0 if str(r.get("mode")) == "local" else 1, str(r.get("name") or r.get("deviceId"))))
         return rows
 
     def do_OPTIONS(self):
@@ -5076,6 +5098,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     "fontName": str((body or {}).get("fontName") or "").strip()[:80],
                     "mode": str((body or {}).get("mode") or "browser").strip()[:40],
                     "version": str((body or {}).get("version") or "").strip()[:40],
+                    "configSavedAt": max(0, int((body or {}).get("configSavedAt") or 0)),
                     "userAgent": str((body or {}).get("userAgent") or "").strip()[:220],
                     "frontendPerformance": normalize_frontend_performance((body or {}).get("frontendPerformance")),
                     "providerCache": normalize_provider_cache_status((body or {}).get("providerCache")),
@@ -5087,7 +5110,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 if bool((body or {}).get("connectivityRecovered")):
                     broker_release_transient_backoff()
                 pending_command = None
-                observed_saved_at = max(0, int((body or {}).get("configSavedAt") or 0))
+                observed_saved_at = int(row.get("configSavedAt") or 0)
                 if row["mode"] == "local" and self.client_is_loopback():
                     previous_kiosk = load_json_path(KIOSK_HEARTBEAT_PATH, {})
                     previous_benchmark = normalize_display_performance_benchmark(previous_kiosk.get("displayPerformanceBenchmark")) if isinstance(previous_kiosk, dict) else {}
@@ -5098,13 +5121,29 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     atomic_write_json_file(KIOSK_HEARTBEAT_PATH, {
                         "lastSeen": row["lastSeen"],
                         "endpoint": endpoint_id,
-                        "viewportWidth": row["layoutWidth"],
-                        "viewportHeight": row["layoutHeight"],
+                        "deviceId": row["deviceId"],
+                        "name": row["name"],
+                        "mode": "local",
+                        "width": row["width"],
+                        "height": row["height"],
+                        "layoutWidth": row["layoutWidth"],
+                        "layoutHeight": row["layoutHeight"],
+                        "viewportWidth": row["viewportWidth"],
+                        "viewportHeight": row["viewportHeight"],
+                        "visualViewportWidth": row["visualViewportWidth"],
+                        "visualViewportHeight": row["visualViewportHeight"],
+                        "visualViewportScale": row["visualViewportScale"],
                         "screenWidth": row["screenWidth"],
                         "screenHeight": row["screenHeight"],
                         "dpr": row["dpr"],
+                        "fontProbeWidth": row["fontProbeWidth"],
+                        "fontProbeHeight": row["fontProbeHeight"],
+                        "fontName": row["fontName"],
                         "version": row["version"],
+                        "configSavedAt": row["configSavedAt"],
+                        "userAgent": row["userAgent"],
                         "frontendPerformance": row["frontendPerformance"],
+                        "providerCache": row["providerCache"],
                         "displayPerformanceBenchmark": benchmark,
                     })
                 response_payload = {"ok": True}
@@ -5126,7 +5165,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     raise ValueError("Unknown display endpoint")
                 if not principal_allows_endpoint(self.session_principal(), endpoint_id, write=True):
                     return self.json_response(403, {"ok": False, "error": "Editor access to this endpoint is required."})
-                if action not in {"refresh", "reload", "heartbeat", "performance-benchmark"}:
+                if action not in {"refresh", "reload", "heartbeat", "apply-config", "performance-benchmark"}:
                     raise ValueError("Unknown device action")
                 event_payload = {"requestedAt": int(time.time())}
                 target_saved_at = max(0, int((body or {}).get("targetSavedAt") or 0))
@@ -5139,7 +5178,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     if not request_id:
                         request_id = "bench-" + secrets.token_hex(8)
                     event_payload["requestId"] = request_id
-                if action in {"reload", "refresh", "performance-benchmark"}:
+                if action in {"reload", "refresh", "apply-config", "performance-benchmark"}:
                     queue_device_command(endpoint_id, action, event_payload)
                 publish_event(endpoint_id, action, event_payload)
                 return self.json_response(200, {"ok": True, "endpoint": endpoint_id, "action": action, **({"requestId": event_payload["requestId"]} if action == "performance-benchmark" else {})})

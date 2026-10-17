@@ -275,21 +275,22 @@ async function clearOfflineCache(){
     setTimeout(loadCacheStatus,500);
   }catch(e){if(el){el.style.display='block';el.textContent='Could not clear the offline cache: '+e.message;}}
 }
-async function pollServerConfig(){
-  if(document.hidden)return;
+async function pollServerConfig(options={}){
+  const force=options?.force===true;
+  if(!force&&document.hidden)return false;
   const configWasAvailable=configApi.serverConfigAvailable;
   const setup=document.getElementById('setup');
   const setupOpen=!!setup&&!setup.classList.contains('hidden');
-  if(layoutEditorActive||remoteLayoutProxyActive||document.getElementById('remote-layout-preview-shell')?.classList.contains('show'))return;
+  if(!force&&(layoutEditorActive||remoteLayoutProxyActive||document.getElementById('remote-layout-preview-shell')?.classList.contains('show')))return false;
   // Local Settings keeps its historic isolation. A remote editor, however, must
   // continue receiving server-side changes while its form is clean; otherwise
   // the wall display updates but the remote preview (including alert motion)
   // can remain stale until Settings is closed/reopened. Never overwrite unsaved
   // remote edits or the explicit full-screen preview state.
-  if(setupOpen&&(!bootstrapApi.REMOTE_SETTINGS_MODE||LibreDisplayRuntime.getModule('system').settingsDirty||LibreDisplayRuntime.getModule('settings').settingsPreviewMode))return;
+  if(!force&&setupOpen&&(!bootstrapApi.REMOTE_SETTINGS_MODE||LibreDisplayRuntime.getModule('system').settingsDirty||LibreDisplayRuntime.getModule('settings').settingsPreviewMode))return false;
   try{
     const res=await resilientFetch(serverPath('/api/config'),{cache:'no-store'});
-    if(!res.ok)return;
+    if(!res.ok)return false;
     const data=await res.json();configApi.serverConfigAvailable=true;configApi.serverConfigLastError='';
     const remote=data?.config;
     const remoteSaved=Number(remote?._savedAt||data?.savedAt||0);
@@ -314,10 +315,12 @@ async function pollServerConfig(){
       }else{
         setTimeout(ensureAlertMotionRunning,120);
       }
+      return true;
     }else if(!configWasAvailable&&!configApi.wxData){
       setTimeout(()=>LibreDisplayRuntime.getModule('weather').fetchWeather(),0);
     }
-  }catch(e){}
+    return false;
+  }catch(e){return false;}
 }
 let liveEventSource=null,heartbeatTimer=null,heartbeatResizeTimer=null;
 let physicalDisplayBenchmarkState=null;
@@ -334,9 +337,40 @@ function displayViewportMetrics(force=false){
 }
 const refreshHeartbeatPerformanceCache=()=>{heartbeatPerformanceCache=LibreDisplayRuntime.getModule('performance').frontendPerformanceSnapshot();heartbeatPerformanceCacheAt=Date.now();heartbeatPerformanceRefreshPending=false;return heartbeatPerformanceCache;};
 const heartbeatPerformanceSnapshot=(force=false)=>{const performance=LibreDisplayRuntime.getModule('performance'),stale=!heartbeatPerformanceCache||Date.now()-heartbeatPerformanceCacheAt>=HEARTBEAT_PERFORMANCE_CACHE_MS;if(force||!heartbeatPerformanceCache)return refreshHeartbeatPerformanceCache();if(stale&&!heartbeatPerformanceRefreshPending){heartbeatPerformanceRefreshPending=true;performance.runWhenIdle(()=>{try{refreshHeartbeatPerformanceCache();}catch(_e){heartbeatPerformanceRefreshPending=false;}},1600);}return heartbeatPerformanceCache;};
+let physicalConfigApplyPromise=null,physicalConfigApplyTarget=0;
+const waitForPhysicalConfigApply=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function applyPhysicalDisplayConfigCommand(command={}){
+  if(!bootstrapApi.LOCAL_CLIENT_MODE)return false;
+  const targetSavedAt=Math.max(0,Number(command?.targetSavedAt)||0);
+  if(physicalConfigApplyPromise&&targetSavedAt&&physicalConfigApplyTarget===targetSavedAt)return physicalConfigApplyPromise;
+  physicalConfigApplyTarget=targetSavedAt;
+  const task=(async()=>{
+    for(let attempt=0;attempt<6;attempt++){
+      await pollServerConfig({force:true});
+      const loadedSavedAt=Math.max(0,Number(cfg?._savedAt)||0);
+      if(!targetSavedAt||loadedSavedAt>=targetSavedAt){
+        // Re-apply even when the config version was already loaded. This closes the
+        // remote-Arrange gap where dynamic DOM (notably Weather Alerts) could still
+        // be rendering the previous geometry after a verified server save.
+        LibreDisplayRuntime.getModule('settings').applySettings();
+        setTimeout(()=>{try{LibreDisplayRuntime.getModule('layout').applyBuiltInPartFlowOffsets?.(cfg);}catch(_e){}scheduleDisplayHeartbeat(0);},40);
+        return true;
+      }
+      await waitForPhysicalConfigApply(180+attempt*120);
+    }
+    // Fail closed to a full kiosk reload if the expected server version did not
+    // arrive quickly. The durable heartbeat command remains queued until the new
+    // configSavedAt is observed, so this cannot silently acknowledge stale state.
+    setTimeout(()=>location.reload(),0);
+    return false;
+  })();
+  physicalConfigApplyPromise=task.finally(()=>{physicalConfigApplyPromise=null;physicalConfigApplyTarget=0;});
+  return physicalConfigApplyPromise;
+}
 function dispatchPendingPhysicalDisplayCommand(command){
   if(!bootstrapApi.LOCAL_CLIENT_MODE||!command)return false;
   const action=String(command.action||'');
+  if(action==='apply-config'){setTimeout(()=>applyPhysicalDisplayConfigCommand(command),0);return true;}
   if(action==='reload'){setTimeout(()=>location.reload(),0);return true;}
   if(action==='refresh'){setTimeout(()=>{LibreDisplayRuntime.getModule('settings').refreshDataNow();scheduleDisplayHeartbeat(40);},0);return true;}
   if(action!=='performance-benchmark')return false;
@@ -376,7 +410,7 @@ function startLiveDisplayConnection(){
   try{
     liveEventSource=new EventSource(serverPath('/api/events'));
     liveEventSource.onopen=markServerTransportOpen;liveEventSource.onerror=noteServerTransportError;
-    liveEventSource.addEventListener('config',()=>LibreDisplayRuntime.getModule('performance').runExclusiveTask('remote-config-poll',pollServerConfig));liveEventSource.addEventListener('household',async()=>{await loadHousehold(false);refreshFamilyBlocks();});liveEventSource.addEventListener('refresh',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE){LibreDisplayRuntime.getModule('settings').refreshDataNow();scheduleDisplayHeartbeat(40);}});liveEventSource.addEventListener('heartbeat',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)scheduleDisplayHeartbeat(0);});liveEventSource.addEventListener('performance-benchmark',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'performance-benchmark',...command});}});liveEventSource.addEventListener('reload',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)location.reload();});liveEventSource.addEventListener('reauth',()=>location.reload());
+    liveEventSource.addEventListener('config',()=>LibreDisplayRuntime.getModule('performance').runExclusiveTask('remote-config-poll',pollServerConfig));liveEventSource.addEventListener('household',async()=>{await loadHousehold(false);refreshFamilyBlocks();});liveEventSource.addEventListener('refresh',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE){LibreDisplayRuntime.getModule('settings').refreshDataNow();scheduleDisplayHeartbeat(40);}});liveEventSource.addEventListener('heartbeat',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)scheduleDisplayHeartbeat(0);});liveEventSource.addEventListener('apply-config',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'apply-config',...command});}});liveEventSource.addEventListener('performance-benchmark',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'performance-benchmark',...command});}});liveEventSource.addEventListener('reload',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)location.reload();});liveEventSource.addEventListener('reauth',()=>location.reload());
   }catch(e){noteServerTransportError();}
   const performance=LibreDisplayRuntime.getModule('performance');
   bindDisplayViewportHeartbeat();performance.runExclusiveTask('display-heartbeat',()=>sendDisplayHeartbeat(false,{full:true}));
@@ -409,7 +443,7 @@ function clearSettingsInitializationError(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
+LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
   "displayEndpoints": {configurable:true,get:()=>displayEndpoints,set:(value)=>{displayEndpoints=value;}},
   "displayDevices": {configurable:true,get:()=>displayDevices,set:(value)=>{displayDevices=value;}},
   "endpointsRemoteEnabled": {configurable:true,get:()=>endpointsRemoteEnabled,set:(value)=>{endpointsRemoteEnabled=value;}},

@@ -1530,13 +1530,21 @@ function renderWeatherAlerts(alerts){
   const track=document.getElementById('alert-track');
   if(!zone||!track)return;
   stopAlertScroller();
-  if(!configApi.activeWeatherAlerts.length){
+  const previewAlert={id:'arrange-preview-alert',event:'Weather Alert',severity:'Severe',headline:'Arrange preview — alert appearance and placement',areaDesc:'Physical display preview',senderName:'LibreDisplay',expires:'',description:'Preview alert used only while arranging the physical display.'};
+  const displayAlerts=configApi.activeWeatherAlerts.length?configApi.activeWeatherAlerts:(globalThis.LAYOUT_PREVIEW_MODE?[previewAlert]:[]);
+  if(!displayAlerts.length){
     track.innerHTML='';
     zone.classList.remove('show');
     return;
   }
-  track.innerHTML=configApi.activeWeatherAlerts.map(alertCardHtml).join('');
+  track.innerHTML=displayAlerts.map(alertCardHtml).join('');
   zone.classList.add('show');
+  // Alert cards are dynamic DOM. A remote/physical reload can apply appearance
+  // before NWS alerts exist, so re-apply saved part offsets after the cards are
+  // actually created. This keeps alert icon/title/expiry/body/details geometry
+  // identical to the Arrange preview, including preserved-flow overlap offsets.
+  const reapplyAlertPartGeometry=()=>{try{LibreDisplayRuntime.getModule('layout').applyBuiltInPartFlowOffsets?.(cfg);}catch(_e){}};
+  reapplyAlertPartGeometry();requestAnimationFrame(reapplyAlertPartGeometry);
   restartAlertScroller();
 }
 

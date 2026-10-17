@@ -64,7 +64,7 @@
     "module": "weather",
     "part": "bundle",
     "path": "/js/modules/weather.js",
-    "lines": 1613,
+    "lines": 1621,
     "functions": 191,
     "bindings": 14,
     "sections": [
@@ -121,7 +121,7 @@
     "module": "layout",
     "part": "bundle",
     "path": "/js/modules/layout.js",
-    "lines": 1282,
+    "lines": 1299,
     "functions": 203,
     "bindings": 35,
     "sections": [
@@ -151,7 +151,7 @@
     "module": "remote",
     "part": "bundle",
     "path": "/js/modules/remote.js",
-    "lines": 426,
+    "lines": 460,
     "functions": 46,
     "bindings": 10,
     "sections": [

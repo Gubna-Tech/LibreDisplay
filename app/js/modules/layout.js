@@ -168,6 +168,11 @@ function redoLayoutEditor(){if(!layoutEditorActive||!layoutRedoStack.length)retu
 function clamp01(v){return Math.max(0,Math.min(1,Number(v)||0));}
 
 function readLayoutViewport(){
+  if(LAYOUT_PREVIEW_MODE){
+    const params=LibreDisplayRuntime.getModule('bootstrap')?.PAGE_PARAMS;
+    const forcedWidth=Math.round(Number(params?.get?.('targetWidth'))||0),forcedHeight=Math.round(Number(params?.get?.('targetHeight'))||0);
+    if(forcedWidth>=480&&forcedHeight>=270&&forcedWidth<=7680&&forcedHeight<=4320)return {width:forcedWidth,height:forcedHeight};
+  }
   const root=document.documentElement;
   return {width:Math.max(1,Math.round(root?.clientWidth||window.innerWidth||1)),height:Math.max(1,Math.round(root?.clientHeight||window.innerHeight||1))};
 }
@@ -1050,16 +1055,17 @@ function targetViewportFromDevice(row){
   if(rawW<480||rawH<270||rawW>7680||rawH>4320)return null;
   const aspect=rawW/rawH;if(!Number.isFinite(aspect)||aspect<.4||aspect>4)return null;
   const width=Math.round(rawW),height=Math.round(rawH);
-  return {width,height,metric,deviceId:String(row?.deviceId||''),mode:String(row?.mode||''),online:!!row?.online,ageSeconds:Number(row?.ageSeconds)||0,lastSeen:Number(row?.lastSeen)||0,dpr:Number(row?.dpr)||1,visualWidth:Number(row?.visualViewportWidth)||0,visualHeight:Number(row?.visualViewportHeight)||0,fontProbeWidth:Number(row?.fontProbeWidth)||0,fontProbeHeight:Number(row?.fontProbeHeight)||0,fontName:String(row?.fontName||'')};
+  return {width,height,metric,deviceId:String(row?.deviceId||''),mode:String(row?.mode||''),physical:String(row?.mode||'')==='local',online:!!row?.online,ageSeconds:Number(row?.ageSeconds)||0,lastSeen:Number(row?.lastSeen)||0,dpr:Number(row?.dpr)||1,visualWidth:Number(row?.visualViewportWidth)||0,visualHeight:Number(row?.visualViewportHeight)||0,visualScale:Number(row?.visualViewportScale)||1,screenWidth:Number(row?.screenWidth)||0,screenHeight:Number(row?.screenHeight)||0,fontProbeWidth:Number(row?.fontProbeWidth)||0,fontProbeHeight:Number(row?.fontProbeHeight)||0,fontName:String(row?.fontName||''),configSavedAt:Number(row?.configSavedAt)||0,persisted:!!row?.persistedKiosk};
 }
-function bestLayoutTargetDevice(rows,{freshSince=0}={}){
+function bestLayoutTargetDevice(rows,{freshSince=0,physicalOnly=true}={}){
   const candidates=(rows||[]).filter(row=>{
     if(!row||row.endpoint!==bootstrapApi.ACTIVE_ENDPOINT)return false;
+    if(physicalOnly&&String(row.mode||'')!=='local')return false;
     if(freshSince&&Number(row.lastSeen||0)<freshSince)return false;
     return !!targetViewportFromDevice(row);
   }).sort((a,b)=>{
     const ao=a.online?1:0,bo=b.online?1:0;if(ao!==bo)return bo-ao;
-    const am=a.mode==='viewer'?2:a.mode==='local'?1:0,bm=b.mode==='viewer'?2:b.mode==='local'?1:0;if(am!==bm)return bm-am;
+    const ap=a.mode==='local'?1:0,bp=b.mode==='local'?1:0;if(ap!==bp)return bp-ap;
     return Number(b.lastSeen||0)-Number(a.lastSeen||0);
   });
   return candidates[0]||null;
@@ -1089,6 +1095,15 @@ async function fetchRemoteLayoutTarget(){
     return targetViewportFromDevice(row);
   }catch(e){console.warn('Could not read target display viewport',e);}
   return null;
+}
+function remoteLayoutPreviewUrl(target=remoteLayoutPreviewTarget){
+  const params=new URLSearchParams({endpoint:bootstrapApi.ACTIVE_ENDPOINT,layoutPreview:'1',targetWidth:String(Math.round(Number(target?.width)||0)),targetHeight:String(Math.round(Number(target?.height)||0)),targetDpr:String(Number(target?.dpr)||1),targetDeviceId:String(target?.deviceId||''),_:String(Date.now())});
+  return '/layout-preview?'+params.toString();
+}
+function primeRemoteLayoutFrameViewport(frame,target=remoteLayoutPreviewTarget){
+  if(!frame||!target)return;
+  const width=Math.max(1,Math.round(Number(target.width)||1)),height=Math.max(1,Math.round(Number(target.height)||1));
+  frame.width=String(width);frame.height=String(height);frame.style.width=width+'px';frame.style.height=height+'px';
 }
 function syncRemoteLayoutEditorAffordances(attempt=0){
   const frame=document.getElementById('remote-layout-preview-frame'),picker=document.getElementById('remote-layout-element-picker');if(!frame||!picker)return;
@@ -1124,8 +1139,8 @@ function fitRemoteLayoutPreview(){
   if(!shell?.classList.contains('show')||!stage||!frame||!remoteLayoutPreviewTarget)return;
   const gutter=14,sw=Math.max(1,stage.clientWidth-gutter*2),sh=Math.max(1,stage.clientHeight-gutter*2),tw=remoteLayoutPreviewTarget.width,th=remoteLayoutPreviewTarget.height;
   const scale=Math.max(.1,Math.min(1,sw/tw,sh/th)),left=gutter+Math.max(0,(sw-tw*scale)/2),top=gutter+Math.max(0,(sh-th*scale)/2);
-  frame.style.width=tw+'px';frame.style.height=th+'px';frame.style.left=left.toFixed(1)+'px';frame.style.top=top.toFixed(1)+'px';frame.style.transform=`scale(${scale})`;syncRemoteEditorHitTargets(scale);
-  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.fallback?'fallback canvas':(remoteLayoutPreviewTarget.online?'live display':'last reported display'),dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} target viewport${dpr} · ${state} · fit ${Math.round(scale*100)}%`;}
+  primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);frame.style.left=left.toFixed(1)+'px';frame.style.top=top.toFixed(1)+'px';frame.style.transform=`scale(${scale})`;syncRemoteEditorHitTargets(scale);
+  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'live physical display':(remoteLayoutPreviewTarget.persisted?'last physical kiosk heartbeat':'last reported physical display'),dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} physical CSS viewport${dpr} · ${state} · preview fit ${Math.round(scale*100)}% (geometry remains 1:1)`;}
 }
 async function openRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame'),meta=document.getElementById('remote-layout-preview-meta');if(!shell||!frame)return;
@@ -1138,11 +1153,12 @@ async function openRemoteLayoutPreview(){
     deactivateRemoteLayoutProxy();
     frame.onload=null;frame.removeAttribute('src');frame.src='about:blank';
     frame.style.removeProperty('transform');frame.style.removeProperty('width');frame.style.removeProperty('height');frame.style.removeProperty('left');frame.style.removeProperty('top');
-    if(meta)meta.textContent='Arrange unavailable · the wall display has not reported a valid viewport yet. Reload the wall display, then choose Reload preview.';
+    if(meta)meta.textContent='Arrange unavailable · no physical kiosk viewport is available for this display. Open or reload the actual LibreDisplay wall screen, then choose Reload preview.';
     return;
   }
+  primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
   frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);};
-  frame.src=`/layout-preview?endpoint=${encodeURIComponent(bootstrapApi.ACTIVE_ENDPOINT)}&layoutPreview=1&_=${Date.now()}`;
+  frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
   fitRemoteLayoutPreview();requestAnimationFrame(fitRemoteLayoutPreview);
 }
 function closeRemoteLayoutPreview(){
@@ -1158,8 +1174,9 @@ function reloadRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');if(!frame||!shell?.classList.contains('show'))return;
   if(!remoteLayoutPreviewTarget){openRemoteLayoutPreview();return;}
   const session=++remoteLayoutPreviewSession;deactivateRemoteLayoutProxy();
+  primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
   frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);};
-  frame.src=`/layout-preview?endpoint=${encodeURIComponent(bootstrapApi.ACTIVE_ENDPOINT)}&layoutPreview=1&_=${Date.now()}`;
+  frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
 }
 async function handleEmbeddedLayoutEditorAction(action){
   if(action==='saved'){
@@ -1192,7 +1209,7 @@ function stopLayoutEditorUi(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("layout", {remoteLayoutFrame,remoteLayoutInnerDocument,remoteLayoutProxyRoot,remoteLayoutProxyCounterpart,remoteLayoutProxyMirrorElement,syncRemoteLayoutProxyUi,scheduleRemoteLayoutProxySync,activateRemoteLayoutProxy,deactivateRemoteLayoutProxy,handleRemoteLayoutProxyEvent,targetViewportFromDevice,bestLayoutTargetDevice,readDisplayDevices,requestFreshDisplayMetrics,fetchRemoteLayoutTarget,syncRemoteLayoutEditorAffordances,selectRemoteLayoutElement,syncRemoteEditorHitTargets,fitRemoteLayoutPreview,openRemoteLayoutPreview,closeRemoteLayoutPreview,reloadRemoteLayoutPreview,handleEmbeddedLayoutEditorAction,notifyLayoutPreviewParent,launchLayoutEditorFromSettings,stopLayoutEditorUi}, {
+LibreDisplayRuntime.exposeModule("layout", {remoteLayoutFrame,remoteLayoutInnerDocument,remoteLayoutProxyRoot,remoteLayoutProxyCounterpart,remoteLayoutProxyMirrorElement,syncRemoteLayoutProxyUi,scheduleRemoteLayoutProxySync,activateRemoteLayoutProxy,deactivateRemoteLayoutProxy,handleRemoteLayoutProxyEvent,targetViewportFromDevice,bestLayoutTargetDevice,readDisplayDevices,requestFreshDisplayMetrics,fetchRemoteLayoutTarget,remoteLayoutPreviewUrl,primeRemoteLayoutFrameViewport,syncRemoteLayoutEditorAffordances,selectRemoteLayoutElement,syncRemoteEditorHitTargets,fitRemoteLayoutPreview,openRemoteLayoutPreview,closeRemoteLayoutPreview,reloadRemoteLayoutPreview,handleEmbeddedLayoutEditorAction,notifyLayoutPreviewParent,launchLayoutEditorFromSettings,stopLayoutEditorUi}, {
   "remoteLayoutProxyActive": {configurable:true,get:()=>remoteLayoutProxyActive,set:(value)=>{remoteLayoutProxyActive=value;}},
   "remoteLayoutProxySyncTimer": {configurable:true,get:()=>remoteLayoutProxySyncTimer,set:(value)=>{remoteLayoutProxySyncTimer=value;}},
   "remoteLayoutPreviewTarget": {configurable:true,get:()=>remoteLayoutPreviewTarget,set:(value)=>{remoteLayoutPreviewTarget=value;}},
@@ -1213,7 +1230,7 @@ const {normalizeHexColor,resilientFetch}=LibreDisplayRuntime.getModule('shared')
 async function requestSavedLayoutDisplayApply(force=false){
   if(!force&&!LAYOUT_PREVIEW_MODE&&!bootstrapApi.REMOTE_SETTINGS_MODE)return {ok:true,requested:false};
   try{
-    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'reload',targetSavedAt:Number(cfg?._savedAt||0)}),cache:'no-store'},{timeoutMs:7000,attempts:2});
+    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'apply-config',targetSavedAt:Number(cfg?._savedAt||0)}),cache:'no-store'},{timeoutMs:7000,attempts:2});
     const data=await response.json().catch(()=>({}));
     if(!response.ok||!data?.ok)throw new Error(data?.error||`HTTP ${response.status}`);
     return {ok:true,requested:true,endpoint:String(data.endpoint||bootstrapApi.ACTIVE_ENDPOINT)};
