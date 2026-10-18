@@ -1,0 +1,8 @@
+from _shared import request_json, qs
+MANIFEST={"apiVersion":1,"id":"aviationstack","name":"Flight Status · aviationstack","description":"Show a flight's current status, scheduled times, and reported delay.","version":"1.0","icon":"✈","refreshMin":10,"kind":"status","settings":[{"key":"apiKey","label":"aviationstack API key","type":"password","required":True},{"key":"flightIata","label":"Flight IATA code","type":"text","required":True}]}
+MANIFEST.update({'access': 'api-key', 'dataFlow': 'provider-cloud', 'dataLeavesDevice': True, 'privacyNote': 'LibreDisplay sends the flight code to aviationstack over HTTPS and receives flight-status data from its cloud API.', 'freedomAlternative': 'No equivalent bundled no-key flight-status provider yet.'})
+def fetch(s,c):
+ data,_,_=request_json(c,qs('https://api.aviationstack.com/v1/flights',{'access_key':s.get('apiKey'),'flight_iata':str(s.get('flightIata') or '').upper(),'limit':1})); row=(data.get('data') or [None])[0]
+ if not row: raise RuntimeError(str((data.get('error') or {}).get('message') or 'Flight not found'))
+ dep=row.get('departure') or {}; arr=row.get('arrival') or {}; delay=dep.get('delay') if dep.get('delay') is not None else arr.get('delay')
+ return {'kind':'status','provider':'aviationstack','title':str(((row.get('flight') or {}).get('iata')) or s.get('flightIata')).upper(),'value':str(row.get('flight_status') or 'unknown').replace('_',' ').title(),'details':[{'label':'From','value':dep.get('airport') or dep.get('iata')},{'label':'To','value':arr.get('airport') or arr.get('iata')},{'label':'Delay','value':(f'{delay} min' if delay is not None else '—')},{'label':'Departure','value':dep.get('estimated') or dep.get('scheduled')}]}
