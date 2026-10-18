@@ -415,7 +415,7 @@ function startLiveDisplayConnection(){
   const performance=LibreDisplayRuntime.getModule('performance');
   bindDisplayViewportHeartbeat();performance.runExclusiveTask('display-heartbeat',()=>sendDisplayHeartbeat(false,{full:true}));
   performance.stopManagedInterval('display-heartbeat');
-  heartbeatTimer=performance.startManagedInterval('display-heartbeat',sendDisplayHeartbeat,bootstrapApi.LOCAL_CLIENT_MODE?15000:30000,{skipWhenHidden:false,resumeOnVisible:false,initialDelayMs:bootstrapApi.LOCAL_CLIENT_MODE?15000:30000});
+  heartbeatTimer=performance.startManagedInterval('display-heartbeat',sendDisplayHeartbeat,30000,{skipWhenHidden:false,resumeOnVisible:false,initialDelayMs:30000,idle:true,idleTimeoutMs:bootstrapApi.LOCAL_CLIENT_MODE?6000:2200});
   updateOfflinePill();
 }
 function startRemoteConfigPolling(){const performance=LibreDisplayRuntime.getModule('performance'),editor=bootstrapApi.REMOTE_SETTINGS_MODE,physical=bootstrapApi.LOCAL_CLIENT_MODE,interval=editor?5000:(physical?120000:45000);performance.stopManagedInterval('remote-config-poll');configApi.remoteConfigPollTimer=performance.startManagedInterval('remote-config-poll',pollServerConfig,interval,{skipWhenHidden:true,resumeOnVisible:true,immediate:editor,initialDelayMs:editor?5000:(physical?45000:17000),idle:!editor,idleTimeoutMs:physical?4200:1800});}

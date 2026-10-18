@@ -306,10 +306,15 @@ body.custom-layout #wx-left[data-current-weather-layout="split"],body.custom-lay
   letter-spacing:-4px;
 }
 .clock-sec {
+  display:inline-block;
   font-size:clamp(20px,1.8vw,30px);
   font-weight:300;
   vertical-align:super;
   letter-spacing:0;
+  contain:layout paint style;
+  transform:translateZ(0);
+  backface-visibility:hidden;
+  text-align:left;
 }
 .clock-date {
   font-size:clamp(16px,1.35vw,24px);
@@ -3048,6 +3053,7 @@ html.ld-pi4-4k #weather-effects-overlay .holiday-sparkle:nth-of-type(even){displ
 .weather-fx-pi-cloud-actor{z-index:1}
 .weather-fx-pi-leaf-actor{z-index:2}
 html.ld-pi4-device #weather-effects-overlay :is(.weather-fx-pi-canvas,.weather-fx-pi-cloud-canvas){filter:none!important;box-shadow:none!important}
+html.ld-pi4-device #weather-effects-overlay .weather-fx-pi-sprite-layer{display:none!important}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-overcast-deck{animation:none!important;transform:none!important}
 html.ld-pi4-device #weather-effects-overlay .weather-fx-bird{z-index:3}
 /* Flying wildlife must keep its full visual overflow. Pi 4 wildlife scenes deliberately use DOM cloud masses instead of the canvas cloud-actor surface so a bird/owl never crosses a different hardware-compositor surface. */
