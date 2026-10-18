@@ -10,9 +10,9 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 
 **Current release highlights**
 
-- Keeps foreground animation moving through Raspberry Pi background rotations by pre-rasterizing the next still image behind the live background and fading only the outgoing surface.
-- Moves Pi 4/5 HH:MM updates to pre-rendered compositor digit strips so minute changes no longer rewrite the large clock text.
-- Extends Arrange magnetic alignment to movable inner parts as well as whole blocks, with visible center/edge guides and Alt-to-bypass behavior.
+- Expands Arrange into a hierarchy-aware magnetic alignment system: internal parts preferentially center/edge-snap to nearby sibling parts, while whole blocks align cleanly with other blocks and the screen.
+- Labels center guides with the element/part being matched and keeps Alt as a temporary magnetic-alignment bypass for precise free placement.
+- Preserves saved clock format and typography through the compositor clock path, including font, weight, italic treatment, letter spacing, color, and immediate 12/24-hour changes.
 
 
 ## Quick start — Raspberry Pi
@@ -20,10 +20,10 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 Use a current Raspberry Pi OS **with Desktop**, then paste this into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.14.22/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.14.23/scripts/install-one-line.sh)"
 ```
 
-The bootstrap validates the pinned **v1.14.22** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
+The bootstrap validates the pinned **v1.14.23** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
 
 > Raspberry Pi OS Lite is not supported by the native kiosk installer. A native Pi can, however, be switched to **Server-only mode** after installation so it runs LibreDisplay without launching a local webpage. Docker/NAS/Linux server deployments are already server-style hosts.
 

@@ -1320,6 +1320,24 @@ Hourly Forecast exposes Hour, Icon, Temperature, Rain, and Wind separately. Dail
 
 ---
 
+## Magnetic alignment and smart guides
+
+With **Magnetic alignment** enabled, dragging behaves like a design editor instead of requiring visual guesswork. LibreDisplay checks nearby center lines and edges and shows a guide when the selected item is close enough to lock into alignment.
+
+The matching order is intentional:
+
+- a movable **internal part** first prefers sibling parts in the same element — for example Hourly Wind can center on Rain above it, and Rain can center on Temperature or Wind
+- nearby parts in other built-in elements and integrations are considered next
+- whole dashboard blocks are considered after nearby parts
+- the screen center and edges remain available as global alignment references
+- dragging a **whole block** aligns that block with other whole blocks and the screen, so Hourly Forecast can center cleanly with Daily Forecast or another integration
+
+Repeated copies of the same part are de-prioritized/excluded where appropriate, so an Hourly Wind label in another forecast card does not steal the snap from Rain or Temperature in the card you are actually editing. Center guides name the target being matched.
+
+Hold **Alt** while dragging to temporarily bypass magnetic alignment and place the item freely. Grid snap and magnetic alignment are independent controls.
+
+---
+
 ## Geometry
 
 Whole blocks and Free-position parts can expose controls such as:

@@ -37,9 +37,9 @@ function syncClockHmCompositor(hmEl,hourText,minuteText,force=false){
   const use=clockUseCompositorSeconds(),parts=ensureClockHmStructure(hmEl),mode=use?'compositor':'text';
   if(mode!==clockHmMode){clockHmMode=mode;hmEl?.classList.toggle('clock-hm-compositor-active',use);clockHmLastVisual='';force=true;}
   if(!use){parts.compositor.hidden=true;parts.fallback.hidden=false;return false;}
-  parts.fallback.hidden=false;parts.compositor.hidden=false;const h=String(hourText||''),m=String(minuteText||'').padStart(2,'0'),digits=(h.length>1?h:'0'+h)+m,key=digits+'|'+(h.length===1?'1':'2');
-  hmEl.setAttribute('aria-label',`${h}:${m}`);
-  if(force||key!==clockHmLastVisual){for(let i=0;i<parts.digits.length;i++){const digit=Number(digits[i])||0;parts.digits[i].style.transform=`translate3d(0,-${digit*10}%,0)`;}parts.compositor.style.transform=h.length===1?'translate3d(-.62em,0,0)':'translate3d(0,0,0)';clockHmLastVisual=key;clockRuntimeStats.hmCompositorWrites++;}
+  parts.fallback.hidden=false;parts.compositor.hidden=false;const h=String(hourText||''),m=String(minuteText||'').padStart(2,'0'),text=`${h}:${m}`,digits=(h.length>1?h:'0'+h)+m,key=digits+'|'+(h.length===1?'1':'2');
+  hmEl.setAttribute('aria-label',text);
+  if(force||key!==clockHmLastVisual){if(parts.fallback.textContent!==text)parts.fallback.textContent=text;for(let i=0;i<parts.digits.length;i++){const digit=Number(digits[i])||0;parts.digits[i].style.transform=`translate3d(0,-${digit*10}%,0)`;}const hourTens=parts.digits[0]?.parentElement;if(hourTens)hourTens.classList.toggle('clock-hm-hour-hidden',h.length===1);parts.compositor.style.transform='translate3d(0,0,0)';clockHmLastVisual=key;clockRuntimeStats.hmCompositorWrites++;}
   return true;
 }
 function ensureClockSecondStructure(secEl){
@@ -83,7 +83,7 @@ function tick(){
 }
 function clockTickDelay(){const now=Date.now(),showSeconds=uiCfg().showSeconds!==false,period=showSeconds&&!clockUseCompositorSeconds()?1000:60000;return Math.max(50,period-(now%period)+15);}
 function startClock(){if(clockTimer)clearTimeout(clockTimer);tick();clockTimer=setTimeout(startClock,clockTickDelay());return clockTimer;}
-function clockRuntimeSnapshot(){const sec=document.getElementById('clock-sec'),parts=sec?ensureClockSecondStructure(sec):{},hm=document.getElementById('clock-hm'),hmParts=hm?ensureClockHmStructure(hm):{};return {...clockRuntimeStats,mode:clockSecondMode||'unknown',hmMode:clockHmMode||'unknown',compositorAnimations:clockSecondAnimations.filter(a=>a?.playState==='running').length,hmCompositorActive:!!(hmParts.compositor&&!hmParts.compositor.hidden),lastCompositorSyncAt:clockSecondLastSyncAt,secondsVisible:parts.digits?!parts.digits.hidden:false,periodVisible:parts.period?!parts.period.hidden:false};}
+function clockRuntimeSnapshot(){const sec=document.getElementById('clock-sec'),parts=sec?ensureClockSecondStructure(sec):{},hm=document.getElementById('clock-hm'),hmParts=hm?ensureClockHmStructure(hm):{},time=document.querySelector('.clock-time'),cs=time?getComputedStyle(time):null,ui=uiCfg();return {...clockRuntimeStats,mode:clockSecondMode||'unknown',hmMode:clockHmMode||'unknown',compositorAnimations:clockSecondAnimations.filter(a=>a?.playState==='running').length,hmCompositorActive:!!(hmParts.compositor&&!hmParts.compositor.hidden),lastCompositorSyncAt:clockSecondLastSyncAt,secondsVisible:parts.digits?!parts.digits.hidden:false,periodVisible:parts.period?!parts.period.hidden:false,timeFormat:ui.timeFormat||'12',clockVisual:cs?{fontFamily:cs.fontFamily,fontSize:cs.fontSize,fontWeight:cs.fontWeight,fontStyle:cs.fontStyle,letterSpacing:cs.letterSpacing,color:cs.color}:null};}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&clockUseCompositorSeconds())startClock();});
 startClock();
 
