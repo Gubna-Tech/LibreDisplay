@@ -312,10 +312,18 @@ body.custom-layout #wx-left[data-current-weather-layout="split"],body.custom-lay
   vertical-align:super;
   letter-spacing:0;
   contain:layout paint style;
-  transform:translateZ(0);
-  backface-visibility:hidden;
   text-align:left;
 }
+.clock-sec-fallback{display:inline}
+.clock-sec-compositor{display:inline-flex;align-items:baseline;gap:.24em;height:1em;line-height:1;white-space:nowrap;contain:layout paint style}
+.clock-sec-compositor[hidden]{display:none!important}
+.clock-sec-digits{display:inline-flex;align-items:flex-start;height:1em;line-height:1;overflow:hidden;contain:strict;font-variant-numeric:tabular-nums}
+.clock-sec-digit-window{position:relative;display:inline-block;width:.62em;height:1em;overflow:hidden;contain:strict}
+.clock-sec-digit-strip{position:absolute;left:0;top:0;display:flex;flex-direction:column;width:100%;height:auto;will-change:transform;transform:translate3d(0,0,0);backface-visibility:hidden}
+.clock-sec-digit-strip>i{display:flex;align-items:flex-start;justify-content:center;width:100%;height:1em;flex:0 0 1em;font:inherit;line-height:1;font-style:normal}
+.clock-sec-period{display:inline-block;min-width:2.15em;line-height:1}
+.clock-sec.clock-sec-compositor-active .clock-sec-fallback{display:none}
+#clock-hm{display:inline-block;contain:layout paint style}
 .clock-date {
   font-size:clamp(16px,1.35vw,24px);
   color:rgba(255,255,255,0.9);

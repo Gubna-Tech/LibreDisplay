@@ -19,39 +19,52 @@ function formatClockDate(n){
 }
 
 let clockTimer=null,clockLastHm='',clockLastExtras='',clockLastExtraLayout='',clockLastDateKey='',clockLastWide=null;
+let clockSecondAnimations=[],clockSecondMode='',clockSecondLastSyncAt=0;
+const clockRuntimeStats={ticks:0,minuteWrites:0,fallbackSecondWrites:0,compositorSyncs:0,lastTickMs:0,maxTickMs:0,lastTickAt:0};
+function clockUseCompositorSeconds(){try{const caps=LibreDisplayRuntime.getModule('performance').frontendCapabilities();return !!(caps.pi4Class||caps.pi5Class);}catch(_e){return false;}}
+function ensureClockSecondStructure(secEl){
+  let fallback=secEl?.querySelector('.clock-sec-fallback'),compositor=secEl?.querySelector('.clock-sec-compositor');
+  if(!secEl)return {fallback:null,compositor:null,digits:null,period:null};
+  if(!fallback){fallback=document.createElement('span');fallback.className='clock-sec-fallback';fallback.textContent=secEl.textContent||'--';secEl.replaceChildren(fallback);}
+  if(!compositor){
+    compositor=document.createElement('span');compositor.className='clock-sec-compositor';compositor.setAttribute('aria-hidden','true');
+    const digits=document.createElement('span');digits.className='clock-sec-digits';
+    const makeDigit=(kind,values)=>{const win=document.createElement('span');win.className=`clock-sec-digit-window clock-sec-${kind}`;const strip=document.createElement('span');strip.className='clock-sec-digit-strip';strip.dataset.clockDigit=kind;for(const value of values){const glyph=document.createElement('i');glyph.textContent=value;strip.appendChild(glyph);}win.appendChild(strip);return win;};
+    digits.append(makeDigit('tens',['0','1','2','3','4','5']),makeDigit('ones',['0','1','2','3','4','5','6','7','8','9']));
+    const period=document.createElement('span');period.className='clock-sec-period';
+    compositor.append(digits,period);secEl.appendChild(compositor);
+  }
+  return {fallback,compositor,digits:compositor.querySelector('.clock-sec-digits'),period:compositor.querySelector('.clock-sec-period')};
+}
+function stopClockSecondAnimations(){for(const animation of clockSecondAnimations){try{animation.cancel();}catch(_e){}}clockSecondAnimations=[];}
+function syncClockSecondAnimations(now=new Date(),force=false){
+  const secEl=document.getElementById('clock-sec');if(!secEl)return false;const ui=uiCfg(),use=clockUseCompositorSeconds(),parts=ensureClockSecondStructure(secEl),showSeconds=ui.showSeconds!==false,showAmPm=ui.timeFormat!=='24'&&ui.showAmPm!==false,mode=use?'compositor':'text';
+  if(mode!==clockSecondMode){clockSecondMode=mode;stopClockSecondAnimations();secEl.classList.toggle('clock-sec-compositor-active',use);clockLastExtras='';force=true;}
+  if(!use){parts.compositor.hidden=true;parts.fallback.hidden=false;return false;}
+  parts.fallback.hidden=true;parts.compositor.hidden=false;parts.digits.hidden=!showSeconds;parts.period.hidden=!showAmPm;const ap=now.getHours()>=12?'PM':'AM';if(showAmPm&&parts.period.textContent!==ap)parts.period.textContent=ap;
+  if(showSeconds&&(!clockSecondAnimations.length||force)){
+    stopClockSecondAnimations();const tens=parts.compositor.querySelector('[data-clock-digit="tens"]'),ones=parts.compositor.querySelector('[data-clock-digit="ones"]');
+    if(tens&&ones&&typeof tens.animate==='function'){
+      const tensAnimation=tens.animate([{transform:'translate3d(0,0,0)'},{transform:'translate3d(0,-100%,0)'}],{duration:60000,iterations:Infinity,easing:'steps(6,end)'}),onesAnimation=ones.animate([{transform:'translate3d(0,0,0)'},{transform:'translate3d(0,-100%,0)'}],{duration:10000,iterations:Infinity,easing:'steps(10,end)'}),stamp=now.getTime();
+      tensAnimation.currentTime=((stamp%60000)+60000)%60000;onesAnimation.currentTime=((stamp%10000)+10000)%10000;clockSecondAnimations=[tensAnimation,onesAnimation];clockSecondLastSyncAt=stamp;clockRuntimeStats.compositorSyncs++;
+    }
+  }else if(!showSeconds&&clockSecondAnimations.length)stopClockSecondAnimations();
+  return true;
+}
 function tick(){
-  const ui=uiCfg();
-  const n=new Date();
-  const h24=n.getHours();
-  const h=ui.timeFormat==='24'?String(h24).padStart(2,'0'):String(h24%12||12);
-  const m=String(n.getMinutes()).padStart(2,'0');
-  const sec=String(n.getSeconds()).padStart(2,'0');
-  const ap=h24>=12?'PM':'AM';
-  const hm=h+':'+m;
-  const hmEl=document.getElementById('clock-hm');
-  if(hm!==clockLastHm){hmEl.textContent=hm;clockLastHm=hm;}
-  const extras=[];
-  if(ui.showSeconds)extras.push(sec);
-  if(ui.timeFormat!=='24'&&ui.showAmPm)extras.push(ap);
-  const extraText=extras.join(' '),secEl=document.getElementById('clock-sec');
-  const extraLayout=[ui.showSeconds!==false,ui.timeFormat!=='24'&&ui.showAmPm!==false].map(Boolean),extraLayoutKey=extraLayout.join('|');
+  const started=performance.now(),ui=uiCfg(),n=new Date(),h24=n.getHours(),h=ui.timeFormat==='24'?String(h24).padStart(2,'0'):String(h24%12||12),m=String(n.getMinutes()).padStart(2,'0'),sec=String(n.getSeconds()).padStart(2,'0'),ap=h24>=12?'PM':'AM',hm=h+':'+m,hmEl=document.getElementById('clock-hm'),secEl=document.getElementById('clock-sec');
+  clockRuntimeStats.ticks++;if(hm!==clockLastHm){hmEl.textContent=hm;clockLastHm=hm;clockRuntimeStats.minuteWrites++;}
+  const compositorSeconds=syncClockSecondAnimations(n),extraLayout=[ui.showSeconds!==false,ui.timeFormat!=='24'&&ui.showAmPm!==false].map(Boolean),extraLayoutKey=extraLayout.join('|');
   if(extraLayoutKey!==clockLastExtraLayout){const [showSeconds,showAmPm]=extraLayout;secEl.style.display=(showSeconds||showAmPm)?'inline-block':'none';secEl.style.inlineSize=showSeconds&&showAmPm?'5.4ch':showSeconds?'2.35ch':showAmPm?'2.8ch':'0';clockLastExtraLayout=extraLayoutKey;}
-  if(extraText!==clockLastExtras){if(secEl.firstChild?.nodeType===3&&secEl.childNodes.length===1)secEl.firstChild.nodeValue=extraText;else secEl.textContent=extraText;clockLastExtras=extraText;}
-  const wide=h.length===2;
-  if(wide!==clockLastWide){document.querySelector('.clock-time')?.classList.toggle('wide-time',wide);clockLastWide=wide;}
-  const dateKey=[n.getFullYear(),n.getMonth(),n.getDate(),ui.dateFormat||'long',activeLocale(),ui.showDate!==false].join('|');
-  if(dateKey!==clockLastDateKey){const dateEl=document.getElementById('clock-date');dateEl.textContent=formatClockDate(n);dateEl.style.display=ui.showDate?'':'none';clockLastDateKey=dateKey;}
+  if(!compositorSeconds){const extras=[];if(ui.showSeconds)extras.push(sec);if(ui.timeFormat!=='24'&&ui.showAmPm)extras.push(ap);const extraText=extras.join(' '),fallback=ensureClockSecondStructure(secEl).fallback;if(extraText!==clockLastExtras){if(fallback.firstChild?.nodeType===3&&fallback.childNodes.length===1)fallback.firstChild.nodeValue=extraText;else fallback.textContent=extraText;clockLastExtras=extraText;clockRuntimeStats.fallbackSecondWrites++;}}
+  const wide=h.length===2;if(wide!==clockLastWide){document.querySelector('.clock-time')?.classList.toggle('wide-time',wide);clockLastWide=wide;}
+  const dateKey=[n.getFullYear(),n.getMonth(),n.getDate(),ui.dateFormat||'long',activeLocale(),ui.showDate!==false].join('|');if(dateKey!==clockLastDateKey){const dateEl=document.getElementById('clock-date');dateEl.textContent=formatClockDate(n);dateEl.style.display=ui.showDate?'':'none';clockLastDateKey=dateKey;}
+  const elapsed=performance.now()-started;clockRuntimeStats.lastTickMs=elapsed;clockRuntimeStats.maxTickMs=Math.max(clockRuntimeStats.maxTickMs,elapsed);clockRuntimeStats.lastTickAt=Date.now();
 }
-function clockTickDelay(){
-  const now=Date.now(),showSeconds=uiCfg().showSeconds!==false,period=showSeconds?1000:60000;
-  return Math.max(50,period-(now%period)+15);
-}
-function startClock(){
-  if(clockTimer)clearTimeout(clockTimer);
-  tick();
-  clockTimer=setTimeout(startClock,clockTickDelay());
-  return clockTimer;
-}
+function clockTickDelay(){const now=Date.now(),showSeconds=uiCfg().showSeconds!==false,period=showSeconds&&!clockUseCompositorSeconds()?1000:60000;return Math.max(50,period-(now%period)+15);}
+function startClock(){if(clockTimer)clearTimeout(clockTimer);tick();clockTimer=setTimeout(startClock,clockTickDelay());return clockTimer;}
+function clockRuntimeSnapshot(){const sec=document.getElementById('clock-sec'),parts=sec?ensureClockSecondStructure(sec):{};return {...clockRuntimeStats,mode:clockSecondMode||'unknown',compositorAnimations:clockSecondAnimations.filter(a=>a?.playState==='running').length,lastCompositorSyncAt:clockSecondLastSyncAt,secondsVisible:parts.digits?!parts.digits.hidden:false,periodVisible:parts.period?!parts.period.hidden:false};}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&clockUseCompositorSeconds())startClock();});
 startClock();
 
 const WI={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',
@@ -94,16 +107,20 @@ function moonIlluminatedPath(details,steps=28){
   for(let i=n;i>=0;i--){const y=-1+2*i/n,arc=Math.sqrt(Math.max(0,1-y*y));pts.push([c-r*dir*k*arc,c+r*y]);}
   return pts.map((pt,i)=>`${i?'L':'M'} ${pt[0].toFixed(2)} ${pt[1].toFixed(2)}`).join(' ')+' Z';
 }
+const MOON_GLYPH_STEP_PCT=5,MOON_GLYPH_PATHS={waxing:new Map(),waning:new Map()};
+for(let pct=0;pct<=100;pct+=MOON_GLYPH_STEP_PCT){MOON_GLYPH_PATHS.waxing.set(pct,moonIlluminatedPath({illumination:pct/100,visualWaxing:true},44));MOON_GLYPH_PATHS.waning.set(pct,moonIlluminatedPath({illumination:pct/100,visualWaxing:false},44));}
+function moonGlyphIlluminationPercent(details){const raw=Math.round(Math.max(0,Math.min(1,Number(details?.illumination)||0))*100);return Math.max(0,Math.min(100,Math.round(raw/MOON_GLYPH_STEP_PCT)*MOON_GLYPH_STEP_PCT));}
+function moonGlyphIlluminatedPath(details){const pct=moonGlyphIlluminationPercent(details),key=details?.visualWaxing===false?'waning':'waxing';return MOON_GLYPH_PATHS[key].get(pct)||moonIlluminatedPath(details,44);}
 let moonGlyphSequence=0;
 function moonGlyphMarkup(details){
   if(!details)return '';
-  const illumination=Math.round(Math.max(0,Math.min(1,Number(details.illumination)||0))*100),path=moonIlluminatedPath(details,44),phase=lunarPhaseName(details),seq=++moonGlyphSequence,discId=`ld-moon-disc-${seq}`,litClipId=`ld-moon-lit-${seq}`,earthId=`ld-moon-earth-${seq}`,lightId=`ld-moon-light-${seq}`,shadeId=`ld-moon-shade-${seq}`;
+  const illumination=Math.round(Math.max(0,Math.min(1,Number(details.illumination)||0))*100),glyphIllumination=moonGlyphIlluminationPercent(details),path=moonGlyphIlluminatedPath(details),phase=lunarPhaseName(details),seq=++moonGlyphSequence,discId=`ld-moon-disc-${seq}`,litClipId=`ld-moon-lit-${seq}`,earthId=`ld-moon-earth-${seq}`,lightId=`ld-moon-light-${seq}`,shadeId=`ld-moon-shade-${seq}`;
   const defs=`<defs><clipPath id="${discId}"><circle cx="50" cy="50" r="46"></circle></clipPath>${path?`<clipPath id="${litClipId}"><path d="${path}"></path></clipPath>`:''}<radialGradient id="${earthId}" cx="34%" cy="27%" r="82%"><stop offset="0%" stop-color="#56636f"></stop><stop offset="38%" stop-color="#414e5a"></stop><stop offset="72%" stop-color="#2b3742"></stop><stop offset="100%" stop-color="#19242e"></stop></radialGradient><radialGradient id="${lightId}" cx="34%" cy="28%" r="82%"><stop offset="0%" stop-color="#fffdf3"></stop><stop offset="36%" stop-color="#eeeadd"></stop><stop offset="72%" stop-color="#d3d0c7"></stop><stop offset="100%" stop-color="#b5b5b2"></stop></radialGradient><linearGradient id="${shadeId}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffffff" stop-opacity=".16"></stop><stop offset="52%" stop-color="#ffffff" stop-opacity="0"></stop><stop offset="100%" stop-color="#0b1118" stop-opacity=".22"></stop></linearGradient></defs>`;
   const maria=`<g class="ld-wx-moon-maria"><path d="M20 31c5-8 12-13 20-13 6 0 10 3 10 8 0 5-5 7-8 11-3 4-2 8-6 11-6 3-15 0-18-6-2-4 0-8 2-11Z"></path><path d="M52 21c5-3 13-2 17 2 4 4 3 9-1 12-4 4-11 5-16 2-5-3-5-11 0-16Z"></path><path d="M58 40c7-3 15-1 19 4 4 5 2 11-4 14-7 4-17 2-21-3-4-6 0-12 6-15Z"></path><path d="M29 51c7-4 16-3 21 2 4 4 4 10-1 14-5 5-15 6-21 1-6-4-5-13 1-17Z"></path><path d="M48 69c6-4 15-3 19 1 4 4 2 9-3 12-6 3-14 2-18-2-4-4-3-8 2-11Z"></path><path d="M18 47c4-3 9-2 12 1 3 3 2 7-2 10-4 2-9 1-11-2-3-3-2-7 1-9Z"></path><path d="M72 60c4-2 9 0 11 4 2 4-1 8-5 9-4 1-8-2-8-6 0-3 0-5 2-7Z"></path></g>`;
   const highlands=`<g class="ld-wx-moon-highlands"><path d="M16 35c6-13 16-21 29-25"></path><path d="M65 15c10 4 17 12 21 22"></path><path d="M84 53c-1 14-10 26-24 33"></path><path d="M21 69c4 8 10 14 18 18"></path><path d="M34 15c6 3 11 4 17 4"></path></g>`;
   const craters=`<g class="ld-wx-moon-craters"><path d="M33 38c1-4 5-7 9-6 4 1 6 5 5 9-1 4-5 6-9 5-4-1-6-4-5-8Z"></path><path d="M63 28c1-3 4-4 7-3 3 1 4 4 3 7-1 3-4 4-7 3-3-1-4-4-3-7Z"></path><path d="M61 64c2-4 7-6 11-4 4 2 6 6 4 10-2 4-7 6-11 4-4-2-6-6-4-10Z"></path><path d="M40 71c1-2 4-3 6-2 3 1 4 4 3 6-1 3-4 4-7 3-2-1-3-4-2-7Z"></path><path d="M26 56c1-2 3-3 5-2 2 1 3 3 2 5-1 2-3 3-5 2-2-1-3-3-2-5Z"></path><path d="M60 72l9 8M60 72l-3 11M60 72l-10 5"></path></g>`;
   const surface=`${maria}${highlands}${craters}`;
-  return `<svg class="ld-wx-moon-phase" viewBox="0 0 100 100" role="img" aria-label="${phase}, Moon ${illumination}% illuminated" data-moon-illumination="${illumination}" data-moon-phase="${phase}">${defs}<circle class="ld-wx-moon-glow" cx="50" cy="50" r="49"></circle><circle class="ld-wx-moon-earth" cx="50" cy="50" r="46" fill="url(#${earthId})"></circle><g class="ld-wx-moon-earth-map" clip-path="url(#${discId})">${surface}</g>${path?`<path class="ld-wx-moon-lit" d="${path}" fill="url(#${lightId})"></path><g class="ld-wx-moon-lit-map" clip-path="url(#${litClipId})">${surface}</g>`:''}<circle class="ld-wx-moon-sphere-shade" cx="50" cy="50" r="46" fill="url(#${shadeId})"></circle><ellipse class="ld-wx-moon-polar-sheen" cx="36" cy="25" rx="25" ry="15" clip-path="url(#${discId})"></ellipse><circle class="ld-wx-moon-rim" cx="50" cy="50" r="46"></circle></svg>`;
+  return `<svg class="ld-wx-moon-phase" viewBox="0 0 100 100" role="img" aria-label="${phase}, Moon ${illumination}% illuminated" data-moon-illumination="${illumination}" data-moon-glyph-illumination="${glyphIllumination}" data-moon-phase="${phase}">${defs}<circle class="ld-wx-moon-glow" cx="50" cy="50" r="49"></circle><circle class="ld-wx-moon-earth" cx="50" cy="50" r="46" fill="url(#${earthId})"></circle><g class="ld-wx-moon-earth-map" clip-path="url(#${discId})">${surface}</g>${path?`<path class="ld-wx-moon-lit" d="${path}" fill="url(#${lightId})"></path><g class="ld-wx-moon-lit-map" clip-path="url(#${litClipId})">${surface}</g>`:''}<circle class="ld-wx-moon-sphere-shade" cx="50" cy="50" r="46" fill="url(#${shadeId})"></circle><ellipse class="ld-wx-moon-polar-sheen" cx="36" cy="25" rx="25" ry="15" clip-path="url(#${discId})"></ellipse><circle class="ld-wx-moon-rim" cx="50" cy="50" r="46"></circle></svg>`;
 }
 function moonDailySummaryDetails(data,source=cfg){
   const dates=Array.isArray(data?.daily?.time)?data.daily.time.slice(0,4):[],latitude=data?.latitude??source?.lat??cfg.lat,offset=data?.utc_offset_seconds??0;if(!dates.length)return null;
@@ -337,7 +354,7 @@ function resetWeatherDetails(){mutateWeatherDetails(s=>{s.order=['sunset','wind'
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("weather", {activeLocale,formatClockDate,tick,clockTickDelay,startClock,lunarPhaseDetails,lunarPhaseName,moonIlluminatedPath,moonGlyphMarkup,moonDailySummaryDetails,moonDailySummary,renderMoonDailySummary,wi,wd,C,u,weatherLocationKey,weatherPayloadMatchesRequest,showWeatherWaitingState,invalidateWeatherIfLocationChanged,weatherWindUnitParam,weatherWindUnitLabel,weatherWindUnitMatches,validateWeatherPayload,fetchWeather,renderWeather,forecastRenderSnapshot,weatherDetailsConfig,weatherDetailColumnCount,weatherDetailValue,renderBuiltInWeatherDetails,weatherDetailsFromForm,setWeatherDetailsForm,renderWeatherDetailsSettings,mutateWeatherDetails,toggleWeatherDetailSetting,moveWeatherDetailSetting,weatherDetailDragStart,weatherDetailDrop,enableRecommendedWeatherDetails,enableAllWeatherDetails,resetWeatherDetails}, {
+LibreDisplayRuntime.exposeModule("weather", {activeLocale,formatClockDate,tick,clockTickDelay,startClock,clockRuntimeSnapshot,lunarPhaseDetails,lunarPhaseName,moonIlluminatedPath,moonGlyphIlluminationPercent,moonGlyphIlluminatedPath,moonGlyphMarkup,moonDailySummaryDetails,moonDailySummary,renderMoonDailySummary,wi,wd,C,u,weatherLocationKey,weatherPayloadMatchesRequest,showWeatherWaitingState,invalidateWeatherIfLocationChanged,weatherWindUnitParam,weatherWindUnitLabel,weatherWindUnitMatches,validateWeatherPayload,fetchWeather,renderWeather,forecastRenderSnapshot,weatherDetailsConfig,weatherDetailColumnCount,weatherDetailValue,renderBuiltInWeatherDetails,weatherDetailsFromForm,setWeatherDetailsForm,renderWeatherDetailsSettings,mutateWeatherDetails,toggleWeatherDetailSetting,moveWeatherDetailSetting,weatherDetailDragStart,weatherDetailDrop,enableRecommendedWeatherDetails,enableAllWeatherDetails,resetWeatherDetails}, {
   "DN": {configurable:true,get:()=>DN},
   "MN": {configurable:true,get:()=>MN},
   "MNS": {configurable:true,get:()=>MNS},
