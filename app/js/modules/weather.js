@@ -37,7 +37,8 @@ function syncClockHmCompositor(hmEl,hourText,minuteText,force=false){
   const use=clockUseCompositorSeconds(),parts=ensureClockHmStructure(hmEl),mode=use?'compositor':'text';
   if(mode!==clockHmMode){clockHmMode=mode;hmEl?.classList.toggle('clock-hm-compositor-active',use);clockHmLastVisual='';force=true;}
   if(!use){parts.compositor.hidden=true;parts.fallback.hidden=false;return false;}
-  parts.fallback.hidden=true;parts.compositor.hidden=false;const h=String(hourText||''),m=String(minuteText||'').padStart(2,'0'),digits=(h.length>1?h:'0'+h)+m,key=digits+'|'+(h.length===1?'1':'2');
+  parts.fallback.hidden=false;parts.compositor.hidden=false;const h=String(hourText||''),m=String(minuteText||'').padStart(2,'0'),digits=(h.length>1?h:'0'+h)+m,key=digits+'|'+(h.length===1?'1':'2');
+  hmEl.setAttribute('aria-label',`${h}:${m}`);
   if(force||key!==clockHmLastVisual){for(let i=0;i<parts.digits.length;i++){const digit=Number(digits[i])||0;parts.digits[i].style.transform=`translate3d(0,-${digit*10}%,0)`;}parts.compositor.style.transform=h.length===1?'translate3d(-.62em,0,0)':'translate3d(0,0,0)';clockHmLastVisual=key;clockRuntimeStats.hmCompositorWrites++;}
   return true;
 }
