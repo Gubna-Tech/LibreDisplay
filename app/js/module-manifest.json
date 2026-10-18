@@ -64,7 +64,7 @@
     "module": "weather",
     "part": "bundle",
     "path": "/js/modules/weather.js",
-    "lines": 1696,
+    "lines": 1697,
     "functions": 193,
     "bindings": 14,
     "sections": [
@@ -94,7 +94,7 @@
     "module": "backgrounds",
     "part": "bundle",
     "path": "/js/modules/backgrounds.js",
-    "lines": 890,
+    "lines": 889,
     "functions": 75,
     "bindings": 3,
     "sections": [
@@ -188,7 +188,7 @@
     "module": "settings",
     "part": "bundle",
     "path": "/js/modules/settings.js",
-    "lines": 1748,
+    "lines": 1753,
     "functions": 82,
     "bindings": 18,
     "sections": [

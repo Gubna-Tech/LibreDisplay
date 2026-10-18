@@ -80,6 +80,7 @@ function previewDashboardFromSettings(){
   hideContextHelp(true);
   syncAlertRuntimeStateFromForm();
   settingsPreviewMode=true;
+  LibreDisplayRuntime.getModule('settings').stopSettingsAnimationDiagnostics?.();
   setup.classList.add('hidden');setup.setAttribute('aria-hidden','true');
   setSettingsPreviewReturnVisible(true);
   fetchWeatherAlerts();
@@ -91,6 +92,7 @@ function returnToSettingsPreview(){
   settingsPreviewMode=false;
   setSettingsPreviewReturnVisible(false);
   setup?.classList.remove('hidden');setup?.setAttribute('aria-hidden','false');
+  LibreDisplayRuntime.getModule('settings').startSettingsAnimationDiagnostics?.();
   if(bootstrapApi.SESSION_ROLE==='owner')loadSystemHealth();
   setTimeout(()=>restartAlertScroller(),80);
 }
@@ -118,6 +120,7 @@ function restoreSavedSettingsPreview(){
   applySettings();
 }
 function closeSetup(revertPreview=true){
+  LibreDisplayRuntime.getModule('settings').stopSettingsAnimationDiagnostics?.();
   stopSystemHealthAutoRefresh();
   stopSoftwareUpdateAutoDetection();
   settingsPreviewMode=false;
@@ -154,6 +157,7 @@ function openSetup(startWizard=false){
   try{rememberedTab=sessionStorage.getItem('libredisplay_settings_tab')||'overview';}catch(e){}
   switchSettingsTab(rememberedTab,false);
   document.getElementById('setup').classList.remove('hidden');document.getElementById('setup').setAttribute('aria-hidden','false');
+  LibreDisplayRuntime.getModule('settings').startSettingsAnimationDiagnostics?.();
   startSystemHealthAutoRefresh();
   startSoftwareUpdateAutoDetection();
   try{
@@ -1161,7 +1165,8 @@ async function setLightweightMode(enabled){
 }
 function toggleLightweightMode(force){return setLightweightMode(typeof force==='boolean'?force:cfg.lightweightModeEnabled!==true);}
 function quickAccessToggleLightweight(){closeQuickAccessMenu();return toggleLightweightMode();}
-LibreDisplayRuntime.getModule('performance').startManagedInterval?.('settings-animation-diagnostics',()=>{if(!document.getElementById('setup')?.classList.contains('hidden')){updateAnimationPerformanceUi();updateDevicePerformanceGuide();}},2500,{skipWhenHidden:true});
+function stopSettingsAnimationDiagnostics(){LibreDisplayRuntime.getModule('performance').stopManagedInterval?.('settings-animation-diagnostics');}
+function startSettingsAnimationDiagnostics(){stopSettingsAnimationDiagnostics();if(document.getElementById('setup')?.classList.contains('hidden'))return;updateAnimationPerformanceUi();updateDevicePerformanceGuide();LibreDisplayRuntime.getModule('performance').startManagedInterval?.('settings-animation-diagnostics',()=>{updateAnimationPerformanceUi();updateDevicePerformanceGuide();},2500,{skipWhenHidden:true,idle:true,idleTimeoutMs:1200});}
 document.getElementById('quick-lightweight-toggle')?.addEventListener('click',quickAccessToggleLightweight);
 function quickAccessRefresh(){closeQuickAccessMenu();refreshDataNow();}
 function quickAccessUseDevice(){closeQuickAccessMenu();requestDeviceDisplayMode('windowed');}
@@ -1249,7 +1254,7 @@ document.addEventListener('keydown',e=>{
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("settings", {testCalendarInputs,testSingleCalendarSource,positionQuickAccessMenu,closeQuickAccessMenu,toggleQuickAccessMenu,quickAccessArrange,quickAccessAddBlock,quickAccessSettings,quickAccessIntegrations,updateLightweightModeUi,updateAnimationPerformanceUi,updateDevicePerformanceGuide,setPi3StaticSceneRefresh,setAnimationPerformanceMode,setLightweightMode,toggleLightweightMode,quickAccessToggleLightweight,quickAccessRefresh,quickAccessUseDevice,quickAccessFullscreen,toggleLayoutShortcuts,refreshDataNow,requestDeviceDisplayMode,enterFullscreen}, {
+LibreDisplayRuntime.exposeModule("settings", {testCalendarInputs,testSingleCalendarSource,positionQuickAccessMenu,closeQuickAccessMenu,toggleQuickAccessMenu,quickAccessArrange,quickAccessAddBlock,quickAccessSettings,quickAccessIntegrations,updateLightweightModeUi,updateAnimationPerformanceUi,updateDevicePerformanceGuide,setPi3StaticSceneRefresh,setAnimationPerformanceMode,setLightweightMode,toggleLightweightMode,quickAccessToggleLightweight,startSettingsAnimationDiagnostics,stopSettingsAnimationDiagnostics,quickAccessRefresh,quickAccessUseDevice,quickAccessFullscreen,toggleLayoutShortcuts,refreshDataNow,requestDeviceDisplayMode,enterFullscreen}, {
   "quickAccessMenuOpen": {configurable:true,get:()=>quickAccessMenuOpen,set:(value)=>{quickAccessMenuOpen=value;}}
 }, {globalFunctions:['testCalendarInputs','testSingleCalendarSource','closeQuickAccessMenu','toggleQuickAccessMenu','quickAccessArrange','quickAccessAddBlock','quickAccessSettings','quickAccessIntegrations','quickAccessRefresh','quickAccessUseDevice','quickAccessFullscreen','toggleLayoutShortcuts','refreshDataNow','requestDeviceDisplayMode','enterFullscreen'],globalStates:[]});
 }

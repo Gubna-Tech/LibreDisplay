@@ -1334,6 +1334,8 @@ The matching order is intentional:
 
 Repeated copies of the same part are de-prioritized/excluded where appropriate, so an Hourly Wind label in another forecast card does not steal the snap from Rain or Temperature in the card you are actually editing. Center guides name the target being matched.
 
+Snap geometry is remeasured continuously while you drag, **after** Flow-to-Free conversion and any sibling reflow. The magnetic lock therefore uses the parts where they are actually rendered on that frame, not stale coordinates captured when the drag began. This same live-geometry path is used for built-in parts, Current Weather parts, ordinary/custom blocks, and integration-internal parts.
+
 Hold **Alt** while dragging to temporarily bypass magnetic alignment and place the item freely. Grid snap and magnetic alignment are independent controls.
 
 ---
