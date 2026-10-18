@@ -1322,19 +1322,19 @@ Hourly Forecast exposes Hour, Icon, Temperature, Rain, and Wind separately. Dail
 
 ## Magnetic alignment and smart guides
 
-With **Magnetic alignment** enabled, dragging behaves like a design editor instead of requiring visual guesswork. LibreDisplay continuously measures the rendered parts around the item you are moving, finds the **nearest eligible center target**, and only shows a center guide when you are actually inside the tight magnetic center zone for that target.
+With **Magnetic alignment** enabled, dragging behaves like a design editor instead of requiring visual guesswork. LibreDisplay continuously measures the rendered parts around the item you are moving and magnetizes **center axis to center axis only**. When the dragged item's center X or center Y enters the tight capture zone around the nearest eligible part's matching center axis, LibreDisplay snaps that axis to the exact same center coordinate and shows that center guide. Edge-to-edge, beside, and adjacency relationships do not magnetize.
 
-Nearby element-to-element guides are deliberately local rather than screen-wide: the pink center line spans the dragged part and the matched part, making it obvious exactly which sibling or nearby element you are aligned with. Edge snapping can still help placement, but edge-only matches do not produce competing center-guide lines.
+Nearby element-to-element guides are deliberately local rather than screen-wide: the pink center line spans the dragged part and the matched part, making it obvious exactly which sibling or nearby element you are aligned with. Magnetic alignment does not snap edges, adjacency, or "next to" relationships; only center-axis matches can engage the magnet.
 
 The matching order is intentional:
 
 - a movable **internal part** first prefers sibling parts in the same element — for example Hourly Wind can center on Rain above it, and Rain can center on Temperature or Wind
 - nearby parts in other built-in elements and integrations are considered next
 - whole dashboard blocks are considered after nearby parts
-- the screen center and edges remain available as global alignment references
+- the screen horizontal and vertical centers remain available as global center references
 - dragging a **whole block** aligns that block with other whole blocks and the screen, so Hourly Forecast can center cleanly with Daily Forecast or another integration
 
-Repeated copies of the same part are de-prioritized/excluded where appropriate, so an Hourly Wind label in another forecast card does not steal the snap from Rain or Temperature in the card you are actually editing. If several centers are eligible, physical proximity wins: the next closest meaningful part is the one that gets the magnetic lock and the labeled center guide.
+Repeated copies of the same part are de-prioritized/excluded where appropriate, so an Hourly Wind label in another forecast card does not steal the snap from Rain or Temperature in the card you are actually editing. If several center-axis matches are eligible, physical proximity wins: the next closest meaningful part gets the magnetic lock. The final snapped center coordinate is exact rather than merely near the target.
 
 Snap geometry is remeasured continuously while you drag, **after** Flow-to-Free conversion and any sibling reflow. The magnetic lock therefore uses the parts where they are actually rendered on that frame, not stale coordinates captured when the drag began. This same live-geometry path is used for built-in parts, Current Weather parts, ordinary/custom blocks, and integration-internal parts.
 
