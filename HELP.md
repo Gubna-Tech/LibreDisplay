@@ -1322,7 +1322,9 @@ Hourly Forecast exposes Hour, Icon, Temperature, Rain, and Wind separately. Dail
 
 ## Magnetic alignment and smart guides
 
-With **Magnetic alignment** enabled, dragging behaves like a design editor instead of requiring visual guesswork. LibreDisplay checks nearby center lines and edges and shows a guide when the selected item is close enough to lock into alignment.
+With **Magnetic alignment** enabled, dragging behaves like a design editor instead of requiring visual guesswork. LibreDisplay continuously measures the rendered parts around the item you are moving, finds the **nearest eligible center target**, and only shows a center guide when you are actually inside the tight magnetic center zone for that target.
+
+Nearby element-to-element guides are deliberately local rather than screen-wide: the pink center line spans the dragged part and the matched part, making it obvious exactly which sibling or nearby element you are aligned with. Edge snapping can still help placement, but edge-only matches do not produce competing center-guide lines.
 
 The matching order is intentional:
 
@@ -1332,7 +1334,7 @@ The matching order is intentional:
 - the screen center and edges remain available as global alignment references
 - dragging a **whole block** aligns that block with other whole blocks and the screen, so Hourly Forecast can center cleanly with Daily Forecast or another integration
 
-Repeated copies of the same part are de-prioritized/excluded where appropriate, so an Hourly Wind label in another forecast card does not steal the snap from Rain or Temperature in the card you are actually editing. Center guides name the target being matched.
+Repeated copies of the same part are de-prioritized/excluded where appropriate, so an Hourly Wind label in another forecast card does not steal the snap from Rain or Temperature in the card you are actually editing. If several centers are eligible, physical proximity wins: the next closest meaningful part is the one that gets the magnetic lock and the labeled center guide.
 
 Snap geometry is remeasured continuously while you drag, **after** Flow-to-Free conversion and any sibling reflow. The magnetic lock therefore uses the parts where they are actually rendered on that frame, not stale coordinates captured when the drag began. This same live-geometry path is used for built-in parts, Current Weather parts, ordinary/custom blocks, and integration-internal parts.
 

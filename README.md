@@ -10,8 +10,8 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 
 **Current release highlights**
 
-- Rebuilds Arrange magnetic alignment around **live rendered geometry**: sibling positions are remeasured during every drag frame, so Hourly Rain/Temperature/Wind, Current Weather parts, custom blocks, and integration internals actually lock to the nearest meaningful center/edge instead of stale pointer-down coordinates.
-- Fixes integration-internal magnetic dragging and strengthens the visible center guides while keeping Alt as a temporary bypass.
+- Refines Arrange magnetic alignment around **live rendered geometry** and a proximity-first center lock: the nearest eligible sibling/part wins, center snapping uses a tight magnetic zone, and only the active matched center guide is shown.
+- Uses short local center-guide segments between the dragged item and its matched neighbor instead of drawing unrelated full-screen center lines; integration internals, Current Weather parts, built-ins, and whole blocks share the same alignment engine, with Alt as a temporary bypass.
 - Replaces the jarring fade-through-dark background swap with a predecoded **outgoing-only reveal crossfade**; the new still is already rendered underneath while only the old image fades away, and teardown is deferred off the visible transition boundary.
 - Removes the hidden 2.5-second Settings diagnostics poll from the normal dashboard and avoids redundant compositor-clock visibility mutations, preserving smooth foreground animation between updates.
 
@@ -21,10 +21,10 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 Use a current Raspberry Pi OS **with Desktop**, then paste this into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.14.24/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.14.25/scripts/install-one-line.sh)"
 ```
 
-The bootstrap validates the pinned **v1.14.24** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
+The bootstrap validates the pinned **v1.14.25** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
 
 > Raspberry Pi OS Lite is not supported by the native kiosk installer. A native Pi can, however, be switched to **Server-only mode** after installation so it runs LibreDisplay without launching a local webpage. Docker/NAS/Linux server deployments are already server-style hosts.
 

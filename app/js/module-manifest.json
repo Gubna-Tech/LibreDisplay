@@ -121,8 +121,8 @@
     "module": "layout",
     "part": "bundle",
     "path": "/js/modules/layout.js",
-    "lines": 1306,
-    "functions": 208,
+    "lines": 1307,
+    "functions": 209,
     "bindings": 35,
     "sections": [
       "/js/layout/index.js",
