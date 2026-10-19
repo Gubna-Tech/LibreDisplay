@@ -4357,6 +4357,10 @@ html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-s
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion{will-change:transform!important;contain:layout style!important;isolation:auto!important;backface-visibility:hidden!important}
 /* Pi 4/5 actor layer consolidation: preserve every visible articulation while avoiding one compositor surface per moving body part. */
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion :is(.weather-fx-bird-wing-near,.weather-fx-bird-vector-wing-near,.weather-fx-bird-wing-far,.weather-fx-bird-vector-wing-far){will-change:auto!important;backface-visibility:visible!important}
+/* Pi actor isolation keeps articulated motion local to the wildlife subtree so a
+   state change cannot invalidate the surrounding dashboard layout. */
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay :is(.weather-fx-pi-single-motion,.dog-pi-single-motion){contain:layout style}
+
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion{will-change:transform!important;transform-style:flat!important;isolation:auto!important}
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion :is(.dogv2-pose-stage,.dogv2-body-group,.dogv2-head-group,.dogv2-leg,.dogv2-upper-limb,.dogv2-lower-limb,.dogv2-tail,.dogv2-bandana-cloth,.dogv2-muzzle-group){will-change:auto!important;backface-visibility:visible!important}
 

@@ -64,7 +64,7 @@
     "module": "weather",
     "part": "bundle",
     "path": "/js/modules/weather.js",
-    "lines": 1697,
+    "lines": 1699,
     "functions": 193,
     "bindings": 14,
     "sections": [
