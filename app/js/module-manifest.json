@@ -52,7 +52,7 @@
     "module": "performance",
     "part": "bundle",
     "path": "/js/modules/performance.js",
-    "lines": 392,
+    "lines": 393,
     "functions": 26,
     "bindings": 1,
     "sections": [
@@ -94,7 +94,7 @@
     "module": "backgrounds",
     "part": "bundle",
     "path": "/js/modules/backgrounds.js",
-    "lines": 889,
+    "lines": 890,
     "functions": 75,
     "bindings": 3,
     "sections": [

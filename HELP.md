@@ -875,7 +875,9 @@ Automatic is the recommended default.
 
 Pi 3 Automatic prioritizes high-quality static scenery rather than continuous expensive animation. Pi 4 has adaptive pacing with more headroom. Pi 5 generally has more motion budget.
 
-Do not force maximum fidelity merely because a remote laptop looks smooth; the physical kiosk hardware is what matters.
+On Pi 4 and Pi 5, LibreDisplay preserves the full-detail bird/owl and dog artwork while keeping the compositor layer budget bounded. Wing flapping, dog gait/limbs/head/tail/accessory motion, wildlife species detail, and NatureScape density remain visually intact; moving subparts are not permanently promoted into separate browser surfaces. Still-image backgrounds are decoded while hidden and become compositor-ready only shortly before their rotation, so the dashboard does not keep two full-screen photos actively composed for most of the interval.
+
+Do not force maximum fidelity merely because a remote laptop looks smooth; the physical kiosk hardware is what matters. A release-time headless benchmark is a regression guard, not a substitute for attached-display validation.
 
 ---
 

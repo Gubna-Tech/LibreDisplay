@@ -10,10 +10,10 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 
 **Current release highlights**
 
-- Refines Arrange magnetic alignment around **live rendered geometry** and center-axis-only locking: the nearest eligible sibling/part wins, only center-to-center axes can magnetize, and the active match snaps to an exact shared center coordinate.
-- Uses short local center-guide segments between the dragged item and its matched neighbor instead of drawing unrelated full-screen center lines; integration internals, Current Weather parts, built-ins, and whole blocks share the same alignment engine, with Alt as a temporary bypass.
-- Replaces the jarring fade-through-dark background swap with a predecoded **outgoing-only reveal crossfade**; the new still is already rendered underneath while only the old image fades away, and teardown is deferred off the visible transition boundary.
-- Removes the hidden 2.5-second Settings diagnostics poll from the normal dashboard and avoids redundant compositor-clock visibility mutations, preserving smooth foreground animation between updates.
+- Preserves full NatureScape quality while reducing Raspberry Pi 4/5 compositor pressure: bird wings still flap, species/anatomy stay intact, and the dog keeps its full gait, limbs, head, tail, accessory, and behavior animation, but articulated subparts are no longer force-promoted into separate compositor layers.
+- Stages the next still-image background more efficiently on Pi 4/5: decode/preparation happens while the inactive layer is hidden, then the already-ready image is promoted only shortly before rotation instead of keeping two full-screen photos actively composited for most of every interval.
+- Keeps the smooth outgoing-only background reveal crossfade, shared weather canvas, full wildlife density/detail, and v1.14.20+ compositor clock continuity rather than trading visual quality for benchmark FPS.
+- Retains v1.14.26 center-axis-only Arrange magnetism: nearby elements snap only when their actual center X/Y axes enter the capture zone, with no edge/adjacency magnetism.
 
 
 ## Quick start — Raspberry Pi
@@ -21,10 +21,10 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 Use a current Raspberry Pi OS **with Desktop**, then paste this into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.14.26/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.14.27/scripts/install-one-line.sh)"
 ```
 
-The bootstrap validates the pinned **v1.14.26** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
+The bootstrap validates the pinned **v1.14.27** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
 
 > Raspberry Pi OS Lite is not supported by the native kiosk installer. A native Pi can, however, be switched to **Server-only mode** after installation so it runs LibreDisplay without launching a local webpage. Docker/NAS/Linux server deployments are already server-style hosts.
 

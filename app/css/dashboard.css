@@ -31,10 +31,11 @@ body {
 .bg-layer {
   position:fixed; inset:0; z-index:0;
   transition:opacity 1.5s cubic-bezier(.22,.61,.36,1); opacity:0; pointer-events:none; overflow:hidden;
-  will-change:auto; transform:translateZ(0); backface-visibility:hidden; contain:paint;
+  will-change:auto; transform:none; backface-visibility:visible; contain:paint;
 }
 .bg-layer.show { opacity:1; }
-.bg-layer.ld-bg-transitioning{will-change:opacity!important}.bg-layer.ld-bg-retired{transition:none!important;opacity:0!important}.bg-layer.ld-bg-prewarmed{opacity:1!important;transition:none!important;will-change:auto!important}.bg-layer.ld-bg-retiring{opacity:0!important;will-change:opacity!important}html.ld-pi4-device .bg-layer.ld-bg-transitioning,html.ld-pi5-device .bg-layer.ld-bg-transitioning{will-change:opacity!important}
+.bg-layer.ld-bg-prepared{opacity:0!important;visibility:hidden!important;transition:none!important;will-change:auto!important;transform:none!important;backface-visibility:visible!important}
+.bg-layer.ld-bg-transitioning{will-change:opacity!important}.bg-layer.ld-bg-retired{transition:none!important;opacity:0!important}.bg-layer.ld-bg-prewarmed{opacity:1!important;visibility:visible!important;transition:none!important;will-change:auto!important}.bg-layer.ld-bg-retiring{opacity:0!important;will-change:opacity!important}html.ld-pi4-device .bg-layer.ld-bg-transitioning,html.ld-pi5-device .bg-layer.ld-bg-transitioning{will-change:opacity!important}
 .ld-bg-transition-mask{position:absolute;inset:0;z-index:4;pointer-events:none;background:#050705;opacity:0;will-change:auto;contain:paint;backface-visibility:hidden}
 .bg-layer > img,.bg-layer > video {
   position:absolute; inset:0; width:100%; height:100%;
@@ -4354,3 +4355,11 @@ html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-m
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion{will-change:transform!important;contain:none!important;backface-visibility:hidden!important;transform-style:flat!important}
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion :is(.weather-fx-bird-wing-near,.weather-fx-bird-vector-wing-near,.weather-fx-bird-wing-far,.weather-fx-bird-vector-wing-far){will-change:transform!important;backface-visibility:hidden!important}
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion{will-change:transform!important;contain:layout style!important;isolation:auto!important;backface-visibility:hidden!important}
+/* Pi 4/5 actor layer consolidation: preserve every visible articulation while avoiding one compositor surface per moving body part. */
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-pi-single-motion :is(.weather-fx-bird-wing-near,.weather-fx-bird-vector-wing-near,.weather-fx-bird-wing-far,.weather-fx-bird-vector-wing-far){will-change:auto!important;backface-visibility:visible!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion{will-change:transform!important;transform-style:flat!important;isolation:auto!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-motion :is(.dogv2-pose-stage,.dogv2-body-group,.dogv2-head-group,.dogv2-leg,.dogv2-upper-limb,.dogv2-lower-limb,.dogv2-tail,.dogv2-bandana-cloth,.dogv2-muzzle-group){will-change:auto!important;backface-visibility:visible!important}
+
+/* Pi actor layer budget: keep detailed articulation, but rasterize articulated subparts inside one actor surface. */
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-dog-v2{will-change:transform!important;transform-style:flat!important;isolation:auto!important}
+html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-dog-v2 :is(.dogv2-pose-stage,.dogv2-body-group,.dogv2-head-group,.dogv2-leg,.dogv2-upper-limb,.dogv2-lower-limb,.dogv2-tail,.dogv2-bandana-cloth,.dogv2-muzzle-group){will-change:auto!important;backface-visibility:visible!important}

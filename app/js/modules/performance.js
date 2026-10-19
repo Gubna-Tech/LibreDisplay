@@ -191,11 +191,11 @@ function runWhenIdle(task,timeout=1200){
   return setTimeout(task,16);
 }
 
-let animationWorkloadCache={sampledAt:0,totalAnimations:0,birds:0,dog:0,weather:0,deadhead:0,other:0,weatherNodes:0,playingVideos:0,singleTimelineActors:0,nestedActorAnimations:0};
+let animationWorkloadCache={sampledAt:0,totalAnimations:0,birds:0,dog:0,weather:0,deadhead:0,other:0,weatherNodes:0,playingVideos:0,singleTimelineActors:0,nestedActorAnimations:0,promotedBirdWingParts:0,actorLayerPolicy:'consolidated-subparts'};
 function animationWorkloadSnapshot(force=false){
   const now=Number(performance?.now?.())||Date.now();
   const ttl=frontendCapabilities().piClass?15000:3000;if(!force&&now-Number(animationWorkloadCache.sampledAt||0)<ttl)return animationWorkloadCache;
-  const out={sampledAt:Math.round(now),totalAnimations:0,birds:0,dog:0,weather:0,deadhead:0,other:0,weatherNodes:0,playingVideos:0,singleTimelineActors:0,nestedActorAnimations:0};
+  const out={sampledAt:Math.round(now),totalAnimations:0,birds:0,dog:0,weather:0,deadhead:0,other:0,weatherNodes:0,playingVideos:0,singleTimelineActors:0,nestedActorAnimations:0,promotedBirdWingParts:0,actorLayerPolicy:'consolidated-subparts'};
   try{
     const animations=typeof document.getAnimations==='function'?document.getAnimations():[];
     for(const animation of animations){
@@ -213,6 +213,7 @@ function animationWorkloadSnapshot(force=false){
     }
     out.weatherNodes=document.querySelectorAll('#weather-effects-overlay *').length;
     out.singleTimelineActors=document.querySelectorAll('.weather-fx-pi-single-motion,.dog-pi-single-motion').length;
+    for(const el of document.querySelectorAll('.weather-fx-pi-single-motion :is(.weather-fx-bird-wing-far,.weather-fx-bird-wing-near,.weather-fx-bird-vector-wing-far,.weather-fx-bird-vector-wing-near)'))if(getComputedStyle(el).willChange.includes('transform'))out.promotedBirdWingParts++;
     out.playingVideos=[...document.querySelectorAll('video')].filter(v=>!v.paused&&!v.ended&&v.readyState>=2).length;
   }catch{}
   animationWorkloadCache=out;return out;
