@@ -3705,6 +3705,34 @@ def safe_response_header_value(value, limit=512):
     return text[:limit]
 
 
+def normalize_layout_render_snapshot(value):
+    if not isinstance(value, dict):
+        return {}
+    preview_id = re.sub(r"[^A-Za-z0-9_-]+", "-", str(value.get("previewId") or "").strip())[:96]
+    if not preview_id:
+        return {}
+    def rect(row):
+        if not isinstance(row, dict):
+            return None
+        return {k: _finite_float(row.get(k) or 0, 0.0, minimum=-50000.0, maximum=50000.0) for k in ("x", "y", "w", "h")}
+    entities = []
+    for row in (value.get("entities") if isinstance(value.get("entities"), list) else [])[:160]:
+        if not isinstance(row, dict):
+            continue
+        key = str(row.get("key") or "")[:160]
+        footprint, visual = rect(row.get("footprint")), rect(row.get("visual"))
+        if key and footprint:
+            entities.append({"key": key, "label": str(row.get("label") or key)[:80], "footprint": footprint, "visual": visual or footprint})
+    overlaps = []
+    for row in (value.get("overlaps") if isinstance(value.get("overlaps"), list) else [])[:320]:
+        if not isinstance(row, dict):
+            continue
+        a, b = str(row.get("a") or "")[:160], str(row.get("b") or "")[:160]
+        if a and b and a != b:
+            overlaps.append({"a": a, "b": b, "w": _finite_float(row.get("w") or 0, 0.0, minimum=0.0, maximum=50000.0), "h": _finite_float(row.get("h") or 0, 0.0, minimum=0.0, maximum=50000.0), "area": _finite_float(row.get("area") or 0, 0.0, minimum=0.0, maximum=2500000000.0)})
+    offscreen = [str(x)[:160] for x in (value.get("offscreen") if isinstance(value.get("offscreen"), list) else [])[:160] if str(x)]
+    return {"previewId": preview_id, "revision": max(0, min(1000000000, int(value.get("revision") or 0))), "width": max(0, min(20000, int(value.get("width") or 0))), "height": max(0, min(20000, int(value.get("height") or 0))), "entities": entities, "overlaps": overlaps, "offscreen": offscreen, "capturedAt": max(0, int(value.get("capturedAt") or 0))}
+
 def normalize_provider_cache_status(value):
     rows = []
     if not isinstance(value, list):
@@ -5152,6 +5180,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     "frontendPerformance": normalize_frontend_performance((body or {}).get("frontendPerformance")),
                     "providerCache": normalize_provider_cache_status((body or {}).get("providerCache")),
                     "displayPerformanceBenchmark": normalize_display_performance_benchmark((body or {}).get("displayPerformanceBenchmark")),
+                    "layoutPreviewId": re.sub(r"[^A-Za-z0-9_-]+", "-", str((body or {}).get("layoutPreviewId") or "").strip())[:96],
+                    "layoutRenderSnapshot": normalize_layout_render_snapshot((body or {}).get("layoutRenderSnapshot")),
                     "lastSeen": time.time(),
                 }
                 with DEVICE_LOCK:
@@ -5194,6 +5224,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         "frontendPerformance": row["frontendPerformance"],
                         "providerCache": row["providerCache"],
                         "displayPerformanceBenchmark": benchmark,
+                        "layoutPreviewId": row["layoutPreviewId"],
+                        "layoutRenderSnapshot": row["layoutRenderSnapshot"],
                     })
                 response_payload = {"ok": True}
                 if pending_command:
@@ -5214,12 +5246,27 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     raise ValueError("Unknown display endpoint")
                 if not principal_allows_endpoint(self.session_principal(), endpoint_id, write=True):
                     return self.json_response(403, {"ok": False, "error": "Editor access to this endpoint is required."})
-                if action not in {"refresh", "reload", "heartbeat", "apply-config", "performance-benchmark"}:
+                if action not in {"refresh", "reload", "heartbeat", "apply-config", "preview-layout", "clear-layout-preview", "performance-benchmark"}:
                     raise ValueError("Unknown device action")
                 event_payload = {"requestedAt": int(time.time())}
                 target_saved_at = max(0, int((body or {}).get("targetSavedAt") or 0))
                 if target_saved_at:
                     event_payload["targetSavedAt"] = target_saved_at
+                if action in {"preview-layout", "clear-layout-preview"}:
+                    preview_id = re.sub(r"[^A-Za-z0-9_-]+", "-", str((body or {}).get("previewId") or "").strip())[:96]
+                    if not preview_id:
+                        raise ValueError("previewId is required")
+                    event_payload["previewId"] = preview_id
+                    event_payload["previewRevision"] = max(0, min(1000000000, int((body or {}).get("previewRevision") or 0)))
+                    if action == "preview-layout":
+                        raw_preview = (body or {}).get("layoutPreview")
+                        if not isinstance(raw_preview, dict):
+                            raise ValueError("layoutPreview is required")
+                        allowed_preview_keys = {"layoutMode", "layoutBlocks", "layoutContentScale", "layoutElementStyle", "layoutPartStyle", "currentWeatherLayout", "currentWeatherPartLayout", "customBlocks", "layoutGridPx", "layoutSnap"}
+                        layout_preview = {key: raw_preview[key] for key in allowed_preview_keys if key in raw_preview}
+                        if len(json.dumps(layout_preview, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > 768 * 1024:
+                            raise ValueError("Arrange preview is too large")
+                        event_payload["layoutPreview"] = layout_preview
                 if action == "performance-benchmark":
                     if not self.owner_authorized():
                         return self.json_response(403, {"ok": False, "error": "Owner access is required to run a display performance benchmark."})
