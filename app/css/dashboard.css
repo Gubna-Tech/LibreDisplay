@@ -2540,7 +2540,7 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 .weather-fx-dog-v2 .dogv2-bed{display:none;position:absolute;left:20px;bottom:0;width:195px;height:48px;z-index:-1;transform:scale(var(--dog-size,1));transform-origin:0 100%;filter:drop-shadow(0 4px 4px rgba(0,0,0,.18))}.weather-fx-dog-v2.dog-state-rest:not(.dog-shelter-house) .dogv2-bed,.weather-fx-dog-v2.dog-state-sleep:not(.dog-shelter-house) .dogv2-bed{display:block}.weather-fx-dog-v2 .dogv2-bed-cushion{position:absolute;left:14px;right:14px;bottom:5px;height:28px;border-radius:50% 50% 42% 42%/58% 58% 42% 42%;background:radial-gradient(ellipse at 50% 30%,rgba(125,164,177,.96),rgba(64,105,119,.96) 58%,rgba(39,72,84,.98));box-shadow:inset 0 4px 7px rgba(255,255,255,.12),inset 0 -6px 8px rgba(0,0,0,.18)}.weather-fx-dog-v2 .dogv2-bed-rim{position:absolute;inset:0;border:7px solid rgba(48,72,82,.96);border-top-color:rgba(80,112,123,.96);border-radius:50%;box-shadow:inset 0 1px 0 rgba(255,255,255,.13)}
 .weather-fx-dog-v2 .dogv2-ball{position:absolute;display:block;width:16px;height:16px;border-radius:50%;bottom:5px;right:-2px;background:radial-gradient(circle at 32% 28%,#ff9188,#d24543 65%,#8f2929);box-shadow:inset -3px -3px 4px rgba(0,0,0,.22),0 2px 3px rgba(0,0,0,.18);opacity:0;z-index:25}
 .weather-fx-dog-v2.dog-facing-left .dogv2-ball{right:auto;left:-2px}.weather-fx-dog-v2.dog-state-ball .dogv2-ball{opacity:1}
-.weather-fx-dog-v2 .dogv2-sleep{position:absolute;right:12px;top:-2px;font-style:normal;font-weight:800;font-size:18px;color:rgba(255,255,255,.84);text-shadow:0 1px 3px rgba(0,0,0,.3);opacity:0;--dog-sleep-x:20px}.weather-fx-dog-v2.dog-facing-left .dogv2-sleep{right:auto;left:12px;--dog-sleep-x:-20px}.weather-fx-dog-v2.dog-state-sleep .dogv2-sleep{opacity:.9;animation:ld1822SleepZ 3.3s ease-out infinite}
+.weather-fx-dog-v2 .dogv2-sleep{position:absolute;right:24px;top:4px;font-style:normal;font-weight:900;font-size:19px;color:rgba(255,255,255,.92);text-shadow:0 1px 3px rgba(0,0,0,.48),0 0 4px rgba(255,255,255,.16);opacity:0;--dog-sleep-x:18px}.weather-fx-dog-v2.dog-facing-left .dogv2-sleep{right:auto;left:24px;--dog-sleep-x:-18px}.weather-fx-dog-v2.dog-state-sleep .dogv2-sleep{opacity:.94;animation:ld1822SleepZ 3.3s ease-out infinite}
 .weather-fx-dog-v2 .dogv2-dirt{position:absolute;right:32px;bottom:0;width:46px;height:16px;opacity:0;--dog-dirt-x:-17px;background:radial-gradient(circle at 15% 65%,#7c5c3f 0 2px,transparent 3px),radial-gradient(circle at 45% 35%,#8a6746 0 2px,transparent 3px),radial-gradient(circle at 75% 72%,#694c34 0 2px,transparent 3px)}.weather-fx-dog-v2.dog-facing-left .dogv2-dirt{right:auto;left:32px;--dog-dirt-x:17px}.weather-fx-dog-v2.dog-state-dig .dogv2-dirt{opacity:1;animation:ld1822Dirt .72s ease-out infinite}
 .weather-fx-dog-v2.dog-moving .dogv2-leg-front-near,.weather-fx-dog-v2.dog-moving .dogv2-leg-rear-far{animation:ld1822Stride var(--dog-step-duration,.48s) ease-in-out infinite alternate}.weather-fx-dog-v2.dog-moving .dogv2-leg-front-far,.weather-fx-dog-v2.dog-moving .dogv2-leg-rear-near{animation:ld1822Stride var(--dog-step-duration,.48s) ease-in-out var(--dog-step-delay,-.24s) infinite alternate}.weather-fx-dog-v2.dog-moving .dogv2-pose-stage{animation:ld1822WalkBob var(--dog-step-duration,.48s) ease-in-out infinite alternate}
 .weather-fx-dog-v2.dog-state-sniff .dogv2-head-group{transform:translate(6px,10px) rotate(15deg)}
@@ -2555,7 +2555,7 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 @keyframes ld1822WalkBob{0%,100%{transform:translateY(0) rotate(.2deg)}50%{transform:translateY(-2.2px) rotate(-.35deg)}}
 @keyframes ld1822ChaseBob{0%,100%{transform:translateY(0) rotate(.6deg)}50%{transform:translateY(-3px) rotate(-.8deg)}}
 @keyframes ld1822Tail{from{transform:rotate(-5deg)}to{transform:rotate(8deg)}}
-@keyframes ld1822SleepZ{0%{transform:translate(0,5px) scale(.7);opacity:0}32%{opacity:.9}100%{transform:translate(var(--dog-sleep-x,20px),-30px) scale(1.25);opacity:0}}
+@keyframes ld1822SleepZ{0%{transform:translate(0,2px) scale(.72);opacity:0}30%{opacity:.94}100%{transform:translate(var(--dog-sleep-x,18px),-30px) scale(1.25);opacity:0}}
 @keyframes ld1822Dirt{from{transform:translate(0,0) scale(.7);opacity:.9}to{transform:translate(var(--dog-dirt-x,-17px),-14px) scale(1.15);opacity:0}}
 
 @keyframes ld1822Breath{0%,100%{transform:translateY(18px) scaleY(.78)}50%{transform:translateY(19px) scaleY(.80)}}
@@ -4333,6 +4333,17 @@ body[data-hourly-card-style="showcase"] .hr-col[data-card-theme="countryside"]{-
 body[data-hourly-card-style="showcase"] .hr-col[data-card-theme="coastal"]{--hr-theme-ground:linear-gradient(180deg,#376f86 0 38%,#438aa0 39% 53%,#423d3a 54% 100%);--hr-theme-shape:polygon(0 42%,27% 47%,45% 33%,58% 68%,72% 52%,100% 58%,100% 100%,0 100%);--hr-theme-detail:linear-gradient(177deg,transparent 0 56%,rgba(255,255,255,.24) 57% 59%,transparent 60%)}
 body[data-hourly-card-style="showcase"] .hr-col[data-card-theme="tundra"]{--hr-theme-ground:linear-gradient(180deg,#78909a,#46575a);--hr-theme-shape:polygon(0 66%,20% 61%,42% 67%,63% 58%,82% 64%,100% 59%,100% 100%,0 100%);--hr-theme-detail:repeating-linear-gradient(87deg,transparent 0 16px,rgba(197,211,202,.12) 17px 18px)}
 @media(max-width:1400px){.hr-col{padding:5px 3px 4px;border-radius:8px}.hr-col .hr-meta .hr-wind{padding:.18em .42em .18em .58em}.hr-col .hr-meta .hr-wind::before{left:2px;width:2px}body[data-hourly-card-style="showcase"] .hr-col{min-height:145px;padding:8px 5px 7px;border-radius:12px}}
+
+/* Short, center-oriented forecast readouts keep their visual center when live content changes width.
+   Explicit Left/Right block alignment remains authoritative; wrapped prose/list content is intentionally excluded. */
+body:not(.custom-layout) .fc-col>:is(.fc-day-name,.fc-icon,.fc-rain,.fc-temps),
+body:not(.custom-layout) .hr-col>:is(.hr-time,.hr-icon,.hr-condition),
+body:not(.custom-layout) .hr-col .hr-meta>.hr-metric,
+body.custom-layout #wx-forecast:is([data-ld-h-align="auto"],[data-ld-h-align="center"]) .fc-col>:is(.fc-day-name,.fc-icon,.fc-rain,.fc-temps),
+body.custom-layout #wx-hourly-block:is([data-ld-h-align="auto"],[data-ld-h-align="center"]) .hr-col>:is(.hr-time,.hr-icon,.hr-condition),
+body.custom-layout #wx-hourly-block:is([data-ld-h-align="auto"],[data-ld-h-align="center"]) .hr-col .hr-meta>.hr-metric{
+  align-self:center;justify-self:center;margin-inline:auto;transform-origin:50% 50%;
+}
 
 /* Pi precipitation/hazard compositor budget. Detailed precipitation
    motion is owned by the shared canvas on Pi 4/5; alerts must not create
