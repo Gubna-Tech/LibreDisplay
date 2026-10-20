@@ -4382,3 +4382,49 @@ html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .dog-pi-single-m
 /* Pi actor layer budget: keep detailed articulation, but rasterize articulated subparts inside one actor surface. */
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-dog-v2{will-change:transform!important;transform-style:flat!important;isolation:auto!important}
 html:is(.ld-pi4-device,.ld-pi5-device) #weather-effects-overlay .weather-fx-dog-v2 :is(.dogv2-pose-stage,.dogv2-body-group,.dogv2-head-group,.dogv2-leg,.dogv2-upper-limb,.dogv2-lower-limb,.dogv2-tail,.dogv2-bandana-cloth,.dogv2-muzzle-group){will-change:auto!important;backface-visibility:visible!important}
+
+/* Curated layout preset composition system. */
+.layout-preset-grid{display:block;margin:14px 0 10px}
+.layout-preset-current{margin-bottom:18px}
+.layout-preset-current .layout-preset-card{display:grid;grid-template-columns:minmax(210px,30%) minmax(0,1fr);align-items:center}
+.layout-preset-group{margin:22px 0 0;padding-top:18px;border-top:1px solid var(--ld-border)}
+.layout-preset-group-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 2px 11px}
+.layout-preset-group-head>div{min-width:0}.layout-preset-group-head b{display:block;font-size:12px;letter-spacing:.01em}.layout-preset-group-head span:not(.layout-preset-group-count){display:block;max-width:760px;margin-top:4px;color:var(--ld-muted);font-size:9.5px;line-height:1.5}
+.layout-preset-group-count{flex:0 0 auto;display:inline-flex;min-width:26px;height:22px;align-items:center;justify-content:center;border:1px solid var(--ld-border);border-radius:999px;color:var(--ld-muted);font-size:8px;font-weight:700}
+.layout-preset-group-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}
+.layout-preset-group-grid .layout-preset-card{height:100%}
+.layout-preset-group[data-layout-preset-group="portrait"] .layout-preset-stage{aspect-ratio:9/16;width:46%;margin:14px auto 0;border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.28)}
+.layout-preset-group[data-layout-preset-group="portrait"] .layout-preset-copy{padding-top:12px}
+.layout-preset-stage[data-layout-finish="editorial"]{background:linear-gradient(180deg,rgba(5,8,11,.05),rgba(5,8,11,.20)),radial-gradient(circle at 72% 20%,rgba(244,188,117,.34),transparent 14%),linear-gradient(155deg,#56707a 0 26%,#34534c 27% 51%,#1c382d 52% 72%,#0c1714 73%)}
+.layout-preset-stage[data-layout-finish="planner"]{background:linear-gradient(145deg,#2c3034,#171a1d 62%,#0d0f11)}
+.layout-preset-stage[data-layout-finish="clean"]{background:radial-gradient(circle at 72% 20%,rgba(150,184,172,.14),transparent 26%),linear-gradient(145deg,#17221f,#0b1110 62%,#060807)}
+.layout-preset-stage[data-layout-finish="minimal"]{background:radial-gradient(circle at 50% 35%,#121719,#030405 70%)}
+.layout-preset-stage .layout-preset-block{border:0;background:transparent!important;border-radius:0;box-shadow:none;padding:2px;text-shadow:0 1px 5px rgba(0,0,0,.84)}
+.layout-preset-stage[data-layout-finish="glass"] .layout-preset-block{padding:4px;border:1px solid rgba(255,255,255,.11);border-radius:6px;background:linear-gradient(145deg,rgba(18,25,31,.52),rgba(8,12,16,.32))!important;box-shadow:0 5px 14px rgba(0,0,0,.18)}
+.layout-preset-stage .layout-preset-block[data-layout-block="calendar"]{padding:4px;background:rgba(5,8,10,.20)!important;border:1px solid rgba(255,255,255,.055)}
+.layout-preset-stage[data-layout-finish="planner"] .layout-preset-block[data-layout-block="calendar"],.layout-preset-stage[data-layout-finish="minimal"] .layout-preset-block[data-layout-block="calendar"]{background:transparent!important;border-color:rgba(255,255,255,.09)}
+.layout-preset-stage .layout-preset-block[data-layout-block="alerts"]{opacity:.72}
+.layout-preset-stage .layout-mini-calendar{gap:2px}.layout-preset-stage .layout-mini-calendar>span{border-right:1px solid rgba(255,255,255,.08);padding:1px 2px}.layout-preset-stage .layout-mini-calendar>span:last-child{border-right:0}.layout-preset-stage .layout-mini-calendar b{opacity:.58;font-weight:560}.layout-preset-stage .layout-mini-calendar i{font-weight:320}.layout-preset-stage .layout-mini-calendar em{height:2px;border-radius:0;background:color-mix(in srgb,var(--ld-accent) 72%,white 8%)}
+.layout-preset-stage .layout-mini-forecast{gap:4px}.layout-preset-stage .layout-mini-forecast i{font-weight:430;opacity:.82}.layout-preset-stage .layout-mini-forecast b{font-weight:430}
+.layout-preset-stage .layout-mini-weather b,.layout-preset-stage .layout-mini-clock b{font-weight:280}
+.layout-preset-stage[data-layout-preset-style="calendar"] .layout-preset-block[data-layout-block="calendar"],.layout-preset-stage[data-layout-preset-style="photocalendar"] .layout-preset-block[data-layout-block="calendar"]{background:rgba(4,6,8,.52)!important}
+.layout-preset-stage[data-layout-preset-style="gallery"] .layout-preset-block[data-layout-block="calendar"],.layout-preset-stage[data-layout-preset-style="minimal"] .layout-preset-block[data-layout-block="calendar"]{background:rgba(4,6,8,.12)!important}
+
+/* Preset families share a quieter, hierarchy-first full-screen treatment. */
+body:is(.layout-preset-family,.layout-preset-default,.layout-preset-large,.layout-preset-compact,.layout-preset-morning) :is(#clock-block,.wx-main,.wx-details,#wx-forecast,#wx-hourly-block,#top-strip){box-shadow:none!important}
+body:is(.layout-preset-family,.layout-preset-default,.layout-preset-large,.layout-preset-compact,.layout-preset-morning) #clock-block .clock-time{font-weight:280;letter-spacing:-.04em}
+body:is(.layout-preset-family,.layout-preset-default,.layout-preset-large,.layout-preset-compact,.layout-preset-morning) #top-strip .event{border-radius:2px!important}
+body:is(.layout-preset-calendar,.layout-preset-agenda,.layout-preset-weekcolumns) #top-strip{box-shadow:none!important}
+body:is(.layout-preset-calendar,.layout-preset-agenda) #top-strip .event{background:transparent!important;border-radius:0!important;border-left:clamp(2px,.16vw,4px) solid var(--event-color,#4d9cff);padding-left:.5em!important}
+body.layout-preset-calendar #top-strip .day-col{border-right:1px solid rgba(255,255,255,.10)!important}
+body.layout-preset-calendar #top-strip .day-heading{font-weight:330;letter-spacing:.005em}
+body.layout-preset-agenda #top-strip .day-heading{opacity:.65;font-weight:420}
+body:is(.layout-preset-gallery,.layout-preset-split,.layout-preset-minimal,.layout-preset-portraitphoto) :is(#clock-block,.wx-main,.wx-details,#top-strip,#wx-forecast,#wx-hourly-block){background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+body:is(.layout-preset-gallery,.layout-preset-split,.layout-preset-minimal,.layout-preset-portraitphoto) #clock-block .clock-time{font-weight:250;letter-spacing:-.05em}
+body:is(.layout-preset-gallery,.layout-preset-split,.layout-preset-minimal,.layout-preset-portraitphoto) #top-strip .event{border-radius:2px!important;background:rgba(7,10,12,.26)!important}
+body.layout-preset-weather :is(#clock-block,.wx-main,.wx-details,#top-strip,#wx-forecast,#wx-hourly-block){background:transparent!important;border:0!important;box-shadow:none!important}
+body.layout-preset-weather #wx-forecast,body.layout-preset-weather #wx-hourly-block{border-top:1px solid rgba(255,255,255,.10)!important;padding-top:clamp(6px,.7vw,11px)!important}
+body:is(.layout-preset-portrait,.layout-preset-portraitwall,.layout-preset-portraitphoto) #clock-block .clock-time{font-weight:260;letter-spacing:-.045em}
+
+@media(max-width:1040px){.layout-preset-current .layout-preset-card{grid-template-columns:180px minmax(0,1fr)}.layout-preset-group-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.layout-preset-current .layout-preset-card{grid-template-columns:1fr}.layout-preset-group-grid{grid-template-columns:1fr}.layout-preset-group-head{gap:10px}.layout-preset-group[data-layout-preset-group="portrait"] .layout-preset-stage{width:54%}}

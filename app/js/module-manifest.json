@@ -136,9 +136,9 @@
     "module": "appearance",
     "part": "bundle",
     "path": "/js/modules/appearance.js",
-    "lines": 1067,
-    "functions": 64,
-    "bindings": 13,
+    "lines": 1007,
+    "functions": 66,
+    "bindings": 15,
     "sections": [
       "/js/appearance/weather.js",
       "/js/appearance/index.js",
