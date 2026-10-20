@@ -149,7 +149,7 @@
   <div class="s-section" id="settings-favorites" data-settings-tab="favorites"> <h3>Favorites</h3> <div class="howto">Your personal Settings shelf. Use the ☆ beside a setting anywhere in LibreDisplay to keep it here. Favorite controls remain linked to their original settings, so changes made here are the same changes you would make in the full section.</div> <div id="settings-favorites-list" class="settings-favorites-list"></div> </div>
   <div class="s-section" id="settings-about" data-settings-tab="overview">
    <h3>About LibreDisplay</h3>
-   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.14.32</b> · Theme system: Libre Night · MIT License</span></div>
+   <div class="howto"><b>LibreDisplay</b> · by Gubna<br><b>Your home. Your dashboard. Your data.</b><br>Free and open-source self-hosted home dashboard.<br><span style="color:var(--ld-subtle)">Release <b id="about-release">1.14.33</b> · Theme system: Libre Night · MIT License</span></div>
   </div>
   <div class="s-section" id="settings-endpoints" data-settings-tab="displays"> <h3>Displays</h3> <div class="howto">One LibreDisplay server can power multiple screens. Each named display has its own calendars, photos, layout, theme, and read-only Display Link. Use a lightweight Viewer, tablet, TV browser, or another Pi at each screen.</div> <div class="utility-actions"> <button class="btn-util" type="button" data-ld-onclick="h034">+ Add display</button> <button class="btn-util" type="button" data-ld-onclick="h035">Refresh</button> </div> <div id="endpoint-list" class="endpoint-list" style="margin-top:10px;"></div> <div id="endpoint-status" class="settings-note" style="margin-top:7px;"></div> </div>
   <div class="s-section" id="settings-inheritance" data-settings-level="advanced" data-owner-only="1" data-settings-tab="displays"> <h3>Household defaults &amp; overrides</h3> <div class="howto">Use the Main display as household defaults, then let each other screen inherit only the sections you choose. A display can still keep its own layout, background, calendar, weather effects, or other sections independently.</div> <div id="settings-inheritance-options" class="settings-inheritance-options"></div> </div>
@@ -947,7 +947,7 @@
    <h3>Software update</h3>
    <div class="howto">LibreDisplay checks the official GitHub release automatically when Settings opens and continues checking while Settings stays open. Updates are never installed automatically.</div>
    <div class="settings-grid">
-    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.14.32</div></div>
+    <div class="s-row"><label>Installed version</label><div id="software-update-current" class="settings-note">v1.14.33</div></div>
     <div class="s-row"><label>Update status</label><div id="software-update-status" class="settings-note">Checking GitHub…</div></div>
    </div>
    <div id="software-update-instructions" class="howto" style="display:none;margin-top:9px;"></div>
@@ -1081,7 +1081,8 @@
  <button id="layout-undo" type="button" data-ld-onclick="h155" disabled title="Undo (Ctrl/Cmd+Z)">Undo</button>
  <button id="layout-redo" type="button" data-ld-onclick="h156" disabled title="Redo (Ctrl/Cmd+Shift+Z)">Redo</button>
  <button id="layout-default-positions" type="button" data-ld-onclick="h157">Default positions</button>
- <button id="layout-reset-selected" type="button" data-ld-onclick="h158">Reset selected</button>
+ <button id="layout-reset-selected" type="button" data-ld-onclick="h158" title="Reset the selected whole element to its defaults">Reset element</button>
+ <button id="layout-recover-selected" type="button" data-ld-onclick="h282" title="Bring the selected element or internal section back into view without resetting its styling">Recover</button>
  <button id="layout-add-block" type="button" data-ld-onclick="h159">+ Add Block</button>
  <button id="layout-shortcuts-button" type="button" data-ld-onclick="h160" title="Keyboard shortcuts (?)">Shortcuts</button>
  <button id="layout-configure-block" class="block-action-hidden" type="button" data-ld-onclick="h161">Configure</button>
@@ -1102,8 +1103,9 @@
 <div id="layout-shortcuts-panel" aria-hidden="true">
  <div class="layout-shortcuts-head"><b>Arrange keyboard shortcuts</b><button type="button" data-ld-onclick="h170">Close</button></div>
  <div class="layout-shortcuts-grid">
-  <kbd>Shift/Ctrl/Cmd + click</kbd><span>Add/remove elements from a multi-selection.</span><kbd>Drag selected group</kbd><span>Move selected elements together; smart guides snap to neighboring edges and centers.</span><kbd>Alt + drag</kbd><span>Temporarily ignore magnetic smart guides.</span><kbd>Arrow keys</kbd><span>Nudge the selected element or selected group.</span>
+  <kbd>Shift/Ctrl/Cmd + click</kbd><span>Add/remove elements from a multi-selection.</span><kbd>Drag selected group</kbd><span>Move selected elements together; magnetic alignment snaps center axes to the nearest eligible center target.</span><kbd>Alt + drag</kbd><span>Temporarily ignore magnetic smart guides.</span><kbd>Arrow keys</kbd><span>Nudge the selected element or selected group.</span>
   <kbd>Shift + ↑↓←→</kbd><span>Resize the selected element.</span>
+  <kbd>Home</kbd><span>Recover the selected element or internal section if it was moved off-screen. Styling and content size are preserved.</span>
   <kbd>Delete</kbd><span>Delete the selected added block. Undo is available.</span>
   <kbd>Ctrl/Cmd + D</kbd><span>Duplicate the selected added block.</span>
   <kbd>Enter</kbd><span>Configure the selected added block.</span>
@@ -1121,7 +1123,7 @@
    <div class="layout-prop-label"><span>Edit section <button class="help-tip" type="button" aria-label="Inspector section help" data-help="Whole element affects the selected block broadly. Choose an internal section to tune only that title, value, event, label, icon, or subtitle.">?</button></span><span id="layout-part-scope-label">Whole element</span></div>
    <select id="layout-part-picker" class="layout-section-select" aria-label="Choose part of the selected element to edit" data-ld-onchange="h173"><option value="whole">Whole element</option></select>
    <div class="layout-prop-hint" style="margin-top:6px">Choose a specific title, label, value, event, or subtitle to style it without changing the rest of the element.</div>
-   <div class="layout-prop-row" style="margin-top:7px"><button type="button" data-ld-onclick="h174">Reset this style</button></div>
+   <div class="layout-prop-row" style="margin-top:7px"><button type="button" data-ld-onclick="h174">Reset this style</button><button type="button" data-ld-onclick="h282">Bring into view</button></div>
   </div>
   <div id="layout-integration-internal-section" class="layout-prop-section layout-integration-internal" hidden>
    <div class="layout-prop-label"><span id="layout-internal-heading">Arrange inside element <button class="help-tip" type="button" aria-label="Internal section arrangement help" data-help="Start with major sections. Choose an overall layout such as vertical, side-by-side, or three columns. Selecting a section does not turn it into free placement; drag it only when you intentionally want off-center positioning.">?</button></span><span id="layout-integration-parent-label">Element root</span></div>

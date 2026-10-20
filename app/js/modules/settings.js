@@ -1205,37 +1205,41 @@ async function enterFullscreen(){
   }catch(e){console.warn('fullscreen request failed',e);}
 }
 
+function layoutShortcutTypingTarget(target){const field=target?.closest?.('input,textarea,select,[contenteditable="true"]');if(!field)return false;if(field.matches?.('input[type="checkbox"],input[type="radio"],input[type="button"],input[type="submit"],input[type="reset"]'))return false;return true;}
+function layoutShortcutNativeActivationTarget(target){return !!target?.closest?.('button,a[href],[role="button"],input[type="checkbox"],input[type="radio"],input[type="button"],input[type="submit"],input[type="reset"]');}
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&settingsApi().activeContextHelpTip){e.preventDefault();hideContextHelp(true);return;}
   if(e.key==='Escape'&&quickAccessMenuOpen){e.preventDefault();closeQuickAccessMenu();document.getElementById('cog')?.focus({preventScroll:true});return;}
   if(e.key==='Escape'&&settingsApi().settingsPreviewMode){e.preventDefault();returnToSettingsPreview();return;}
   if(remoteLayoutProxyActive){
-    const win=remoteLayoutFrame()?.contentWindow,doc=remoteLayoutInnerDocument(),editingText=!!e.target?.closest?.('input,textarea,select,button,[contenteditable="true"]');
+    const win=remoteLayoutFrame()?.contentWindow,doc=remoteLayoutInnerDocument(),typingTarget=layoutShortcutTypingTarget(e.target),nativeActivation=layoutShortcutNativeActivationTarget(e.target);
     if(e.key==='Escape'){e.preventDefault();if(doc?.getElementById('block-config-modal')?.classList.contains('show'))win?.closeBlockConfig?.();else if(doc?.getElementById('block-catalog')?.classList.contains('show'))win?.closeBlockCatalog?.();else if(doc?.getElementById('layout-shortcuts-panel')?.classList.contains('show'))win?.toggleLayoutShortcuts?.(false);else win?.cancelLayoutEditor?.();scheduleRemoteLayoutProxySync();return;}
-    if(!editingText&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();win?.saveLayoutEditor?.();return;}
-    if(!editingText&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();if(e.shiftKey)win?.redoLayoutEditor?.();else win?.undoLayoutEditor?.();scheduleRemoteLayoutProxySync();return;}
-    if(!editingText&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();win?.redoLayoutEditor?.();scheduleRemoteLayoutProxySync();return;}
-    if(!editingText&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){e.preventDefault();win?.duplicateSelectedCustomBlock?.();scheduleRemoteLayoutProxySync();return;}
-    if(!editingText&&(e.key==='Delete'||e.key==='Backspace')){if(win?.deleteSelectedCustomBlock?.(false)){e.preventDefault();scheduleRemoteLayoutProxySync();}return;}
-    if(!editingText&&e.key==='Enter'){if(doc?.querySelector('.layout-edit-box.selected[data-layout-key^="custom:"]')){e.preventDefault();win?.configureSelectedCustomBlock?.();scheduleRemoteLayoutProxySync();}return;}
-    if(!editingText&&e.key.toLowerCase()==='a'&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();win?.openBlockCatalog?.();scheduleRemoteLayoutProxySync();return;}
-    if(!editingText&&e.key==='?'){e.preventDefault();win?.toggleLayoutShortcuts?.();scheduleRemoteLayoutProxySync();return;}
-    if(!editingText&&(e.key==='['||e.key===']')){e.preventDefault();win?.changeSelectedBlockLayer?.(e.key==='['?-1:1);scheduleRemoteLayoutProxySync();return;}
-    if(!editingText&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)&&win?.nudgeSelectedLayoutBlock?.(e.key,e.shiftKey)){e.preventDefault();scheduleRemoteLayoutProxySync();return;}
+    if(!typingTarget&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();win?.saveLayoutEditor?.();return;}
+    if(!typingTarget&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();if(e.shiftKey)win?.redoLayoutEditor?.();else win?.undoLayoutEditor?.();scheduleRemoteLayoutProxySync();return;}
+    if(!typingTarget&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();win?.redoLayoutEditor?.();scheduleRemoteLayoutProxySync();return;}
+    if(!typingTarget&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){e.preventDefault();win?.duplicateSelectedCustomBlock?.();scheduleRemoteLayoutProxySync();return;}
+    if(!typingTarget&&(e.key==='Delete'||e.key==='Backspace')){if(win?.deleteSelectedCustomBlock?.(false)){e.preventDefault();scheduleRemoteLayoutProxySync();}return;}
+    if(!typingTarget&&!nativeActivation&&e.key==='Enter'){if(doc?.querySelector('.layout-edit-box.selected[data-layout-key^="custom:"]')){e.preventDefault();win?.configureSelectedCustomBlock?.();scheduleRemoteLayoutProxySync();}return;}
+    if(!typingTarget&&e.key.toLowerCase()==='a'&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();win?.openBlockCatalog?.();scheduleRemoteLayoutProxySync();return;}
+    if(!typingTarget&&e.key==='?'){e.preventDefault();win?.toggleLayoutShortcuts?.();scheduleRemoteLayoutProxySync();return;}
+    if(!typingTarget&&(e.key==='['||e.key===']')){e.preventDefault();win?.changeSelectedBlockLayer?.(e.key==='['?-1:1);scheduleRemoteLayoutProxySync();return;}
+    if(!typingTarget&&e.key==='Home'&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();win?.recoverSelectedLayoutItem?.();scheduleRemoteLayoutProxySync();return;}
+    if(!typingTarget&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)&&win?.nudgeSelectedLayoutBlock?.(e.key,e.shiftKey)){e.preventDefault();scheduleRemoteLayoutProxySync();return;}
   }
   if(layoutEditorActive){
-    const interactive=!!e.target?.closest?.('input,textarea,select,button,[contenteditable="true"]'),configOpen=document.getElementById('block-config-modal')?.classList.contains('show'),catalogOpen=document.getElementById('block-catalog')?.classList.contains('show'),shortcutsOpen=document.getElementById('layout-shortcuts-panel')?.classList.contains('show');
+    const typingTarget=layoutShortcutTypingTarget(e.target),nativeActivation=layoutShortcutNativeActivationTarget(e.target),configOpen=document.getElementById('block-config-modal')?.classList.contains('show'),catalogOpen=document.getElementById('block-catalog')?.classList.contains('show'),shortcutsOpen=document.getElementById('layout-shortcuts-panel')?.classList.contains('show');
     if(e.key==='Escape'){e.preventDefault();if(configOpen)closeBlockConfig();else if(catalogOpen)closeBlockCatalog();else if(shortcutsOpen)toggleLayoutShortcuts(false);else cancelLayoutEditor();return;}
-    if(interactive)return;
+    if(typingTarget)return;
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveLayoutEditor();return;}
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();if(e.shiftKey)redoLayoutEditor();else undoLayoutEditor();return;}
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();redoLayoutEditor();return;}
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){e.preventDefault();duplicateSelectedCustomBlock();return;}
     if(e.key==='Delete'||e.key==='Backspace'){if(deleteSelectedCustomBlock(false))e.preventDefault();return;}
-    if(e.key==='Enter'&&customKeyId(layoutSelectedKey)){e.preventDefault();configureSelectedCustomBlock();return;}
+    if(!nativeActivation&&e.key==='Enter'&&customKeyId(layoutSelectedKey)){e.preventDefault();configureSelectedCustomBlock();return;}
     if(e.key.toLowerCase()==='a'&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();openBlockCatalog();return;}
     if(e.key==='?'){e.preventDefault();toggleLayoutShortcuts();return;}
     if(e.key==='['||e.key===']'){if(customKeyId(layoutSelectedKey)){e.preventDefault();changeSelectedBlockLayer(e.key==='['?-1:1);}return;}
+    if(e.key==='Home'&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();recoverSelectedLayoutItem();return;}
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)&&nudgeSelectedLayoutBlock(e.key,e.shiftKey)){e.preventDefault();return;}
     return;
   }
@@ -1737,6 +1741,7 @@ const DASHBOARD_EVENT_HANDLERS=Object.freeze({
   h279:function(event){LibreDisplayRuntime.getModule('layout').setBuiltInPartGeometry('z',this.value)},
   h280:function(event){LibreDisplayRuntime.getModule('layout').resetBuiltInPartArrangement()},
   h281:function(event){LibreDisplayRuntime.getModule('layout').resetAllBuiltInPartArrangements()},
+  h282:function(event){recoverSelectedLayoutItem()},
 });
 const DASHBOARD_DELEGATED_EVENTS=Object.freeze(['click','input','change','keydown','dragstart','dragend','dragover','drop']);
 function delegatedEventElement(event,attr){const target=event?.target;return target&&typeof target.closest==='function'?target.closest('['+attr+']'):null;}

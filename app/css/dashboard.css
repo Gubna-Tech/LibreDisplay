@@ -894,6 +894,8 @@ body.remote-layout-proxy #layout-editor-layer{display:none!important}
   overflow:hidden;
   text-overflow:ellipsis;
 }
+#layout-selected-info.layout-needs-recovery{font-weight:800;text-decoration:underline;text-underline-offset:2px}
+
 .layout-edit-placeholder {
   display:none;
 }
