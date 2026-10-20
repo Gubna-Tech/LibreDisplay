@@ -5,7 +5,7 @@ Run this on the LibreDisplay host while the kiosk is open. It samples the same
 local system-health payload used by Settings, so no owner token, private feed
 URL, coordinates, credentials, or browser history are written to the report.
 
-Release-gate runs use an append-only journal so deliberate reboots or power
+Extended checks use an append-only journal so deliberate reboots or power
 cycles do not discard the soak. Re-run the same command with --resume after the
 host returns to continue the original wall-clock test window.
 """
@@ -692,7 +692,7 @@ def assess_readiness(summary, expected, requested_minutes, actual_minutes, inter
     return {
         "status": status,
         "releaseGate": bool(release_gate),
-        "readyToPublish": bool(release_gate and status == "pass"),
+        "extendedCheckPassed": bool(release_gate and status == "pass"),
         "requiredChecks": sum(1 for row in checks if row["required"]),
         "passedRequiredChecks": sum(1 for row in checks if row["required"] and row["ok"]),
         "checks": checks,
@@ -734,8 +734,8 @@ def render_markdown(report):
         f"# LibreDisplay v{report.get('libreDisplayVersion') or 'unknown'} field-readiness soak",
         "",
         f"- Assessment: **{status}**",
-        f"- Release gate: {'yes' if report.get('releaseGate') else 'no'}",
-        f"- Ready to publish from this field gate: {'yes' if assessment.get('readyToPublish') else 'no'}",
+        f"- Extended reliability check: {'yes' if report.get('releaseGate') else 'no'}",
+        f"- Extended check passed: {'yes' if assessment.get('extendedCheckPassed') else 'no'}",
         f"- Label: {report.get('label') or 'unlabeled'}",
         f"- Started: {report.get('startedAt')}",
         f"- Finished: {report.get('finishedAt')}",
@@ -747,7 +747,7 @@ def render_markdown(report):
         f"- CPU cores: {hardware.get('cpuCount') or 'unknown'}",
         f"- Memory total: {fmt_bytes(hardware.get('memoryTotalBytes'))}",
         "",
-        "## Release-readiness checks",
+        "## Reliability checks",
         "",
     ]
     for row in assessment.get("checks") or []:
@@ -975,14 +975,16 @@ def run_soak(deadline_epoch, interval_seconds, journal, samples):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Collect a privacy-safe LibreDisplay Pi/browser field-readiness soak report.")
-    parser.add_argument("--duration-minutes", type=float, default=None, help="How long to sample. Default: 30 minutes, or 720 minutes with --release-gate.")
+    parser.add_argument("--duration-minutes", type=float, default=None, help="How long to sample. Default: 30 minutes, or 720 minutes with --extended-check.")
     parser.add_argument("--interval-seconds", type=float, default=None, help="Seconds between samples. Default: 15; --resume preserves the original interval.")
     parser.add_argument("--once", action="store_true", help="Collect one sample immediately instead of a timed soak.")
-    parser.add_argument("--release-gate", action="store_true", help="Run the strict 12-hour release-readiness field gate with reboot/reconnect/kiosk-recovery evidence.")
+    parser.add_argument("--extended-check", action="store_true", help="Run the resumable 12-hour reliability check with network, browser, and host recovery exercises.")
+    parser.add_argument("--release-gate", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--resume", action="store_true", help="Resume a prior interrupted/power-cycled run from its append-only journal.")
-    parser.add_argument("--label", default="", help="Optional label such as pi3-living-room or pi4-regression.")
+    parser.add_argument("--label", default="", help="Optional label such as pi3-living-room or pi4-wall-display.")
     parser.add_argument("--output", type=Path, default=None, help="JSON report path. A Markdown summary is written beside it.")
     args = parser.parse_args(argv)
+    args.release_gate = bool(args.release_gate or args.extended_check)
 
     duration_minutes = args.duration_minutes
     if duration_minutes is None:
@@ -992,9 +994,9 @@ def main(argv=None):
     if args.interval_seconds is not None and args.interval_seconds < 1:
         parser.error("--interval-seconds must be at least 1")
     if args.release_gate and args.once:
-        parser.error("--once cannot be used with --release-gate")
+        parser.error("--once cannot be used with --extended-check")
     if args.release_gate and duration_minutes < RELEASE_GATE_MINUTES:
-        parser.error(f"--release-gate requires at least {RELEASE_GATE_MINUTES} minutes")
+        parser.error(f"--extended-check requires at least {RELEASE_GATE_MINUTES} minutes")
 
     output = (args.output or default_output_path(args.release_gate)).expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -1012,7 +1014,7 @@ def main(argv=None):
         if str(header.get("libreDisplayVersion") or "") != current_version:
             parser.error(f"The resumable soak was started on LibreDisplay v{header.get('libreDisplayVersion')}; installed version is v{current_version}.")
         if bool(header.get("releaseGate")) != bool(args.release_gate):
-            parser.error("Resume with the same --release-gate mode used by the original soak.")
+            parser.error("Resume with the same --extended-check mode used by the original soak.")
         original_interval = float(header.get("intervalSeconds") or 15.0)
         if args.interval_seconds is not None and abs(float(args.interval_seconds) - original_interval) > 1e-9:
             parser.error(f"Resume with the original --interval-seconds value ({original_interval:g}).")
@@ -1042,16 +1044,16 @@ def main(argv=None):
         write_journal_header(journal, header)
 
     if args.release_gate:
-        print(f"LibreDisplay v{current_version or 'unknown'} release field gate")
+        print(f"LibreDisplay v{current_version or 'unknown'} extended reliability check")
         print(f"Resume journal: {journal}")
         if args.resume:
             print(f"Resuming the original soak started at {header.get('startedAt')}.")
         else:
-            print("Required real-device exercises during this 12-hour gate:")
+            print("Required real-device exercises during this 12-hour check:")
             print("1. Disconnect and restore network connectivity long enough for the display to enter recovery.")
             print("2. Reload/restart the LibreDisplay kiosk/browser once and confirm it returns.")
-            print("3. Reboot or power-cycle the host once. After it returns, run: libredisplay field-check --release-gate --resume")
-        print("The gate only passes when those recovery events are recorded and the final state is healthy.\n")
+            print("3. Reboot or power-cycle the host once. After it returns, run: libredisplay field-check --extended-check --resume")
+        print("The check only passes when those recovery events are recorded and the final state is healthy.\n")
 
     started = parse_utc(header.get("startedAt")) or datetime.now(timezone.utc)
     target_seconds = 0.0 if args.once else float(header.get("requestedDurationMinutes") or duration_minutes) * 60.0
@@ -1089,10 +1091,10 @@ def main(argv=None):
     print(f"Markdown: {markdown}")
     if journal.exists() and (interrupted or (args.release_gate and assessment.get("status") == "incomplete")):
         print(f"Resume journal: {journal}")
-        print("Resume with: libredisplay field-check --release-gate --resume" if args.release_gate else f"Resume with: libredisplay field-check --resume --output {output}")
+        print("Resume with: libredisplay field-check --extended-check --resume" if args.release_gate else f"Resume with: libredisplay field-check --resume --output {output}")
     elif journal.exists() and args.release_gate and assessment.get("status") == "fail":
         print(f"Failed gate journal retained for inspection: {journal}")
-        print("Correct the failed condition, then start a new release gate rather than resuming this invalid soak.")
+        print("Correct the failed condition, then start a new extended check rather than resuming this invalid soak.")
     elif journal.exists():
         journal.unlink(missing_ok=True)
 

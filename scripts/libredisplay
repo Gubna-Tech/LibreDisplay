@@ -580,7 +580,7 @@ def run_field_check(duration_minutes=None, interval_seconds=None, once=False, re
     elif duration_minutes is not None:
         command.extend(["--duration-minutes", str(duration_minutes)])
     if release_gate:
-        command.append("--release-gate")
+        command.append("--extended-check")
     if resume:
         command.append("--resume")
     if interval_seconds is not None:
@@ -629,12 +629,13 @@ def main():
     update_parser = sub.add_parser("update", help="Back up and update LibreDisplay to the newest GitHub release.")
     update_parser.add_argument("--no-reboot", action="store_true", help="Install the update without rebooting afterward.")
     field_parser = sub.add_parser("field-check", help="Collect a privacy-safe Pi/browser field-readiness soak report.")
-    field_parser.add_argument("--duration-minutes", type=float, default=None, help="How long to sample. Default: 30 minutes, or 720 minutes with --release-gate.")
+    field_parser.add_argument("--duration-minutes", type=float, default=None, help="How long to sample. Default: 30 minutes, or 720 minutes with --extended-check.")
     field_parser.add_argument("--interval-seconds", type=float, default=None, help="Seconds between samples. Default: 15; --resume preserves the original interval.")
     field_parser.add_argument("--once", action="store_true", help="Collect one sample immediately.")
-    field_parser.add_argument("--release-gate", action="store_true", help="Run the strict resumable 12-hour release field gate for the installed LibreDisplay version.")
-    field_parser.add_argument("--resume", action="store_true", help="Resume a release/field soak after reboot, power loss, or interruption.")
-    field_parser.add_argument("--label", default="", help="Optional label such as pi3-living-room or pi4-regression.")
+    field_parser.add_argument("--extended-check", action="store_true", help="Run the resumable 12-hour reliability check for the installed LibreDisplay version.")
+    field_parser.add_argument("--release-gate", action="store_true", help=argparse.SUPPRESS)
+    field_parser.add_argument("--resume", action="store_true", help="Resume an interrupted field check after reboot, power loss, or interruption.")
+    field_parser.add_argument("--label", default="", help="Optional label such as pi3-living-room or pi4-wall-display.")
     field_parser.add_argument("--output", default="", help="Optional JSON output path; Markdown is written beside it.")
     sub.add_parser("version", help="Show the installed LibreDisplay version.")
     args = parser.parse_args()
@@ -672,7 +673,7 @@ def main():
     if args.command == "update":
         return update(no_reboot=args.no_reboot)
     if args.command == "field-check":
-        return run_field_check(duration_minutes=args.duration_minutes, interval_seconds=args.interval_seconds, once=args.once, release_gate=args.release_gate, resume=args.resume, label=args.label, output=args.output)
+        return run_field_check(duration_minutes=args.duration_minutes, interval_seconds=args.interval_seconds, once=args.once, release_gate=bool(args.extended_check or args.release_gate), resume=args.resume, label=args.label, output=args.output)
     return 2
 
 

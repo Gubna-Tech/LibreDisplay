@@ -799,7 +799,7 @@ for _field in MANIFEST.get("settings") or []:
     if _paths:
         _field.update({"cacheKey": False, "responsePaths": _paths})
 
-# Keep only sourced passages that read coherently on their own. Fragmentary built-in lyric rows remain in the source catalog for provenance, but the unattended reel filters them out instead of inventing missing words.
+# Keep only sourced passages that read coherently on their own. Fragmentary built-in lyric rows remain in the source catalog, but the unattended reel filters them out instead of inventing missing words.
 BASE_LYRIC_PASSAGES=[
     {"key":"lyrics","kind":"lyric","member":"Franklin's Tower","quote":"May the four winds blow you safely home","source":"Dead.net lyrics","url":"https://www.dead.net/song/franklins-tower"},
     {"key":"lyrics","kind":"lyric","member":"Terrapin Station","quote":"Some rise, some fall, some climb to get to Terrapin","source":"Dead.net lyrics","url":"https://www.dead.net/song/terrapin-station"},
@@ -830,9 +830,9 @@ BASE_LYRIC_PASSAGES=[
 
 ]
 
-# The source catalog retains short direct excerpts for provenance, but the runtime
-# reel now favors standalone lyric passages that make sense without the missing
-# neighboring line. Fragmentary rows are kept out of unattended rotation.
+# The source catalog retains short direct excerpts, but the runtime reel favors
+# standalone lyric passages that make sense without a missing neighboring line.
+# Fragmentary rows are kept out of unattended rotation.
 EXTRA_LYRIC_PASSAGES=[
     {"key":"lyric-bertha","kind":"lyric","member":"Bertha","quote":"Why don't you arrest me?","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
     {"key":"lyric-deal","kind":"lyric","member":"Deal","quote":"Don't you let that deal go down","source":"Dead.net lyrics","url":"https://www.dead.net/songs"},
@@ -2467,7 +2467,7 @@ def _setlistfm_enrichment(ctx,key,show,favorites):
     hits=[song for song in flat if any(t in song.lower() for t in favorites)][:10]
     return {'sets':sets[:8],'favoriteSongHits':hits,'url':plain_text(row.get('url'),300),'attribution':'setlist.fm','sourceKind':'api-key'}
 
-# Backwards-compatible helper name retained for companion/runtime contracts.
+# Backwards-compatible helper name retained for existing callers.
 def _setlist_enrichment(ctx,key,show,favorites):
     return _setlistfm_enrichment(ctx,key,show,favorites)
 

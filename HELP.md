@@ -877,7 +877,7 @@ Pi 3 Automatic prioritizes high-quality static scenery rather than continuous ex
 
 On Pi 4 and Pi 5, LibreDisplay preserves the full-detail bird/owl and dog artwork while keeping the compositor layer budget bounded. Wing flapping, dog gait/limbs/head/tail/accessory motion, wildlife species detail, and NatureScape density remain visually intact; moving subparts are not permanently promoted into separate browser surfaces. Still-image backgrounds are decoded while hidden and become compositor-ready only shortly before their rotation, so the dashboard does not keep two full-screen photos actively composed for most of the interval.
 
-Do not force maximum fidelity merely because a remote laptop looks smooth; the physical kiosk hardware is what matters. A release-time headless benchmark is a regression guard, not a substitute for attached-display validation.
+Do not force maximum fidelity merely because a remote laptop looks smooth; the physical kiosk hardware is what matters. Browser benchmarks are diagnostic aids, not a substitute for checking the attached display.
 
 ---
 
@@ -1750,10 +1750,10 @@ Longer sampling:
 libredisplay field-check --duration-minutes 60 --interval-seconds 15
 ```
 
-Strict long-running release field gate:
+Extended long-running reliability check:
 
 ```bash
-libredisplay field-check --release-gate
+libredisplay field-check --extended-check
 ```
 
 Resume an interrupted soak:
@@ -1764,7 +1764,7 @@ libredisplay field-check --resume
 
 Useful options also include `--label` and `--output`.
 
-Field checks are designed for privacy-safe physical-display readiness/performance evidence.
+Field checks are designed to collect privacy-safe physical-display readiness and performance diagnostics.
 
 ---
 
@@ -2599,7 +2599,7 @@ A backup on the same failing storage device is not enough for disaster recovery.
 
 ### Diagnose by subtraction
 
-Disable one expensive or suspicious component at a time. Ten simultaneous changes destroy useful evidence.
+Disable one expensive or suspicious component at a time. Changing many things at once makes the cause much harder to identify.
 
 ### Use read-only viewer credentials for unattended displays
 

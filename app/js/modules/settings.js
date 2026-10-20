@@ -1112,7 +1112,7 @@ LibreDisplayRuntime.exposeModule("settings", {updateSettingsPageHeader,settingsC
 const configApi=LibreDisplayRuntime.getModule('config');
 const settingsApi=()=>LibreDisplayRuntime.getModule("settings");
 const {resilientFetch}=LibreDisplayRuntime.getModule('shared');
-// Settings test actions, quick access, refresh, and fullscreen controls.
+// Settings connection checks, quick access, refresh, and fullscreen controls.
 
 const {readCalendarInputs,syncCalendarEditorRows}=LibreDisplayRuntime.getModule('onboarding');
 const {loadFolderBackgrounds,loadStockBackground,loadPhotos}=LibreDisplayRuntime.getModule('backgrounds');

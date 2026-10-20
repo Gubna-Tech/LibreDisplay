@@ -85,7 +85,7 @@ def strict_json_loads(value):
 ROOT = Path(__file__).resolve().parent
 # LibreDisplay launches the server with Python isolated mode (-I). Keep the
 # bundled pure-Python QR dependency consolidated in one deterministic archive so
-# the public release stays lean without depending on site-packages. Python's
+# the bundled dependency stays compact without depending on site-packages. Python's
 # standard zip importer can load the package directly from this trusted file.
 QR_VENDOR_ARCHIVE = ROOT / "qrcode_vendor.zip"
 if QR_VENDOR_ARCHIVE.is_file() and str(QR_VENDOR_ARCHIVE) not in sys.path:
