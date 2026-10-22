@@ -4636,3 +4636,12 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 @keyframes ldHalloweenBatNearWing_v11514{0%,100%{transform:rotate(-25deg) scaleY(.72) skewX(-5deg)}36%{transform:rotate(9deg) scaleY(1.05) skewX(1deg)}58%{transform:rotate(20deg) scaleY(.98) skewX(4deg)}78%{transform:rotate(-5deg) scaleY(.84) skewX(-2deg)}}
 .holiday-overlay-halloween .holiday-ghost-v2{animation:none!important;transition:none!important;transform:scale(var(--ghost-scale,1))!important;transform-origin:50% 50%!important}
 
+.holiday-overlay-halloween .holiday-bat-v2 .hbat-body,.weather-fx-halloween-wildlife-bat .hbat-body{fill:#120b15!important;stroke:rgba(87,60,100,.36)!important;stroke-width:.55!important}
+.holiday-overlay-halloween .holiday-bat-v2 .hbat-chest,.weather-fx-halloween-wildlife-bat .hbat-chest{fill:#0e0911!important;stroke:rgba(126,91,143,.24)!important;stroke-width:.45!important}
+.holiday-overlay-halloween .holiday-bat-v2 .hbat-belly,.weather-fx-halloween-wildlife-bat .hbat-belly{fill:rgba(58,38,69,.55)!important}
+.holiday-overlay-halloween .holiday-bat-v2 .hbat-neck,.weather-fx-halloween-wildlife-bat .hbat-neck{fill:#0b070d!important;opacity:.96!important}
+.holiday-overlay-halloween .holiday-bat-v2 .hbat-haunch,.weather-fx-halloween-wildlife-bat .hbat-haunch{fill:#100910!important;opacity:.94!important}
+.holiday-overlay-halloween .holiday-bat-v2 .hbat-leg,.weather-fx-halloween-wildlife-bat .hbat-leg{fill:none!important;stroke:rgba(95,69,109,.84)!important;stroke-width:.92!important;stroke-linecap:round;stroke-linejoin:round}
+.holiday-overlay-halloween .holiday-bat-v2 .hbat-eye,.weather-fx-halloween-wildlife-bat .hbat-eye{fill:#f6d39b!important;opacity:.95!important}
+.holiday-overlay-halloween .holiday-bat-v2 .hbat-snout,.weather-fx-halloween-wildlife-bat .hbat-snout{fill:#161018!important;stroke:rgba(142,111,154,.28)!important;stroke-width:.38!important}
+.holiday-overlay-halloween .holiday-bat-v2 .hbat-ear,.holiday-overlay-halloween .holiday-bat-v2 .hbat-head,.holiday-overlay-halloween .holiday-bat-v2 .hbat-tail,.weather-fx-halloween-wildlife-bat .hbat-ear,.weather-fx-halloween-wildlife-bat .hbat-head,.weather-fx-halloween-wildlife-bat .hbat-tail{fill:#0d0910!important}
