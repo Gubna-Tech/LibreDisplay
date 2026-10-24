@@ -135,13 +135,13 @@ function defaultBlockConfig(type){
 function customBlockById(id,list=cfg.customBlocks){return (list||[]).find(b=>b.id===id)||null;}
 function customKeyId(key){return String(key||'').startsWith('custom:')?String(key).slice(7):'';}
 function customBlockKey(id){return 'custom:'+id;}
-function customBlockMin(type,block=null){if(type==='integration')return [120,56];return {calendarview:[300,180],weatherview:[230,130],text:[140,70],countdown:[190,90],image:[120,100],qr:[130,130],shape:[60,30],button:[120,55],rss:[220,120],iframe:[220,140],video:[220,140],json:[190,100],todo:[190,120],family:[230,160],scheduled:[180,90],daily:[180,100],airquality:[190,110],suntimes:[190,110],icon:[70,70]}[type]||[120,70];}
+function customBlockMin(type,block=null){if(type==='integration')return [120,56];return {calendarview:[300,180],weatherview:[230,130],text:[140,70],countdown:[190,90],image:[120,100],qr:[130,130],shape:[60,30],button:[120,55],rss:[220,120],iframe:[220,140],video:[220,140],json:[190,100],todo:[190,120],family:[230,160],scheduled:[180,90],daily:[180,100],airquality:[290,110],suntimes:[190,110],icon:[70,70]}[type]||[120,70];}
 function customBlockRectSanitize(block,r){
   const [minW,minH]=customBlockMin(block?.type,block),vp=layoutViewportSize();let px=pxRectFromNormalized(r||block?.rect||{});
   px.width=Math.max(minW,Math.min(vp.width,px.width));px.height=Math.max(minH,Math.min(vp.height,px.height));px.left=Math.max(0,Math.min(vp.width-px.width,px.left));px.top=Math.max(0,Math.min(vp.height-px.height,px.top));return normalizedRectFromPx(px);
 }
 function customBlockRectForDisplay(block,r=block?.rect){
-  if(validStoredLayoutRect(r))return cloneLayoutRect(r);
+  if(validStoredLayoutRect(r))return block?.type==='airquality'?customBlockRectSanitize(block,r):cloneLayoutRect(r);
   if(validLayoutRect(r))return customBlockRectSanitize(block,r);
   return customBlockRectSanitize(block,defaultBlockRect(block?.type));
 }

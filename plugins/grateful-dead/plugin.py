@@ -2279,6 +2279,84 @@ LYRIC_COMPLETE_SHORT_ALLOWLIST={
     'Victim or the Crime',
 }
 
+# Default unattended rotation is deliberately curated. The full sourced catalog
+# remains available in Catalog order, but normal shuffle should feel like a
+# collection of memorable, self-contained thoughts rather than transcript scraps.
+CURATED_MEMBER_QUOTE_TEXTS={
+    'All it takes to create another reality is people living in it.',
+    'Whatever makes Grateful Dead run is something continuous.',
+    'I approach interviews the same way I approach music.',
+    'Shit, I would pay to play music.',
+    "I'd enjoy it whether we were obscure or hugely successful.",
+    "Live music is where it's at for us.",
+    'Our idea of performance is what we do live.',
+    'The pursuit of happiness is the basic, ultimate freedom.',
+    'Constantly choosing the lesser of two evils is still choosing evil.',
+    'Music is a good way to encapsulate a lot of it.',
+    'You have to allow it to happen.',
+    "The nature of what we're doing is non-formulaic.",
+    'Music goes way back before language does.',
+    'Music is like the key to a spiritual existence.',
+    'You start recognizing habits; then you have to break them.',
+    "There's so much great music that's already happened.",
+    "We're just inviting adventure into our life.",
+    'Adventure carries a little baggage.',
+    'Everybody has something to bring to the table.',
+    "You've got to intend to be there when it's happening.",
+    'Slowly you become your own man.',
+    "Sometimes the magic works and sometimes it doesn't.",
+    "Certain kinds of people just can't live life taking risks.",
+    'The same song on a different day was a different song.',
+    "The pervasive attitude is that it's crazy to invite danger.",
+    "There's a rawness to it that we'll prolly never get again.",
+    'The structural techniques seemed infinitely applicable.',
+    'It seemed logical to apply those structural techniques.',
+    'To sing a simple round is truly an enlightening experience.',
+    'There was always so much encouragement from Deadheads.',
+    'We need to support the arts in schools.',
+    'Everything we ever did demonstrated the value of cross-fertilization.',
+    'We had all these different influences.',
+    "Nobody told us we couldn't do it.",
+    'I wanted our music to be jaw-dropping.',
+    'The Deadheads are the people who play the band.',
+    'Turn the lights down low and the sound up.',
+    'The groove is right; the rhythm is right.',
+    'Every star, every planet sings its own song.',
+    'My whole life is about rhythm.',
+    'Music has to happen in the moment.',
+    'Being able to follow the muse is a real privilege.',
+    'Rhythm and vibrations are the basis of all life.',
+    'Rhythm made me feel whole.',
+    'Our early years were some of the most exciting times for me.',
+    'Our creative juices knew no bounds.',
+    'I am just a guy who plays drums.',
+    "I don't care about posing.",
+    'I care about being able to play.',
+    'Playing with integrity is what matters.',
+    "There's no expectations; it's encouragement to be different.",
+    "We're doing this for fun.",
+    'The Dead is some kind of contact with an audience.',
+    'Communication is terribly important.',
+    'I just wanted to play the drums.',
+    'We sort of threw the spaghetti at the wall.',
+    "We don't see boundaries or classifications.",
+    "I don't want to listen to it. I want to play it.",
+    "Yeah I'm starting to get turned on to different textures.",
+    "When I sing again, it's going to be with that band.",
+    'Evolved is the operative word.',
+    'And we just love these songs. Period.',
+    "They're very much a family.",
+    'It turned out to be a beautiful world.',
+    "It's all just a big, beautiful world now.",
+}
+
+def _quote_is_rotation_quality(row):
+    if str(row.get('source') or '')=='Personal quote pack' or str(row.get('key') or '')=='custom':
+        return True
+    if str(row.get('kind') or 'quote')!='quote':
+        return True
+    return str(row.get('quote') or '').strip() in CURATED_MEMBER_QUOTE_TEXTS
+
 def _quote_has_standalone_context(row):
     # Personal packs are user-authored and should not be second-guessed. Built-in
     # lyric material is held to a stronger standard: prefer full standalone lines
@@ -2292,10 +2370,14 @@ def _quote_has_standalone_context(row):
     return words >= 5
 
 def _quote_rows(settings,today):
-    rows=[_contextualize_quote_row(x) for x in (QUOTES+EXTRA_LYRIC_PASSAGES+_custom_quotes(settings.get('customQuotes'))) if _quote_has_standalone_context(x)]
+    order=str(settings.get('quoteOrder') or 'daily-shuffle').lower()
+    catalog=(order=='catalog')
+    requested_member=str(settings.get('quoteMember') or 'all').lower()
+    source_rows=QUOTES+EXTRA_LYRIC_PASSAGES+_custom_quotes(settings.get('customQuotes'))
+    rows=[_contextualize_quote_row(x) for x in source_rows if _quote_has_standalone_context(x) and (catalog or _quote_is_rotation_quality(x) or (requested_member!='all' and str(x.get('kind') or 'quote')=='quote' and str(x.get('key') or '').lower()==requested_member))]
     # Keep one concise contextual card per source passage. Non-catalog rotation adds
     # only a stable rotation key; it no longer multiplies each excerpt into lens essays.
-    if str(settings.get('quoteOrder') or 'daily-shuffle').lower()!='catalog':
+    if not catalog:
         rows=_expand_contextual_rotation(rows)
     deduped=[];seen=set()
     for row in rows:
@@ -2306,13 +2388,12 @@ def _quote_rows(settings,today):
     content=str(settings.get('quoteContent') or 'mixed').lower()
     if content not in ('mixed','quotes','lyrics'):
         content='mixed'
-    member=str(settings.get('quoteMember') or 'all').lower()
+    member=requested_member
     quote_rows=[x for x in rows if x.get('kind','quote')=='quote']
     lyric_rows=[x for x in rows if x.get('kind')=='lyric']
     if member!='all':
         filtered=[x for x in quote_rows if x.get('key')==member]
         if filtered: quote_rows=filtered
-    order=str(settings.get('quoteOrder') or 'daily-shuffle').lower()
     def ordered(items, kind):
         items=list(items)
         if order!='catalog' and items:

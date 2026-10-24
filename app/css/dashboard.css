@@ -4664,3 +4664,5 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 .holiday-overlay-halloween .holiday-ghost-v2 .ghost-brow-soft{stroke-width:1.8!important;opacity:.88!important}
 .holiday-overlay-halloween .holiday-ghost-v2 .ghost-blush{fill:rgba(246,198,208,.46)!important}
 .holiday-overlay-halloween .holiday-ghost-v2 .ghost-cheek{fill:none;stroke:rgba(244,195,205,.58)!important;stroke-width:1.3!important;stroke-linecap:round}
+.custom-block[data-block-type="airquality"] .custom-aq-wrap{grid-template-columns:max-content minmax(0,1fr)}
+.custom-block[data-block-type="airquality"] .custom-aq-label{min-width:0;white-space:normal;overflow-wrap:normal;word-break:normal;line-height:1.12}
