@@ -3,7 +3,7 @@
 // Settings dirty-state, updates, health, provider status, and diagnostics.
 const {renderDisplayReadiness}=LibreDisplayRuntime.getModule('remote');
 const configApi=LibreDisplayRuntime.getModule('config');
-const {ensureCfgDefaults,saveCfg}=configApi;
+const {ensureCfgDefaults,persistCfgToServer}=configApi;
 const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 const {serverPath}=bootstrapApi;
 const integrationsApi=LibreDisplayRuntime.getModule('integrations');
@@ -570,7 +570,7 @@ async function downloadDiagnostics(){
   a.href=url;a.download=`LibreDisplay-diagnostics-${stamp}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),500);
   const el=document.getElementById('diagnostics-status');if(el){el.style.display='block';el.textContent='Diagnostics downloaded. Private calendar/background URLs and coordinates were omitted.';}
 }
-async function restorePreviousSettings(){
+function restorePreviousSettings(){
   let prev=null,current=null;
   try{prev=localStorage.getItem(bootstrapApi.CFG_BACKUP_KEY);current=localStorage.getItem(bootstrapApi.CFG_KEY);}catch(e){}
   if(!prev){alert('No previous saved configuration is available yet.');return;}
@@ -579,8 +579,9 @@ async function restorePreviousSettings(){
     const parsed=JSON.parse(prev);
     if(!parsed||typeof parsed!=='object')throw new Error('Invalid backup');
     if(current)localStorage.setItem(bootstrapApi.CFG_BACKUP_KEY,current);
-    const migrated=configApi.migrateConfigSnapshot(parsed,{rejectFuture:true});cfg={...cfg,...migrated};ensureCfgDefaults();
-    const saved=await saveCfg();if(!saved?.ok)throw new Error(saved?.error||'Could not persist the restored settings.');
+    const migrated=configApi.migrateConfigSnapshot(parsed,{rejectFuture:true});cfg={...cfg,...migrated};ensureCfgDefaults();cfg._savedAt=Date.now();
+    localStorage.setItem(bootstrapApi.CFG_KEY,JSON.stringify(cfg));
+    persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
     configApi.alertRuntimeState=null;window.__uiPreviewCfg=null;applySettings();openSetup();
   }catch(e){alert('Could not restore the previous settings.');}
 }
@@ -715,7 +716,7 @@ async function applySelectedProfileToDisplay(){
   const label=profileDisplayName(endpoint);if(!confirm(`Apply profile “${p.name}” to “${label}”?
 
 This replaces that display's saved dashboard configuration. The profile itself is not changed.`))return;
-  try{const next=configApi.migrateConfigSnapshot(p.config,{rejectFuture:true});next.onboardingComplete=true;next._savedAt=Date.now();const res=await resilientFetch(endpointConfigPath(endpoint),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:next}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));next._savedAt=Math.max(0,Number(data.savedAt)||0);setActiveProfileForEndpoint(endpoint,id);persistProfiles();if(endpoint===bootstrapApi.ACTIVE_ENDPOINT){cfg={...cfg,...next};ensureCfgDefaults();try{localStorage.setItem(bootstrapApi.CFG_KEY,JSON.stringify(cfg));}catch{}configApi.alertRuntimeState=null;window.__uiPreviewCfg=null;applySettings();setAppearanceForm(cfg);}setProfileStatus(`Applied “${p.name}” to ${label}.`);renderProfileSelect();}catch(e){setProfileStatus('Could not apply profile: '+(e.message||e),true);}
+  try{const next=configApi.migrateConfigSnapshot(p.config,{rejectFuture:true});next.onboardingComplete=true;next._savedAt=Date.now();const res=await resilientFetch(endpointConfigPath(endpoint),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:next}),cache:'no-store'}),data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));setActiveProfileForEndpoint(endpoint,id);persistProfiles();if(endpoint===bootstrapApi.ACTIVE_ENDPOINT){cfg={...cfg,...next};ensureCfgDefaults();try{localStorage.setItem(bootstrapApi.CFG_KEY,JSON.stringify(cfg));}catch{}configApi.alertRuntimeState=null;window.__uiPreviewCfg=null;applySettings();setAppearanceForm(cfg);}setProfileStatus(`Applied “${p.name}” to ${label}.`);renderProfileSelect();}catch(e){setProfileStatus('Could not apply profile: '+(e.message||e),true);}
 }
 async function captureTargetDisplayAsProfile(){
   const endpoint=document.getElementById('s-profile-endpoint')?.value||bootstrapApi.ACTIVE_ENDPOINT,label=profileDisplayName(endpoint);let name=(document.getElementById('s-profile-name')?.value||'').trim();if(!name)name=label;

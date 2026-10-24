@@ -467,10 +467,8 @@ function stableConfigJson(value){
 }
 function persistedConfigMatches(snapshot,stored){
   if(!snapshot||!stored||typeof snapshot!=='object'||typeof stored!=='object')return false;
-  // _savedAt is assigned by the server.  Never require it to echo the
-  // remote browser's clock value or clock skew can break physical sync.
-  const expected={...snapshot},actual={...stored};delete expected._savedAt;delete actual._savedAt;
-  return stableConfigJson(actual)===stableConfigJson(expected);
+  if(Number(stored._savedAt||0)!==Number(snapshot._savedAt||0))return false;
+  return stableConfigJson(stored)===stableConfigJson(snapshot);
 }
 async function persistCfgToServer(snapshot){
   try{
@@ -481,11 +479,9 @@ async function persistCfgToServer(snapshot){
     if(!verify.ok)throw new Error('The display accepted the save but the stored configuration could not be read back for verification.');
     const verified=await verify.json().catch(()=>({})),stored=verified?.config;
     if(!verified?.exists||!persistedConfigMatches(snapshot,stored))throw new Error('The display did not return the same configuration after saving. Your changes were not locked because persistence could not be verified.');
-    const serverSavedAt=Math.max(0,Number(verified?.savedAt||stored?._savedAt||data?.savedAt)||0);
-    if(!serverSavedAt)throw new Error('The server verified the configuration but did not assign a synchronization revision.');
     serverConfigAvailable=true;serverConfigLastError='';
     updateSettingsOverview?.();
-    return {ok:true,verified:true,savedAt:serverSavedAt,endpoint:String(data?.endpoint||bootstrapApi.ACTIVE_ENDPOINT)};
+    return {ok:true,verified:true,savedAt:Number(data?.savedAt||snapshot?._savedAt||0),endpoint:String(data?.endpoint||bootstrapApi.ACTIVE_ENDPOINT)};
   }catch(e){
     serverConfigLastError=String(e?.message||e);
     updateSettingsOverview?.();
@@ -493,23 +489,8 @@ async function persistCfgToServer(snapshot){
   }
 }
 
-async function requestRemoteConfigDisplayApply(savedAt){
-  if(!bootstrapApi.REMOTE_SETTINGS_MODE||bootstrapApi.LOCAL_CLIENT_MODE)return {ok:true,requested:false};
-  const targetSavedAt=Math.max(0,Number(savedAt)||0);
-  try{
-    // Physical propagation is deliberately separate from persistence. A remote
-    // save is successful once the server has stored and verified the snapshot;
-    // the wall reload is a best-effort follow-up and can never invalidate or
-    // roll back that saved configuration.
-    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'reload',targetSavedAt}),cache:'no-store'},{timeoutMs:3500,attempts:1,retry:false});
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok||!data?.ok)throw new Error(data?.error||`HTTP ${response.status}`);
-    return {ok:true,requested:true,queued:true,endpoint:String(data.endpoint||bootstrapApi.ACTIVE_ENDPOINT),targetSavedAt};
-  }catch(error){return {ok:false,requested:true,queued:false,error:String(error?.message||error),targetSavedAt};}
-}
-
-async function saveCfg(){
-  if(configSchemaVersion(cfg)>CONFIG_SCHEMA_VERSION)return {ok:false,verified:false,error:`This configuration uses schema ${configSchemaVersion(cfg)}, but this LibreDisplay build supports schema ${CONFIG_SCHEMA_VERSION}. Upgrade LibreDisplay before saving changes.`};
+function saveCfg(){
+  if(configSchemaVersion(cfg)>CONFIG_SCHEMA_VERSION)return Promise.resolve({ok:false,error:`This configuration uses schema ${configSchemaVersion(cfg)}, but this LibreDisplay build supports schema ${CONFIG_SCHEMA_VERSION}. Upgrade LibreDisplay before saving changes.`});
   ensureCfgDefaults();
   cfg._savedAt=Date.now();
   try{
@@ -518,15 +499,7 @@ async function saveCfg(){
     if(prev&&prev!==next)localStorage.setItem(bootstrapApi.CFG_BACKUP_KEY,prev);
     localStorage.setItem(bootstrapApi.CFG_KEY,next);
   }catch(e){}
-  const persistence=await persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
-  if(!persistence?.ok||persistence?.verified!==true)return persistence;
-  cfg._savedAt=Math.max(0,Number(persistence.savedAt)||0);
-  try{localStorage.setItem(bootstrapApi.CFG_KEY,JSON.stringify(cfg));}catch(e){}
-  // Do not await the wall. This restores the pre-sync save contract: the saved
-  // server snapshot is authoritative and remains saved even if the kiosk is
-  // offline, slow, or unable to acknowledge a reload right now.
-  void requestRemoteConfigDisplayApply(cfg._savedAt);
-  return persistence;
+  return persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
 }
 
 function normalizeProfileStore(raw){
@@ -569,7 +542,7 @@ async function persistProfiles(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("config", {configSchemaVersion,configMigrationInfo,migrateConfigSnapshot,migrateConfig0To1,migrateConfig1To2,migrateConfig2To3,migrateConfig3To4,migrateConfig4To5,migrateConfig5To6,migrateConfig6To7,migrateConfig7To8,ensureCfgDefaults,loadCfg,persistCfgToServer,requestRemoteConfigDisplayApply,saveCfg,normalizeProfileStore,activeProfileIdForEndpoint,setActiveProfileForEndpoint,loadProfiles,persistProfiles}, {
+LibreDisplayRuntime.exposeModule("config", {configSchemaVersion,configMigrationInfo,migrateConfigSnapshot,migrateConfig0To1,migrateConfig1To2,migrateConfig2To3,migrateConfig3To4,migrateConfig4To5,migrateConfig5To6,migrateConfig6To7,migrateConfig7To8,ensureCfgDefaults,loadCfg,persistCfgToServer,saveCfg,normalizeProfileStore,activeProfileIdForEndpoint,setActiveProfileForEndpoint,loadProfiles,persistProfiles}, {
   "CONFIG_SCHEMA_VERSION": {configurable:true,get:()=>CONFIG_SCHEMA_VERSION},
   "CONFIG_MIGRATIONS": {configurable:true,get:()=>CONFIG_MIGRATIONS},
   "calendarEditorRows": {configurable:true,get:()=>calendarEditorRows,set:(value)=>{calendarEditorRows=value;}},

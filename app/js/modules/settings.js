@@ -286,7 +286,6 @@ function applySettings(){
   configApi.calendarTimer=performance.startManagedInterval('calendar-refresh',calendar.loadCalendars,cfg.calendarRefreshMin*60*1000,maintenanceOptions);
   configApi.alertTimer=performance.startManagedInterval('alert-refresh',weather.fetchWeatherAlerts,cfg.alertRefreshMin*60*1000,maintenanceOptions);
   try{LibreDisplayRuntime.getModule('settings').updateLightweightModeUi?.();LibreDisplayRuntime.getModule('settings').updateAnimationPerformanceUi?.();LibreDisplayRuntime.getModule('settings').updateDevicePerformanceGuide?.();}catch(_e){}
-  if(bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE){try{LibreDisplayRuntime.getModule('remote').noteDisplayConfigApplied?.(cfg?._savedAt);}catch(_e){}}
 }
 
 

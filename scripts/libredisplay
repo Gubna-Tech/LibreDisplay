@@ -16,7 +16,7 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 REPOSITORY = "Gubna-Tech/LibreDisplay"
-API_URL = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"
+API_URL = f"https://api.github.com/repos/{REPOSITORY}/releases?per_page=100"
 MAX_ARCHIVE_BYTES = 300 * 1024 * 1024
 MAX_MEMBER_BYTES = 150 * 1024 * 1024
 MAX_TOTAL_UNPACKED_BYTES = 700 * 1024 * 1024
@@ -361,17 +361,33 @@ def github_request(url, timeout=20):
         return response.read()
 
 
+def select_latest_release_payload(payload):
+    rows = payload if isinstance(payload, list) else [payload]
+    candidates = []
+    for row in rows:
+        if not isinstance(row, dict) or row.get("draft"):
+            continue
+        tag = str(row.get("tag_name") or "").strip()
+        try:
+            parts = version_tuple(tag)
+        except ValueError:
+            continue
+        candidates.append((parts, row))
+    if not candidates:
+        raise ValueError("GitHub returned no valid LibreDisplay release versions.")
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    return candidates[0][1]
+
+
 def latest_release():
     try:
-        payload = json.loads(github_request(API_URL, timeout=15).decode("utf-8"))
-    except (OSError, urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError) as exc:
+        raw_payload = json.loads(github_request(API_URL, timeout=15).decode("utf-8"))
+        payload = select_latest_release_payload(raw_payload)
+    except (OSError, urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, ValueError) as exc:
         fail(f"Could not check GitHub for LibreDisplay updates: {exc}")
 
     release_tag = str(payload.get("tag_name") or "").strip()
-    try:
-        parts = version_tuple(release_tag)
-    except ValueError:
-        fail("GitHub returned an invalid LibreDisplay release version.")
+    parts = version_tuple(release_tag)
     latest = ".".join(str(part) for part in parts)
 
     alternate_tag = release_tag[1:] if release_tag.lower().startswith("v") else "v" + release_tag

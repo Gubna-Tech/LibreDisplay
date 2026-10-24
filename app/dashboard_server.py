@@ -196,12 +196,11 @@ PLUGIN_API_VERSION = 1
 TRUSTED_PRIVATE_PLUGINS = {"home-assistant", "caldav-tasks", "sonos-now-playing"}
 PLUGINS = {}
 SCENE_LOCK = threading.Lock()
-CONFIG_WRITE_LOCK = threading.Lock()
 SCENE_ACTIVE = {}
 UPDATE_CHECK_LOCK = threading.Lock()
 UPDATE_CHECK_CACHE = {}
 UPDATE_CHECK_TTL_SECONDS = 6 * 60 * 60
-GITHUB_RELEASE_API = "https://api.github.com/repos/Gubna-Tech/LibreDisplay/releases/latest"
+GITHUB_RELEASE_API = "https://api.github.com/repos/Gubna-Tech/LibreDisplay/releases?per_page=100"
 UPDATE_RUN_LOCK = threading.Lock()
 UPDATE_RUN_STATE = {"state": "idle", "startedAt": 0, "targetVersion": "", "error": ""}
 UPDATE_LOG_PATH = DATA_ROOT / "update.log"
@@ -433,10 +432,10 @@ def apply_restore_point(point_id, expected_endpoint=""):
     scenes = normalize_scene_store(raw.get("scenes") if isinstance(raw.get("scenes"), dict) else {})
     # Keep a last-chance point before replacing live settings.
     create_restore_point(endpoint_id, "Before restore")
-    config, saved_at = write_endpoint_config_versioned(endpoint_id, config)
+    atomic_write_json_file(endpoint_config_path(endpoint_id), config, endpoint_backup_path(endpoint_id))
     atomic_write_json_file(PROFILES_PATH, profiles)
     atomic_write_json_file(SCENES_PATH, scenes)
-    publish_event(endpoint_id, "config", {"reason": "restore-point", "savedAt": saved_at})
+    publish_event(endpoint_id, "config", {"reason": "restore-point"})
     return {"endpoint": endpoint_id, "version": str(raw.get("version") or "unknown"), "createdUtc": raw.get("createdUtc") or ""}
 
 
@@ -881,15 +880,17 @@ def apply_scene_schedules(force=False):
             profile = profiles.get(desired) if desired else None
             if desired and profile:
                 config = json.loads(json.dumps(profile["config"]))
+                config["_savedAt"] = int(time.time() * 1000)
                 config["_sceneProfileId"] = desired
-                config, saved_at = write_endpoint_config_versioned(endpoint_id, config)
-                publish_event(endpoint_id, "config", {"savedAt": saved_at, "sceneProfileId": desired})
+                atomic_write_json_file(endpoint_config_path(endpoint_id), config, endpoint_backup_path(endpoint_id))
+                publish_event(endpoint_id, "config", {"savedAt": config["_savedAt"], "sceneProfileId": desired})
             elif not desired and base_path.exists():
                 baseline = load_json_path(base_path, None)
                 if isinstance(baseline, dict):
+                    baseline["_savedAt"] = int(time.time() * 1000)
                     baseline.pop("_sceneProfileId", None)
-                    baseline, saved_at = write_endpoint_config_versioned(endpoint_id, baseline)
-                    publish_event(endpoint_id, "config", {"savedAt": saved_at, "sceneProfileId": ""})
+                    atomic_write_json_file(endpoint_config_path(endpoint_id), baseline, endpoint_backup_path(endpoint_id))
+                    publish_event(endpoint_id, "config", {"savedAt": baseline["_savedAt"], "sceneProfileId": ""})
                 try:
                     base_path.unlink()
                 except Exception:
@@ -1156,7 +1157,7 @@ def pending_device_command(endpoint_id):
         return dict(command)
 
 
-def take_device_command(endpoint_id, observed_applied_saved_at=0):
+def take_device_command(endpoint_id, observed_saved_at=0):
     endpoint_id = endpoint_slug(endpoint_id or "main")
     now = int(time.time())
     with DEVICE_COMMAND_LOCK:
@@ -1170,12 +1171,12 @@ def take_device_command(endpoint_id, observed_applied_saved_at=0):
             return dict(command)
         target_saved_at = int(command.get("targetSavedAt") or 0)
         if target_saved_at > 0:
-            if int(observed_applied_saved_at or 0) >= target_saved_at:
+            if int(observed_saved_at or 0) >= target_saved_at:
                 DEVICE_PENDING_COMMANDS.pop(endpoint_id, None)
                 return None
-            # Keep config-sync commands durable until the wall display reports that
-            # the saved version was actually applied to its rendered dashboard.
-            # Merely loading cfg/_savedAt is not an acknowledgement.
+            # Keep config-sync commands durable until the kiosk reports that it
+            # actually loaded the saved configuration. The browser reload itself
+            # ends the current heartbeat, so this does not create a reload loop.
             return dict(command)
         DEVICE_PENDING_COMMANDS.pop(endpoint_id, None)
         return dict(command)
@@ -1955,29 +1956,6 @@ def endpoint_backup_path(endpoint_id):
     return ENDPOINT_CONFIG_DIR / f"{endpoint_id}.previous.json"
 
 
-def write_endpoint_config_versioned(endpoint_id, config):
-    """Persist a config with a server-authoritative monotonic revision.
-
-    Client clocks are not ordering authorities: a remote browser can be seconds,
-    minutes, or days behind/ahead of the Pi.  Every accepted write therefore gets
-    a revision strictly newer than the endpoint's currently stored config.
-    """
-    endpoint_id = endpoint_slug(endpoint_id or "main")
-    if not endpoint_by_id(endpoint_id):
-        raise ValueError("Unknown display endpoint")
-    if not isinstance(config, dict):
-        raise ValueError("Config must be a JSON object")
-    payload = json.loads(json.dumps(config))
-    with CONFIG_WRITE_LOCK:
-        previous = load_endpoint_config_resilient(endpoint_id)
-        previous_revision = max(0, int((previous or {}).get("_savedAt") or 0)) if isinstance(previous, dict) else 0
-        server_now = max(0, int(time.time() * 1000))
-        revision = max(server_now, previous_revision + 1)
-        payload["_savedAt"] = revision
-        atomic_write_json_file(endpoint_config_path(endpoint_id), payload, endpoint_backup_path(endpoint_id))
-    return payload, revision
-
-
 def requested_endpoint(parsed):
     values = parse_qs(parsed.query).get("endpoint", []) if parsed else []
     endpoint_id = endpoint_slug(values[0] if values else "main")
@@ -2638,9 +2616,21 @@ def github_update_status(force=False):
         )
         if status != 200:
             raise RuntimeError(f"GitHub returned HTTP {status}")
-        payload = json.loads(data.decode("utf-8"))
+        raw_payload = json.loads(data.decode("utf-8"))
+        rows = raw_payload if isinstance(raw_payload, list) else [raw_payload]
+        candidates = []
+        for row in rows:
+            if not isinstance(row, dict) or row.get("draft"):
+                continue
+            tag = str(row.get("tag_name") or "").strip()
+            parsed = semantic_version_tuple(tag)
+            if parsed is not None:
+                candidates.append((parsed, row))
+        if not candidates:
+            raise ValueError("GitHub returned no valid LibreDisplay release version")
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        latest_tuple, payload = candidates[0]
         release_tag = str(payload.get("tag_name") or "").strip()
-        latest_tuple = semantic_version_tuple(release_tag)
         latest = ".".join(str(part) for part in latest_tuple) if latest_tuple is not None else ""
         current_tuple = semantic_version_tuple(APP_VERSION)
         if current_tuple is None or latest_tuple is None:
@@ -4552,7 +4542,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             data = (ROOT / "dashboard.html").read_bytes()
         except Exception:
             return self.text_response(500, "Dashboard UI is unavailable")
-        return self.bytes_response(200, data, "text/html; charset=utf-8", {"Cache-Control": "no-store"})
+        return self.bytes_response(200, data, "text/html; charset=utf-8")
 
     def serve_frontend_asset(self, parsed):
         asset_kind = "js" if parsed.path.startswith("/js/") else "css" if parsed.path.startswith("/css/") else ""
@@ -4574,7 +4564,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         except Exception:
             return self.text_response(500, "Frontend asset is unavailable")
         content_type = "text/javascript; charset=utf-8" if asset_kind == "js" else "text/css; charset=utf-8"
-        return self.bytes_response(200, data, content_type, {"Cache-Control": "no-store"})
+        return self.bytes_response(200, data, content_type)
 
     def serve_public_asset(self, parsed):
         rel = unquote(parsed.path.removeprefix("/assets/")).replace("\\", "/")
@@ -5198,7 +5188,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     "mode": str((body or {}).get("mode") or "browser").strip()[:40],
                     "version": str((body or {}).get("version") or "").strip()[:40],
                     "configSavedAt": max(0, int((body or {}).get("configSavedAt") or 0)),
-                    "configAppliedAt": max(0, int((body or {}).get("configAppliedAt") or 0)),
                     "userAgent": str((body or {}).get("userAgent") or "").strip()[:220],
                     "frontendPerformance": normalize_frontend_performance((body or {}).get("frontendPerformance")),
                     "providerCache": normalize_provider_cache_status((body or {}).get("providerCache")),
@@ -5213,14 +5202,13 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     broker_release_transient_backoff()
                 pending_command = None
                 observed_saved_at = int(row.get("configSavedAt") or 0)
-                observed_applied_saved_at = int(row.get("configAppliedAt") or 0)
                 if row["mode"] == "local" and self.client_is_loopback():
                     previous_kiosk = load_json_path(KIOSK_HEARTBEAT_PATH, {})
                     previous_benchmark = normalize_display_performance_benchmark(previous_kiosk.get("displayPerformanceBenchmark")) if isinstance(previous_kiosk, dict) else {}
                     benchmark = row["displayPerformanceBenchmark"] or previous_benchmark
                     if row["displayPerformanceBenchmark"]:
                         acknowledge_device_command(endpoint_id, row["displayPerformanceBenchmark"])
-                    pending_command = take_device_command(endpoint_id, observed_applied_saved_at)
+                    pending_command = take_device_command(endpoint_id, observed_saved_at)
                     atomic_write_json_file(KIOSK_HEARTBEAT_PATH, {
                         "lastSeen": row["lastSeen"],
                         "endpoint": endpoint_id,
@@ -5244,7 +5232,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         "fontName": row["fontName"],
                         "version": row["version"],
                         "configSavedAt": row["configSavedAt"],
-                        "configAppliedAt": row["configAppliedAt"],
                         "userAgent": row["userAgent"],
                         "frontendPerformance": row["frontendPerformance"],
                         "providerCache": row["providerCache"],
@@ -5252,11 +5239,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         "layoutPreviewId": row["layoutPreviewId"],
                         "layoutRenderSnapshot": row["layoutRenderSnapshot"],
                     })
-                authoritative_config = load_endpoint_config_resilient(endpoint_id)
-                response_payload = {
-                    "ok": True,
-                    "serverConfigSavedAt": max(0, int((authoritative_config or {}).get("_savedAt") or 0)) if isinstance(authoritative_config, dict) else 0,
-                }
+                response_payload = {"ok": True}
                 if pending_command:
                     response_payload["pendingCommand"] = pending_command
                 return self.json_response(200, response_payload)
@@ -5339,9 +5322,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 endpoint_id = requested_endpoint(parsed)
                 if not endpoint_id:
                     raise ValueError("Unknown display endpoint")
-                config, saved_at = write_endpoint_config_versioned(endpoint_id, config)
-                publish_event(endpoint_id, "config", {"savedAt": saved_at})
-                return self.json_response(200, {"ok": True, "saved": True, "endpoint": endpoint_id, "savedAt": saved_at})
+                self.atomic_write_json(endpoint_config_path(endpoint_id), config, endpoint_backup_path(endpoint_id))
+                publish_event(endpoint_id, "config", {"savedAt": config.get("_savedAt", 0)})
+                return self.json_response(200, {"ok": True, "saved": True, "endpoint": endpoint_id, "savedAt": config.get("_savedAt", 0)})
             except ValueError as exc:
                 return self.json_response(400, {"ok": False, "error": str(exc)})
             except Exception as exc:

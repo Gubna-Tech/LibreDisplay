@@ -759,7 +759,8 @@ async function saveLayoutEditor(){
     }
     stopLayoutEditorUi();layoutEditorOriginal=null;layoutCustomBlocksOriginal=[];applyUiCustomization(cfg);updateLayoutModeStatus(cfg);
     requestAnimationFrame(()=>{applyUiCustomization(cfg);updateLayoutModeStatus(cfg);LibreDisplayRuntime.getModule('layout').scheduleBuiltInLayoutAutoFitDeferred?.();});
-    if(LAYOUT_PREVIEW_MODE&&window.parent!==window)notifyLayoutPreviewParent('saved');
+    const displayApply=await LibreDisplayRuntime.getModule('layout').requestSavedLayoutDisplayApply();
+    if(LAYOUT_PREVIEW_MODE&&window.parent!==window){if(!displayApply.ok)console.warn('Arrange layout saved, but the target display reload request could not be delivered immediately.',displayApply.error||'');notifyLayoutPreviewParent('saved');}
   }finally{
     layoutSaveInFlight=false;
     if(saveButton){saveButton.disabled=false;saveButton.textContent='Save & Lock';}
@@ -1260,7 +1261,7 @@ function reloadRemoteLayoutPreview(){
 async function handleEmbeddedLayoutEditorAction(action){
   if(action==='saved'){
     closeRemoteLayoutPreview({preservePhysical:true});
-    await LibreDisplayRuntime.getModule('remote').pollServerConfig({force:true});
+    await LibreDisplayRuntime.getModule('remote').pollServerConfig();
     openSetup(false);
     return;
   }
@@ -1309,7 +1310,7 @@ const {normalizeHexColor,resilientFetch}=LibreDisplayRuntime.getModule('shared')
 async function requestSavedLayoutDisplayApply(force=false){
   if(!force&&!LAYOUT_PREVIEW_MODE&&!bootstrapApi.REMOTE_SETTINGS_MODE)return {ok:true,requested:false};
   try{
-    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'reload',targetSavedAt:Number(cfg?._savedAt||0)}),cache:'no-store'},{timeoutMs:7000,attempts:2});
+    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'apply-config',targetSavedAt:Number(cfg?._savedAt||0)}),cache:'no-store'},{timeoutMs:7000,attempts:2});
     const data=await response.json().catch(()=>({}));
     if(!response.ok||!data?.ok)throw new Error(data?.error||`HTTP ${response.status}`);
     return {ok:true,requested:true,endpoint:String(data.endpoint||bootstrapApi.ACTIVE_ENDPOINT)};

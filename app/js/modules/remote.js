@@ -277,19 +277,17 @@ async function clearOfflineCache(){
 }
 async function pollServerConfig(options={}){
   const force=options?.force===true;
-  // A remote Settings editor owns its working copy for the duration of the
-  // editing session. Never let background polling replace that draft with the
-  // wall/server snapshot. Explicit callers may force a reload after a known
-  // commit (for example, after the embedded Arrange editor saves).
-  if(bootstrapApi.REMOTE_SETTINGS_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE&&!force)return false;
   if(!force&&document.hidden)return false;
   const configWasAvailable=configApi.serverConfigAvailable;
   const setup=document.getElementById('setup');
   const setupOpen=!!setup&&!setup.classList.contains('hidden');
   if(!force&&(layoutEditorActive||remoteLayoutProxyActive||document.getElementById('remote-layout-preview-shell')?.classList.contains('show')))return false;
-  // Settings is an isolated editing transaction. Background server state may
-  // update the physical display, but it must not rewrite an open editor.
-  if(!force&&setupOpen)return false;
+  // Local Settings keeps its historic isolation. A remote editor, however, must
+  // continue receiving server-side changes while its form is clean; otherwise
+  // the wall display updates but the remote preview (including alert motion)
+  // can remain stale until Settings is closed/reopened. Never overwrite unsaved
+  // remote edits or the explicit full-screen preview state.
+  if(!force&&setupOpen&&(!bootstrapApi.REMOTE_SETTINGS_MODE||LibreDisplayRuntime.getModule('system').settingsDirty||LibreDisplayRuntime.getModule('settings').settingsPreviewMode))return false;
   try{
     const res=await resilientFetch(serverPath('/api/config'),{cache:'no-store'});
     if(!res.ok)return false;
@@ -309,7 +307,6 @@ async function pollServerConfig(options={}){
       configApi.alertRuntimeState=null;
       window.__uiPreviewCfg=null;
       applySettings();
-      if(bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE){noteDisplayConfigApplied(remoteSaved);scheduleDisplayHeartbeat(40);}
       // If this is the clean remote editor, immediately rehydrate the visible
       // form from the server snapshot. openSetup() also rebuilds the alert form
       // runtime state and restarts its preview motion from the newly synced cfg.
@@ -326,7 +323,7 @@ async function pollServerConfig(options={}){
   }catch(e){return false;}
 }
 let liveEventSource=null,heartbeatTimer=null,heartbeatResizeTimer=null;
-let physicalDisplayBenchmarkState=null,physicalConfigAppliedAt=0;
+let physicalDisplayBenchmarkState=null;
 let heartbeatMetricsCache=null,heartbeatMetricsDirty=true,heartbeatPerformanceCache=null,heartbeatPerformanceCacheAt=0,heartbeatPerformanceRefreshPending=false;
 const HEARTBEAT_PERFORMANCE_CACHE_MS=60000;
 function displayDeviceId(){let id='';try{id=localStorage.getItem('libredisplay_device_id')||'';}catch(e){}if(!/^[A-Za-z0-9_-]{12,80}$/.test(id)){id='d'+Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem('libredisplay_device_id',id);}catch(e){}}return id;}
@@ -340,8 +337,6 @@ function displayViewportMetrics(force=false){
 }
 const refreshHeartbeatPerformanceCache=()=>{heartbeatPerformanceCache=LibreDisplayRuntime.getModule('performance').frontendPerformanceSnapshot();heartbeatPerformanceCacheAt=Date.now();heartbeatPerformanceRefreshPending=false;return heartbeatPerformanceCache;};
 const heartbeatPerformanceSnapshot=(force=false)=>{const performance=LibreDisplayRuntime.getModule('performance'),stale=!heartbeatPerformanceCache||Date.now()-heartbeatPerformanceCacheAt>=HEARTBEAT_PERFORMANCE_CACHE_MS;if(force||!heartbeatPerformanceCache)return refreshHeartbeatPerformanceCache();if(stale&&!heartbeatPerformanceRefreshPending){heartbeatPerformanceRefreshPending=true;performance.runWhenIdle(()=>{try{refreshHeartbeatPerformanceCache();}catch(_e){heartbeatPerformanceRefreshPending=false;}},1600);}return heartbeatPerformanceCache;};
-function noteDisplayConfigApplied(savedAt=cfg?._savedAt){const value=Math.max(0,Number(savedAt)||0);if(value>physicalConfigAppliedAt)physicalConfigAppliedAt=value;return physicalConfigAppliedAt;}
-function displayConfigNeedsReconcile(serverSavedAt){return (bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE)&&Math.max(0,Number(serverSavedAt)||0)>Math.max(0,Number(physicalConfigAppliedAt)||0);}
 let physicalLayoutPreviewId='',physicalLayoutPreviewRevision=0,physicalLayoutPreviewLeaseTimer=null;
 const PHYSICAL_LAYOUT_PREVIEW_LEASE_MS=16000;
 function roundedLayoutRenderRect(rect){return rect?{x:Number(rect.left.toFixed(2)),y:Number(rect.top.toFixed(2)),w:Number(rect.width.toFixed(2)),h:Number(rect.height.toFixed(2))}:null;}
@@ -356,57 +351,49 @@ async function clearPhysicalLayoutPreviewCommand(command={}){if(!bootstrapApi.LO
 let physicalConfigApplyPromise=null,physicalConfigApplyTarget=0;
 const waitForPhysicalConfigApply=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function applyPhysicalDisplayConfigCommand(command={}){
-  if(!bootstrapApi.LOCAL_CLIENT_MODE&&!bootstrapApi.READ_ONLY_DISPLAY_MODE)return false;
+  if(!bootstrapApi.LOCAL_CLIENT_MODE)return false;
   const targetSavedAt=Math.max(0,Number(command?.targetSavedAt)||0);
   if(physicalConfigApplyPromise&&targetSavedAt&&physicalConfigApplyTarget===targetSavedAt)return physicalConfigApplyPromise;
   physicalConfigApplyTarget=targetSavedAt;
   const task=(async()=>{
-    if(bootstrapApi.LOCAL_CLIENT_MODE){clearTimeout(physicalLayoutPreviewLeaseTimer);physicalLayoutPreviewLeaseTimer=null;physicalLayoutPreviewId='';physicalLayoutPreviewRevision=0;}
+    clearTimeout(physicalLayoutPreviewLeaseTimer);physicalLayoutPreviewLeaseTimer=null;physicalLayoutPreviewId='';physicalLayoutPreviewRevision=0;
     for(let attempt=0;attempt<6;attempt++){
       try{await loadAuthoritativePhysicalConfig();}catch(e){await pollServerConfig({force:true});}
       const loadedSavedAt=Math.max(0,Number(cfg?._savedAt)||0);
       if(!targetSavedAt||loadedSavedAt>=targetSavedAt){
-        try{LibreDisplayRuntime.getModule('blocks').ensureCustomBlocksRendered?.(cfg.customBlocks||[],true);}catch(_e){}
+        // Re-apply even when the config version was already loaded. This closes the
+        // remote-Arrange gap where dynamic DOM (notably Weather Alerts) could still
+        // be rendering the previous geometry after a verified server save.
         LibreDisplayRuntime.getModule('settings').applySettings();
-        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-        noteDisplayConfigApplied(loadedSavedAt);
-        setTimeout(()=>{try{LibreDisplayRuntime.getModule('layout').applyBuiltInPartFlowOffsets?.(cfg);LibreDisplayRuntime.getModule('layout').scheduleBuiltInLayoutAutoFitDeferred?.();}catch(_e){}scheduleDisplayHeartbeat(0);},40);
+        setTimeout(()=>{try{LibreDisplayRuntime.getModule('layout').applyBuiltInPartFlowOffsets?.(cfg);}catch(_e){}scheduleDisplayHeartbeat(0);},40);
         return true;
       }
       await waitForPhysicalConfigApply(180+attempt*120);
     }
-    if(bootstrapApi.LOCAL_CLIENT_MODE)setTimeout(()=>location.reload(),0);
+    // Fail closed to a full kiosk reload if the expected server version did not
+    // arrive quickly. The durable heartbeat command remains queued until the new
+    // configSavedAt is observed, so this cannot silently acknowledge stale state.
+    setTimeout(()=>location.reload(),0);
     return false;
   })();
   physicalConfigApplyPromise=task.finally(()=>{physicalConfigApplyPromise=null;physicalConfigApplyTarget=0;});
   return physicalConfigApplyPromise;
 }
 function dispatchPendingPhysicalDisplayCommand(command){
-  if((!bootstrapApi.LOCAL_CLIENT_MODE&&!bootstrapApi.READ_ONLY_DISPLAY_MODE)||!command)return false;
+  if(!bootstrapApi.LOCAL_CLIENT_MODE||!command)return false;
   const action=String(command.action||'');
   if(action==='apply-config'){setTimeout(()=>applyPhysicalDisplayConfigCommand(command),0);return true;}
   if(action==='reload'){setTimeout(()=>location.reload(),0);return true;}
   if(action==='refresh'){setTimeout(()=>{LibreDisplayRuntime.getModule('settings').refreshDataNow();scheduleDisplayHeartbeat(40);},0);return true;}
-  if(action==='preview-layout'){if(!bootstrapApi.LOCAL_CLIENT_MODE)return false;setTimeout(()=>applyPhysicalLayoutPreviewCommand(command),0);return true;}
-  if(action==='clear-layout-preview'){if(!bootstrapApi.LOCAL_CLIENT_MODE)return false;setTimeout(()=>clearPhysicalLayoutPreviewCommand(command),0);return true;}
-  if(action!=='performance-benchmark'||!bootstrapApi.LOCAL_CLIENT_MODE)return false;
+  if(action==='preview-layout'){setTimeout(()=>applyPhysicalLayoutPreviewCommand(command),0);return true;}
+  if(action==='clear-layout-preview'){setTimeout(()=>clearPhysicalLayoutPreviewCommand(command),0);return true;}
+  if(action!=='performance-benchmark')return false;
   const requestId=String(command.requestId||'').replace(/[^A-Za-z0-9_-]+/g,'-').slice(0,96);if(!requestId)return false;
   const currentId=String(physicalDisplayBenchmarkState?.requestId||''),currentState=String(physicalDisplayBenchmarkState?.state||'');
   if(currentId===requestId&&['running','complete','error'].includes(currentState))return false;
   const event={data:JSON.stringify(command)};setTimeout(()=>LibreDisplayRuntime.getModule('performance').runExclusiveTask('display-performance-benchmark',()=>runPhysicalDisplayBenchmarkRequest(event)),0);return true;
 }
-async function sendDisplayHeartbeat(connectivityRecovered=false,options={}){
-  if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;
-  try{
-    const force=options?.full===true,m=displayViewportMetrics(force),frontendPerformance={...heartbeatPerformanceSnapshot(force),connectivity:connectivitySnapshot()};
-    const response=await resilientFetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:bootstrapApi.READ_ONLY_DISPLAY_MODE?'viewer':(bootstrapApi.LOCAL_CLIENT_MODE?'local':'admin'),version:bootstrapApi.DASHBOARD_BUILD,userAgent:navigator.userAgent,configSavedAt:Number(cfg?._savedAt||0),configAppliedAt:Number(physicalConfigAppliedAt||0),frontendPerformance,providerCache:staleCacheSnapshot(),displayPerformanceBenchmark:bootstrapApi.LOCAL_CLIENT_MODE?physicalDisplayBenchmarkState:undefined,layoutPreviewId:bootstrapApi.LOCAL_CLIENT_MODE?physicalLayoutPreviewId:'',layoutRenderSnapshot:bootstrapApi.LOCAL_CLIENT_MODE&&physicalLayoutPreviewId?captureLayoutRenderSnapshot():undefined,connectivityRecovered:!!connectivityRecovered}),cache:'no-store'},{timeoutMs:5000,retry:false});
-    if(!response.ok)return;
-    const payload=await response.json().catch(()=>({}));
-    if(bootstrapApi.LOCAL_CLIENT_MODE)dispatchPendingPhysicalDisplayCommand(payload?.pendingCommand);
-    const serverSavedAt=Math.max(0,Number(payload?.serverConfigSavedAt)||0);
-    if(displayConfigNeedsReconcile(serverSavedAt))setTimeout(()=>location.reload(),0);
-  }catch(e){}
-}
+async function sendDisplayHeartbeat(connectivityRecovered=false,options={}){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;try{const force=options?.full===true,m=displayViewportMetrics(force),frontendPerformance={...heartbeatPerformanceSnapshot(force),connectivity:connectivitySnapshot()};const response=await resilientFetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:bootstrapApi.READ_ONLY_DISPLAY_MODE?'viewer':(bootstrapApi.LOCAL_CLIENT_MODE?'local':'admin'),version:bootstrapApi.DASHBOARD_BUILD,userAgent:navigator.userAgent,configSavedAt:Number(cfg?._savedAt||0),frontendPerformance,providerCache:staleCacheSnapshot(),displayPerformanceBenchmark:bootstrapApi.LOCAL_CLIENT_MODE?physicalDisplayBenchmarkState:undefined,layoutPreviewId:bootstrapApi.LOCAL_CLIENT_MODE?physicalLayoutPreviewId:'',layoutRenderSnapshot:bootstrapApi.LOCAL_CLIENT_MODE&&physicalLayoutPreviewId?captureLayoutRenderSnapshot():undefined,connectivityRecovered:!!connectivityRecovered}),cache:'no-store'},{timeoutMs:5000,retry:false});if(response.ok&&bootstrapApi.LOCAL_CLIENT_MODE){const payload=await response.json().catch(()=>({}));dispatchPendingPhysicalDisplayCommand(payload?.pendingCommand);}}catch(e){}}
 function parseDisplayBenchmarkEvent(event){try{return JSON.parse(String(event?.data||'{}'))||{};}catch{return {};}}
 async function runPhysicalDisplayBenchmarkRequest(event){
   if(!bootstrapApi.LOCAL_CLIENT_MODE)return;
@@ -437,16 +424,15 @@ function startLiveDisplayConnection(){
   try{
     liveEventSource=new EventSource(serverPath('/api/events'));
     liveEventSource.onopen=markServerTransportOpen;liveEventSource.onerror=noteServerTransportError;
-    liveEventSource.addEventListener('config',event=>{const command=parseDisplayBenchmarkEvent(event);if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)dispatchPendingPhysicalDisplayCommand({action:'reload',targetSavedAt:Number(command.savedAt)||0,source:'config-event'});});liveEventSource.addEventListener('household',async()=>{await loadHousehold(false);refreshFamilyBlocks();});liveEventSource.addEventListener('refresh',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE){LibreDisplayRuntime.getModule('settings').refreshDataNow();scheduleDisplayHeartbeat(40);}});liveEventSource.addEventListener('heartbeat',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)scheduleDisplayHeartbeat(0);});liveEventSource.addEventListener('apply-config',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'apply-config',...command});}});liveEventSource.addEventListener('preview-layout',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'preview-layout',...command});}});liveEventSource.addEventListener('clear-layout-preview',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'clear-layout-preview',...command});}});liveEventSource.addEventListener('performance-benchmark',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'performance-benchmark',...command});}});liveEventSource.addEventListener('reload',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)location.reload();});liveEventSource.addEventListener('reauth',()=>location.reload());
+    liveEventSource.addEventListener('config',()=>LibreDisplayRuntime.getModule('performance').runExclusiveTask('remote-config-poll',pollServerConfig));liveEventSource.addEventListener('household',async()=>{await loadHousehold(false);refreshFamilyBlocks();});liveEventSource.addEventListener('refresh',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE){LibreDisplayRuntime.getModule('settings').refreshDataNow();scheduleDisplayHeartbeat(40);}});liveEventSource.addEventListener('heartbeat',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)scheduleDisplayHeartbeat(0);});liveEventSource.addEventListener('apply-config',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'apply-config',...command});}});liveEventSource.addEventListener('preview-layout',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'preview-layout',...command});}});liveEventSource.addEventListener('clear-layout-preview',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'clear-layout-preview',...command});}});liveEventSource.addEventListener('performance-benchmark',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'performance-benchmark',...command});}});liveEventSource.addEventListener('reload',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)location.reload();});liveEventSource.addEventListener('reauth',()=>location.reload());
   }catch(e){noteServerTransportError();}
   const performance=LibreDisplayRuntime.getModule('performance');
-  if(bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE)noteDisplayConfigApplied(cfg?._savedAt);
   bindDisplayViewportHeartbeat();performance.runExclusiveTask('display-heartbeat',()=>sendDisplayHeartbeat(false,{full:true}));
   performance.stopManagedInterval('display-heartbeat');
   heartbeatTimer=performance.startManagedInterval('display-heartbeat',sendDisplayHeartbeat,30000,{skipWhenHidden:false,resumeOnVisible:false,initialDelayMs:30000,idle:true,idleTimeoutMs:bootstrapApi.LOCAL_CLIENT_MODE?6000:2200});
   updateOfflinePill();
 }
-function startRemoteConfigPolling(){const performance=LibreDisplayRuntime.getModule('performance'),editor=bootstrapApi.REMOTE_SETTINGS_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE,physical=bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE;performance.stopManagedInterval('remote-config-poll');if(editor){configApi.remoteConfigPollTimer=null;return;}const interval=physical?60000:45000;configApi.remoteConfigPollTimer=performance.startManagedInterval('remote-config-poll',pollServerConfig,interval,{skipWhenHidden:true,resumeOnVisible:true,immediate:false,initialDelayMs:physical?20000:17000,idle:true,idleTimeoutMs:physical?4200:1800});}
+function startRemoteConfigPolling(){const performance=LibreDisplayRuntime.getModule('performance'),editor=bootstrapApi.REMOTE_SETTINGS_MODE,physical=bootstrapApi.LOCAL_CLIENT_MODE,interval=editor?5000:(physical?120000:45000);performance.stopManagedInterval('remote-config-poll');configApi.remoteConfigPollTimer=performance.startManagedInterval('remote-config-poll',pollServerConfig,interval,{skipWhenHidden:true,resumeOnVisible:true,immediate:editor,initialDelayMs:editor?5000:(physical?45000:17000),idle:!editor,idleTimeoutMs:physical?4200:1800});}
 
 function settingsRecoveryMessage(error){
   const raw=String(error?.message||error||'Settings initialization did not finish.').replace(/\s+/g,' ').trim();
@@ -471,7 +457,7 @@ function clearSettingsInitializationError(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,noteDisplayConfigApplied,displayConfigNeedsReconcile,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
+LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
   "displayEndpoints": {configurable:true,get:()=>displayEndpoints,set:(value)=>{displayEndpoints=value;}},
   "displayDevices": {configurable:true,get:()=>displayDevices,set:(value)=>{displayDevices=value;}},
   "endpointsRemoteEnabled": {configurable:true,get:()=>endpointsRemoteEnabled,set:(value)=>{endpointsRemoteEnabled=value;}},
@@ -483,7 +469,6 @@ LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplay
   "heartbeatTimer": {configurable:true,get:()=>heartbeatTimer,set:(value)=>{heartbeatTimer=value;}},
   "heartbeatResizeTimer": {configurable:true,get:()=>heartbeatResizeTimer,set:(value)=>{heartbeatResizeTimer=value;}},
   "physicalDisplayBenchmarkState": {configurable:true,get:()=>physicalDisplayBenchmarkState,set:(value)=>{physicalDisplayBenchmarkState=value;}},
-  "physicalConfigAppliedAt": {configurable:true,get:()=>physicalConfigAppliedAt,set:(value)=>{physicalConfigAppliedAt=Math.max(0,Number(value)||0);}},
 }, {globalFunctions:['refreshDisplayReadiness','loadDisplayEndpoints','sendDisplayCommand','createDisplayEndpoint','editDisplayEndpoint','copyDisplayEndpointLink','renameDisplayEndpoint','rotateDisplayEndpoint','deleteDisplayEndpoint','toggleRemoteAccess','copyRemoteDisplayUrl','rotateRemoteAccessKey','clearOfflineCache'],globalStates:[]});
 }
 // End source section: /js/remote/index.js

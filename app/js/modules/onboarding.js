@@ -492,16 +492,7 @@ async function saveSetup(options={}){
   }
   cfg.onboardingComplete=true;
   const persistence=await saveCfg();
-  const saveState=document.getElementById('settings-save-state');
-  if(!persistence?.ok||persistence?.verified!==true){
-    if(saveState){saveState.textContent='Save failed — changes were not verified on the LibreDisplay server';saveState.style.color='#fca5a5';}
-    return {ok:false,persistence};
-  }
-  // A verified server write is a successful save. Physical-display delivery is
-  // intentionally decoupled and must never keep Settings dirty or undo the
-  // remote editor's committed state. saveCfg() separately queues a wall reload.
   markSettingsClean();
-  if(saveState){saveState.textContent='Saved to LibreDisplay';saveState.style.color='#bbf7d0';}
   if(options?.closeAfter!==false)closeSetup(false);
   applySettings();
   return {ok:true,persistence};

@@ -24,7 +24,7 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 REPOSITORY = "Gubna-Tech/LibreDisplay"
-API_URL = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"
+API_URL = f"https://api.github.com/repos/{REPOSITORY}/releases?per_page=100"
 MAX_ARCHIVE_BYTES = 300 * 1024 * 1024
 MAX_MEMBER_BYTES = 150 * 1024 * 1024
 MAX_TOTAL_UNPACKED_BYTES = 700 * 1024 * 1024
@@ -64,6 +64,24 @@ def version_tuple(value: str):
         raise ValueError("Invalid release version")
     return tuple(int(part) for part in match.groups())
 
+
+
+def select_latest_release_payload(payload):
+    rows = payload if isinstance(payload, list) else [payload]
+    candidates = []
+    for row in rows:
+        if not isinstance(row, dict) or row.get("draft"):
+            continue
+        tag = str(row.get("tag_name") or "").strip()
+        try:
+            parts = version_tuple(tag)
+        except ValueError:
+            continue
+        candidates.append((parts, row))
+    if not candidates:
+        raise ValueError("GitHub returned no valid LibreDisplay release versions")
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    return candidates[0][1]
 
 def ensure_real_workspace(value: str) -> Path:
     raw = Path(value).absolute()
@@ -207,7 +225,7 @@ def prepare(args) -> int:
     current = (workspace / "VERSION").read_text(encoding="utf-8").strip()
     version_tuple(current)
     try:
-        payload = github_json(API_URL, f"LibreDisplay-Docker/{current} updater")
+        payload = select_latest_release_payload(github_json(API_URL, f"LibreDisplay-Docker/{current} updater"))
         latest = str(payload.get("tag_name") or "").strip().lstrip("v")
         version_tuple(latest)
     except (OSError, urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, ValueError) as exc:
