@@ -489,14 +489,35 @@ async function persistCfgToServer(snapshot){
   }
 }
 
+const waitForRemoteDisplayApplyPoll=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function waitForRemoteConfigDisplayApplyAck(savedAt,timeoutMs=8000){
+  const targetSavedAt=Math.max(0,Number(savedAt)||0),started=Date.now();let sawOnline=false,bestAppliedAt=0,bestMode='';
+  if(!targetSavedAt)return {ok:true,acknowledged:false,targetSavedAt:0};
+  while(Date.now()-started<Math.max(1200,Number(timeoutMs)||8000)){
+    try{
+      const response=await resilientFetch(serverPath('/api/devices'),{cache:'no-store'},{timeoutMs:3200,retry:false});
+      const data=await response.json().catch(()=>({}));
+      if(response.ok&&data?.ok){
+        const rows=(Array.isArray(data.devices)?data.devices:[]).filter(row=>String(row?.endpoint||'main')===String(bootstrapApi.ACTIVE_ENDPOINT)&&row?.online&&['local','viewer'].includes(String(row?.mode||'')));
+        for(const row of rows){const applied=Math.max(0,Number(row?.configAppliedAt)||0);if(applied>bestAppliedAt){bestAppliedAt=applied;bestMode=String(row?.mode||'');}if(applied>=targetSavedAt)return {ok:true,acknowledged:true,targetSavedAt,appliedAt:applied,mode:String(row?.mode||'')};}
+        if(rows.length)sawOnline=true;
+      }
+    }catch(_e){}
+    await waitForRemoteDisplayApplyPoll(320);
+  }
+  return {ok:false,acknowledged:false,targetSavedAt,appliedAt:bestAppliedAt,mode:bestMode,error:sawOnline?'The physical display received the saved configuration but did not acknowledge rendering that version. Settings remain open so you can retry.':'The configuration was saved, but no online physical display acknowledged applying it. Check the target display connection and endpoint, then retry.'};
+}
 async function requestRemoteConfigDisplayApply(savedAt){
   if(!bootstrapApi.REMOTE_SETTINGS_MODE||bootstrapApi.LOCAL_CLIENT_MODE)return {ok:true,requested:false};
+  const targetSavedAt=Math.max(0,Number(savedAt)||0);
   try{
-    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'apply-config',targetSavedAt:Math.max(0,Number(savedAt)||0)}),cache:'no-store'},{timeoutMs:7000,attempts:2});
+    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'apply-config',targetSavedAt}),cache:'no-store'},{timeoutMs:7000,attempts:2});
     const data=await response.json().catch(()=>({}));
     if(!response.ok||!data?.ok)throw new Error(data?.error||`HTTP ${response.status}`);
-    return {ok:true,requested:true,endpoint:String(data.endpoint||bootstrapApi.ACTIVE_ENDPOINT),targetSavedAt:Math.max(0,Number(savedAt)||0)};
-  }catch(error){return {ok:false,requested:true,error:String(error?.message||error)};}
+    const acknowledgement=await waitForRemoteConfigDisplayApplyAck(targetSavedAt);
+    if(!acknowledgement.ok)return {ok:false,requested:true,queued:true,endpoint:String(data.endpoint||bootstrapApi.ACTIVE_ENDPOINT),targetSavedAt,...acknowledgement};
+    return {ok:true,requested:true,queued:true,endpoint:String(data.endpoint||bootstrapApi.ACTIVE_ENDPOINT),targetSavedAt,...acknowledgement};
+  }catch(error){return {ok:false,requested:true,error:String(error?.message||error),targetSavedAt};}
 }
 
 async function saveCfg(){
@@ -555,7 +576,7 @@ async function persistProfiles(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("config", {configSchemaVersion,configMigrationInfo,migrateConfigSnapshot,migrateConfig0To1,migrateConfig1To2,migrateConfig2To3,migrateConfig3To4,migrateConfig4To5,migrateConfig5To6,migrateConfig6To7,migrateConfig7To8,ensureCfgDefaults,loadCfg,persistCfgToServer,requestRemoteConfigDisplayApply,saveCfg,normalizeProfileStore,activeProfileIdForEndpoint,setActiveProfileForEndpoint,loadProfiles,persistProfiles}, {
+LibreDisplayRuntime.exposeModule("config", {configSchemaVersion,configMigrationInfo,migrateConfigSnapshot,migrateConfig0To1,migrateConfig1To2,migrateConfig2To3,migrateConfig3To4,migrateConfig4To5,migrateConfig5To6,migrateConfig6To7,migrateConfig7To8,ensureCfgDefaults,loadCfg,persistCfgToServer,waitForRemoteConfigDisplayApplyAck,requestRemoteConfigDisplayApply,saveCfg,normalizeProfileStore,activeProfileIdForEndpoint,setActiveProfileForEndpoint,loadProfiles,persistProfiles}, {
   "CONFIG_SCHEMA_VERSION": {configurable:true,get:()=>CONFIG_SCHEMA_VERSION},
   "CONFIG_MIGRATIONS": {configurable:true,get:()=>CONFIG_MIGRATIONS},
   "calendarEditorRows": {configurable:true,get:()=>calendarEditorRows,set:(value)=>{calendarEditorRows=value;}},

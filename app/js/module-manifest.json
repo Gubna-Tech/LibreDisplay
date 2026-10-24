@@ -40,7 +40,7 @@
     "module": "config",
     "part": "bundle",
     "path": "/js/modules/config.js",
-    "lines": 619,
+    "lines": 640,
     "functions": 17,
     "bindings": 53,
     "sections": [
@@ -151,7 +151,7 @@
     "module": "remote",
     "part": "bundle",
     "path": "/js/modules/remote.js",
-    "lines": 474,
+    "lines": 487,
     "functions": 54,
     "bindings": 10,
     "sections": [
@@ -176,7 +176,7 @@
     "module": "onboarding",
     "part": "bundle",
     "path": "/js/modules/onboarding.js",
-    "lines": 523,
+    "lines": 524,
     "functions": 55,
     "bindings": 4,
     "sections": [
@@ -188,7 +188,7 @@
     "module": "settings",
     "part": "bundle",
     "path": "/js/modules/settings.js",
-    "lines": 1758,
+    "lines": 1759,
     "functions": 82,
     "bindings": 18,
     "sections": [

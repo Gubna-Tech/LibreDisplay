@@ -1157,7 +1157,7 @@ def pending_device_command(endpoint_id):
         return dict(command)
 
 
-def take_device_command(endpoint_id, observed_saved_at=0):
+def take_device_command(endpoint_id, observed_applied_saved_at=0):
     endpoint_id = endpoint_slug(endpoint_id or "main")
     now = int(time.time())
     with DEVICE_COMMAND_LOCK:
@@ -1171,12 +1171,12 @@ def take_device_command(endpoint_id, observed_saved_at=0):
             return dict(command)
         target_saved_at = int(command.get("targetSavedAt") or 0)
         if target_saved_at > 0:
-            if int(observed_saved_at or 0) >= target_saved_at:
+            if int(observed_applied_saved_at or 0) >= target_saved_at:
                 DEVICE_PENDING_COMMANDS.pop(endpoint_id, None)
                 return None
-            # Keep config-sync commands durable until the kiosk reports that it
-            # actually loaded the saved configuration. The browser reload itself
-            # ends the current heartbeat, so this does not create a reload loop.
+            # Keep config-sync commands durable until the wall display reports that
+            # the saved version was actually applied to its rendered dashboard.
+            # Merely loading cfg/_savedAt is not an acknowledgement.
             return dict(command)
         DEVICE_PENDING_COMMANDS.pop(endpoint_id, None)
         return dict(command)
@@ -5176,6 +5176,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     "mode": str((body or {}).get("mode") or "browser").strip()[:40],
                     "version": str((body or {}).get("version") or "").strip()[:40],
                     "configSavedAt": max(0, int((body or {}).get("configSavedAt") or 0)),
+                    "configAppliedAt": max(0, int((body or {}).get("configAppliedAt") or 0)),
                     "userAgent": str((body or {}).get("userAgent") or "").strip()[:220],
                     "frontendPerformance": normalize_frontend_performance((body or {}).get("frontendPerformance")),
                     "providerCache": normalize_provider_cache_status((body or {}).get("providerCache")),
@@ -5190,13 +5191,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     broker_release_transient_backoff()
                 pending_command = None
                 observed_saved_at = int(row.get("configSavedAt") or 0)
+                observed_applied_saved_at = int(row.get("configAppliedAt") or 0)
                 if row["mode"] == "local" and self.client_is_loopback():
                     previous_kiosk = load_json_path(KIOSK_HEARTBEAT_PATH, {})
                     previous_benchmark = normalize_display_performance_benchmark(previous_kiosk.get("displayPerformanceBenchmark")) if isinstance(previous_kiosk, dict) else {}
                     benchmark = row["displayPerformanceBenchmark"] or previous_benchmark
                     if row["displayPerformanceBenchmark"]:
                         acknowledge_device_command(endpoint_id, row["displayPerformanceBenchmark"])
-                    pending_command = take_device_command(endpoint_id, observed_saved_at)
+                    pending_command = take_device_command(endpoint_id, observed_applied_saved_at)
                     atomic_write_json_file(KIOSK_HEARTBEAT_PATH, {
                         "lastSeen": row["lastSeen"],
                         "endpoint": endpoint_id,
@@ -5220,6 +5222,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         "fontName": row["fontName"],
                         "version": row["version"],
                         "configSavedAt": row["configSavedAt"],
+                        "configAppliedAt": row["configAppliedAt"],
                         "userAgent": row["userAgent"],
                         "frontendPerformance": row["frontendPerformance"],
                         "providerCache": row["providerCache"],
@@ -5227,7 +5230,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         "layoutPreviewId": row["layoutPreviewId"],
                         "layoutRenderSnapshot": row["layoutRenderSnapshot"],
                     })
-                response_payload = {"ok": True}
+                authoritative_config = load_endpoint_config_resilient(endpoint_id)
+                response_payload = {
+                    "ok": True,
+                    "serverConfigSavedAt": max(0, int((authoritative_config or {}).get("_savedAt") or 0)) if isinstance(authoritative_config, dict) else 0,
+                }
                 if pending_command:
                     response_payload["pendingCommand"] = pending_command
                 return self.json_response(200, response_payload)
