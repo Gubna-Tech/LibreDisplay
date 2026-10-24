@@ -493,39 +493,19 @@ async function persistCfgToServer(snapshot){
   }
 }
 
-const waitForRemoteDisplayApplyPoll=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-async function waitForRemoteConfigDisplayApplyAck(savedAt,timeoutMs=8000){
-  const targetSavedAt=Math.max(0,Number(savedAt)||0),started=Date.now();let sawOnline=false,bestAppliedAt=0,bestMode='';
-  if(!targetSavedAt)return {ok:true,acknowledged:false,targetSavedAt:0};
-  while(Date.now()-started<Math.max(1200,Number(timeoutMs)||8000)){
-    try{
-      const response=await resilientFetch(serverPath('/api/devices'),{cache:'no-store'},{timeoutMs:3200,retry:false});
-      const data=await response.json().catch(()=>({}));
-      if(response.ok&&data?.ok){
-        const rows=(Array.isArray(data.devices)?data.devices:[]).filter(row=>String(row?.endpoint||'main')===String(bootstrapApi.ACTIVE_ENDPOINT)&&row?.online&&['local','viewer'].includes(String(row?.mode||'')));
-        for(const row of rows){const applied=Math.max(0,Number(row?.configAppliedAt)||0);if(applied>bestAppliedAt){bestAppliedAt=applied;bestMode=String(row?.mode||'');}if(applied>=targetSavedAt)return {ok:true,acknowledged:true,targetSavedAt,appliedAt:applied,mode:String(row?.mode||'')};}
-        if(rows.length)sawOnline=true;
-      }
-    }catch(_e){}
-    await waitForRemoteDisplayApplyPoll(320);
-  }
-  return {ok:false,acknowledged:false,targetSavedAt,appliedAt:bestAppliedAt,mode:bestMode,error:sawOnline?'The physical display was told to reload but did not return on the saved version. Settings remain open so you can retry.':'The configuration was saved, but no online physical display returned on the saved version. Check the target display connection and endpoint, then retry.'};
-}
 async function requestRemoteConfigDisplayApply(savedAt){
   if(!bootstrapApi.REMOTE_SETTINGS_MODE||bootstrapApi.LOCAL_CLIENT_MODE)return {ok:true,requested:false};
   const targetSavedAt=Math.max(0,Number(savedAt)||0);
   try{
-    // Use a full kiosk reload for committed remote Settings saves. Reloading is
-    // intentionally more conservative than an in-place apply: the wall starts
-    // again from the server-authoritative snapshot and also picks up the current
-    // frontend runtime.
-    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'reload',targetSavedAt}),cache:'no-store'},{timeoutMs:7000,attempts:2});
+    // Physical propagation is deliberately separate from persistence. A remote
+    // save is successful once the server has stored and verified the snapshot;
+    // the wall reload is a best-effort follow-up and can never invalidate or
+    // roll back that saved configuration.
+    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'reload',targetSavedAt}),cache:'no-store'},{timeoutMs:3500,attempts:1,retry:false});
     const data=await response.json().catch(()=>({}));
     if(!response.ok||!data?.ok)throw new Error(data?.error||`HTTP ${response.status}`);
-    const acknowledgement=await waitForRemoteConfigDisplayApplyAck(targetSavedAt);
-    if(!acknowledgement.ok)return {ok:false,requested:true,queued:true,endpoint:String(data.endpoint||bootstrapApi.ACTIVE_ENDPOINT),targetSavedAt,...acknowledgement};
-    return {ok:true,requested:true,queued:true,endpoint:String(data.endpoint||bootstrapApi.ACTIVE_ENDPOINT),targetSavedAt,...acknowledgement};
-  }catch(error){return {ok:false,requested:true,error:String(error?.message||error),targetSavedAt};}
+    return {ok:true,requested:true,queued:true,endpoint:String(data.endpoint||bootstrapApi.ACTIVE_ENDPOINT),targetSavedAt};
+  }catch(error){return {ok:false,requested:true,queued:false,error:String(error?.message||error),targetSavedAt};}
 }
 
 async function saveCfg(){
@@ -540,12 +520,13 @@ async function saveCfg(){
   }catch(e){}
   const persistence=await persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
   if(!persistence?.ok||persistence?.verified!==true)return persistence;
-  // Adopt the server-issued monotonic revision before asking the physical
-  // display to apply it. Client Date.now() is only a provisional local marker.
   cfg._savedAt=Math.max(0,Number(persistence.savedAt)||0);
   try{localStorage.setItem(bootstrapApi.CFG_KEY,JSON.stringify(cfg));}catch(e){}
-  const displayApply=await requestRemoteConfigDisplayApply(cfg._savedAt);
-  return {...persistence,displayApply};
+  // Do not await the wall. This restores the pre-sync save contract: the saved
+  // server snapshot is authoritative and remains saved even if the kiosk is
+  // offline, slow, or unable to acknowledge a reload right now.
+  void requestRemoteConfigDisplayApply(cfg._savedAt);
+  return persistence;
 }
 
 function normalizeProfileStore(raw){
@@ -588,7 +569,7 @@ async function persistProfiles(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("config", {configSchemaVersion,configMigrationInfo,migrateConfigSnapshot,migrateConfig0To1,migrateConfig1To2,migrateConfig2To3,migrateConfig3To4,migrateConfig4To5,migrateConfig5To6,migrateConfig6To7,migrateConfig7To8,ensureCfgDefaults,loadCfg,persistCfgToServer,waitForRemoteConfigDisplayApplyAck,requestRemoteConfigDisplayApply,saveCfg,normalizeProfileStore,activeProfileIdForEndpoint,setActiveProfileForEndpoint,loadProfiles,persistProfiles}, {
+LibreDisplayRuntime.exposeModule("config", {configSchemaVersion,configMigrationInfo,migrateConfigSnapshot,migrateConfig0To1,migrateConfig1To2,migrateConfig2To3,migrateConfig3To4,migrateConfig4To5,migrateConfig5To6,migrateConfig6To7,migrateConfig7To8,ensureCfgDefaults,loadCfg,persistCfgToServer,requestRemoteConfigDisplayApply,saveCfg,normalizeProfileStore,activeProfileIdForEndpoint,setActiveProfileForEndpoint,loadProfiles,persistProfiles}, {
   "CONFIG_SCHEMA_VERSION": {configurable:true,get:()=>CONFIG_SCHEMA_VERSION},
   "CONFIG_MIGRATIONS": {configurable:true,get:()=>CONFIG_MIGRATIONS},
   "calendarEditorRows": {configurable:true,get:()=>calendarEditorRows,set:(value)=>{calendarEditorRows=value;}},

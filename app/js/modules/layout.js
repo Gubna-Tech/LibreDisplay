@@ -759,8 +759,7 @@ async function saveLayoutEditor(){
     }
     stopLayoutEditorUi();layoutEditorOriginal=null;layoutCustomBlocksOriginal=[];applyUiCustomization(cfg);updateLayoutModeStatus(cfg);
     requestAnimationFrame(()=>{applyUiCustomization(cfg);updateLayoutModeStatus(cfg);LibreDisplayRuntime.getModule('layout').scheduleBuiltInLayoutAutoFitDeferred?.();});
-    const displayApply=await LibreDisplayRuntime.getModule('layout').requestSavedLayoutDisplayApply();
-    if(LAYOUT_PREVIEW_MODE&&window.parent!==window){if(!displayApply.ok)console.warn('Arrange layout saved, but the target display reload request could not be delivered immediately.',displayApply.error||'');notifyLayoutPreviewParent('saved');}
+    if(LAYOUT_PREVIEW_MODE&&window.parent!==window)notifyLayoutPreviewParent('saved');
   }finally{
     layoutSaveInFlight=false;
     if(saveButton){saveButton.disabled=false;saveButton.textContent='Save & Lock';}
