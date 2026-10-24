@@ -40,7 +40,7 @@
     "module": "config",
     "part": "bundle",
     "path": "/js/modules/config.js",
-    "lines": 606,
+    "lines": 619,
     "functions": 17,
     "bindings": 53,
     "sections": [
@@ -176,7 +176,7 @@
     "module": "onboarding",
     "part": "bundle",
     "path": "/js/modules/onboarding.js",
-    "lines": 511,
+    "lines": 523,
     "functions": 55,
     "bindings": 4,
     "sections": [

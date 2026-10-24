@@ -489,8 +489,18 @@ async function persistCfgToServer(snapshot){
   }
 }
 
-function saveCfg(){
-  if(configSchemaVersion(cfg)>CONFIG_SCHEMA_VERSION)return Promise.resolve({ok:false,error:`This configuration uses schema ${configSchemaVersion(cfg)}, but this LibreDisplay build supports schema ${CONFIG_SCHEMA_VERSION}. Upgrade LibreDisplay before saving changes.`});
+async function requestRemoteConfigDisplayApply(savedAt){
+  if(!bootstrapApi.REMOTE_SETTINGS_MODE||bootstrapApi.LOCAL_CLIENT_MODE)return {ok:true,requested:false};
+  try{
+    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'apply-config',targetSavedAt:Math.max(0,Number(savedAt)||0)}),cache:'no-store'},{timeoutMs:7000,attempts:2});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data?.ok)throw new Error(data?.error||`HTTP ${response.status}`);
+    return {ok:true,requested:true,endpoint:String(data.endpoint||bootstrapApi.ACTIVE_ENDPOINT),targetSavedAt:Math.max(0,Number(savedAt)||0)};
+  }catch(error){return {ok:false,requested:true,error:String(error?.message||error)};}
+}
+
+async function saveCfg(){
+  if(configSchemaVersion(cfg)>CONFIG_SCHEMA_VERSION)return {ok:false,verified:false,error:`This configuration uses schema ${configSchemaVersion(cfg)}, but this LibreDisplay build supports schema ${CONFIG_SCHEMA_VERSION}. Upgrade LibreDisplay before saving changes.`};
   ensureCfgDefaults();
   cfg._savedAt=Date.now();
   try{
@@ -499,7 +509,10 @@ function saveCfg(){
     if(prev&&prev!==next)localStorage.setItem(bootstrapApi.CFG_BACKUP_KEY,prev);
     localStorage.setItem(bootstrapApi.CFG_KEY,next);
   }catch(e){}
-  return persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
+  const persistence=await persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
+  if(!persistence?.ok||persistence?.verified!==true)return persistence;
+  const displayApply=await requestRemoteConfigDisplayApply(persistence.savedAt||cfg._savedAt);
+  return {...persistence,displayApply};
 }
 
 function normalizeProfileStore(raw){
@@ -542,7 +555,7 @@ async function persistProfiles(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("config", {configSchemaVersion,configMigrationInfo,migrateConfigSnapshot,migrateConfig0To1,migrateConfig1To2,migrateConfig2To3,migrateConfig3To4,migrateConfig4To5,migrateConfig5To6,migrateConfig6To7,migrateConfig7To8,ensureCfgDefaults,loadCfg,persistCfgToServer,saveCfg,normalizeProfileStore,activeProfileIdForEndpoint,setActiveProfileForEndpoint,loadProfiles,persistProfiles}, {
+LibreDisplayRuntime.exposeModule("config", {configSchemaVersion,configMigrationInfo,migrateConfigSnapshot,migrateConfig0To1,migrateConfig1To2,migrateConfig2To3,migrateConfig3To4,migrateConfig4To5,migrateConfig5To6,migrateConfig6To7,migrateConfig7To8,ensureCfgDefaults,loadCfg,persistCfgToServer,requestRemoteConfigDisplayApply,saveCfg,normalizeProfileStore,activeProfileIdForEndpoint,setActiveProfileForEndpoint,loadProfiles,persistProfiles}, {
   "CONFIG_SCHEMA_VERSION": {configurable:true,get:()=>CONFIG_SCHEMA_VERSION},
   "CONFIG_MIGRATIONS": {configurable:true,get:()=>CONFIG_MIGRATIONS},
   "calendarEditorRows": {configurable:true,get:()=>calendarEditorRows,set:(value)=>{calendarEditorRows=value;}},

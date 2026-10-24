@@ -492,10 +492,22 @@ async function saveSetup(options={}){
   }
   cfg.onboardingComplete=true;
   const persistence=await saveCfg();
+  const saveState=document.getElementById('settings-save-state');
+  if(!persistence?.ok||persistence?.verified!==true){
+    if(saveState){saveState.textContent='Save failed — changes were not verified on the LibreDisplay server';saveState.style.color='#fca5a5';}
+    return {ok:false,persistence};
+  }
   markSettingsClean();
+  const displayApply=persistence?.displayApply;
+  if(displayApply?.requested&&displayApply?.ok===false){
+    if(saveState){saveState.textContent='Saved to server — physical display apply could not be delivered. Save & Apply again to retry.';saveState.style.color='#fde68a';}
+    applySettings();
+    return {ok:false,persistence,displayApply,serverSaved:true};
+  }
+  if(saveState&&displayApply?.requested){saveState.textContent='Saved — physical display update requested';saveState.style.color='#bbf7d0';}
   if(options?.closeAfter!==false)closeSetup(false);
   applySettings();
-  return {ok:true,persistence};
+  return {ok:true,persistence,displayApply};
 }
 
 
