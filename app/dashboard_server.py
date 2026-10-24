@@ -196,6 +196,7 @@ PLUGIN_API_VERSION = 1
 TRUSTED_PRIVATE_PLUGINS = {"home-assistant", "caldav-tasks", "sonos-now-playing"}
 PLUGINS = {}
 SCENE_LOCK = threading.Lock()
+CONFIG_WRITE_LOCK = threading.Lock()
 SCENE_ACTIVE = {}
 UPDATE_CHECK_LOCK = threading.Lock()
 UPDATE_CHECK_CACHE = {}
@@ -432,10 +433,10 @@ def apply_restore_point(point_id, expected_endpoint=""):
     scenes = normalize_scene_store(raw.get("scenes") if isinstance(raw.get("scenes"), dict) else {})
     # Keep a last-chance point before replacing live settings.
     create_restore_point(endpoint_id, "Before restore")
-    atomic_write_json_file(endpoint_config_path(endpoint_id), config, endpoint_backup_path(endpoint_id))
+    config, saved_at = write_endpoint_config_versioned(endpoint_id, config)
     atomic_write_json_file(PROFILES_PATH, profiles)
     atomic_write_json_file(SCENES_PATH, scenes)
-    publish_event(endpoint_id, "config", {"reason": "restore-point"})
+    publish_event(endpoint_id, "config", {"reason": "restore-point", "savedAt": saved_at})
     return {"endpoint": endpoint_id, "version": str(raw.get("version") or "unknown"), "createdUtc": raw.get("createdUtc") or ""}
 
 
@@ -880,17 +881,15 @@ def apply_scene_schedules(force=False):
             profile = profiles.get(desired) if desired else None
             if desired and profile:
                 config = json.loads(json.dumps(profile["config"]))
-                config["_savedAt"] = int(time.time() * 1000)
                 config["_sceneProfileId"] = desired
-                atomic_write_json_file(endpoint_config_path(endpoint_id), config, endpoint_backup_path(endpoint_id))
-                publish_event(endpoint_id, "config", {"savedAt": config["_savedAt"], "sceneProfileId": desired})
+                config, saved_at = write_endpoint_config_versioned(endpoint_id, config)
+                publish_event(endpoint_id, "config", {"savedAt": saved_at, "sceneProfileId": desired})
             elif not desired and base_path.exists():
                 baseline = load_json_path(base_path, None)
                 if isinstance(baseline, dict):
-                    baseline["_savedAt"] = int(time.time() * 1000)
                     baseline.pop("_sceneProfileId", None)
-                    atomic_write_json_file(endpoint_config_path(endpoint_id), baseline, endpoint_backup_path(endpoint_id))
-                    publish_event(endpoint_id, "config", {"savedAt": baseline["_savedAt"], "sceneProfileId": ""})
+                    baseline, saved_at = write_endpoint_config_versioned(endpoint_id, baseline)
+                    publish_event(endpoint_id, "config", {"savedAt": saved_at, "sceneProfileId": ""})
                 try:
                     base_path.unlink()
                 except Exception:
@@ -1954,6 +1953,29 @@ def endpoint_backup_path(endpoint_id):
     if endpoint_id == "main":
         return CONFIG_BACKUP_PATH
     return ENDPOINT_CONFIG_DIR / f"{endpoint_id}.previous.json"
+
+
+def write_endpoint_config_versioned(endpoint_id, config):
+    """Persist a config with a server-authoritative monotonic revision.
+
+    Client clocks are not ordering authorities: a remote browser can be seconds,
+    minutes, or days behind/ahead of the Pi.  Every accepted write therefore gets
+    a revision strictly newer than the endpoint's currently stored config.
+    """
+    endpoint_id = endpoint_slug(endpoint_id or "main")
+    if not endpoint_by_id(endpoint_id):
+        raise ValueError("Unknown display endpoint")
+    if not isinstance(config, dict):
+        raise ValueError("Config must be a JSON object")
+    payload = json.loads(json.dumps(config))
+    with CONFIG_WRITE_LOCK:
+        previous = load_endpoint_config_resilient(endpoint_id)
+        previous_revision = max(0, int((previous or {}).get("_savedAt") or 0)) if isinstance(previous, dict) else 0
+        server_now = max(0, int(time.time() * 1000))
+        revision = max(server_now, previous_revision + 1)
+        payload["_savedAt"] = revision
+        atomic_write_json_file(endpoint_config_path(endpoint_id), payload, endpoint_backup_path(endpoint_id))
+    return payload, revision
 
 
 def requested_endpoint(parsed):
@@ -4530,7 +4552,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             data = (ROOT / "dashboard.html").read_bytes()
         except Exception:
             return self.text_response(500, "Dashboard UI is unavailable")
-        return self.bytes_response(200, data, "text/html; charset=utf-8")
+        return self.bytes_response(200, data, "text/html; charset=utf-8", {"Cache-Control": "no-store"})
 
     def serve_frontend_asset(self, parsed):
         asset_kind = "js" if parsed.path.startswith("/js/") else "css" if parsed.path.startswith("/css/") else ""
@@ -4552,7 +4574,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         except Exception:
             return self.text_response(500, "Frontend asset is unavailable")
         content_type = "text/javascript; charset=utf-8" if asset_kind == "js" else "text/css; charset=utf-8"
-        return self.bytes_response(200, data, content_type)
+        return self.bytes_response(200, data, content_type, {"Cache-Control": "no-store"})
 
     def serve_public_asset(self, parsed):
         rel = unquote(parsed.path.removeprefix("/assets/")).replace("\\", "/")
@@ -5317,9 +5339,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 endpoint_id = requested_endpoint(parsed)
                 if not endpoint_id:
                     raise ValueError("Unknown display endpoint")
-                self.atomic_write_json(endpoint_config_path(endpoint_id), config, endpoint_backup_path(endpoint_id))
-                publish_event(endpoint_id, "config", {"savedAt": config.get("_savedAt", 0)})
-                return self.json_response(200, {"ok": True, "saved": True, "endpoint": endpoint_id, "savedAt": config.get("_savedAt", 0)})
+                config, saved_at = write_endpoint_config_versioned(endpoint_id, config)
+                publish_event(endpoint_id, "config", {"savedAt": saved_at})
+                return self.json_response(200, {"ok": True, "saved": True, "endpoint": endpoint_id, "savedAt": saved_at})
             except ValueError as exc:
                 return self.json_response(400, {"ok": False, "error": str(exc)})
             except Exception as exc:

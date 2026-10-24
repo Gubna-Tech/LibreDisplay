@@ -467,8 +467,10 @@ function stableConfigJson(value){
 }
 function persistedConfigMatches(snapshot,stored){
   if(!snapshot||!stored||typeof snapshot!=='object'||typeof stored!=='object')return false;
-  if(Number(stored._savedAt||0)!==Number(snapshot._savedAt||0))return false;
-  return stableConfigJson(stored)===stableConfigJson(snapshot);
+  // _savedAt is assigned by the server.  Never require it to echo the
+  // remote browser's clock value or clock skew can break physical sync.
+  const expected={...snapshot},actual={...stored};delete expected._savedAt;delete actual._savedAt;
+  return stableConfigJson(actual)===stableConfigJson(expected);
 }
 async function persistCfgToServer(snapshot){
   try{
@@ -479,9 +481,11 @@ async function persistCfgToServer(snapshot){
     if(!verify.ok)throw new Error('The display accepted the save but the stored configuration could not be read back for verification.');
     const verified=await verify.json().catch(()=>({})),stored=verified?.config;
     if(!verified?.exists||!persistedConfigMatches(snapshot,stored))throw new Error('The display did not return the same configuration after saving. Your changes were not locked because persistence could not be verified.');
+    const serverSavedAt=Math.max(0,Number(verified?.savedAt||stored?._savedAt||data?.savedAt)||0);
+    if(!serverSavedAt)throw new Error('The server verified the configuration but did not assign a synchronization revision.');
     serverConfigAvailable=true;serverConfigLastError='';
     updateSettingsOverview?.();
-    return {ok:true,verified:true,savedAt:Number(data?.savedAt||snapshot?._savedAt||0),endpoint:String(data?.endpoint||bootstrapApi.ACTIVE_ENDPOINT)};
+    return {ok:true,verified:true,savedAt:serverSavedAt,endpoint:String(data?.endpoint||bootstrapApi.ACTIVE_ENDPOINT)};
   }catch(e){
     serverConfigLastError=String(e?.message||e);
     updateSettingsOverview?.();
@@ -532,7 +536,11 @@ async function saveCfg(){
   }catch(e){}
   const persistence=await persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
   if(!persistence?.ok||persistence?.verified!==true)return persistence;
-  const displayApply=await requestRemoteConfigDisplayApply(persistence.savedAt||cfg._savedAt);
+  // Adopt the server-issued monotonic revision before asking the physical
+  // display to apply it. Client Date.now() is only a provisional local marker.
+  cfg._savedAt=Math.max(0,Number(persistence.savedAt)||0);
+  try{localStorage.setItem(bootstrapApi.CFG_KEY,JSON.stringify(cfg));}catch(e){}
+  const displayApply=await requestRemoteConfigDisplayApply(cfg._savedAt);
   return {...persistence,displayApply};
 }
 
