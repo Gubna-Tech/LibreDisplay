@@ -40,7 +40,7 @@
     "module": "config",
     "part": "bundle",
     "path": "/js/modules/config.js",
-    "lines": 648,
+    "lines": 652,
     "functions": 17,
     "bindings": 53,
     "sections": [
@@ -151,7 +151,7 @@
     "module": "remote",
     "part": "bundle",
     "path": "/js/modules/remote.js",
-    "lines": 487,
+    "lines": 489,
     "functions": 54,
     "bindings": 10,
     "sections": [

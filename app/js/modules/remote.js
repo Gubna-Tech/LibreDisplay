@@ -277,17 +277,19 @@ async function clearOfflineCache(){
 }
 async function pollServerConfig(options={}){
   const force=options?.force===true;
+  // A remote Settings editor owns its working copy for the duration of the
+  // editing session. Never let background polling replace that draft with the
+  // wall/server snapshot. Explicit callers may force a reload after a known
+  // commit (for example, after the embedded Arrange editor saves).
+  if(bootstrapApi.REMOTE_SETTINGS_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE&&!force)return false;
   if(!force&&document.hidden)return false;
   const configWasAvailable=configApi.serverConfigAvailable;
   const setup=document.getElementById('setup');
   const setupOpen=!!setup&&!setup.classList.contains('hidden');
   if(!force&&(layoutEditorActive||remoteLayoutProxyActive||document.getElementById('remote-layout-preview-shell')?.classList.contains('show')))return false;
-  // Local Settings keeps its historic isolation. A remote editor, however, must
-  // continue receiving server-side changes while its form is clean; otherwise
-  // the wall display updates but the remote preview (including alert motion)
-  // can remain stale until Settings is closed/reopened. Never overwrite unsaved
-  // remote edits or the explicit full-screen preview state.
-  if(!force&&setupOpen&&(!bootstrapApi.REMOTE_SETTINGS_MODE||LibreDisplayRuntime.getModule('system').settingsDirty||LibreDisplayRuntime.getModule('settings').settingsPreviewMode))return false;
+  // Settings is an isolated editing transaction. Background server state may
+  // update the physical display, but it must not rewrite an open editor.
+  if(!force&&setupOpen)return false;
   try{
     const res=await resilientFetch(serverPath('/api/config'),{cache:'no-store'});
     if(!res.ok)return false;
@@ -402,7 +404,7 @@ async function sendDisplayHeartbeat(connectivityRecovered=false,options={}){
     const payload=await response.json().catch(()=>({}));
     if(bootstrapApi.LOCAL_CLIENT_MODE)dispatchPendingPhysicalDisplayCommand(payload?.pendingCommand);
     const serverSavedAt=Math.max(0,Number(payload?.serverConfigSavedAt)||0);
-    if(displayConfigNeedsReconcile(serverSavedAt)&&!physicalConfigApplyPromise)setTimeout(()=>applyPhysicalDisplayConfigCommand({action:'apply-config',targetSavedAt:serverSavedAt,source:'heartbeat-reconcile'}),0);
+    if(displayConfigNeedsReconcile(serverSavedAt))setTimeout(()=>location.reload(),0);
   }catch(e){}
 }
 function parseDisplayBenchmarkEvent(event){try{return JSON.parse(String(event?.data||'{}'))||{};}catch{return {};}}
@@ -435,7 +437,7 @@ function startLiveDisplayConnection(){
   try{
     liveEventSource=new EventSource(serverPath('/api/events'));
     liveEventSource.onopen=markServerTransportOpen;liveEventSource.onerror=noteServerTransportError;
-    liveEventSource.addEventListener('config',event=>{const command=parseDisplayBenchmarkEvent(event);if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)dispatchPendingPhysicalDisplayCommand({action:'apply-config',targetSavedAt:Number(command.savedAt)||0,source:'config-event'});else LibreDisplayRuntime.getModule('performance').runExclusiveTask('remote-config-poll',pollServerConfig);});liveEventSource.addEventListener('household',async()=>{await loadHousehold(false);refreshFamilyBlocks();});liveEventSource.addEventListener('refresh',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE){LibreDisplayRuntime.getModule('settings').refreshDataNow();scheduleDisplayHeartbeat(40);}});liveEventSource.addEventListener('heartbeat',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)scheduleDisplayHeartbeat(0);});liveEventSource.addEventListener('apply-config',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'apply-config',...command});}});liveEventSource.addEventListener('preview-layout',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'preview-layout',...command});}});liveEventSource.addEventListener('clear-layout-preview',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'clear-layout-preview',...command});}});liveEventSource.addEventListener('performance-benchmark',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'performance-benchmark',...command});}});liveEventSource.addEventListener('reload',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)location.reload();});liveEventSource.addEventListener('reauth',()=>location.reload());
+    liveEventSource.addEventListener('config',event=>{const command=parseDisplayBenchmarkEvent(event);if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)dispatchPendingPhysicalDisplayCommand({action:'reload',targetSavedAt:Number(command.savedAt)||0,source:'config-event'});});liveEventSource.addEventListener('household',async()=>{await loadHousehold(false);refreshFamilyBlocks();});liveEventSource.addEventListener('refresh',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE){LibreDisplayRuntime.getModule('settings').refreshDataNow();scheduleDisplayHeartbeat(40);}});liveEventSource.addEventListener('heartbeat',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)scheduleDisplayHeartbeat(0);});liveEventSource.addEventListener('apply-config',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'apply-config',...command});}});liveEventSource.addEventListener('preview-layout',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'preview-layout',...command});}});liveEventSource.addEventListener('clear-layout-preview',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'clear-layout-preview',...command});}});liveEventSource.addEventListener('performance-benchmark',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'performance-benchmark',...command});}});liveEventSource.addEventListener('reload',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)location.reload();});liveEventSource.addEventListener('reauth',()=>location.reload());
   }catch(e){noteServerTransportError();}
   const performance=LibreDisplayRuntime.getModule('performance');
   if(bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE)noteDisplayConfigApplied(cfg?._savedAt);
@@ -444,7 +446,7 @@ function startLiveDisplayConnection(){
   heartbeatTimer=performance.startManagedInterval('display-heartbeat',sendDisplayHeartbeat,30000,{skipWhenHidden:false,resumeOnVisible:false,initialDelayMs:30000,idle:true,idleTimeoutMs:bootstrapApi.LOCAL_CLIENT_MODE?6000:2200});
   updateOfflinePill();
 }
-function startRemoteConfigPolling(){const performance=LibreDisplayRuntime.getModule('performance'),editor=bootstrapApi.REMOTE_SETTINGS_MODE,physical=bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE,interval=editor?5000:(physical?60000:45000);performance.stopManagedInterval('remote-config-poll');configApi.remoteConfigPollTimer=performance.startManagedInterval('remote-config-poll',pollServerConfig,interval,{skipWhenHidden:true,resumeOnVisible:true,immediate:editor,initialDelayMs:editor?5000:(physical?20000:17000),idle:!editor,idleTimeoutMs:physical?4200:1800});}
+function startRemoteConfigPolling(){const performance=LibreDisplayRuntime.getModule('performance'),editor=bootstrapApi.REMOTE_SETTINGS_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE,physical=bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE;performance.stopManagedInterval('remote-config-poll');if(editor){configApi.remoteConfigPollTimer=null;return;}const interval=physical?60000:45000;configApi.remoteConfigPollTimer=performance.startManagedInterval('remote-config-poll',pollServerConfig,interval,{skipWhenHidden:true,resumeOnVisible:true,immediate:false,initialDelayMs:physical?20000:17000,idle:true,idleTimeoutMs:physical?4200:1800});}
 
 function settingsRecoveryMessage(error){
   const raw=String(error?.message||error||'Settings initialization did not finish.').replace(/\s+/g,' ').trim();

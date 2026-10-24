@@ -509,13 +509,17 @@ async function waitForRemoteConfigDisplayApplyAck(savedAt,timeoutMs=8000){
     }catch(_e){}
     await waitForRemoteDisplayApplyPoll(320);
   }
-  return {ok:false,acknowledged:false,targetSavedAt,appliedAt:bestAppliedAt,mode:bestMode,error:sawOnline?'The physical display received the saved configuration but did not acknowledge rendering that version. Settings remain open so you can retry.':'The configuration was saved, but no online physical display acknowledged applying it. Check the target display connection and endpoint, then retry.'};
+  return {ok:false,acknowledged:false,targetSavedAt,appliedAt:bestAppliedAt,mode:bestMode,error:sawOnline?'The physical display was told to reload but did not return on the saved version. Settings remain open so you can retry.':'The configuration was saved, but no online physical display returned on the saved version. Check the target display connection and endpoint, then retry.'};
 }
 async function requestRemoteConfigDisplayApply(savedAt){
   if(!bootstrapApi.REMOTE_SETTINGS_MODE||bootstrapApi.LOCAL_CLIENT_MODE)return {ok:true,requested:false};
   const targetSavedAt=Math.max(0,Number(savedAt)||0);
   try{
-    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'apply-config',targetSavedAt}),cache:'no-store'},{timeoutMs:7000,attempts:2});
+    // Use a full kiosk reload for committed remote Settings saves. Reloading is
+    // intentionally more conservative than an in-place apply: the wall starts
+    // again from the server-authoritative snapshot and also picks up the current
+    // frontend runtime.
+    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'reload',targetSavedAt}),cache:'no-store'},{timeoutMs:7000,attempts:2});
     const data=await response.json().catch(()=>({}));
     if(!response.ok||!data?.ok)throw new Error(data?.error||`HTTP ${response.status}`);
     const acknowledgement=await waitForRemoteConfigDisplayApplyAck(targetSavedAt);

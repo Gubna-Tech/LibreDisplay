@@ -1261,7 +1261,7 @@ function reloadRemoteLayoutPreview(){
 async function handleEmbeddedLayoutEditorAction(action){
   if(action==='saved'){
     closeRemoteLayoutPreview({preservePhysical:true});
-    await LibreDisplayRuntime.getModule('remote').pollServerConfig();
+    await LibreDisplayRuntime.getModule('remote').pollServerConfig({force:true});
     openSetup(false);
     return;
   }
@@ -1310,7 +1310,7 @@ const {normalizeHexColor,resilientFetch}=LibreDisplayRuntime.getModule('shared')
 async function requestSavedLayoutDisplayApply(force=false){
   if(!force&&!LAYOUT_PREVIEW_MODE&&!bootstrapApi.REMOTE_SETTINGS_MODE)return {ok:true,requested:false};
   try{
-    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'apply-config',targetSavedAt:Number(cfg?._savedAt||0)}),cache:'no-store'},{timeoutMs:7000,attempts:2});
+    const response=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:bootstrapApi.ACTIVE_ENDPOINT,action:'reload',targetSavedAt:Number(cfg?._savedAt||0)}),cache:'no-store'},{timeoutMs:7000,attempts:2});
     const data=await response.json().catch(()=>({}));
     if(!response.ok||!data?.ok)throw new Error(data?.error||`HTTP ${response.status}`);
     return {ok:true,requested:true,endpoint:String(data.endpoint||bootstrapApi.ACTIVE_ENDPOINT)};
