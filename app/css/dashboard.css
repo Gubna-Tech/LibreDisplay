@@ -4668,3 +4668,5 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 .custom-block[data-block-type="airquality"] .custom-aq-label{min-width:0;white-space:normal;overflow-wrap:normal;word-break:normal;line-height:1.12}
 
 .custom-block[data-block-type="airquality"] .custom-aq-label.ld-internal-free-part{box-sizing:content-box;overflow:visible;min-height:1.12em}
+
+.layout-current-part-box.selected:not(.primary-selected) .layout-current-part-resize-handle,.layout-built-in-part-box.selected:not(.primary-selected) .layout-built-in-part-resize-handle,.layout-internal-edit-box.selected:not(.primary-selected) .layout-internal-resize-handle{display:none!important}
