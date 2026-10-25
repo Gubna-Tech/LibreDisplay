@@ -362,7 +362,6 @@ function applyUiCustomization(source=cfg){
     .alert-meta{font-size:${scaledClamp(10,.74,13,al)};display:${source.alertShowMeta===false?'none':'block'};${pe('alerts','meta')}}
     #top-strip,#wx-left,#wx-right,#clock-block{ text-shadow:0 2px 8px rgba(0,0,0,${shadowAlpha.toFixed(3)}) }
   `+LibreDisplayRuntime.getModule('layout').buildBuiltInPartLayoutCss(source)+buildCustomLayoutPartCss(source);
-  LibreDisplayRuntime.getModule('layout').applyBuiltInPartFlowOffsets?.(source);
   const root=document.documentElement;
   root.style.setProperty('--bg-shade-top',(q(source.bgShadeTop,0,85,52)/100).toFixed(2));
   root.style.setProperty('--bg-shade-bottom',(q(source.bgShadeBottom,0,85,55)/100).toFixed(2));
@@ -375,6 +374,9 @@ function applyUiCustomization(source=cfg){
   renderLayoutShowcase(source);
   applyCustomLayout(source);
   applyBuiltInElementStyles(source);
+  // Preserve Arrange geometry in live mode: flow-relative internal parts must be
+  // measured after the saved outer rectangles have been applied, not before.
+  LibreDisplayRuntime.getModule('layout').applyBuiltInPartFlowOffsets?.(source);
   updateCustomBlockUniversalStates(source.customBlocks||cfg.customBlocks||[]);
   updateLayoutModeStatus(source);
   tick();
