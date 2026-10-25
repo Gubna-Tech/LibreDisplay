@@ -200,7 +200,8 @@ SCENE_ACTIVE = {}
 UPDATE_CHECK_LOCK = threading.Lock()
 UPDATE_CHECK_CACHE = {}
 UPDATE_CHECK_TTL_SECONDS = 6 * 60 * 60
-GITHUB_RELEASE_API = "https://api.github.com/repos/Gubna-Tech/LibreDisplay/releases?per_page=100"
+GITHUB_RELEASE_API = "https://api.github.com/repos/Gubna-Tech/LibreDisplay/releases?per_page=30"
+GITHUB_RELEASE_MAX_BYTES = 1024 * 1024
 UPDATE_RUN_LOCK = threading.Lock()
 UPDATE_RUN_STATE = {"state": "idle", "startedAt": 0, "targetVersion": "", "error": ""}
 UPDATE_LOG_PATH = DATA_ROOT / "update.log"
@@ -219,6 +220,8 @@ PRIVILEGED_HELPER = Path("/usr/local/libexec/libredisplay-privileged")
 DEVICE_REBOOT_CAP_LOCK = threading.Lock()
 DEVICE_REBOOT_CAP_CACHE = {"checkedAt": 0.0, "capable": False, "reason": ""}
 DEVICE_REBOOT_CAP_TTL_SECONDS = 300
+DEVICE_REBOOT_STATE_LOCK = threading.Lock()
+DEVICE_REBOOT_STATE = {"state": "idle", "requestedAt": 0, "startedAt": 0, "error": "", "returnCode": None}
 ROLLBACK_RUN_LOCK = threading.Lock()
 ROLLBACK_RUN_STATE = {"state": "idle", "startedAt": 0, "targetVersion": "", "snapshotId": "", "error": ""}
 
@@ -2565,24 +2568,41 @@ def device_reboot_capability(force=False):
     return capable, reason
 
 
-def _reboot_device_after_delay(delay_seconds=1.0):
-    time.sleep(max(0.25, float(delay_seconds)))
+def device_reboot_state():
+    with DEVICE_REBOOT_STATE_LOCK:
+        return dict(DEVICE_REBOOT_STATE)
+
+
+def _reboot_device_after_delay(delay_seconds=3.0):
+    time.sleep(max(1.0, float(delay_seconds)))
+    with DEVICE_REBOOT_STATE_LOCK:
+        DEVICE_REBOOT_STATE.update({"state": "running", "startedAt": int(time.time()), "error": "", "returnCode": None})
     try:
-        subprocess.run(
+        result = subprocess.run(
             ["sudo", "-n", str(PRIVILEGED_HELPER), "reboot"],
             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             timeout=10, check=False,
         )
-    except Exception:
-        pass
+        if result.returncode != 0:
+            with DEVICE_REBOOT_STATE_LOCK:
+                DEVICE_REBOOT_STATE.update({"state": "failed", "error": f"Privileged reboot helper exited with status {int(result.returncode)}.", "returnCode": int(result.returncode)})
+    except Exception as exc:
+        with DEVICE_REBOOT_STATE_LOCK:
+            DEVICE_REBOOT_STATE.update({"state": "failed", "error": f"Could not execute the privileged reboot helper: {type(exc).__name__}", "returnCode": None})
 
 
 def start_device_reboot():
     capable, reason = device_reboot_capability(force=True)
     if not capable:
         raise RuntimeError(reason or "Full-device restart is unavailable on this installation.")
-    threading.Thread(target=_reboot_device_after_delay, kwargs={"delay_seconds": 1.0}, daemon=True).start()
-    return {"ok": True, "state": "scheduled"}
+    requested_at = int(time.time())
+    with DEVICE_REBOOT_STATE_LOCK:
+        DEVICE_REBOOT_STATE.update({"state": "scheduled", "requestedAt": requested_at, "startedAt": 0, "error": "", "returnCode": None})
+    # Leave enough time for remote HTTP clients to receive the 202 response before
+    # systemd tears down networking. This avoids a successful reboot being presented
+    # as a generic browser network failure on slower LAN/VPN paths.
+    threading.Thread(target=_reboot_device_after_delay, kwargs={"delay_seconds": 3.0}, daemon=True).start()
+    return {"ok": True, "state": "scheduled", "requestedAt": requested_at}
 
 
 def update_status_deployment_fields():
@@ -2612,7 +2632,7 @@ def github_update_status(force=False):
                 "X-GitHub-Api-Version": "2022-11-28",
             },
             timeout=10,
-            max_bytes=256 * 1024,
+            max_bytes=GITHUB_RELEASE_MAX_BYTES,
         )
         if status != 200:
             raise RuntimeError(f"GitHub returned HTTP {status}")
@@ -2882,6 +2902,7 @@ def start_release_rollback(snapshot_id):
 
 def release_rollback_payload():
     capable, reason = release_rollback_capability()
+    can_reboot_device, reboot_reason = device_reboot_capability()
     return {
         "ok": True,
         "deployment": update_deployment_mode(),
@@ -3475,6 +3496,9 @@ def system_health_payload():
         "serverMode": server_mode_state(),
         "kioskHeartbeat": kiosk_payload,
         "outboundConnectivity": outbound_health_payload(),
+        "canRebootDevice": can_reboot_device,
+        "deviceRebootReason": reboot_reason,
+        "deviceRebootState": device_reboot_state(),
         "startupIntegrity": {
             "ok": bool(startup_integrity.get("ok")),
             "checkedAt": safe_nonnegative_int(startup_integrity.get("checkedAt")),

@@ -16,7 +16,7 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 REPOSITORY = "Gubna-Tech/LibreDisplay"
-API_URL = f"https://api.github.com/repos/{REPOSITORY}/releases?per_page=100"
+API_URL = f"https://api.github.com/repos/{REPOSITORY}/releases?per_page=30"
 MAX_ARCHIVE_BYTES = 300 * 1024 * 1024
 MAX_MEMBER_BYTES = 150 * 1024 * 1024
 MAX_TOTAL_UNPACKED_BYTES = 700 * 1024 * 1024

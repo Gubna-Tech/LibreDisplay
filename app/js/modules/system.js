@@ -282,15 +282,21 @@ async function startReleaseRollback(snapshotId,targetVersion){
 }
 
 function setDeviceRestartStatus(text,state=''){const el=document.getElementById('system-device-restart-status');if(!el)return;el.dataset.active=text?'1':'';el.textContent=text||'';el.style.color=state==='bad'?'#fca5a5':state==='warn'?'#fbbf24':state==='good'?'#86efac':'';}
-async function monitorDeviceRestart(){
-  let sawOffline=false;
+async function monitorDeviceRestart({requestUncertain=false,initialUptime=0}={}){
+  let sawOffline=false,onlineAfterUncertain=0;
   for(let attempt=0;attempt<90;attempt++){
     await sleepMs(attempt<8?1500:3000);
     try{
       const r=await resilientFetch(serverPath('/api/system-health'),{cache:'no-store'},{timeoutMs:3500,retry:false});
       if(r.status===403&&sawOffline){setDeviceRestartStatus('The device restarted, but this remote Owner session expired. Sign in again to continue.','warn');return;}
-      if(r.ok&&sawOffline){setDeviceRestartStatus('Device is back online. Reloading Settings…','good');await sleepMs(900);location.reload();return;}
-    }catch(_e){sawOffline=true;setDeviceRestartStatus('Device is restarting. Waiting for LibreDisplay to come back online…','warn');}
+      if(r.ok){
+        const health=await r.json().catch(()=>({})),state=health?.deviceRebootState||{};
+        if(state.state==='failed'){const button=document.getElementById('system-device-restart-button');if(button)button.disabled=false;setDeviceRestartStatus('Restart failed on the device: '+(state.error||'privileged reboot helper failed.'),'bad');return;}
+        const uptime=Math.max(0,Number(health?.uptimeSeconds)||0);
+        if(sawOffline||(initialUptime>0&&uptime>0&&uptime+15<initialUptime)){setDeviceRestartStatus('Device is back online. Reloading Settings…','good');await sleepMs(900);location.reload();return;}
+        if(requestUncertain){onlineAfterUncertain++;if(['scheduled','running'].includes(state.state)){requestUncertain=false;setDeviceRestartStatus('Restart request reached the device. Waiting for it to go offline…','warn');}else if(onlineAfterUncertain>=8){const button=document.getElementById('system-device-restart-button');if(button)button.disabled=false;setDeviceRestartStatus('The device stayed online and did not acknowledge the restart request. Retry once or use the local device controls.','bad');return;}}
+      }
+    }catch(_e){sawOffline=true;requestUncertain=false;setDeviceRestartStatus('Device is restarting. Waiting for LibreDisplay to come back online…','warn');}
   }
   setDeviceRestartStatus('The restart is taking longer than expected. Reopen or reload LibreDisplay when the device is back online.','warn');
 }
@@ -298,8 +304,8 @@ async function restartEntireDevice(){
   if(!systemHealthState?.canRebootDevice)return;
   const warning=`Restart the entire LibreDisplay device now?\n\nThis reboots the host operating system, not just LibreDisplay. The local display and remote Settings will be unavailable briefly.${bootstrapApi.REMOTE_SETTINGS_MODE?'\n\nYour remote Owner session may need to sign in again after the reboot.':''}`;
   if(!confirm(warning))return;
-  const button=document.getElementById('system-device-restart-button');if(button)button.disabled=true;setDeviceRestartStatus('Sending full-device restart request…','warn');
-  try{const r=await resilientFetch(serverPath('/api/system-reboot'),{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'},{timeoutMs:10000,retry:false}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||`HTTP ${r.status}`);setDeviceRestartStatus('Restart requested. Waiting for the device to go offline…','warn');monitorDeviceRestart();}catch(e){if(button)button.disabled=false;setDeviceRestartStatus('Could not restart the device: '+(e?.message||e),'bad');}
+  const initialUptime=Math.max(0,Number(systemHealthState?.uptimeSeconds)||0),button=document.getElementById('system-device-restart-button');if(button)button.disabled=true;setDeviceRestartStatus('Sending full-device restart request…','warn');
+  try{const r=await resilientFetch(serverPath('/api/system-reboot'),{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',cache:'no-store'},{timeoutMs:10000,retry:false}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||`HTTP ${r.status}`);setDeviceRestartStatus('Restart requested. Waiting for the device to go offline…','warn');monitorDeviceRestart({initialUptime});}catch(e){setDeviceRestartStatus('The connection dropped while sending the restart request. Checking whether the device accepted it…','warn');monitorDeviceRestart({requestUncertain:true,initialUptime});}
 }
 
 function formatHealthBytes(bytes){
@@ -521,7 +527,10 @@ function buildDiagnosticsPayload(){
     piRuntime:systemHealthState.piRuntime,
     kioskHeartbeat:systemHealthState.kioskHeartbeat,
     recovery:systemHealthState.recovery,
-    outboundConnectivity:systemHealthState.outboundConnectivity
+    outboundConnectivity:systemHealthState.outboundConnectivity,
+    canRebootDevice:systemHealthState.canRebootDevice,
+    deviceRebootReason:systemHealthState.deviceRebootReason||undefined,
+    deviceRebootState:systemHealthState.deviceRebootState||undefined
   }:undefined;
   return {
     build:bootstrapApi.DASHBOARD_BUILD,
@@ -529,7 +538,7 @@ function buildDiagnosticsPayload(){
     protocol:location.protocol,
     storage:{serverConfig:configApi.serverConfigAvailable?'synced':'browser-fallback',serverError:configApi.serverConfigLastError||undefined,profiles:configApi.profileStore.items.length,activeProfile:configApi.profileStore.items.find(p=>p.id===configApi.profileStore.activeId)?.name||undefined},
     host,
-    software:softwareUpdateState?.ok?{currentVersion:softwareUpdateState.currentVersion,latestVersion:softwareUpdateState.latestVersion,updateAvailable:softwareUpdateState.updateAvailable,deployment:softwareUpdateState.deployment,canUpdateInApp:softwareUpdateState.canUpdateInApp}:undefined,
+    software:softwareUpdateState?{ok:!!softwareUpdateState.ok,currentVersion:softwareUpdateState.currentVersion,latestVersion:softwareUpdateState.latestVersion,updateAvailable:softwareUpdateState.updateAvailable,deployment:softwareUpdateState.deployment,canUpdateInApp:softwareUpdateState.canUpdateInApp,inAppUpdateReason:softwareUpdateState.inAppUpdateReason||undefined,error:softwareUpdateState.error||undefined}:undefined,
     viewport:{width:innerWidth,height:innerHeight,devicePixelRatio:devicePixelRatio||1},
     frontendPerformance:LibreDisplayRuntime.getModule('performance').frontendPerformanceSnapshot(),
     administrationBrowserPerformance:LibreDisplayRuntime.getModule('performance').frontendPerformanceSnapshot(),
