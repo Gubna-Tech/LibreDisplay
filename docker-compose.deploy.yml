@@ -2,7 +2,7 @@ name: libredisplay
 
 services:
   libredisplay:
-    image: "${LIBREDISPLAY_IMAGE:-ghcr.io/gubna-tech/libredisplay:v1.15.29}"
+    image: "${LIBREDISPLAY_IMAGE:-ghcr.io/gubna-tech/libredisplay:v1.15.30}"
     container_name: libredisplay
     restart: unless-stopped
     init: true
