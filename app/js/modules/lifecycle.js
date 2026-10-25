@@ -62,6 +62,7 @@ async function init(){
 
   appearance.applyProductTheme('libre-night');
   await settings.loadSessionInfo();
+  system.startSoftwareUpdateAutoDetection();
   // Saved display configuration is the only network-backed prerequisite for the
   // first useful frame. Start weather/AQI/background work before accounts,
   // integrations, household data, profiles, and scenes finish hydrating.

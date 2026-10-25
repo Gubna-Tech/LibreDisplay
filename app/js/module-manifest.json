@@ -163,7 +163,7 @@
     "module": "system",
     "part": "bundle",
     "path": "/js/modules/system.js",
-    "lines": 768,
+    "lines": 770,
     "functions": 62,
     "bindings": 18,
     "sections": [
@@ -188,7 +188,7 @@
     "module": "settings",
     "part": "bundle",
     "path": "/js/modules/settings.js",
-    "lines": 1758,
+    "lines": 1757,
     "functions": 82,
     "bindings": 18,
     "sections": [
@@ -217,7 +217,7 @@
     "module": "lifecycle",
     "part": "bundle",
     "path": "/js/modules/lifecycle.js",
-    "lines": 121,
+    "lines": 122,
     "functions": 5,
     "bindings": 3,
     "sections": [

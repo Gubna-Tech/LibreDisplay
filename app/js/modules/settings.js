@@ -122,7 +122,6 @@ function restoreSavedSettingsPreview(){
 function closeSetup(revertPreview=true){
   LibreDisplayRuntime.getModule('settings').stopSettingsAnimationDiagnostics?.();
   stopSystemHealthAutoRefresh();
-  stopSoftwareUpdateAutoDetection();
   settingsPreviewMode=false;
   setSettingsPreviewReturnVisible(false);
   systemApi.settingsInitializing=false;
@@ -135,7 +134,7 @@ function closeSetup(revertPreview=true){
 }
 function skipSetup(){closeSetup();}
 
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){setTimeout(ensureAlertMotionRunning,120);if(settingsPanelOpen()){setTimeout(()=>autoDetectSoftwareUpdate('visible'),400);if(bootstrapApi.SESSION_ROLE==='owner')setTimeout(()=>loadSystemHealth(),250);}}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){setTimeout(ensureAlertMotionRunning,120);setTimeout(()=>autoDetectSoftwareUpdate('visible'),400);if(settingsPanelOpen()&&bootstrapApi.SESSION_ROLE==='owner')setTimeout(()=>loadSystemHealth(),250);}});
 window.addEventListener('resize',()=>setTimeout(ensureAlertMotionRunning,120));
 
 function openSetup(startWizard=false){
@@ -159,7 +158,7 @@ function openSetup(startWizard=false){
   document.getElementById('setup').classList.remove('hidden');document.getElementById('setup').setAttribute('aria-hidden','false');
   LibreDisplayRuntime.getModule('settings').startSettingsAnimationDiagnostics?.();
   startSystemHealthAutoRefresh();
-  startSoftwareUpdateAutoDetection();
+  autoDetectSoftwareUpdate('open');
   try{
     bindCalendarColorControls();
     bindCalendarUxInputs();

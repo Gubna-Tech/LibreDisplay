@@ -2640,7 +2640,7 @@ def github_update_status(force=False):
         rows = raw_payload if isinstance(raw_payload, list) else [raw_payload]
         candidates = []
         for row in rows:
-            if not isinstance(row, dict) or row.get("draft"):
+            if not isinstance(row, dict) or row.get("draft") or row.get("prerelease"):
                 continue
             tag = str(row.get("tag_name") or "").strip()
             parsed = semantic_version_tuple(tag)

@@ -110,7 +110,7 @@ function renderSoftwareUpdateStatus(){
   const autoStatus=document.getElementById('software-update-auto-status');
   if(autoStatus){
     const checked=Number(d?.checkedAt)||0,when=checked?new Date(checked*1000).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'';
-    autoStatus.textContent=checked?`Automatic update detection is on · last checked ${when}${d?.stale?' · showing last successful result':''}.`:'Automatic update detection is on · checking when Settings opens and every 15 minutes while open.';
+    autoStatus.textContent=checked?`Automatic update detection is on · last checked ${when}${d?.stale?' · showing last successful result':''}.`:'Automatic update detection is on · checking in the background every 15 minutes.';
   }
   const updateAvailable=bootstrapApi.SESSION_ROLE==='owner'&&!!d?.ok&&!!d.updateAvailable,updateSection=document.getElementById('settings-software-update');
   if(badge){badge.classList.toggle('show',updateAvailable);badge.setAttribute('aria-hidden',updateAvailable?'false':'true');}
@@ -156,18 +156,20 @@ async function checkSoftwareUpdate(force=false){
   try{return await run;}finally{softwareUpdateCheckPromise=null;}
 }
 function settingsPanelOpen(){return !document.getElementById('setup')?.classList.contains('hidden');}
-async function autoDetectSoftwareUpdate(reason='heartbeat'){
-  if(document.hidden||!settingsPanelOpen()||bootstrapApi.SESSION_ROLE!=='owner')return softwareUpdateState;
+function softwareUpdateAutoAllowed(){return bootstrapApi.SESSION_ROLE==='owner'||bootstrapApi.LOCAL_CLIENT_MODE;}
+async function autoDetectSoftwareUpdate(reason='background'){
+  if(document.hidden||!softwareUpdateAutoAllowed())return softwareUpdateState;
   const now=Date.now();
   if(reason!=='manual'&&now-softwareUpdateAutoLastStarted<60000)return softwareUpdateState;
   softwareUpdateAutoLastStarted=now;
   return checkSoftwareUpdate(true);
 }
 function startSoftwareUpdateAutoDetection(){
-  stopSoftwareUpdateAutoDetection();
-  if(bootstrapApi.SESSION_ROLE!=='owner')return;
-  setTimeout(()=>autoDetectSoftwareUpdate('open'),250);
-  softwareUpdateAutoTimer=setInterval(()=>autoDetectSoftwareUpdate('heartbeat'),SOFTWARE_UPDATE_AUTO_CHECK_MS);
+  if(!softwareUpdateAutoAllowed())return;
+  if(!softwareUpdateAutoTimer){
+    setTimeout(()=>autoDetectSoftwareUpdate('startup'),750);
+    softwareUpdateAutoTimer=setInterval(()=>autoDetectSoftwareUpdate('background'),SOFTWARE_UPDATE_AUTO_CHECK_MS);
+  }
 }
 function stopSoftwareUpdateAutoDetection(){
   if(softwareUpdateAutoTimer){clearInterval(softwareUpdateAutoTimer);softwareUpdateAutoTimer=null;}
@@ -611,7 +613,7 @@ document.getElementById('setup')?.addEventListener('change',e=>{
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("system", {markSettingsDirty,markSettingsClean,setHealth,renderServerMode,loadServerMode,setServerOnlyMode,handleServerOnlyToggle,renderSoftwareUpdateStatus,checkSoftwareUpdate,settingsPanelOpen,autoDetectSoftwareUpdate,startSoftwareUpdateAutoDetection,stopSoftwareUpdateAutoDetection,setSoftwareUpdateActionStatus,sleepMs,monitorSoftwareUpdate,startSoftwareUpdate,setReleaseRollbackStatus,renderReleaseRollbacks,loadReleaseRollbacks,monitorReleaseRollback,startReleaseRollback,formatHealthBytes,formatHealthUptime,renderSystemHealth,renderSystemHealthRefreshStatus,loadSystemHealth,stopSystemHealthAutoRefresh,startSystemHealthAutoRefresh,providerHealthPill,renderProviderHealth,refreshProviderHealth,updateSettingsOverview,physicalDisplayBenchmarkState,renderDisplayPerformanceBenchmark,runSystemDisplayPerformanceBenchmark,setDeviceRestartStatus,monitorDeviceRestart,restartEntireDevice,buildDiagnosticsPayload,diagnosticsJson,copyDiagnostics,downloadDiagnostics,restorePreviousSettings}, {
+LibreDisplayRuntime.exposeModule("system", {markSettingsDirty,markSettingsClean,setHealth,renderServerMode,loadServerMode,setServerOnlyMode,handleServerOnlyToggle,renderSoftwareUpdateStatus,checkSoftwareUpdate,settingsPanelOpen,softwareUpdateAutoAllowed,autoDetectSoftwareUpdate,startSoftwareUpdateAutoDetection,stopSoftwareUpdateAutoDetection,setSoftwareUpdateActionStatus,sleepMs,monitorSoftwareUpdate,startSoftwareUpdate,setReleaseRollbackStatus,renderReleaseRollbacks,loadReleaseRollbacks,monitorReleaseRollback,startReleaseRollback,formatHealthBytes,formatHealthUptime,renderSystemHealth,renderSystemHealthRefreshStatus,loadSystemHealth,stopSystemHealthAutoRefresh,startSystemHealthAutoRefresh,providerHealthPill,renderProviderHealth,refreshProviderHealth,updateSettingsOverview,physicalDisplayBenchmarkState,renderDisplayPerformanceBenchmark,runSystemDisplayPerformanceBenchmark,setDeviceRestartStatus,monitorDeviceRestart,restartEntireDevice,buildDiagnosticsPayload,diagnosticsJson,copyDiagnostics,downloadDiagnostics,restorePreviousSettings}, {
   "settingsInitializing": {configurable:true,get:()=>settingsInitializing,set:(value)=>{settingsInitializing=value;}},
   "serverModeState": {configurable:true,get:()=>serverModeState,set:(value)=>{serverModeState=value;}},
   "settingsDirty": {configurable:true,get:()=>settingsDirty,set:(value)=>{settingsDirty=value;}},
