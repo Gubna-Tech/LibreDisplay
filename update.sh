@@ -56,7 +56,7 @@ restart_installed_runtime_after_failure() {
 }
 
 [ -f "$SRC_DIR/VERSION" ] || { printf 'This does not look like a LibreDisplay release folder.\n' >&2; exit 1; }
-for required in README.md HELP.md LICENSE Dockerfile docker-compose.yml install.sh update.sh uninstall.sh app/dashboard.html app/dashboard_server.py app/qrcode_vendor.zip app/js/app.js app/css/dashboard.css scripts/release-rollback.py scripts/verify-frontend.py; do
+for required in README.md HELP.md LICENSE Dockerfile docker-compose.deploy.yml docker-compose.yml install.sh update.sh uninstall.sh app/dashboard.html app/dashboard_server.py app/qrcode_vendor.zip app/js/app.js app/css/dashboard.css scripts/release-rollback.py scripts/verify-frontend.py; do
   [ -f "$SRC_DIR/$required" ] || { printf 'LibreDisplay release is incomplete: missing %s\n' "$required" >&2; exit 1; }
 done
 [ -f "$SRC_DIR/scripts/verify-frontend.py" ] || { printf 'LibreDisplay release is incomplete: missing frontend verifier.\n' >&2; exit 1; }
@@ -215,7 +215,7 @@ for src in "$SRC_DIR/plugins"/*; do
   [ -e "$src" ] || continue
   cp -a "$src" "$STAGE_DIR/plugins/"
 done
-for file in Dockerfile LICENSE README.md HELP.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
+for file in .dockerignore Dockerfile LICENSE README.md HELP.md VERSION docker-compose.deploy.yml docker-compose.yml install.sh update.sh uninstall.sh; do
   cp "$SRC_DIR/$file" "$STAGE_DIR/$file"
 done
 printf '%s\n' "$OLD_VERSION" > "$OLD_DIR/installed-version"
@@ -246,7 +246,7 @@ for src in "$STAGE_DIR/plugins"/*; do
   mv "$src" "$INSTALL_DIR/plugins/$name"
 done
 
-for file in Dockerfile LICENSE README.md HELP.md VERSION docker-compose.yml install.sh update.sh uninstall.sh; do
+for file in .dockerignore Dockerfile LICENSE README.md HELP.md VERSION docker-compose.deploy.yml docker-compose.yml install.sh update.sh uninstall.sh; do
   [ -f "$STAGE_DIR/$file" ] || continue
   if [ -f "$INSTALL_DIR/$file" ]; then
     mv "$INSTALL_DIR/$file" "$OLD_DIR/files/$file"
@@ -292,7 +292,7 @@ if [ "$helper_ready" -eq 1 ]; then
 else
   sudo install -m 755 "$INSTALL_DIR/scripts/libredisplay" /usr/local/bin/libredisplay
 fi
-chmod 644 "$INSTALL_DIR/README.md" "$INSTALL_DIR/HELP.md" "$INSTALL_DIR/LICENSE" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.yml"
+chmod 644 "$INSTALL_DIR/README.md" "$INSTALL_DIR/HELP.md" "$INSTALL_DIR/LICENSE" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.deploy.yml" "$INSTALL_DIR/docker-compose.yml"
 
 printf 'Validating the installed release before committing the update...\n'
 python3 "$INSTALL_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" verify-install --expected-version "$NEW_VERSION"

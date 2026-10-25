@@ -47,8 +47,13 @@ load_env() {
     . ./.env
     set +a
   fi
-  : "${DASHBOARD_UID:=$(id -u)}"
-  : "${DASHBOARD_GID:=$(id -g)}"
+  if [ "$(id -u)" -eq 0 ]; then
+    : "${DASHBOARD_UID:=10001}"
+    : "${DASHBOARD_GID:=10001}"
+  else
+    : "${DASHBOARD_UID:=$(id -u)}"
+    : "${DASHBOARD_GID:=$(id -g)}"
+  fi
   : "${DASHBOARD_BIND:=127.0.0.1}"
   : "${DASHBOARD_PORT:=8787}"
   : "${DASHBOARD_REMOTE_ENABLED:=1}"
@@ -106,7 +111,7 @@ container_health() {
 
 wait_for_healthy() {
   count=0
-  while [ "$count" -lt 45 ]; do
+  while [ "$count" -lt 90 ]; do
     if [ -s data/dashboard_access.json ]; then
       health=$(container_health || true)
       if [ "$health" = "healthy" ] || [ "$health" = "running" ]; then

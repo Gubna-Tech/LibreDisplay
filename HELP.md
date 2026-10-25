@@ -2081,7 +2081,23 @@ Choose based on the actual panel and room rather than enabling everything automa
 
 Docker deployments serve LibreDisplay but do not use the native Pi Chromium/kiosk manager.
 
-A typical LAN-oriented setup uses:
+For a first-time Docker Engine/Desktop or NAS deployment, use the same one-command bootstrap shown in `README.md`:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.15.28/scripts/docker-install-one-line.sh)"
+```
+
+The bootstrap requires Docker Compose v2, creates `~/libredisplay-docker`, downloads `docker-compose.deploy.yml`, writes a private `.env`, creates persistent `data/` and `media/` directories, pulls the pinned multi-architecture LibreDisplay image, starts it, and waits for container health. It defaults to port `8787` on the trusted LAN. Set `LIBREDISPLAY_DOCKER_HOME`, `DASHBOARD_BIND`, or `DASHBOARD_PORT` before the command when you need different host paths or binding.
+
+The YAML uses the published `ghcr.io/gubna-tech/libredisplay` image. The release workflow publishes both `linux/amd64` and `linux/arm64`, covering common x86 NAS hosts and ARM64 systems. The GitHub Container Registry package must remain public so first-time users can pull it without credentials.
+
+### TrueNAS SCALE
+
+TrueNAS SCALE 24.10 and later can deploy third-party apps with Docker Compose YAML. In **Apps > Discover**, open **⋮ > Install via YAML**, name the app `libredisplay`, and paste this release's `docker-compose.deploy.yml`. With no substitutions it uses Docker-managed persistent volumes. For dataset-backed storage, replace the relevant volume source with an absolute TrueNAS path such as `/mnt/tank/apps/libredisplay/data` or `/mnt/tank/media/photos`. Keep media read-only unless you intentionally need container writes.
+
+### Source-build / advanced Docker deployment
+
+The extracted source tree still includes the build-oriented helper:
 
 ```bash
 chmod +x scripts/docker-setup.sh
@@ -2094,6 +2110,8 @@ Maintenance examples:
 ./scripts/docker-setup.sh update
 ./scripts/docker-setup.sh backup
 ```
+
+When the source helper is launched as root, it now defaults the container to LibreDisplay's non-root UID/GID instead of running the application as root. Its startup health wait also allows 90 seconds so the Docker healthcheck cadence cannot cause an avoidable first-start false failure. Stable release selection excludes GitHub drafts and prereleases.
 
 The native Raspberry Pi Server-only toggle is intentionally unsupported in deployments that have no native kiosk manager; those hosts are already effectively server-only.
 

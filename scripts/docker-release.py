@@ -30,7 +30,9 @@ MAX_MEMBER_BYTES = 150 * 1024 * 1024
 MAX_TOTAL_UNPACKED_BYTES = 700 * 1024 * 1024
 MANAGED_DIRS = ("app", "scripts", "tests", "assets")
 MANAGED_FILES = (
+    ".dockerignore",
     "Dockerfile",
+    "docker-compose.deploy.yml",
     "docker-compose.yml",
     "README.md",
     "HELP.md",
@@ -46,6 +48,7 @@ REQUIRED_RELEASE_FILES = (
     "HELP.md",
     "LICENSE",
     "Dockerfile",
+    "docker-compose.deploy.yml",
     "docker-compose.yml",
     "app/dashboard.html",
     "app/dashboard_server.py",
@@ -70,7 +73,7 @@ def select_latest_release_payload(payload):
     rows = payload if isinstance(payload, list) else [payload]
     candidates = []
     for row in rows:
-        if not isinstance(row, dict) or row.get("draft"):
+        if not isinstance(row, dict) or row.get("draft") or row.get("prerelease"):
             continue
         tag = str(row.get("tag_name") or "").strip()
         try:
