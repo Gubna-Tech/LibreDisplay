@@ -7,7 +7,7 @@
 # Keep the NAS and this dashboard on a trusted LAN or private VPN only.
 services:
   libredisplay:
-    image: ghcr.io/gubna-tech/libredisplay:v1.16.5
+    image: ghcr.io/gubna-tech/libredisplay:v1.16.6
     restart: unless-stopped
     init: true
     ports:

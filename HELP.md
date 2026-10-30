@@ -10,6 +10,8 @@ You do not need to read it cover to cover. Start with the task that matches what
 
 ## Start here: what do you want to do?
 
+If the Raspberry Pi first install stops before the dashboard is ready, **run the same one-line install command again**. The installer resumes recognizable interrupted installs without deleting `data/`, media, or existing setup backups. Use the updater only after the installer reports success. If `~/libredisplay` belongs to something else, the installer refuses to overwrite it.
+
 | Your goal | Best place to start |
 | --- | --- |
 | Install LibreDisplay on a Raspberry Pi with a screen | [Install on a Raspberry Pi](#install-on-a-raspberry-pi) |
@@ -2084,7 +2086,7 @@ Docker deployments serve LibreDisplay but do not use the native Pi Chromium/kios
 For a first-time Docker Engine/Desktop or NAS deployment, use the same one-command bootstrap shown in `README.md`:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.5/scripts/docker-install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.6/scripts/docker-install-one-line.sh)"
 ```
 
 The bootstrap requires a running Docker Engine/Desktop with Compose v2. It creates `~/libredisplay-docker`, downloads `docker/docker-compose.deploy.yml` from the pinned release, writes a private `.env`, creates persistent `data/` and `media/` directories, and tries to pull the pinned multi-architecture LibreDisplay image. If the image is unavailable, it downloads the exact tagged source archive and builds a local image from `docker/Dockerfile` instead. It starts the container and requires a healthy status before reporting success. A published GitHub tag is required for either path. It defaults to port `8787` on the trusted LAN. Set `LIBREDISPLAY_DOCKER_HOME`, `DASHBOARD_BIND`, or `DASHBOARD_PORT` before the command when you need different host paths or binding. **First-use authentication:** Docker network forwarding does not grant the browser local Owner access, even when the user opens `127.0.0.1`. The one-line installer generates a one-time Owner enrollment code inside the container and prints the corresponding `/connect` URL. Open this link to pair your management browser before visiting the ordinary dashboard URL; it expires in approximately 10 minutes and must not be shared. If the installer cannot obtain a code, use the container-shell enrollment command in `README.md`.
@@ -2095,7 +2097,7 @@ For manual source builds, from the extracted release root use `./scripts/docker-
 
 ### TrueNAS SCALE — quick installation
 
-For TrueNAS SCALE 24.10+, LibreDisplay supports a **copy-paste YAML install without terminal commands**. In **Apps > Discover > ⋮ > Install via YAML**, name the app `libredisplay` and paste the complete `docker/truenas-compose.yml` from this release. This file uses `ghcr.io/gubna-tech/libredisplay:v1.16.5`, port `18787`, and Docker-managed volumes, with a secure, opt-in first-time Owner code printed in the NAS application's logs. The normal Docker image/deploy configurations do **not** automatically print enrollment codes.
+For TrueNAS SCALE 24.10+, LibreDisplay supports a **copy-paste YAML install without terminal commands**. In **Apps > Discover > ⋮ > Install via YAML**, name the app `libredisplay` and paste the complete `docker/truenas-compose.yml` from this release. This file uses `ghcr.io/gubna-tech/libredisplay:v1.16.6`, port `18787`, and Docker-managed volumes, with a secure, opt-in first-time Owner code printed in the NAS application's logs. The normal Docker image/deploy configurations do **not** automatically print enrollment codes.
 
 After TrueNAS reports the container as running/healthy, select the application and open **Logs**. Find **LibreDisplay NAS FIRST-TIME OWNER SETUP** and its **One-time Owner code**. From a browser on your trusted LAN, open `http://YOUR-NAS-IP:18787/` to reach first-time setup. Enter the one-time code, name this browser, and create your own Owner username and password (minimum 12 characters). No default username or password exists. The code can be used only once and expires in approximately 10 minutes. If it expires while the installation is still unpaired, **restart the TrueNAS app** and view the newest logs to receive a fresh code. Never share application logs while they contain a live code.
 

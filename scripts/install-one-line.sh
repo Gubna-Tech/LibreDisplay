@@ -2,7 +2,7 @@
 set -eu
 umask 077
 
-VERSION="1.16.5"
+VERSION="1.16.6"
 REPOSITORY="Gubna-Tech/LibreDisplay"
 INSTALL_DIR="$HOME/libredisplay"
 TMP_ROOT=""
@@ -17,16 +17,20 @@ if [ "$(id -u)" -eq 0 ]; then
   exit 1
 fi
 
-if [ -d "$INSTALL_DIR" ] || [ -e "$INSTALL_DIR" ]; then
-  printf 'LibreDisplay already appears to be installed at %s.\n' "$INSTALL_DIR" >&2
-  if command -v libredisplay >/dev/null 2>&1; then
-    printf 'Use: libredisplay update\n' >&2
-  elif [ -x "$INSTALL_DIR/update.sh" ]; then
-    printf 'Use: %s/update.sh\n' "$INSTALL_DIR" >&2
-  else
-    printf 'Use the update instructions for your installed release; this fresh-install bootstrap will not overwrite it.\n' >&2
-  fi
+# The full installer owns existing-tree classification. A failed first install
+# may have copied application files before the final readiness marker existed.
+# Do not turn that recoverable state into an instruction to use the updater.
+# The full installer recommends libredisplay update only for confirmed completed installations.
+if [ -L "$INSTALL_DIR" ]; then
+  printf 'Refusing to follow a symbolic link at %s. Inspect it before installing.\n' "$INSTALL_DIR" >&2
   exit 1
+fi
+if [ -e "$INSTALL_DIR" ] && [ ! -d "$INSTALL_DIR" ]; then
+  printf 'Installation path %s exists but is not a directory.\n' "$INSTALL_DIR" >&2
+  exit 1
+fi
+if [ -d "$INSTALL_DIR" ]; then
+  printf 'Checking existing LibreDisplay files for a completed or interrupted installation...\n'
 fi
 
 command -v curl >/dev/null 2>&1 || { printf 'curl is required for the one-command installer. Install it with: sudo apt install -y curl\n' >&2; exit 1; }

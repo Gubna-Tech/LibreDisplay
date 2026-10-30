@@ -42,37 +42,59 @@ LABWC_DIR="$HOME/.config/labwc"
 AUTOSTART_FILE="$LABWC_DIR/autostart"
 RC_FILE="$LABWC_DIR/rc.xml"
 
+# .installed existed before the final desktop/autostart steps in older releases;
+# its presence alone does not prove the first installation finished.
 is_installed_dir() {
   dir=$1
-  [ -L "$dir" ] && return 0
   [ -d "$dir" ] || return 1
-  [ -f "$dir/data/.installed" ] || [ -f "$dir/data/dashboard_config.json" ] || [ -f "$dir/dashboard_config.json" ] || [ -f "$dir/dashboard.html" ] || [ -f "$dir/app/dashboard.html" ]
+  if [ -f "$dir/data/.install-complete" ] && [ -f "$dir/data/.installed" ]; then
+    return 0
+  fi
+  # Recognize successful older installs without requiring a new marker.
+  [ -f "$dir/data/.installed" ] &&
+    [ -f "$dir/data/libredisplay.env" ] &&
+    [ -f "$HOME/libredisplay-recovery/launch.sh" ] &&
+    [ -f "$HOME/.config/labwc/autostart" ] &&
+    grep -Fq "$HOME/libredisplay-recovery/launch.sh" "$HOME/.config/labwc/autostart"
 }
 
 is_incomplete_first_install() {
   dir=$1
   [ -d "$dir" ] || return 1
-  [ ! -e "$dir/data" ] || return 1
-  [ -f "$dir/app/dashboard.html" ] || return 1
-  [ -d "$dir/scripts" ] || return 1
-  [ -d "$dir/plugins" ] || return 1
+  is_installed_dir "$dir" && return 1
+  # Only recover a directory identifiable as a LibreDisplay install; never
+  # overwrite an arbitrary user's directory.
+  [ -f "$dir/app/dashboard.html" ] || [ -f "$dir/scripts/start.sh" ] ||
+    [ -f "$dir/install.sh" ] || [ -f "$dir/data/.installed" ]
 }
 
-if [ "$SRC_DIR" != "$INSTALL_DIR" ] && is_incomplete_first_install "$INSTALL_DIR"; then
-  printf 'Removing an incomplete previous LibreDisplay installation...\n'
-  rm -rf "$INSTALL_DIR"
+if [ -L "$INSTALL_DIR" ]; then
+  printf 'Refusing to install through a symbolic link: %s\n' "$INSTALL_DIR" >&2
+  exit 1
 fi
-
-if [ "$SRC_DIR" != "$INSTALL_DIR" ] && is_installed_dir "$INSTALL_DIR"; then
+if [ -e "$INSTALL_DIR" ] && [ ! -d "$INSTALL_DIR" ]; then
+  printf '%s exists and is not a directory.\n' "$INSTALL_DIR" >&2
+  exit 1
+fi
+if [ -d "$INSTALL_DIR" ] && is_installed_dir "$INSTALL_DIR"; then
   printf '\nLibreDisplay is already installed at %s.\n' "$INSTALL_DIR" >&2
-  printf 'Use `libredisplay update` to install the newest release, or uninstall LibreDisplay first for a fresh installation.\n' >&2
+  printf 'Use `libredisplay update` for a completed installation; the installer will not overwrite it.\n' >&2
   exit 1
 fi
-
-if [ "$SRC_DIR" = "$INSTALL_DIR" ] && [ -f "$DATA_DIR/.installed" ]; then
-  printf '\nLibreDisplay is already installed in this directory.\n' >&2
-  printf 'Use `libredisplay update` for normal updates, or run: %s/uninstall.sh --purge\n' "$INSTALL_DIR" >&2
-  exit 1
+if [ -d "$INSTALL_DIR" ] && [ -n "$(find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]; then
+  if ! is_incomplete_first_install "$INSTALL_DIR"; then
+    printf 'Installation directory %s is not an identifiable interrupted LibreDisplay installation.\n' "$INSTALL_DIR" >&2
+    printf 'Inspect or back up its contents before trying again. No files have been removed.\n' >&2
+    exit 1
+  fi
+  for name in app scripts plugins assets docker data media; do
+    if [ -L "$INSTALL_DIR/$name" ]; then
+      printf 'Refusing to repair a symbolic-link path: %s\n' "$INSTALL_DIR/$name" >&2
+      exit 1
+    fi
+  done
+  printf 'Resuming an incomplete previous LibreDisplay installation.\n'
+  printf 'Existing data, settings, media and previous configuration backups will be preserved.\n'
 fi
 
 printf '\nLibreDisplay %s\n' "$VERSION"
@@ -98,15 +120,15 @@ sudo DEBIAN_FRONTEND=noninteractive apt install -y \
   fonts-liberation2 fonts-noto-core fonts-noto-color-emoji fonts-dejavu-core
 
 if [ "$SRC_DIR" != "$INSTALL_DIR" ]; then
-  if [ -e "$INSTALL_DIR" ]; then
-    if [ -d "$INSTALL_DIR" ] && [ -z "$(find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]; then
-      rmdir "$INSTALL_DIR"
-    else
-      printf '%s already exists and is not an empty directory.\n' "$INSTALL_DIR" >&2
+  mkdir -p "$INSTALL_DIR"
+  # Copy application code from the fully verified release. Do not delete or
+  # overwrite data/, media/, backups/ or user-provided plugin state.
+  for name in app scripts plugins assets docker; do
+    if [ -L "$INSTALL_DIR/$name" ]; then
+      printf 'Refusing to copy through a symbolic link: %s\n' "$INSTALL_DIR/$name" >&2
       exit 1
     fi
-  fi
-  mkdir -p "$INSTALL_DIR"
+  done
   cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/plugins" "$SRC_DIR/assets" "$SRC_DIR/docker" "$INSTALL_DIR/"
   for file in .dockerignore LICENSE README.md HELP.md VERSION install.sh update.sh uninstall.sh; do
     cp "$SRC_DIR/$file" "$INSTALL_DIR/$file"
@@ -144,13 +166,20 @@ state={
     "autologin": query("get_autologin"),
     "blanking": query("get_blanking"),
 }
-Path(sys.argv[1]).write_text(json.dumps(state,indent=2)+"\n",encoding="utf-8")
+state_path=Path(sys.argv[1])
+if not state_path.exists():
+    state_path.write_text(json.dumps(state,indent=2)+"\n",encoding="utf-8")
 PY
 chmod 600 "$DATA_DIR/install_state.json"
 
-if [ -f "$RC_FILE" ]; then cp -p "$RC_FILE" "$DATA_DIR/labwc-rc.before"; else : > "$DATA_DIR/labwc-rc.missing"; fi
-if [ -f "$AUTOSTART_FILE" ]; then cp -p "$AUTOSTART_FILE" "$DATA_DIR/labwc-autostart.before"; else : > "$DATA_DIR/labwc-autostart.missing"; fi
+if [ ! -e "$DATA_DIR/labwc-rc.before" ] && [ ! -e "$DATA_DIR/labwc-rc.missing" ]; then
+  if [ -f "$RC_FILE" ]; then cp -p "$RC_FILE" "$DATA_DIR/labwc-rc.before"; else : > "$DATA_DIR/labwc-rc.missing"; fi
+fi
+if [ ! -e "$DATA_DIR/labwc-autostart.before" ] && [ ! -e "$DATA_DIR/labwc-autostart.missing" ]; then
+  if [ -f "$AUTOSTART_FILE" ]; then cp -p "$AUTOSTART_FILE" "$DATA_DIR/labwc-autostart.before"; else : > "$DATA_DIR/labwc-autostart.missing"; fi
+fi
 
+if [ ! -f "$DATA_DIR/libredisplay.env" ]; then
 cat > "$DATA_DIR/libredisplay.env" <<EOF_ENV
 DASHBOARD_HOST=0.0.0.0
 DASHBOARD_PORT=8787
@@ -159,9 +188,8 @@ DASHBOARD_REMOTE_NETWORKS=private
 DASHBOARD_REMOTE_SESSION_SECONDS=28800
 DASHBOARD_MEDIA_ROOTS="$HOME/Pictures:/mnt/libredisplay:/media/$(id -un):$INSTALL_DIR/media"
 EOF_ENV
+fi
 chmod 600 "$DATA_DIR/libredisplay.env"
-printf '%s\n' "$VERSION" > "$DATA_DIR/.installed"
-chmod 600 "$DATA_DIR/.installed"
 
 chmod 755 "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh" "$INSTALL_DIR/uninstall.sh" "$INSTALL_DIR/scripts/"*.sh "$INSTALL_DIR/scripts/libredisplay" "$INSTALL_DIR/scripts/libredisplay-privileged" "$INSTALL_DIR/scripts/release-rollback.py" "$INSTALL_DIR/scripts/field-readiness.py" "$INSTALL_DIR/app/dashboard_server.py"
 
@@ -227,6 +255,12 @@ printf '%s\n%s\n%s\n%s\n' \
   'wtype -k F24 &' \
   "swayidle -w timeout 2 'wtype -k F24' &" \
   "sleep 5 && sh \"$HOME/libredisplay-recovery/launch.sh\" &" >> "$AUTOSTART_FILE"
+
+# Mark readiness last, after the native autostart and privileged helpers are
+# configured; interrupted installs before this point remain safely repairable.
+printf '%s\n' "$VERSION" > "$DATA_DIR/.installed"
+printf '%s\n' "$VERSION" > "$DATA_DIR/.install-complete"
+chmod 600 "$DATA_DIR/.installed" "$DATA_DIR/.install-complete"
 
 SETUP_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
 if [ -n "$SETUP_IP" ]; then SETUP_URL="http://$SETUP_IP:8787/"; else SETUP_URL="http://127.0.0.1:8787/"; fi
