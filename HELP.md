@@ -2084,7 +2084,7 @@ Docker deployments serve LibreDisplay but do not use the native Pi Chromium/kios
 For a first-time Docker Engine/Desktop or NAS deployment, use the same one-command bootstrap shown in `README.md`:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.1/scripts/docker-install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.2/scripts/docker-install-one-line.sh)"
 ```
 
 The bootstrap requires Docker Compose v2, creates `~/libredisplay-docker`, downloads `docker-compose.deploy.yml`, writes a private `.env`, creates persistent `data/` and `media/` directories, pulls the pinned multi-architecture LibreDisplay image, starts it, and waits for container health. It defaults to port `8787` on the trusted LAN. Set `LIBREDISPLAY_DOCKER_HOME`, `DASHBOARD_BIND`, or `DASHBOARD_PORT` before the command when you need different host paths or binding.

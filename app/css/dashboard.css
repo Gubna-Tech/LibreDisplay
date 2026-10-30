@@ -4517,8 +4517,8 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 .weather-fx-dog-v2 .dogv2-sleep .dogv2-z-a{left:0;bottom:0;font-size:16px;--zdx:8px;--zdy:-13px;animation-delay:0s}.weather-fx-dog-v2 .dogv2-sleep .dogv2-z-b{left:13px;bottom:8px;font-size:19px;--zdx:13px;--zdy:-21px;animation-delay:-1.05s}.weather-fx-dog-v2 .dogv2-sleep .dogv2-z-c{left:29px;bottom:18px;font-size:22px;--zdx:18px;--zdy:-30px;animation-delay:-2.1s}
 .weather-fx-dog-v2.dog-state-sleep .dogv2-sleep{opacity:1!important;animation:none!important;}
 .weather-fx-dog-v2.dog-state-sleep .dogv2-sleep .dogv2-z{animation:ld1153SleepZ 3.15s ease-out infinite;}
-.weather-fx-dog-v2.dog-facing-left .dogv2-sleep .dogv2-z-a{--zdx:-8px}.weather-fx-dog-v2.dog-facing-left .dogv2-sleep .dogv2-z-b{--zdx:-13px}.weather-fx-dog-v2.dog-facing-left .dogv2-sleep .dogv2-z-c{--zdx:-18px}
-@keyframes ld1153SleepZ{0%{transform:translate(0,2px) scale(.72);opacity:0}18%{opacity:.96}72%{opacity:.72}100%{transform:translate(var(--zdx,12px),var(--zdy,-22px)) scale(1.2);opacity:0}}
+.weather-fx-dog-v2.dog-facing-left .dogv2-sleep .dogv2-z-b{--zdx:-13px}.weather-fx-dog-v2.dog-facing-left .dogv2-sleep .dogv2-z-c{--zdx:-18px}
+
 
 
 .holiday-overlay-halloween{--halloween-orange:#f27a21;--halloween-purple:#7550a6;--halloween-ink:#121117;--halloween-bone:#e7dfd0;--halloween-thread:rgba(226,230,230,.61);}
@@ -4539,8 +4539,18 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 .weather-fx-halloween-wildlife-bat{width:clamp(42px,3.8vw,62px)!important;height:clamp(22px,2vw,34px)!important;background:none!important;clip-path:none!important}.weather-fx-halloween-wildlife-bat-owl{width:clamp(50px,4.5vw,74px)!important;height:clamp(26px,2.4vw,40px)!important}.weather-fx-halloween-wildlife-bat svg{display:block;width:100%;height:100%;overflow:visible}.weather-fx-halloween-wildlife-bat .hbat-wing{position:static!important;width:auto!important;height:auto!important;background:none!important;clip-path:none!important}
 .holiday-overlay-halloween .holiday-halloween-moon{right:8.5vw!important;top:12.5vh!important;width:clamp(88px,9.5vw,148px)!important;height:clamp(88px,9.5vw,148px)!important;opacity:.76!important}.holiday-overlay-halloween .holiday-halloween-ground-mist{height:21vh!important;opacity:.88!important}
 
-/* Sleeping companion: move the ZZZ origin directly above the lowered sleeping muzzle without touching it. */
-.weather-fx-dog-v2 .dogv2-sleep{right:-2px!important;left:auto!important;top:29px!important;width:52px!important;height:42px!important}.weather-fx-dog-v2.dog-facing-left .dogv2-sleep{right:auto!important;left:-2px!important}.weather-fx-dog-v2 .dogv2-sleep .dogv2-z-a{left:0!important;bottom:0!important;font-size:15px!important;--zdx:7px;--zdy:-11px}.weather-fx-dog-v2 .dogv2-sleep .dogv2-z-b{left:11px!important;bottom:7px!important;font-size:18px!important;--zdx:11px;--zdy:-18px}.weather-fx-dog-v2 .dogv2-sleep .dogv2-z-c{left:24px!important;bottom:15px!important;font-size:21px!important;--zdx:15px;--zdy:-25px}.weather-fx-dog-v2.dog-facing-left .dogv2-sleep .dogv2-z-a{--zdx:-7px}.weather-fx-dog-v2.dog-facing-left .dogv2-sleep .dogv2-z-b{--zdx:-11px}.weather-fx-dog-v2.dog-facing-left .dogv2-sleep .dogv2-z-c{--zdx:-15px}
+/* Sleeping companion: all letters originate at the rendered nose, then float outward. */
+.weather-fx-dog-v2 .dogv2-sleep,.weather-fx-dog-v2.dog-facing-left .dogv2-sleep{left:var(--dog-zzz-x,205px)!important;right:auto!important;top:var(--dog-zzz-y,82px)!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none}
+.weather-fx-dog-v2.dog-state-sleep:not(.dog-zzz-ready) .dogv2-sleep{opacity:0!important}
+.weather-fx-dog-v2.dog-state-sleep.dog-zzz-ready .dogv2-sleep{opacity:1!important}
+.weather-fx-dog-v2 .dogv2-sleep .dogv2-z{left:0!important;top:0!important;bottom:auto!important;white-space:nowrap;transform-origin:50% 50%}
+.weather-fx-dog-v2 .dogv2-sleep .dogv2-z-a{font-size:15px!important;--zdx:8px;--zdy:-16px;animation-delay:0s!important}
+.weather-fx-dog-v2 .dogv2-sleep .dogv2-z-b{font-size:18px!important;--zdx:14px;--zdy:-27px;animation-delay:.95s!important}
+.weather-fx-dog-v2 .dogv2-sleep .dogv2-z-c{font-size:21px!important;--zdx:20px;--zdy:-39px;animation-delay:1.90s!important}
+.weather-fx-dog-v2.dog-facing-left .dogv2-sleep .dogv2-z-a{--zdx:-8px}
+.weather-fx-dog-v2.dog-facing-left .dogv2-sleep .dogv2-z-b{--zdx:-14px}
+.weather-fx-dog-v2.dog-facing-left .dogv2-sleep .dogv2-z-c{--zdx:-20px}
+@keyframes ld1153SleepZ{0%{transform:translate(0,0) rotate(-3deg) scale(.72);opacity:0}14%{opacity:.95}70%{opacity:.75}100%{transform:translate(var(--zdx,12px),var(--zdy,-22px)) rotate(-3deg) scale(1.2);opacity:0}}
 
 
 .holiday-overlay-halloween .holiday-web-v5{opacity:.72!important}.holiday-overlay-halloween .holiday-web-v5 .web-thread{stroke:rgba(226,231,231,.52)!important;stroke-width:.95!important}.holiday-overlay-halloween .holiday-web-v5 .web-thread-spiral{stroke:rgba(231,235,235,.46)!important;stroke-width:.78!important}.holiday-overlay-halloween .holiday-web-v5 .web-boundary{stroke:rgba(231,235,233,.24)!important}.holiday-overlay-halloween .holiday-web-v5 .web-ring-1,.holiday-overlay-halloween .holiday-web-v5 .web-ring-4{opacity:.78}.holiday-overlay-halloween .holiday-web-v5 .web-spoke-2,.holiday-overlay-halloween .holiday-web-v5 .web-spoke-5{opacity:.72}
