@@ -877,7 +877,7 @@ function renderCalendar(events){
         const showTimes=ui.calendarTimeStyle!=='none'&&ui.showEventTimes!==false;
         const style=ev._qolStyle||{},emphasis=style.emphasis&&style.emphasis!=='normal'?` event-emphasis-${style.emphasis}`:'',background=style.background?`background:${style.background};`:'';const location=ui.calendarShowLocation&&ev.location?`<div class="event-location">${esc(ev.location)}</div>`:'',description=ui.calendarShowDescription&&ev.description?`<div class="event-description">${esc(String(ev.description).slice(0,240))}</div>`:'';return `<div class="event-item${emphasis}" style="opacity:${opacity.toFixed(2)};${background}">
           ${showTimes?`<div class="event-time"><span class="event-bar" style="background:${color}"></span>${timeStr}</div>`:''}
-          <div class="event-title${showTimes?'':' event-title-no-time'}">${showTimes?'':`<span class="event-bar" style="background:${color}"></span>`}${esc(ev.title)}</div>${location}${description}
+          <div class="event-title${showTimes?'':' event-title-no-time'}">${showTimes?'':`<span class="event-bar" style="background:${color}"></span>`}<span class="event-title-text">${esc(ev.title)}</span></div>${location}${description}
         </div>`;
       }).join('');
     }
