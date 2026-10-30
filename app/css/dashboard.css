@@ -4687,3 +4687,16 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 .hr-col .hr-meta,.hr-col .hr-meta .hr-wind{overflow:visible}
 .hr-col .hr-meta .hr-wind{z-index:3;max-width:none;white-space:nowrap;min-width:max-content}
 .hr-col .hr-wind-value{white-space:nowrap!important;overflow-wrap:normal;word-break:normal;flex:none}
+
+/* Calendar cell containment: long all-day observances and styled event titles
+   must wrap in the same day, never draw across the adjacent day's boundary. */
+#top-strip .day-col{overflow-x:clip;overflow-y:visible}
+#top-strip .day-events,#top-strip .event-item,#top-strip .event-title{
+  box-sizing:border-box;width:100%;min-width:0;max-width:100%;
+}
+#top-strip .event-title{white-space:normal!important;overflow-wrap:anywhere}
+#top-strip .event-title-text{
+  display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%;
+  white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal;
+}
+#top-strip .event-title-no-time .event-title-text{flex:1 1 0;width:auto}
