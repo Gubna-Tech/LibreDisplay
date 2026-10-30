@@ -539,7 +539,6 @@ body.custom-layout #wx-left[data-current-weather-layout="split"],body.custom-lay
 .alert-card.severity-severe { --alert-accent:#fecaca; }
 .alert-card.severity-moderate { --alert-accent:#fed7aa; background:linear-gradient(90deg,rgba(124,39,8,.88),rgba(105,31,7,.72)); }
 .alert-card.severity-minor { --alert-accent:#fde68a; background:linear-gradient(90deg,rgba(102,55,6,.84),rgba(86,46,5,.69)); }
-.alert-card.severity-unknown { --alert-accent:#cbd5e1; background:linear-gradient(90deg,rgba(51,65,85,.88),rgba(38,53,70,.74)); }
 .alert-icon {
   font-size:clamp(42px,3.4vw,60px);
   font-weight:300;
@@ -4675,37 +4674,3 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 .custom-block[data-block-type="airquality"] .custom-aq-label.ld-internal-free-part{box-sizing:content-box;overflow:visible;min-height:1.12em}
 
 .layout-current-part-box.selected:not(.primary-selected) .layout-current-part-resize-handle,.layout-built-in-part-box.selected:not(.primary-selected) .layout-built-in-part-resize-handle,.layout-internal-edit-box.selected:not(.primary-selected) .layout-internal-resize-handle{display:none!important}
-
-/* Keep upright sleep lettering on the muzzle side, with outward-only animation in either facing direction. */
-.weather-fx-dog-v2 .dogv2-sleep{right:auto!important;left:var(--dog-sleep-mouth-right-x)!important;top:var(--dog-sleep-mouth-y)!important;bottom:auto!important;width:0!important;height:0!important;transform:none!important;overflow:visible!important;pointer-events:none}
-.weather-fx-dog-v2.dog-facing-left .dogv2-sleep{right:auto!important;left:var(--dog-sleep-mouth-left-x)!important}
-.weather-fx-dog-v2 .dogv2-sleep .dogv2-z{right:auto!important;bottom:auto!important;transform-origin:center!important;white-space:nowrap}
-.weather-fx-dog-v2 .dogv2-sleep .dogv2-z-a{left:2px!important;top:-2px!important;font-size:15px!important;--zdx:10px;--zdy:-13px}
-.weather-fx-dog-v2 .dogv2-sleep .dogv2-z-b{left:8px!important;top:-12px!important;font-size:18px!important;--zdx:15px;--zdy:-21px}
-.weather-fx-dog-v2 .dogv2-sleep .dogv2-z-c{left:15px!important;top:-23px!important;font-size:21px!important;--zdx:21px;--zdy:-29px}
-.weather-fx-dog-v2.dog-facing-left .dogv2-sleep .dogv2-z-a{left:-10px!important;--zdx:-10px}
-.weather-fx-dog-v2.dog-facing-left .dogv2-sleep .dogv2-z-b{left:-20px!important;--zdx:-15px}
-.weather-fx-dog-v2.dog-facing-left .dogv2-sleep .dogv2-z-c{left:-32px!important;--zdx:-21px}
-@keyframes ldDogMuzzleSleepZ{0%{transform:translate3d(0,2px,0) scale(.76);opacity:0}16%{opacity:.96}70%{opacity:.76}100%{transform:translate3d(var(--zdx),var(--zdy),0) scale(1.12);opacity:0}}
-.weather-fx-dog-v2.dog-state-sleep .dogv2-sleep .dogv2-z{animation-name:ldDogMuzzleSleepZ!important;animation-duration:3.15s!important;animation-timing-function:ease-out!important;animation-iteration-count:infinite!important}
-
-/* Halloween bats: small, slender side-view bird/owls with soft bat wings. */
-.holiday-overlay-halloween .holiday-bat-v2 .hbat-cartoony,.weather-fx-halloween-wildlife-bat .hbat-cartoony{overflow:visible!important}
-.holiday-overlay-halloween .holiday-bat-v2 .hbat-membrane,.weather-fx-halloween-wildlife-bat .hbat-membrane{fill:var(--bat-wing)!important;stroke:#2d2239!important;stroke-width:1.9!important;stroke-linecap:round!important;stroke-linejoin:round!important}
-.holiday-overlay-halloween .holiday-bat-v2 .hbat-wing-sheen,.weather-fx-halloween-wildlife-bat .hbat-wing-sheen{fill:none!important;stroke:rgba(223,187,231,.27)!important;stroke-width:1.8!important;stroke-linecap:round!important}
-.holiday-overlay-halloween .holiday-bat-v2 :is(.hbat-body,.hbat-head,.hbat-ear),.weather-fx-halloween-wildlife-bat :is(.hbat-body,.hbat-head,.hbat-ear){fill:var(--bat-body)!important;stroke:#24192d!important;stroke-width:1.65!important;stroke-linejoin:round!important}
-.holiday-overlay-halloween .holiday-bat-v2 .hbat-belly,.weather-fx-halloween-wildlife-bat .hbat-belly{fill:var(--bat-belly)!important;opacity:1!important}
-.holiday-overlay-halloween .holiday-bat-v2 .hbat-face,.weather-fx-halloween-wildlife-bat .hbat-face{fill:rgba(221,198,222,.28)!important}
-.holiday-overlay-halloween .holiday-bat-v2 .hbat-blush,.weather-fx-halloween-wildlife-bat .hbat-blush{fill:var(--bat-blush)!important;opacity:.83!important}
-.holiday-overlay-halloween .holiday-bat-v2 .hbat-eye,.weather-fx-halloween-wildlife-bat .hbat-eye{fill:#18101f!important;opacity:1!important}
-.holiday-overlay-halloween .holiday-bat-v2 .hbat-eye-shine,.weather-fx-halloween-wildlife-bat .hbat-eye-shine{fill:#fff0ee!important}
-.holiday-overlay-halloween .holiday-bat-v2 :is(.hbat-eye-closed,.hbat-smile),.weather-fx-halloween-wildlife-bat :is(.hbat-eye-closed,.hbat-smile){fill:none!important;stroke:#221626!important;stroke-width:1.5!important;stroke-linecap:round!important;stroke-linejoin:round!important}
-.holiday-overlay-halloween .holiday-bat-v2 .hbat-fang,.weather-fx-halloween-wildlife-bat .hbat-fang{fill:#ffede7!important;stroke:none!important}
-.holiday-overlay-halloween .holiday-bat-v2 .hbat-foot,.weather-fx-halloween-wildlife-bat .hbat-foot{fill:none!important;stroke:#30213d!important;stroke-width:2.2!important;stroke-linecap:round!important}
-/* Left and right wings pivot from their own shoulders, not from one remote wrist. */
-.holiday-overlay-halloween .holiday-bat-v2 .hbat-wing-near,.weather-fx-halloween-wildlife-bat .hbat-wing-near{transform-origin:69px var(--hbat-near-root-y,40px)!important;animation:ldBattyBirdWingLeft .74s ease-in-out infinite alternate!important}
-.holiday-overlay-halloween .holiday-bat-v2 .hbat-wing-far,.weather-fx-halloween-wildlife-bat .hbat-wing-far{transform-origin:73px var(--hbat-far-root-y,37px)!important;animation:ldBattyBirdWingRight .74s ease-in-out infinite alternate!important;opacity:.82!important}
-@keyframes ldBattyBirdWingLeft{from{transform:rotate(-11deg)}to{transform:rotate(15deg)}}
-@keyframes ldBattyBirdWingRight{from{transform:rotate(11deg)}to{transform:rotate(-15deg)}}
-/* Existing Halloween reduced-motion/static mode must still override the wing animations. */
-html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-overlay .holiday-bat-v2 .hbat-wing,html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-overlay .weather-fx-halloween-wildlife-bat .hbat-wing,.weather-fx-static .holiday-bat-v2 .hbat-wing,.weather-fx-static .weather-fx-halloween-wildlife-bat .hbat-wing,.weather-fx-pi-static .holiday-bat-v2 .hbat-wing,.weather-fx-pi-static .weather-fx-halloween-wildlife-bat .hbat-wing{animation:none!important}
