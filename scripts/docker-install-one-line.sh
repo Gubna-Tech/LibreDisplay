@@ -2,7 +2,7 @@
 set -eu
 umask 077
 
-VERSION="1.16.3"
+VERSION="1.16.4"
 REPO="Gubna-Tech/LibreDisplay"
 DEFAULT_IMAGE="ghcr.io/gubna-tech/libredisplay:v${VERSION}"
 DEFAULT_HOME="${HOME:-/tmp}/libredisplay-docker"
@@ -145,6 +145,30 @@ done
   fail "container did not become healthy within 90 seconds."
 }
 
+# Published Docker ports traverse a network bridge. Even a browser on this host
+# isn't recognized as the server's local Owner. Create a short-lived, one-time
+# enrollment code through loopback *inside* the container instead of weakening
+# the server's authentication boundary.
+OWNER_CODE=$(docker compose exec -T libredisplay python3 - <<'PY_OWNER_CODE' 2>/dev/null || true
+import json
+import urllib.request
+try:
+    request = urllib.request.Request(
+        'http://127.0.0.1:8787/api/owner-enrollment',
+        data=b'{"action":"create"}',
+        headers={'Content-Type': 'application/json', 'Origin': 'http://127.0.0.1:8787'},
+        method='POST',
+    )
+    with urllib.request.urlopen(request, timeout=5) as response:
+        payload = json.load(response)
+    code = str(payload.get('code') or '').strip()
+    if code:
+        print(code)
+except Exception:
+    pass
+PY_OWNER_CODE
+)
+
 HOST_IP=""
 if command -v ip >/dev/null 2>&1; then
   HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}' || true)
@@ -156,6 +180,22 @@ printf 'Install directory: %s\n' "$INSTALL_DIR"
 printf 'Local URL: http://127.0.0.1:%s/\n' "$DASH_PORT"
 if [ "$DASH_BIND" != "127.0.0.1" ] && [ "$DASH_BIND" != "::1" ] && [ -n "$HOST_IP" ]; then
   printf 'LAN URL:   http://%s:%s/\n' "$HOST_IP" "$DASH_PORT"
+fi
+if [ -n "$OWNER_CODE" ]; then
+  printf '\nCONNECT YOUR FIRST OWNER DEVICE (required for Docker browser access):\n'
+  printf 'One-time code: %s\n' "$OWNER_CODE"
+  if [ "$DASH_BIND" = "127.0.0.1" ] || [ "$DASH_BIND" = "::1" ]; then
+    printf 'Open: http://127.0.0.1:%s/connect?code=%s\n' "$DASH_PORT" "$OWNER_CODE"
+  elif [ -n "$HOST_IP" ]; then
+    printf 'Open: http://%s:%s/connect?code=%s\n' "$HOST_IP" "$DASH_PORT" "$OWNER_CODE"
+  else
+    printf 'Open: http://YOUR-DOCKER-HOST-IP:%s/connect and enter the code.\n' "$DASH_PORT"
+  fi
+  printf 'This code expires in approximately 10 minutes, is single-use, and must be kept private.\n'
+else
+  printf '\nOwner enrollment code could not be generated. The container is healthy, but\n'
+  printf 'Docker browsers require a paired Owner device before the dashboard opens.\n'
+  printf 'Use the Owner enrollment command in README.md to obtain a fresh code.\n'
 fi
 printf '\nThis deployment is intended for a trusted LAN or private VPN; do not port-forward it to the public Internet.\n'
 printf 'Re-run the v%s one-line installer to repair/redeploy this release.\n' "$VERSION"

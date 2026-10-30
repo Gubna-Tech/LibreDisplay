@@ -2,7 +2,7 @@
 # Publish the matching GHCR image before installation.
 services:
   libredisplay:
-    image: ghcr.io/gubna-tech/libredisplay:v1.16.3
+    image: ghcr.io/gubna-tech/libredisplay:v1.16.4
     restart: unless-stopped
     init: true
     ports:
