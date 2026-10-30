@@ -28,12 +28,9 @@ API_URL = f"https://api.github.com/repos/{REPOSITORY}/releases?per_page=30"
 MAX_ARCHIVE_BYTES = 300 * 1024 * 1024
 MAX_MEMBER_BYTES = 150 * 1024 * 1024
 MAX_TOTAL_UNPACKED_BYTES = 700 * 1024 * 1024
-MANAGED_DIRS = ("app", "scripts", "tests", "assets")
+MANAGED_DIRS = ("app", "scripts", "tests", "assets", "docker")
 MANAGED_FILES = (
     ".dockerignore",
-    "Dockerfile",
-    "docker-compose.deploy.yml",
-    "docker-compose.yml",
     "README.md",
     "HELP.md",
     "LICENSE",
@@ -47,9 +44,10 @@ REQUIRED_RELEASE_FILES = (
     "README.md",
     "HELP.md",
     "LICENSE",
-    "Dockerfile",
-    "docker-compose.deploy.yml",
-    "docker-compose.yml",
+    "docker/Dockerfile",
+    "docker/docker-compose.deploy.yml",
+    "docker/docker-compose.yml",
+    "docker/truenas-compose.yml",
     "app/dashboard.html",
     "app/dashboard_server.py",
     "app/qrcode_vendor.zip",
@@ -93,7 +91,7 @@ def ensure_real_workspace(value: str) -> Path:
     workspace = raw.resolve()
     if not workspace.is_dir():
         raise ValueError("Docker workspace must be a real directory")
-    if not (workspace / "VERSION").is_file() or not (workspace / "docker-compose.yml").is_file():
+    if not (workspace / "VERSION").is_file() or not ((workspace / "docker" / "docker-compose.yml").is_file() or (workspace / "docker-compose.yml").is_file()):
         raise ValueError("Docker workspace does not look like a LibreDisplay release")
     return workspace
 
@@ -308,6 +306,11 @@ def build_apply_plan(workspace: Path, release: Path):
         src = release / name
         if src.exists():
             plan.append((name, src, workspace / name))
+    # Preserve and remove legacy root-level Docker definitions transactionally.
+    if (release / "docker" / "docker-compose.yml").is_file():
+        for name in ("Dockerfile", "docker-compose.deploy.yml", "docker-compose.yml", "truenas-compose.yml"):
+            if (workspace / name).exists():
+                plan.append((name, None, workspace / name))
     plugins = release / "plugins"
     if plugins.is_dir() and not plugins.is_symlink():
         for src in sorted(plugins.iterdir(), key=lambda p: p.name):
@@ -348,7 +351,8 @@ def apply_release(args) -> int:
             manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
             remove_path(dst)
             dst.parent.mkdir(parents=True, exist_ok=True)
-            copy_path(src, dst)
+            if src is not None:
+                copy_path(src, dst)
         for name in ("install.sh", "update.sh", "uninstall.sh"):
             path = workspace / name
             if path.is_file():

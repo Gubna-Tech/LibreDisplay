@@ -13,10 +13,10 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 Use a current Raspberry Pi OS **with Desktop**, then paste this into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.2/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.3/scripts/install-one-line.sh)"
 ```
 
-The bootstrap validates the pinned **v1.16.2** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
+The bootstrap validates the pinned **v1.16.3** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
 
 > Raspberry Pi OS Lite is not supported by the native kiosk installer. A native Pi can, however, be switched to **Server-only mode** after installation so it runs LibreDisplay without launching a local webpage. Docker/NAS/Linux server deployments are already server-style hosts.
 
@@ -274,14 +274,14 @@ Supported updates keep settings, media, display endpoints, and custom plugins.
 Docker Engine/Desktop and Docker Compose v2 users can install the pinned release with one command:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.2/scripts/docker-install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.3/scripts/docker-install-one-line.sh)"
 ```
 
-The installer creates `~/libredisplay-docker`, downloads the release Compose YAML, uses the published LibreDisplay container image, creates persistent `data/` and `media/` directories, and starts the server on port `8787` for the trusted LAN.
+The installer creates `~/libredisplay-docker`, downloads `docker/docker-compose.deploy.yml` from the pinned release, creates persistent `data/` and `media/` directories, and starts the server on port `8787` for the trusted LAN. It tries the public multi-architecture container image first; if it cannot pull that image, it downloads the matching tagged source and builds locally using Docker. A published GitHub tag and a working Docker daemon are required for either path. The installer checks container health before reporting success.
 
-**TrueNAS SCALE 24.10+**: open **Apps > Discover > ⋮ > Install via YAML**, name the app `libredisplay`, and paste `docker-compose.deploy.yml` from this release. The same YAML defaults to Docker-managed persistent volumes and can be edited to map a TrueNAS dataset such as `/mnt/tank/...` for media or data.
+**TrueNAS SCALE 24.10+**: open **Apps > Discover > ⋮ > Install via YAML**, name the app `libredisplay`, and paste `docker/docker-compose.deploy.yml` from this release. The same YAML defaults to Docker-managed persistent volumes and can be edited to map a TrueNAS dataset such as `/mnt/tank/...` for media or data.
 
-Source-build/advanced Docker maintenance remains available through `./scripts/docker-setup.sh`. Docker/NAS hosts are server-oriented and do not use the native Pi Chromium kiosk manager.
+For manual source builds, run `./scripts/docker-setup.sh` from the extracted release. It uses `docker/docker-compose.yml` (with the project root as the build context), so app code, plugins, data and media remain in their existing project locations. To use Compose directly, run `docker compose -f docker/docker-compose.yml up -d --build` from the release root. For source deployment updates, use `./scripts/docker-setup.sh update`; for the one-line deployment, re-run the pinned one-line installer for a newer published release. Docker/NAS hosts are server-oriented and do not use the native Pi Chromium kiosk manager.
 
 ## Remote access and privacy
 

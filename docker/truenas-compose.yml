@@ -1,0 +1,29 @@
+# TrueNAS SCALE: Apps > Discover > Install via YAML.
+# Publish the matching GHCR image before installation.
+services:
+  libredisplay:
+    image: ghcr.io/gubna-tech/libredisplay:v1.16.3
+    restart: unless-stopped
+    init: true
+    ports:
+      - '18787:8787'
+    environment:
+      DASHBOARD_HOST: '0.0.0.0'
+      DASHBOARD_PORT: '8787'
+      DASHBOARD_DATA_DIR: /data
+      DASHBOARD_MEDIA_ROOTS: /media
+      DASHBOARD_REMOTE_ENABLED: '1'
+      DASHBOARD_REMOTE_NETWORKS: private
+    volumes:
+      - libredisplay-data:/data
+      - libredisplay-media:/media:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+volumes:
+  libredisplay-data:
+  libredisplay-media:

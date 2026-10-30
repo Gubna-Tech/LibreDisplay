@@ -63,7 +63,9 @@ pkill -f "$INSTALL_DIR/dashboard_server.py" 2>/dev/null || true
 pkill -f '127.0.0.1:8787' 2>/dev/null || true
 
 if command -v docker >/dev/null 2>&1; then
-  if [ -f "$INSTALL_DIR/docker-compose.yml" ]; then
+  if [ -f "$INSTALL_DIR/docker/docker-compose.yml" ]; then
+    docker compose -f "$INSTALL_DIR/docker/docker-compose.yml" down --remove-orphans --rmi local >/dev/null 2>&1 || true
+  elif [ -f "$INSTALL_DIR/docker-compose.yml" ]; then
     (cd "$INSTALL_DIR" && docker compose down --remove-orphans --rmi local >/dev/null 2>&1) || true
   fi
   docker rm -f libredisplay >/dev/null 2>&1 || true

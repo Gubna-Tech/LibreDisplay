@@ -22,7 +22,7 @@ fi
 
 SRC_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
-for required in VERSION README.md HELP.md LICENSE Dockerfile docker-compose.deploy.yml docker-compose.yml install.sh update.sh uninstall.sh app/dashboard.html app/dashboard_server.py app/qrcode_vendor.zip app/js/app.js app/css/dashboard.css scripts/release-rollback.py scripts/verify-frontend.py; do
+for required in VERSION README.md HELP.md LICENSE docker/Dockerfile docker/docker-compose.deploy.yml docker/docker-compose.yml docker/truenas-compose.yml install.sh update.sh uninstall.sh app/dashboard.html app/dashboard_server.py app/qrcode_vendor.zip app/js/app.js app/css/dashboard.css scripts/release-rollback.py scripts/verify-frontend.py; do
   [ -f "$SRC_DIR/$required" ] || { printf 'LibreDisplay release is incomplete: missing %s\n' "$required" >&2; exit 1; }
 done
 
@@ -107,8 +107,8 @@ if [ "$SRC_DIR" != "$INSTALL_DIR" ]; then
     fi
   fi
   mkdir -p "$INSTALL_DIR"
-  cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/plugins" "$SRC_DIR/assets" "$INSTALL_DIR/"
-  for file in .dockerignore Dockerfile LICENSE README.md HELP.md VERSION docker-compose.deploy.yml docker-compose.yml install.sh update.sh uninstall.sh; do
+  cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/plugins" "$SRC_DIR/assets" "$SRC_DIR/docker" "$INSTALL_DIR/"
+  for file in .dockerignore LICENSE README.md HELP.md VERSION install.sh update.sh uninstall.sh; do
     cp "$SRC_DIR/$file" "$INSTALL_DIR/$file"
   done
 fi
@@ -179,7 +179,7 @@ if command -v visudo >/dev/null 2>&1; then sudo visudo -cf "$sudoers_tmp" >/dev/
 sudo install -o root -g root -m 440 "$sudoers_tmp" "/etc/sudoers.d/libredisplay-$SUDOERS_NAME"
 rm -f "$sudoers_tmp"
 find "$INSTALL_DIR" -type f -name '*.md' -exec chmod 644 {} \;
-chmod 644 "$INSTALL_DIR/app/dashboard.html" "$INSTALL_DIR/Dockerfile" "$INSTALL_DIR/docker-compose.deploy.yml" "$INSTALL_DIR/docker-compose.yml" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/LICENSE" "$INSTALL_DIR/README.md" "$INSTALL_DIR/HELP.md"
+chmod 644 "$INSTALL_DIR/app/dashboard.html" "$INSTALL_DIR/docker/Dockerfile" "$INSTALL_DIR/docker/docker-compose.deploy.yml" "$INSTALL_DIR/docker/docker-compose.yml" "$INSTALL_DIR/docker/truenas-compose.yml" "$INSTALL_DIR/VERSION" "$INSTALL_DIR/LICENSE" "$INSTALL_DIR/README.md" "$INSTALL_DIR/HELP.md"
 find "$INSTALL_DIR/app/js" "$INSTALL_DIR/app/css" -type f -exec chmod 644 {} +
 
 sudo raspi-config nonint do_boot_behaviour B4

@@ -5,6 +5,11 @@ umask 077
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT_DIR"
 
+# Source deployments keep Compose metadata in docker/ while persistent paths remain at the project root.
+docker_compose() {
+  docker compose -f "$ROOT_DIR/docker/docker-compose.yml" "$@"
+}
+
 usage() {
   cat <<'HELP'
 Usage:
@@ -81,30 +86,30 @@ EOF_ENV
 }
 
 compose_image_id() {
-  container_id=$(docker compose ps -a -q libredisplay 2>/dev/null | head -n 1 || true)
+  container_id=$(docker_compose ps -a -q libredisplay 2>/dev/null | head -n 1 || true)
   if [ -n "$container_id" ]; then
     docker inspect --format '{{.Image}}' "$container_id" 2>/dev/null || true
     return 0
   fi
-  docker compose images -q libredisplay 2>/dev/null | head -n 1 || true
+  docker_compose images -q libredisplay 2>/dev/null | head -n 1 || true
 }
 
 ensure_image() {
   IMAGE_ID=$(compose_image_id)
   if [ -z "$IMAGE_ID" ]; then
     printf 'Building the LibreDisplay Docker image for this command...\n' >&2
-    docker compose build libredisplay
+    docker_compose build libredisplay
     IMAGE_ID=$(compose_image_id)
   fi
   if [ -z "$IMAGE_ID" ]; then
-    docker compose create libredisplay >/dev/null
+    docker_compose create libredisplay >/dev/null
     IMAGE_ID=$(compose_image_id)
   fi
   [ -n "$IMAGE_ID" ] || { printf 'Could not determine the LibreDisplay Docker image.\n' >&2; exit 1; }
 }
 
 container_health() {
-  container_id=$(docker compose ps -q libredisplay 2>/dev/null | head -n 1)
+  container_id=$(docker_compose ps -q libredisplay 2>/dev/null | head -n 1)
   [ -n "$container_id" ] || return 1
   docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id" 2>/dev/null || return 1
 }
@@ -162,8 +167,8 @@ access_value() {
 }
 
 docker_owner_code() {
-  docker compose ps --status running --services 2>/dev/null | grep -qx 'libredisplay' || return 1
-  docker compose exec -T libredisplay python3 - <<'PY_OWNER_CODE' 2>/dev/null
+  docker_compose ps --status running --services 2>/dev/null | grep -qx 'libredisplay' || return 1
+  docker_compose exec -T libredisplay python3 - <<'PY_OWNER_CODE' 2>/dev/null
 import json, urllib.request
 try:
     req=urllib.request.Request(
@@ -199,8 +204,8 @@ show_links() {
     printf 'LAN dashboard:   http://%s:%s/\n' "$ip_value" "$DASHBOARD_PORT"
     printf '\nREAD-ONLY DISPLAY LINKS\n'
     printf 'Open the matching link once on each TV/Pi/tablet screen:\n'
-    if docker compose ps --status running --services 2>/dev/null | grep -qx 'libredisplay'; then
-      docker compose exec -T libredisplay python3 - "$ip_value" "$DASHBOARD_PORT" <<'PY_ENDPOINTS' 2>/dev/null || true
+    if docker_compose ps --status running --services 2>/dev/null | grep -qx 'libredisplay'; then
+      docker_compose exec -T libredisplay python3 - "$ip_value" "$DASHBOARD_PORT" <<'PY_ENDPOINTS' 2>/dev/null || true
 import json,sys
 from pathlib import Path
 host,port=sys.argv[1:3]
@@ -250,7 +255,7 @@ require_docker
 
 case "$COMMAND" in
   status)
-    docker compose ps
+    docker_compose ps
     show_links
     exit 0
     ;;
@@ -259,11 +264,11 @@ case "$COMMAND" in
     exit 0
     ;;
   logs)
-    exec docker compose logs -f --tail=100 libredisplay
+    exec docker compose -f "$ROOT_DIR/docker/docker-compose.yml" logs -f --tail=100 libredisplay
     ;;
   backup)
     load_env
-    docker compose config >/dev/null
+    docker_compose config >/dev/null
     ensure_image
     printf 'Creating a Docker-safe LibreDisplay backup...\n'
     create_docker_backup manual
@@ -272,7 +277,7 @@ case "$COMMAND" in
     ;;
   update)
     load_env
-    docker compose config >/dev/null
+    docker_compose config >/dev/null
     ensure_image
     printf 'Checking GitHub for a newer LibreDisplay Docker release...\n'
     set +e
@@ -286,25 +291,25 @@ case "$COMMAND" in
     target_version=$(cat .libredisplay-update/target-version)
 
     printf 'Stopping LibreDisplay before the safety backup...\n'
-    docker compose down --remove-orphans
+    docker_compose down --remove-orphans
     printf 'Creating a safety backup before Docker source files change...\n'
     if ! create_docker_backup "pre-v$target_version"; then
       printf 'The safety backup failed; no LibreDisplay source files were changed. Restarting the existing container...\n' >&2
-      docker compose up -d --remove-orphans >/dev/null 2>&1 || true
+      docker_compose up -d --remove-orphans >/dev/null 2>&1 || true
       exit 1
     fi
 
     staged_helper=/workspace/.libredisplay-update/release/scripts/docker-release.py
     if ! run_workspace_python "$staged_helper" apply --workspace /workspace --stage /workspace/.libredisplay-update; then
       printf 'The new Docker source could not be applied. The previous source was restored; restarting it now...\n' >&2
-      docker compose up -d --build --remove-orphans >/dev/null 2>&1 || true
+      docker_compose up -d --build --remove-orphans >/dev/null 2>&1 || true
       exit 1
     fi
 
     update_failed=0
-    if ! docker compose config >/dev/null; then
+    if ! docker_compose config >/dev/null; then
       update_failed=1
-    elif ! docker compose up -d --build --remove-orphans; then
+    elif ! docker_compose up -d --build --remove-orphans; then
       update_failed=1
     elif ! wait_for_healthy; then
       update_failed=1
@@ -312,10 +317,10 @@ case "$COMMAND" in
 
     if [ "$update_failed" -ne 0 ]; then
       printf 'The updated Docker deployment did not become healthy. Restoring the previous source...\n' >&2
-      docker compose down --remove-orphans >/dev/null 2>&1 || true
+      docker_compose down --remove-orphans >/dev/null 2>&1 || true
       run_workspace_python "$staged_helper" rollback --workspace /workspace --stage /workspace/.libredisplay-update || true
-      if docker compose config >/dev/null 2>&1; then
-        docker compose up -d --build --remove-orphans >/dev/null 2>&1 || true
+      if docker_compose config >/dev/null 2>&1; then
+        docker_compose up -d --build --remove-orphans >/dev/null 2>&1 || true
       fi
       printf 'Docker update rolled back. Safety backup: %s\n' "$LAST_BACKUP" >&2
       exit 1
@@ -329,7 +334,7 @@ case "$COMMAND" in
     exit 0
     ;;
   stop)
-    docker compose down --remove-orphans
+    docker_compose down --remove-orphans
     printf 'LibreDisplay stopped. Settings and media were kept.\n'
     exit 0
     ;;
@@ -338,7 +343,7 @@ case "$COMMAND" in
     printf 'Continue? [y/N] '
     read answer || answer=n
     case "$answer" in y|Y|yes|YES|Yes) ;; *) printf 'Reset cancelled.\n'; exit 0 ;; esac
-    docker compose down --remove-orphans --rmi local >/dev/null 2>&1 || true
+    docker_compose down --remove-orphans --rmi local >/dev/null 2>&1 || true
     rm -rf data .env
     printf 'Docker state removed. The ./media folder was left untouched.\n'
     exit 0
@@ -388,12 +393,12 @@ chmod 700 data
 chmod 755 media
 write_env
 
-docker compose config >/dev/null
-docker compose up -d --build --remove-orphans
+docker_compose config >/dev/null
+docker_compose up -d --build --remove-orphans
 
 if ! wait_for_healthy; then
   printf '\nLibreDisplay did not become healthy. Recent logs:\n' >&2
-  docker compose logs --tail=80 libredisplay >&2 || true
+  docker_compose logs --tail=80 libredisplay >&2 || true
   exit 1
 fi
 

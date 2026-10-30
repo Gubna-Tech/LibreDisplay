@@ -2,12 +2,12 @@
 set -eu
 umask 077
 
-VERSION="1.16.2"
+VERSION="1.16.3"
 REPO="Gubna-Tech/LibreDisplay"
 DEFAULT_IMAGE="ghcr.io/gubna-tech/libredisplay:v${VERSION}"
 DEFAULT_HOME="${HOME:-/tmp}/libredisplay-docker"
 INSTALL_DIR="${LIBREDISPLAY_DOCKER_HOME:-$DEFAULT_HOME}"
-COMPOSE_URL="https://raw.githubusercontent.com/${REPO}/v${VERSION}/docker-compose.deploy.yml"
+COMPOSE_URL="https://raw.githubusercontent.com/${REPO}/v${VERSION}/docker/docker-compose.deploy.yml"
 
 fail() {
   printf 'LibreDisplay Docker install: %s\n' "$*" >&2
@@ -17,6 +17,7 @@ fail() {
 command -v curl >/dev/null 2>&1 || fail "curl is required."
 command -v docker >/dev/null 2>&1 || fail "Docker Engine or Docker Desktop is required."
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is required."
+docker info >/dev/null 2>&1 || fail "Docker is installed but the daemon is not accessible. Start Docker Desktop/Engine and verify your user can run docker ps."
 
 if [ "$(id -u)" -eq 0 ]; then
   DASH_UID="${DASHBOARD_UID:-10001}"
@@ -78,15 +79,50 @@ cd "$INSTALL_DIR"
 docker compose config -q || fail "Docker Compose rejected the generated LibreDisplay configuration."
 
 printf 'Pulling LibreDisplay v%s...\n' "$VERSION"
-if ! docker compose pull; then
-  cat >&2 <<EOF_ERR
-LibreDisplay could not pull $IMAGE.
-If this release was just published, make sure the GitHub Container Registry package exists and is Public.
-EOF_ERR
-  exit 1
+if docker compose pull; then
+  printf 'The published LibreDisplay image is available.\n'
+else
+  if [ -n "${LIBREDISPLAY_IMAGE:-}" ]; then
+    fail "The requested custom image $IMAGE could not be pulled; source-build fallback only applies to the default image."
+  fi
+  printf 'The prebuilt image is unavailable. Attempting a local build from the pinned v%s release...\n' "$VERSION" >&2
+  command -v tar >/dev/null 2>&1 || fail "tar is required for source-build fallback."
+  SOURCE_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
+  SOURCE_ARCHIVE="$INSTALL_DIR/.source.tar.gz.tmp.$$"
+  SOURCE_STAGE="$INSTALL_DIR/.source.tmp.$$"
+  trap 'rm -f "$SOURCE_ARCHIVE"; rm -rf "$SOURCE_STAGE"' EXIT INT TERM HUP
+  mkdir -p "$SOURCE_STAGE"
+  curl -fL --retry 3 --connect-timeout 10 --max-time 180 "$SOURCE_URL" -o "$SOURCE_ARCHIVE" \
+    || fail "The v${VERSION} source release is not downloadable. Publish the matching GitHub tag before offering Docker installation."
+  tar -tzf "$SOURCE_ARCHIVE" >/dev/null || fail "The downloaded source archive is invalid."
+  tar -xzf "$SOURCE_ARCHIVE" -C "$SOURCE_STAGE" --strip-components=1 \
+    || fail "The downloaded source release could not be extracted."
+  [ -f "$SOURCE_STAGE/VERSION" ] && [ "$(tr -d '\r\n' < "$SOURCE_STAGE/VERSION")" = "$VERSION" ] \
+    || fail "The source release version does not match v${VERSION}."
+  for required in docker/Dockerfile docker/docker-compose.yml app/dashboard_server.py app/dashboard.html plugins/_shared.py; do
+    [ -f "$SOURCE_STAGE/$required" ] || fail "The source release is missing $required."
+  done
+  rm -rf "$INSTALL_DIR/source"
+  mv "$SOURCE_STAGE" "$INSTALL_DIR/source"
+  rm -f "$SOURCE_ARCHIVE"
+  trap - EXIT INT TERM HUP
+  # Use the source's build contract without relocating persistent host data.
+  sed -e 's|context: ..|context: ./source|' \
+      -e 's|../data:/data|./data:/data|' \
+      -e 's|../media:/media:ro|./media:/media:ro|' \
+      -e 's|../plugins:/plugins:ro|./source/plugins:/plugins:ro|' \
+      "$INSTALL_DIR/source/docker/docker-compose.yml" > "$INSTALL_DIR/.compose.source.tmp.$$"
+  mv "$INSTALL_DIR/.compose.source.tmp.$$" "$INSTALL_DIR/compose.yaml"
+  docker compose config -q || fail "The local-build Compose configuration is invalid."
+  printf 'Building LibreDisplay locally from the published source release...\n'
+  docker compose build || fail "Source-build fallback failed; check Docker build output above."
 fi
 
-docker compose up -d --remove-orphans
+if ! docker compose up -d --remove-orphans; then
+  docker compose ps >&2 || true
+  docker compose logs --tail 80 libredisplay >&2 || true
+  fail "Docker could not start LibreDisplay."
+fi
 
 count=0
 healthy=0
@@ -94,7 +130,7 @@ while [ "$count" -lt 90 ]; do
   cid=$(docker compose ps -q libredisplay 2>/dev/null | head -n 1 || true)
   if [ -n "$cid" ]; then
     state=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$cid" 2>/dev/null || true)
-    if [ "$state" = "healthy" ] || [ "$state" = "running" ]; then
+    if [ "$state" = "healthy" ]; then
       healthy=1
       break
     fi

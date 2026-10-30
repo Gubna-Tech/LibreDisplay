@@ -192,7 +192,7 @@ UPDATE_COMMITTED=0
 
 restore_previous_release() {
   set +e
-  for old in "$OLD_DIR/app" "$OLD_DIR/scripts" "$OLD_DIR/assets"; do
+  for old in "$OLD_DIR/app" "$OLD_DIR/scripts" "$OLD_DIR/assets" "$OLD_DIR/docker"; do
     [ -e "$old" ] || continue
     name=$(basename "$old")
     rm -rf "$INSTALL_DIR/$name"
@@ -258,6 +258,7 @@ trap 'cleanup_update_swap 143' TERM
 
 mkdir -p "$STAGE_DIR/plugins" "$OLD_DIR/plugins" "$OLD_DIR/new-plugins" "$OLD_DIR/new-code-dirs" "$OLD_DIR/new-files" "$OLD_DIR/files"
 cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/assets" "$STAGE_DIR/"
+if [ -d "$SRC_DIR/docker" ]; then cp -a "$SRC_DIR/docker" "$STAGE_DIR/"; fi
 for src in "$SRC_DIR/plugins"/*; do
   [ -e "$src" ] || continue
   cp -a "$src" "$STAGE_DIR/plugins/"
@@ -269,7 +270,7 @@ done
 # to update a native Pi/Linux installation. Hidden files such as .dockerignore
 # may be absent from a GitHub-generated tag archive, and must never abort a
 # verified native update after LibreDisplay has already been stopped.
-for file in .dockerignore Dockerfile docker-compose.deploy.yml docker-compose.yml; do
+for file in .dockerignore; do
   [ -f "$SRC_DIR/$file" ] || continue
   cp "$SRC_DIR/$file" "$STAGE_DIR/$file"
 done
@@ -280,7 +281,8 @@ python3 "$STAGE_DIR/scripts/release-rollback.py" --install-dir "$STAGE_DIR" veri
 python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" transaction --snapshot-id "$SNAPSHOT_ID" --state replacing
 
 printf 'Replacing application files...\n'
-for name in app scripts assets; do
+for name in app scripts assets docker; do
+  [ -e "$STAGE_DIR/$name" ] || continue
   if [ -e "$INSTALL_DIR/$name" ]; then
     mv "$INSTALL_DIR/$name" "$OLD_DIR/$name"
   else
@@ -301,7 +303,7 @@ for src in "$STAGE_DIR/plugins"/*; do
   mv "$src" "$INSTALL_DIR/plugins/$name"
 done
 
-for file in LICENSE README.md HELP.md VERSION install.sh update.sh uninstall.sh .dockerignore Dockerfile docker-compose.deploy.yml docker-compose.yml; do
+for file in LICENSE README.md HELP.md VERSION install.sh update.sh uninstall.sh .dockerignore; do
   [ -f "$STAGE_DIR/$file" ] || continue
   if [ -f "$INSTALL_DIR/$file" ]; then
     mv "$INSTALL_DIR/$file" "$OLD_DIR/files/$file"
@@ -310,6 +312,16 @@ for file in LICENSE README.md HELP.md VERSION install.sh update.sh uninstall.sh 
   fi
   mv "$STAGE_DIR/$file" "$INSTALL_DIR/$file"
 done
+
+# Move obsolete top-level Docker definitions to the rollback journal after the
+# new docker/ folder has been installed. Reverted automatically on failure.
+if [ -d "$INSTALL_DIR/docker" ]; then
+  for file in Dockerfile docker-compose.deploy.yml docker-compose.yml truenas-compose.yml; do
+    if [ -f "$INSTALL_DIR/$file" ]; then
+      mv "$INSTALL_DIR/$file" "$OLD_DIR/files/$file"
+    fi
+  done
+fi
 
 PERSISTENT_STATE_AFTER=$(persistent_state_manifest)
 if [ "$PERSISTENT_STATE_BEFORE" != "$PERSISTENT_STATE_AFTER" ]; then
@@ -355,7 +367,7 @@ else
   sudo install -m 755 "$INSTALL_DIR/scripts/libredisplay" /usr/local/bin/libredisplay
 fi
 chmod 644 "$INSTALL_DIR/README.md" "$INSTALL_DIR/HELP.md" "$INSTALL_DIR/LICENSE" "$INSTALL_DIR/VERSION"
-for file in Dockerfile docker-compose.deploy.yml docker-compose.yml .dockerignore; do
+for file in docker/Dockerfile docker/docker-compose.deploy.yml docker/docker-compose.yml docker/truenas-compose.yml .dockerignore; do
   [ -f "$INSTALL_DIR/$file" ] || continue
   chmod 644 "$INSTALL_DIR/$file"
 done

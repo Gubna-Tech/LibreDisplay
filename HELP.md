@@ -2084,16 +2084,18 @@ Docker deployments serve LibreDisplay but do not use the native Pi Chromium/kios
 For a first-time Docker Engine/Desktop or NAS deployment, use the same one-command bootstrap shown in `README.md`:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.2/scripts/docker-install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.3/scripts/docker-install-one-line.sh)"
 ```
 
-The bootstrap requires Docker Compose v2, creates `~/libredisplay-docker`, downloads `docker-compose.deploy.yml`, writes a private `.env`, creates persistent `data/` and `media/` directories, pulls the pinned multi-architecture LibreDisplay image, starts it, and waits for container health. It defaults to port `8787` on the trusted LAN. Set `LIBREDISPLAY_DOCKER_HOME`, `DASHBOARD_BIND`, or `DASHBOARD_PORT` before the command when you need different host paths or binding.
+The bootstrap requires a running Docker Engine/Desktop with Compose v2. It creates `~/libredisplay-docker`, downloads `docker/docker-compose.deploy.yml` from the pinned release, writes a private `.env`, creates persistent `data/` and `media/` directories, and tries to pull the pinned multi-architecture LibreDisplay image. If the image is unavailable, it downloads the exact tagged source archive and builds a local image from `docker/Dockerfile` instead. It starts the container and requires a healthy status before reporting success. A published GitHub tag is required for either path. It defaults to port `8787` on the trusted LAN. Set `LIBREDISPLAY_DOCKER_HOME`, `DASHBOARD_BIND`, or `DASHBOARD_PORT` before the command when you need different host paths or binding.
 
-The YAML uses the published `ghcr.io/gubna-tech/libredisplay` image. The release workflow publishes both `linux/amd64` and `linux/arm64`, covering common x86 NAS hosts and ARM64 systems. The GitHub Container Registry package must remain public so first-time users can pull it without credentials.
+The YAML uses the published `ghcr.io/gubna-tech/libredisplay` image. The release workflow publishes both `linux/amd64` and `linux/arm64`, covering common x86 NAS hosts and ARM64 systems. The GitHub Container Registry package should be made Public to give first-time users the fast pull-based installation. GitHub initially creates new container packages as Private; publish the versioned image, change the package visibility to Public, and verify an anonymous pull before announcing the release. The source-build fallback can operate without the package once the source tag is available. If installation fails, verify Docker Desktop/Engine is running and your user can run `docker ps`, then inspect `docker compose logs --tail=80 libredisplay` in `~/libredisplay-docker`.
+
+For manual source builds, from the extracted release root use `./scripts/docker-setup.sh`. The source Compose file is `docker/docker-compose.yml`; direct Compose users can run `docker compose -f docker/docker-compose.yml up -d --build` from that root. The build context remains the release root and persistent volumes remain in root-level `data/` and `media/`. Docker source updates use `./scripts/docker-setup.sh update`; re-run the pinned Docker one-line installer when updating an image-based deployment.
 
 ### TrueNAS SCALE
 
-TrueNAS SCALE 24.10 and later can deploy third-party apps with Docker Compose YAML. In **Apps > Discover**, open **⋮ > Install via YAML**, name the app `libredisplay`, and paste this release's `docker-compose.deploy.yml`. With no substitutions it uses Docker-managed persistent volumes. For dataset-backed storage, replace the relevant volume source with an absolute TrueNAS path such as `/mnt/tank/apps/libredisplay/data` or `/mnt/tank/media/photos`. Keep media read-only unless you intentionally need container writes.
+TrueNAS SCALE 24.10 and later can deploy third-party apps with Docker Compose YAML. In **Apps > Discover**, open **⋮ > Install via YAML**, name the app `libredisplay`, and paste this release's `docker/docker-compose.deploy.yml`. With no substitutions it uses Docker-managed persistent volumes. For dataset-backed storage, replace the relevant volume source with an absolute TrueNAS path such as `/mnt/tank/apps/libredisplay/data` or `/mnt/tank/media/photos`. Keep media read-only unless you intentionally need container writes.
 
 ### Source-build / advanced Docker deployment
 

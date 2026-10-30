@@ -18,10 +18,10 @@ from pathlib import Path
 FORMAT_VERSION = 1
 ROLLBACK_KEEP = 5
 REQUIRED_CODE_DIRS = ("app", "scripts")
-OPTIONAL_CODE_DIRS = ("assets",)
+OPTIONAL_CODE_DIRS = ("assets", "docker")
 CODE_DIRS = REQUIRED_CODE_DIRS + OPTIONAL_CODE_DIRS
 REQUIRED_TOP_FILES = ("VERSION", "install.sh", "update.sh", "uninstall.sh")
-OPTIONAL_TOP_FILES = (".dockerignore", "Dockerfile", "LICENSE", "README.md", "HELP.md", "docker-compose.deploy.yml", "docker-compose.yml")
+OPTIONAL_TOP_FILES = (".dockerignore", "LICENSE", "README.md", "HELP.md", "Dockerfile", "docker-compose.yml", "docker-compose.deploy.yml", "truenas-compose.yml")
 TOP_FILES = OPTIONAL_TOP_FILES + REQUIRED_TOP_FILES
 CHUNK = 1024 * 1024
 PRIVILEGED_HELPER = Path("/usr/local/libexec/libredisplay-privileged")
