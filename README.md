@@ -13,10 +13,10 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 Use a current Raspberry Pi OS **with Desktop**, then paste this into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.15.30/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.15.31/scripts/install-one-line.sh)"
 ```
 
-The bootstrap validates the pinned **v1.15.30** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
+The bootstrap validates the pinned **v1.15.31** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
 
 > Raspberry Pi OS Lite is not supported by the native kiosk installer. A native Pi can, however, be switched to **Server-only mode** after installation so it runs LibreDisplay without launching a local webpage. Docker/NAS/Linux server deployments are already server-style hosts.
 
@@ -274,7 +274,7 @@ Supported updates keep settings, media, display endpoints, and custom plugins.
 Docker Engine/Desktop and Docker Compose v2 users can install the pinned release with one command:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.15.30/scripts/docker-install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.15.31/scripts/docker-install-one-line.sh)"
 ```
 
 The installer creates `~/libredisplay-docker`, downloads the release Compose YAML, uses the published LibreDisplay container image, creates persistent `data/` and `media/` directories, and starts the server on port `8787` for the trusted LAN.
