@@ -1,8 +1,13 @@
-# TrueNAS SCALE: Apps > Discover > Install via YAML.
-# Publish the matching GHCR image before installation.
+# LibreDisplay for TrueNAS SCALE 24.10+.
+# Apps > Discover > (three-dot menu) > Install via YAML; app name: libredisplay.
+# Paste this entire file. There are no variables to fill in for a first install.
+# After the app starts, open its Logs to get the temporary first-time Owner code.
+# Open http://YOUR-NAS-IP:18787, enter the code from Logs, and
+# create your own Owner username and password. No default password exists.
+# Keep the NAS and this dashboard on a trusted LAN or private VPN only.
 services:
   libredisplay:
-    image: ghcr.io/gubna-tech/libredisplay:v1.16.4
+    image: ghcr.io/gubna-tech/libredisplay:v1.16.5
     restart: unless-stopped
     init: true
     ports:
@@ -14,9 +19,14 @@ services:
       DASHBOARD_MEDIA_ROOTS: /media
       DASHBOARD_REMOTE_ENABLED: '1'
       DASHBOARD_REMOTE_NETWORKS: private
+      # Only for this NAS recipe. Never enabled in normal Pi/server installs.
+      DASHBOARD_CONTAINER_AUTO_OWNER_SETUP: '1'
     volumes:
       - libredisplay-data:/data
       - libredisplay-media:/media:ro
+      # Optional: Replace libredisplay-media:/media:ro above with your own
+      # TrueNAS media dataset, e.g. /mnt/tank/photos:/media:ro.
+      # Ensure the container account (10001) can read the dataset.
     read_only: true
     tmpfs:
       - /tmp:size=32m,mode=1777
@@ -24,6 +34,13 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    pids_limit: 128
+    stop_grace_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
 volumes:
   libredisplay-data:
   libredisplay-media:

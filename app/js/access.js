@@ -12,7 +12,7 @@
     const platform=navigator.userAgentData?.platform||navigator.platform||'Browser';if(!name.value)name.value=platform+' Owner device';
     form.addEventListener('submit',async event=>{
       event.preventDefault();const button=form.querySelector('button[type="submit"]');if(button)button.disabled=true;msg.textContent='Connecting…';
-      try{const response=await postJson('/api/owner-enrollment/redeem',{code:code.value,deviceName:name.value}),data=response.data||{};if(response.ok&&data.ok){msg.textContent='Connected. Opening Settings…';location.href=data.redirect||'/settings';return;}msg.textContent=data.error||'Could not connect this device.';}
+      try{const setupUser=document.getElementById('setupUser'),setupPassword=document.getElementById('setupPassword'),setupConfirm=document.getElementById('setupConfirm');const payload={code:code.value,deviceName:name.value};if(setupUser&&setupPassword&&setupConfirm){if(setupPassword.value!==setupConfirm.value){msg.textContent='Passwords do not match.';return;}payload.username=setupUser.value;payload.password=setupPassword.value;payload.confirmPassword=setupConfirm.value;}const response=await postJson('/api/owner-enrollment/redeem',payload),data=response.data||{};if(response.ok&&data.ok){msg.textContent='Connected. Opening Settings…';location.href=data.redirect||'/settings';return;}msg.textContent=data.error||'Could not connect this device.';}
       catch(error){msg.textContent=error?.name==='TimeoutError'?'Connection timed out. Check that this device is on the same LAN/private VPN.':'Could not reach LibreDisplay. Check that this device is on the same LAN/private VPN.';}
       finally{if(button)button.disabled=false;}
     });

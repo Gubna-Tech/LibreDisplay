@@ -2,7 +2,7 @@
 set -eu
 umask 077
 
-VERSION="1.16.4"
+VERSION="1.16.5"
 REPO="Gubna-Tech/LibreDisplay"
 DEFAULT_IMAGE="ghcr.io/gubna-tech/libredisplay:v${VERSION}"
 DEFAULT_HOME="${HOME:-/tmp}/libredisplay-docker"

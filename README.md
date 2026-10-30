@@ -13,10 +13,10 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 Use a current Raspberry Pi OS **with Desktop**, then paste this into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.4/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.5/scripts/install-one-line.sh)"
 ```
 
-The bootstrap validates the pinned **v1.16.4** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
+The bootstrap validates the pinned **v1.16.5** release before starting the installer. It will not overwrite an existing `~/libredisplay`; existing users should use `libredisplay update`. Reboot when prompted.
 
 > Raspberry Pi OS Lite is not supported by the native kiosk installer. A native Pi can, however, be switched to **Server-only mode** after installation so it runs LibreDisplay without launching a local webpage. Docker/NAS/Linux server deployments are already server-style hosts.
 
@@ -274,14 +274,21 @@ Supported updates keep settings, media, display endpoints, and custom plugins.
 Docker Engine/Desktop and Docker Compose v2 users can install the pinned release with one command:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.4/scripts/docker-install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.5/scripts/docker-install-one-line.sh)"
 ```
 
 The installer creates `~/libredisplay-docker`, downloads `docker/docker-compose.deploy.yml` from the pinned release, creates persistent `data/` and `media/` directories, and starts the server on port `8787` for the trusted LAN. It tries the public multi-architecture container image first; if it cannot pull that image, it downloads the matching tagged source and builds locally using Docker. A published GitHub tag and a working Docker daemon are required for either path. The installer checks container health before reporting success. **First-time Docker access:** the installer also prints a short-lived, one-time Owner connection link. Open that link on the browser you want to manage LibreDisplay from; opening the ordinary dashboard URL before pairing will show an Owner authorization error because Docker networking is not a local Owner session. Keep the code private and use it within approximately 10 minutes.
 
-**TrueNAS SCALE 24.10+**: open **Apps > Discover > ⋮ > Install via YAML**, name the app `libredisplay`, and paste `docker/docker-compose.deploy.yml` from this release. The same YAML defaults to Docker-managed persistent volumes and can be edited to map a TrueNAS dataset such as `/mnt/tank/...` for media or data.
+**TrueNAS SCALE 24.10+ — no terminal required for a new install:**
 
-For a TrueNAS container, open the container's shell and run the following Owner enrollment command, then visit `http://YOUR-NAS-IP:18787/connect` and enter the printed code (once, within approximately 10 minutes):
+1. Open **Apps > Discover > ⋮ > Install via YAML**, name the app `libredisplay`, then paste the entire [`docker/truenas-compose.yml`](docker/truenas-compose.yml) file from this release. This is a standalone, ready-to-paste configuration; it does not need the source ZIP, Compose commands, a Docker Hub account, or manual variables.
+2. Click **Save**, wait for the app to become running/healthy, and open its **Logs** in TrueNAS.
+3. Find **`LibreDisplay NAS FIRST-TIME OWNER SETUP`** and the `One-time Owner code`. On a trusted device open `http://YOUR-NAS-IP:18787/` (replace `YOUR-NAS-IP` with the NAS address). The first-time setup page asks for the code, a device name, and a **new Owner username and password of your choice**. **There are no default login credentials.** Complete this step before using the regular login screen. Codes expire after 10 minutes and are single-use. **If the code expires before enrollment, restart the unpaired TrueNAS app and read the newest logs.** Protect your logs because they temporarily contain this code.
+4. Open `http://YOUR-NAS-IP:18787/` from that paired browser. Keep the NAS port private to your LAN/VPN; never forward it to the public Internet.
+
+The ready-made YAML creates a persistent Docker data volume; settings survive restarts and image upgrades. Media starts with an empty read-only volume; to use your photos, replace that mount with a readable TrueNAS dataset path (details in `HELP.md`). For an *existing* installation, LibreDisplay does not automatically grant a new Owner code on restart: use an already paired Owner browser to add devices, or use the manual recovery command below if access is lost. App logs retain older expired codes; use only the newest code while setting up.
+
+**Manual Owner recovery (existing deployments only):** in the TrueNAS app's container shell, run the command below to create a fresh one-time code, then enter it at `http://YOUR-NAS-IP:18787/connect`. This is not necessary for a new installation.
 
 ```sh
 python3 - <<'PY_OWNER'

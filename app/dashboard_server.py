@@ -134,6 +134,11 @@ REMOTE_DEFAULT_ENABLED = str(os.environ.get("DASHBOARD_REMOTE_ENABLED", "0")).st
 ALLOWED_HOSTS_RAW = str(os.environ.get("DASHBOARD_ALLOWED_HOSTS", "")).strip()
 REMOTE_ACCESS_PATH = DATA_ROOT / "remote_access.json"
 REMOTE_SESSIONS_PATH = DATA_ROOT / "remote_sessions.json"
+# Only the opt-in NAS Compose recipe prints a short-lived first-use Owner code.
+# No codes are written to disk. Once an Owner connects, the marker prevents
+# future startup logs from offering an unintended Owner enrollment path.
+CONTAINER_AUTO_OWNER_SETUP = str(os.environ.get("DASHBOARD_CONTAINER_AUTO_OWNER_SETUP", "0")).strip().lower() in {"1", "true", "yes", "on"}
+CONTAINER_OWNER_SETUP_PATH = DATA_ROOT / "container_owner_setup_complete.json"
 USERS_PATH = DATA_ROOT / "dashboard_users.json"
 REMOTE_SESSION_LOCK = threading.Lock()
 REMOTE_SESSIONS = {}
@@ -1763,6 +1768,64 @@ def create_owner_enrollment(created_by="owner"):
     return {"code": format_owner_enrollment_code(raw), "enrollmentId": enrollment_id, "createdAt": row["createdAt"], "expiresAt": row["expires"]}
 
 
+
+def container_first_owner_account_pending():
+    """Fresh opt-in NAS deployments can use the log code to create an Owner.
+
+    Never offer an unauthenticated account-creation path for existing deployments,
+    even if the first-use marker is absent after a migration.
+    """
+    return (CONTAINER_AUTO_OWNER_SETUP and remote_access_enabled()
+            and not CONTAINER_OWNER_SETUP_PATH.exists()
+            and not REMOTE_SESSIONS_PATH.exists()
+            and not USERS_PATH.exists())
+
+
+
+def offer_container_owner_first_use():
+    """Opt-in first-install enrollment hint for NAS operators viewing app logs.
+
+    Only applies when the NAS deployment explicitly enables it. A prior
+    remote-session store or completed marker is treated as an established
+    installation, even when all of those sessions have expired or were revoked.
+    Restarting an unpaired NAS app prints a new ten-minute code; no automatic
+    Owner codes are offered after a successful device enrollment.
+    """
+    if not CONTAINER_AUTO_OWNER_SETUP:
+        return
+    if not remote_access_enabled():
+        print("LibreDisplay NAS first-use Owner enrollment is unavailable because Remote Access is disabled.", flush=True)
+        return
+    if not container_first_owner_account_pending():
+        return
+    try:
+        created = create_owner_enrollment("nas-first-use")
+    except (OSError, ValueError, RuntimeError):
+        print("LibreDisplay NAS first-use Owner code could not be created; use the authenticated Owner enrollment flow.", flush=True)
+        return
+    print("", flush=True)
+    print("===== LibreDisplay NAS FIRST-TIME OWNER SETUP =====", flush=True)
+    print("Open http://YOUR-NAS-IP:18787/ on a trusted device.", flush=True)
+    print("Create your own Owner username and password at the first-time setup page.", flush=True)
+    print(f"One-time Owner code: {created['code']}", flush=True)
+    print("The code expires in 10 minutes and can be used only once.", flush=True)
+    print("If it expires before connecting, restart the unpaired app in TrueNAS and check the newest logs.", flush=True)
+    print("Keep app logs private. Never share connection codes or expose this port to the Internet.", flush=True)
+    print("==================================================", flush=True)
+    print("", flush=True)
+
+
+def mark_container_owner_setup_complete():
+    if not CONTAINER_AUTO_OWNER_SETUP:
+        return
+    try:
+        atomic_write_json_file(CONTAINER_OWNER_SETUP_PATH, {"completed": True})
+    except OSError:
+        # A device session has already been persisted independently. Avoid
+        # rejecting an otherwise successful enrollment due to a marker failure.
+        print("LibreDisplay: could not persist NAS Owner setup completion marker.", flush=True)
+
+
 def cancel_owner_enrollment(enrollment_id):
     target = str(enrollment_id or "").strip()
     removed = False
@@ -1885,9 +1948,16 @@ def revoke_owner_device(device_id):
     return removed
 
 
-def owner_connect_page(prefill=""):
+def owner_connect_page(prefill="", create_owner_account=False):
     code = html.escape(format_owner_enrollment_code(prefill), quote=True)
-    return f"""<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Connect Owner Device · LibreDisplay</title><style>body{{margin:0;background:#0c0f0d;color:#eef2ef;font:16px system-ui;display:grid;place-items:center;min-height:100vh}}.card{{width:min(470px,calc(100vw - 40px));background:#161a17;border:1px solid #303832;border-radius:18px;padding:28px;box-shadow:0 20px 70px #0008}}h1{{margin:0 0 6px}}p{{color:#aab5ad;line-height:1.45}}label{{display:block;margin:16px 0 6px;font-weight:700}}input{{box-sizing:border-box;width:100%;padding:13px 14px;border-radius:10px;border:1px solid #3a443d;background:#0f1310;color:#fff;font-size:18px}}#code{{font:800 24px ui-monospace,SFMono-Regular,monospace;letter-spacing:.12em;text-transform:uppercase}}button{{margin-top:18px;width:100%;padding:13px;border:0;border-radius:10px;background:#3fb950;color:#061006;font-weight:850;cursor:pointer}}button:disabled{{opacity:.55;cursor:wait}}.err{{min-height:24px;color:#ff9b9b;margin-top:12px}}.hint{{font-size:13px;color:#819087}}</style></head><body><form class='card' id='f'><h1>Connect to LibreDisplay</h1><p>Enter the one-time Owner connection code shown in LibreDisplay Settings. Codes expire quickly and can be used only once.</p><label for='code'>Connection code</label><input id='code' inputmode='text' autocomplete='one-time-code' maxlength='9' spellcheck='false' value='{code}'><label for='name'>Device name</label><input id='name' maxlength='96' autocomplete='off'><div class='hint'>Use a name you will recognize later, such as “Kitchen iPad” or “Sam’s phone”.</div><button type='submit'>Connect this device</button><div class='err' id='msg' role='status' aria-live='polite'></div></form><script src='/js/access.js' defer></script></body></html>""".encode("utf-8")
+    account_fields = ""
+    account_intro = "Enter the one-time Owner connection code shown in LibreDisplay Settings. Codes expire quickly and can be used only once."
+    if create_owner_account:
+        account_intro = "First-time TrueNAS setup: enter the temporary Owner code from the application logs, then create your own username and password. No default login exists."
+        account_fields = """<label for='setupUser'>Owner username</label><input id='setupUser' autocomplete='username' maxlength='64' pattern='[A-Za-z0-9_.-]+' required><label for='setupPassword'>Create password (12+ characters)</label><input id='setupPassword' type='password' autocomplete='new-password' minlength='12' maxlength='256' required><label for='setupConfirm'>Confirm password</label><input id='setupConfirm' type='password' autocomplete='new-password' minlength='12' maxlength='256' required><div class='hint'>These credentials are for future sign-ins. Use this setup only on a trusted local network.</div>"""
+    label = "Create Owner account and connect" if create_owner_account else "Connect this device"
+    return f"""<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Connect Owner Device · LibreDisplay</title><style>body{{margin:0;background:#0c0f0d;color:#eef2ef;font:16px system-ui;display:grid;place-items:center;min-height:100vh}}.card{{width:min(470px,calc(100vw - 40px));background:#161a17;border:1px solid #303832;border-radius:18px;padding:28px;box-shadow:0 20px 70px #0008}}h1{{margin:0 0 6px}}p{{color:#aab5ad;line-height:1.45}}label{{display:block;margin:16px 0 6px;font-weight:700}}input{{box-sizing:border-box;width:100%;padding:13px 14px;border-radius:10px;border:1px solid #3a443d;background:#0f1310;color:#fff;font-size:18px}}#code{{font:800 24px ui-monospace,SFMono-Regular,monospace;letter-spacing:.12em;text-transform:uppercase}}button{{margin-top:18px;width:100%;padding:13px;border:0;border-radius:10px;background:#3fb950;color:#061006;font-weight:850;cursor:pointer}}button:disabled{{opacity:.55;cursor:wait}}.err{{min-height:24px;color:#ff9b9b;margin-top:12px}}.hint{{font-size:13px;color:#819087}}</style></head><body><form class='card' id='f'><h1>{'Set up LibreDisplay' if create_owner_account else 'Connect to LibreDisplay'}</h1><p>{account_intro}</p><label for='code'>Connection code</label><input id='code' inputmode='text' autocomplete='one-time-code' maxlength='9' spellcheck='false' value='{code}' required><label for='name'>Device name</label><input id='name' maxlength='96' autocomplete='off' required><div class='hint'>Use a name you will recognize later, such as “Kitchen iPad” or “Sam’s phone”.</div>{account_fields}<button type='submit'>{label}</button><div class='err' id='msg' role='status' aria-live='polite'></div></form><script src='/js/access.js' defer></script></body></html>""".encode("utf-8")
+
 
 def endpoint_slug(value):
     value = re.sub(r"[^a-z0-9]+", "-", str(value or "").strip().lower()).strip("-")
@@ -5016,12 +5086,30 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 return self.json_response(429, {"ok": False, "error": "Too many failed connection attempts. Try again shortly."})
             try:
                 body = self.read_json_body() or {}
+                first_owner = container_first_owner_account_pending()
+                username = ""
+                password_hash = ""
+                if first_owner:
+                    username = str(body.get("username") or "").strip()
+                    password = str(body.get("password") or "")
+                    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", username):
+                        raise ValueError("Choose an Owner username using letters, numbers, dots, underscores, or dashes.")
+                    if len(password) < 12 or len(password) > 256:
+                        raise ValueError("Owner password must contain 12 to 256 characters.")
+                    if password != str(body.get("confirmPassword") or ""):
+                        raise ValueError("Owner passwords do not match.")
+                    password_hash = account_password_hash(password)
                 row = consume_owner_enrollment(body.get("code"))
                 if not row:
                     self.note_auth_failure(); return self.json_response(403, {"ok": False, "error": "That connection code is invalid, expired, or has already been used."})
+                if first_owner:
+                    if row.get("createdBy") != "nas-first-use" or not container_first_owner_account_pending():
+                        return self.json_response(409, {"ok": False, "error": "First-time setup is no longer available. Sign in or connect an Owner device instead."})
+                    save_user_store({"version": 1, "users": [{"username": username, "passwordHash": password_hash, "role": "owner", "endpoints": [], "enabled": True}]})
                 device_name = re.sub(r"[\x00-\x1f\x7f]", "", str(body.get("deviceName") or "Owner device")).strip()[:96] or "Owner device"
                 device_id = secrets.token_urlsafe(12)
                 token = create_remote_session(session_seconds=OWNER_DEVICE_SESSION_SECONDS, device_id=device_id, device_name=device_name, source="enrollment", user_agent=self.headers.get("User-Agent", ""))
+                mark_container_owner_setup_complete()
                 self.send_response(200); self.send_header("Content-Type", "application/json; charset=utf-8"); self.send_header("Cache-Control", "no-store")
                 self.send_header("Set-Cookie", f"{REMOTE_COOKIE_NAME}={token}; Path=/; Max-Age={OWNER_DEVICE_SESSION_SECONDS}; HttpOnly; SameSite=Strict")
                 payload = json.dumps({"ok": True, "device": {"id": device_id, "name": device_name}, "redirect": "/settings"}).encode("utf-8")
@@ -5489,10 +5577,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if principal and str(principal.get("role") or "").lower() == "owner":
                 self.send_response(302); self.send_header("Location", "/settings"); self.end_headers(); return
             code = str(parse_qs(parsed.query).get("code", [""])[0] or "")
-            return self.bytes_response(200, owner_connect_page(code), "text/html; charset=utf-8", {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
+            return self.bytes_response(200, owner_connect_page(code, create_owner_account=container_first_owner_account_pending()), "text/html; charset=utf-8", {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
         if parsed.path in ("/login", "/login/"):
             if not self.client_network_allowed():
                 return self.text_response(403, "Login is limited to trusted LAN/private VPN clients.")
+            if container_first_owner_account_pending():
+                self.send_response(302); self.send_header("Location", "/connect"); self.end_headers(); return
             principal = self.session_principal()
             if principal:
                 allowed = endpoint_items() if str(principal.get("role") or "").lower() == "owner" else [e for e in endpoint_items() if principal_allows_endpoint(principal, e["id"], write=False)]
@@ -5501,7 +5591,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self.send_header("Location", f"/dashboard.html?display=1&endpoint={quote(first)}" if str(principal.get("role") or "").lower() == "viewer" else f"/settings?endpoint={quote(first)}")
                 self.end_headers()
                 return
-            page = b"""<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>LibreDisplay Sign In</title><style>body{margin:0;background:#0c0f0d;color:#eef2ef;font:16px system-ui;display:grid;place-items:center;min-height:100vh}.card{width:min(420px,calc(100vw - 40px));background:#161a17;border:1px solid #303832;border-radius:18px;padding:28px;box-shadow:0 20px 70px #0008}h1{margin:0 0 4px}p{color:#aab5ad}label{display:block;margin:16px 0 6px}input{box-sizing:border-box;width:100%;padding:12px 14px;border-radius:10px;border:1px solid #3a443d;background:#0f1310;color:#fff}button{margin-top:18px;width:100%;padding:12px;border:0;border-radius:10px;background:#3fb950;color:#061006;font-weight:800;cursor:pointer}.err{min-height:22px;color:#ff8b8b;margin-top:12px}</style></head><body><form class='card' id='f'><h1>LibreDisplay</h1><p>Sign in to a local Owner, Editor, or Viewer account.</p><label for='u'>Username</label><input id='u' autocomplete='username' required><label for='p'>Password</label><input id='p' type='password' autocomplete='current-password' required><button type='submit'>Sign in</button><div class='err' id='e' role='status' aria-live='polite'></div></form><script src='/js/access.js' defer></script></body></html>"""
+            page = b"""<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>LibreDisplay Sign In</title><style>body{margin:0;background:#0c0f0d;color:#eef2ef;font:16px system-ui;display:grid;place-items:center;min-height:100vh}.card{width:min(420px,calc(100vw - 40px));background:#161a17;border:1px solid #303832;border-radius:18px;padding:28px;box-shadow:0 20px 70px #0008}h1{margin:0 0 4px}p{color:#aab5ad}label{display:block;margin:16px 0 6px}input{box-sizing:border-box;width:100%;padding:12px 14px;border-radius:10px;border:1px solid #3a443d;background:#0f1310;color:#fff}button{margin-top:18px;width:100%;padding:12px;border:0;border-radius:10px;background:#3fb950;color:#061006;font-weight:800;cursor:pointer}.err{min-height:22px;color:#ff8b8b;margin-top:12px}</style></head><body><form class='card' id='f'><h1>LibreDisplay</h1><p>Sign in to an Owner, Editor, or Viewer account. No default credentials are provided. For a new installation, use the one-time code in your application logs at <a href='/connect' style='color:#8bdfaf'>Connect Owner Device</a> first.</p><label for='u'>Username</label><input id='u' autocomplete='username' required><label for='p'>Password</label><input id='p' type='password' autocomplete='current-password' required><button type='submit'>Sign in</button><div class='err' id='e' role='status' aria-live='polite'></div></form><script src='/js/access.js' defer></script></body></html>"""
             return self.bytes_response(200, page, "text/html; charset=utf-8", {"Cache-Control": "no-store"})
         if parsed.path == "/healthz":
             if not self.client_is_loopback():
@@ -5543,6 +5633,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
         if parsed.path in ("/", "/dashboard.html") and not self.display_authorized(parsed):
+            if container_first_owner_account_pending() and self.client_network_allowed():
+                self.send_response(302); self.send_header("Location", "/connect"); self.end_headers(); return
             return self.json_response(403, {"ok": False, "error": "A paired admin session or read-only display link is required."})
         if parsed.path == "/":
             self.send_response(302)
@@ -5550,6 +5642,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
         if parsed.path in ("/settings", "/settings/"):
+            if container_first_owner_account_pending() and self.client_network_allowed():
+                self.send_response(302); self.send_header("Location", "/connect"); self.end_headers(); return
             if not self.require_authorized(parsed):
                 return
             # Keep the wall/local display in local Settings mode. Remote Settings mode is
@@ -5852,4 +5946,5 @@ if __name__ == "__main__":
     threading.Thread(target=scene_scheduler_loop, name="libredisplay-scenes", daemon=True).start()
     server = ThreadingHTTPServer((HOST, PORT), DashboardHandler)
     server.daemon_threads = True
+    offer_container_owner_first_use()
     server.serve_forever()
