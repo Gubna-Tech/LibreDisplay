@@ -12,12 +12,31 @@ mkdir -p "$DATA_DIR"
 # Native updates leave a private transaction marker before any live application
 # path is replaced. If power was lost mid-update, recover the verified pre-update
 # snapshot before loading configuration or starting the server.
-if [ -f "$DATA_DIR/update-transaction.json" ]; then
+if [ "${LIBREDISPLAY_BOOT_GUARD:-0}" != "1" ] && { [ -f "$DATA_DIR/update-transaction.json" ] || [ -f "$HOME/libredisplay-recovery/update-transaction.json" ]; }; then
+  # A direct/manual start must not bypass post-boot validation by invoking
+  # recover-pending on its own. Route through the independent health bridge.
+  if [ -f "$HOME/libredisplay-recovery/launch.sh" ]; then
+    exec /bin/sh "$HOME/libredisplay-recovery/launch.sh"
+  fi
   printf 'LibreDisplay found an interrupted update; checking recovery state...\n' >&2
-  if ! python3 "$ROOT_DIR/scripts/release-rollback.py" --install-dir "$ROOT_DIR" recover-pending; then
+  # Prefer the recovery implementation saved outside the swapped code tree.
+  # Do not fall back to an untrusted new implementation if that guardian fails.
+  RECOVERY_GUARD="$HOME/libredisplay-recovery/release-rollback.py"
+  if [ -f "$RECOVERY_GUARD" ]; then
+    RECOVERY_TOOL="$RECOVERY_GUARD"
+  else
+    RECOVERY_TOOL="$ROOT_DIR/scripts/release-rollback.py"
+  fi
+  # If the independent launcher is unavailable, the only safe offline
+  # fallback is the verified PREVIOUS snapshot, never accepting a new release
+  # without the post-boot version/HTTP proof.
+  if ! python3 "$RECOVERY_TOOL" --install-dir "$ROOT_DIR" recover-pending --force-rollback; then
     printf 'LibreDisplay could not safely recover the interrupted update. Startup stopped.\n' >&2
     exit 1
   fi
+  # Recovery may have replaced scripts/start.sh with the previous version;
+  # restart from restored bytes rather than continuing a stale shell process.
+  exec /bin/sh "$ROOT_DIR/scripts/start.sh"
 fi
 
 if [ -f "$ENV_FILE" ]; then

@@ -30,16 +30,16 @@ UPDATE_TRANSACTION_STATES = {"prepared", "replacing", "validated"}
 CORE_RUNTIME_FILES = (
     "VERSION", "app/dashboard.html", "app/dashboard_server.py", "app/qrcode_vendor.zip", "app/js/app.js",
     "app/js/module-manifest.json", "scripts/start.sh", "scripts/verify-frontend.py",
-    "scripts/release-rollback.py", "scripts/server-backup.py", "install.sh", "update.sh", "uninstall.sh",
+    "scripts/release-rollback.py", "scripts/server-backup.py", "scripts/update-health.py", "scripts/boot-provision.py", "install.sh", "update.sh", "uninstall.sh",
 )
 CORE_PYTHON_FILES = (
-    "app/dashboard_server.py", "scripts/release-rollback.py", "scripts/server-backup.py",
+    "app/dashboard_server.py", "scripts/release-rollback.py", "scripts/server-backup.py", "scripts/update-health.py", "scripts/boot-provision.py",
     "scripts/libredisplay", "scripts/field-readiness.py",
 )
 CORE_SHELL_FILES = (
     "install.sh", "update.sh", "uninstall.sh",
     "scripts/backup.sh", "scripts/docker-setup.sh", "scripts/restore.sh",
-    "scripts/setup-media.sh", "scripts/setup-nas.sh", "scripts/start.sh",
+    "scripts/setup-media.sh", "scripts/setup-nas.sh", "scripts/start.sh", "scripts/boot-bridge.sh",
     "scripts/viewer-setup.sh", "scripts/libredisplay-privileged",
 )
 
@@ -299,10 +299,11 @@ def update_transaction_path(install_dir: Path) -> Path:
     return install_dir / "data" / UPDATE_TRANSACTION_NAME
 
 
-def load_update_transaction(install_dir: Path):
-    path = update_transaction_path(install_dir)
-    if not path.is_file():
-        return None
+def external_update_transaction_path(install_dir: Path):
+    return install_dir.parent / "libredisplay-recovery" / UPDATE_TRANSACTION_NAME
+
+
+def _read_update_transaction_file(path: Path):
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:
@@ -315,6 +316,20 @@ def load_update_transaction(install_dir: Path):
         raise ValueError("Pending update transaction state is invalid")
     raw["state"] = state
     return raw
+
+
+def load_update_transaction(install_dir: Path):
+    records = [_read_update_transaction_file(p) for p in
+               (update_transaction_path(install_dir), external_update_transaction_path(install_dir))
+               if p.is_file()]
+    if not records:
+        return None
+    if len(records) == 2:
+        if records[0]["snapshotId"] != records[1]["snapshotId"]:
+            raise RuntimeError("Conflicting update recovery snapshots; refusing startup")
+        if records[0]["state"] != records[1]["state"]:
+            records[0]["state"] = "replacing"  # interrupted journal transition; rollback safely
+    return records[0]
 
 
 def record_update_transaction(install_dir: Path, rollback_root: Path, snapshot_id: str, state: str):
@@ -342,19 +357,25 @@ def record_update_transaction(install_dir: Path, rollback_root: Path, snapshot_i
         "createdUtc": str((existing or {}).get("createdUtc") or now)[:64],
         "updatedUtc": now,
     }
+    mirror = external_update_transaction_path(install_dir)
+    mirror.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(mirror.parent, 0o700)
+    atomic_json(mirror, payload)
     atomic_json(path, payload)
     return payload
 
 
 def clear_update_transaction(install_dir: Path, snapshot_id: str = ""):
     path = update_transaction_path(install_dir)
-    if not path.exists():
+    mirror = external_update_transaction_path(install_dir)
+    if not path.exists() and not mirror.exists():
         return
     if snapshot_id:
         raw = load_update_transaction(install_dir)
         if raw.get("snapshotId") != safe_id(snapshot_id):
             raise RuntimeError("Pending update transaction does not match the requested snapshot")
     path.unlink(missing_ok=True)
+    mirror.unlink(missing_ok=True)
 
 
 def verify_installed_release(install_dir: Path, expected_version: str = ""):
@@ -431,7 +452,7 @@ def installed_matches_snapshot(snapshot_dir: Path, install_dir: Path):
     return True
 
 
-def recover_pending_update(install_dir: Path, rollback_root: Path):
+def recover_pending_update(install_dir: Path, rollback_root: Path, defer_validated=False, force_rollback=False):
     install_dir = install_dir.expanduser().resolve()
     rollback_root = rollback_root.expanduser().resolve()
     transaction = load_update_transaction(install_dir)
@@ -446,15 +467,17 @@ def recover_pending_update(install_dir: Path, rollback_root: Path):
 
     # If the updater validated the new release before power was lost, keep it only
     # when the installed tree still passes the same runtime checks.
-    if state == "validated":
+    if state == "validated" and not force_rollback:
         try:
             verify_installed_release(install_dir, to_version)
         except Exception:
             pass
         else:
-            clear_update_transaction(install_dir, snapshot_id)
-            append_history(install_dir, "update-recovered-complete", fromVersion=from_version, toVersion=to_version, snapshotId=snapshot_id)
-            return {"ok": True, "state": "completed", "snapshotId": snapshot_id, "version": to_version}
+            # A valid on-disk tree does NOT prove the restarted kiosk/server is
+            # healthy. Never clear a validated transaction here, even when an
+            # older caller omits --defer-validated. Only the independent boot
+            # bridge may explicitly complete it after live HTTP health checks.
+            return {"ok": True, "state": "awaiting-health", "snapshotId": snapshot_id, "version": to_version}
 
     # If replacement never began and the old application exactly matches the
     # snapshot, no restore is needed; just clear the abandoned transaction.
@@ -524,6 +547,25 @@ def apply_snapshot_payload(snapshot_dir: Path, install_dir: Path):
         raise RuntimeError(f"Rollback restored data but application files do not match v{raw.get('fromVersion','unknown')}")
 
 
+def restart_restored_dashboard(install_dir: Path):
+    bridge = user_home() / "libredisplay-recovery" / "launch.sh"
+    start = bridge if bridge.is_file() and not bridge.is_symlink() else install_dir / "scripts" / "start.sh"
+    if not start.is_file() or start.is_symlink():
+        raise RuntimeError("Restored dashboard has no safe startup launcher")
+    env = os.environ.copy()
+    if not env.get("WAYLAND_DISPLAY") and not env.get("DISPLAY"):
+        env["DASHBOARD_NO_BROWSER"] = "1"
+    data = install_dir / "data"
+    data.mkdir(parents=True,exist_ok=True)
+    with (data / "start.log").open("ab") as log:
+        proc = subprocess.Popen(["/bin/sh",str(start)],cwd=str(install_dir),env=env,
+            stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,
+            close_fds=True,start_new_session=True)
+    if proc.poll() is not None:
+        raise RuntimeError("Restored launcher exited at startup")
+    return proc.pid
+
+
 def restore_snapshot(snapshot_id: str, install_dir: Path, rollback_root: Path, no_reboot: bool = False):
     snapshot_id = safe_id(snapshot_id)
     install_dir = install_dir.expanduser().resolve()
@@ -539,9 +581,15 @@ def restore_snapshot(snapshot_id: str, install_dir: Path, rollback_root: Path, n
         current_history = []
     if not isinstance(current_history, list):
         current_history = []
+    if load_update_transaction(install_dir):
+        raise RuntimeError("An update is still pending; recover it before manual rollback")
     stop_runtime(install_dir)
-    # Keep the current state recoverable before replacing anything.
-    forward_id = create_snapshot(install_dir, rollback_root, to_version=target, quiet=True, protect_ids=(snapshot_id,))
+    try:
+        forward_id = create_snapshot(install_dir, rollback_root, to_version=target, quiet=True, protect_ids=(snapshot_id,))
+        record_update_transaction(install_dir, rollback_root, forward_id, "replacing")
+    except Exception as error:
+        restart_restored_dashboard(install_dir)
+        raise RuntimeError("Rollback preparation failed; previous dashboard restart requested") from error
     try:
         apply_snapshot_payload(snapshot_dir, install_dir)
     except Exception as rollback_error:
@@ -549,7 +597,9 @@ def restore_snapshot(snapshot_id: str, install_dir: Path, rollback_root: Path, n
         try:
             verify_snapshot(recovery_dir)
             apply_snapshot_payload(recovery_dir, install_dir)
+            clear_update_transaction(install_dir, forward_id)
             append_history(install_dir, "rollback-failed-recovered", fromVersion=current, toVersion=target, snapshotId=snapshot_id, recoverySnapshotId=forward_id)
+            restart_restored_dashboard(install_dir)
         except Exception as recovery_error:
             raise RuntimeError(
                 f"Rollback failed and automatic recovery also failed. Recovery snapshot {forward_id} was preserved: {recovery_error}"
@@ -574,18 +624,18 @@ def restore_snapshot(snapshot_id: str, install_dir: Path, rollback_root: Path, n
             continue
         seen.add(key); combined.append(row)
     atomic_json(history_path, {"version": 1, "items": combined[:49]})
+    clear_update_transaction(install_dir, forward_id)
     append_history(install_dir, "rollback", fromVersion=current, toVersion=target, snapshotId=snapshot_id, recoverySnapshotId=forward_id)
     if PRIVILEGED_HELPER.is_file() and shutil.which("sudo"):
         subprocess.run(["sudo", "-n", str(PRIVILEGED_HELPER), "install-cli"], check=False)
-    if no_reboot:
-        print(f"LibreDisplay rollback complete: v{current} -> v{target}. Reboot when convenient.")
-        return 0
-    if PRIVILEGED_HELPER.is_file() and shutil.which("sudo"):
+    if not no_reboot and PRIVILEGED_HELPER.is_file() and shutil.which("sudo"):
         result = subprocess.run(["sudo", "-n", str(PRIVILEGED_HELPER), "reboot"], check=False)
         if result.returncode == 0:
             return 0
-    print("Rollback completed, but LibreDisplay could not reboot automatically. Run: sudo reboot", file=sys.stderr)
-    return 1
+    restart_restored_dashboard(install_dir)
+    append_history(install_dir, "rollback-reboot-pending", fromVersion=current, toVersion=target, snapshotId=snapshot_id)
+    print(f"Rollback restored v{target}; dashboard restart requested. Reboot when practical to resume kiosk mode.")
+    return 0
 
 
 def delete_snapshot(snapshot_id: str, rollback_root: Path):
@@ -623,6 +673,8 @@ def main(argv=None):
     p = sub.add_parser("complete-update", help=argparse.SUPPRESS)
     p.add_argument("--snapshot-id", required=True)
     p = sub.add_parser("recover-pending", help=argparse.SUPPRESS)
+    p.add_argument("--defer-validated", action="store_true", help=argparse.SUPPRESS)
+    p.add_argument("--force-rollback", action="store_true", help=argparse.SUPPRESS)
     p = sub.add_parser("verify-install", help=argparse.SUPPRESS)
     p.add_argument("--expected-version", default="")
     p.add_argument("--json", action="store_true")
@@ -653,7 +705,7 @@ def main(argv=None):
         elif args.command == "complete-update":
             clear_update_transaction(install_dir, args.snapshot_id)
         elif args.command == "recover-pending":
-            result = recover_pending_update(install_dir, rollback_root)
+            result = recover_pending_update(install_dir, rollback_root, defer_validated=args.defer_validated, force_rollback=args.force_rollback)
             if result.get("state") != "none":
                 print(f"LibreDisplay interrupted update recovery: {result.get('state')} · v{result.get('version','unknown')}")
         elif args.command == "verify-install":

@@ -4678,8 +4678,6 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
    be a shrinkable text item so it wraps inside its own day column, not the next day. */
 #top-strip .day-col{min-width:0;max-width:100%;overflow-wrap:anywhere}
 #top-strip .event-item,#top-strip .event-title{max-width:100%;min-width:0}
-#top-strip .event-title-text{display:inline;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:normal}
-#top-strip .event-title-no-time .event-title-text{display:block;flex:1 1 0;min-width:0}
 
 /* Hourly wind labels stay on one line. Allow a naturally wider pill to project
    beyond a narrow individual card instead of clipping it or splitting ENE/WSW. */

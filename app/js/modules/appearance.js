@@ -308,7 +308,7 @@ function applyUiCustomization(source=cfg){
     html.cursor-active #cog{opacity:${Math.min(.95,q(source.settingsCogOpacity,10,90,42)/100+.18).toFixed(2)}}
     #cog::before{display:${source.settingsCogLabel===false?'none':'block'};right:${String(source.settingsCogPosition||'').endsWith('left')?'auto':'54px'};left:${String(source.settingsCogPosition||'').endsWith('left')?'54px':'auto'};transform:${String(source.settingsCogPosition||'').endsWith('left')?'translate(-7px,-50%)':'translate(7px,-50%)'}}
     #cog:hover::before,#cog:focus-visible::before,#cog.cog-discover::before{transform:translate(0,-50%)}
-    #top-strip{height:${calH}px;padding-left:${sidePad}px;padding-right:${sidePad}px;grid-template-columns:repeat(${calCols},minmax(0,1fr));--ld-layout-calendar-row-base:${calCellH}px;grid-auto-rows:minmax(var(--ld-layout-calendar-row,var(--ld-layout-calendar-row-base)),max-content);overflow-y:auto;overflow-x:hidden}
+    #top-strip{height:${calH}px;padding-left:${sidePad}px;padding-right:${sidePad}px;grid-template-columns:repeat(${calCols},minmax(0,1fr));--ld-layout-calendar-row-base:${calCellH}px;grid-auto-rows:minmax(var(--ld-layout-calendar-row,var(--ld-layout-calendar-row-base)),max-content);overflow-y:auto;overflow-x:hidden;--ld-cal-day-number-base:${scaledClamp(30,2.55,42,cal)};--ld-cal-day-label-base:${scaledClamp(14,1.18,20,cal)};--ld-cal-event-title-base:${scaledClamp(12,1.02,17,cal*ps('calendar','eventText'))};--ld-cal-event-time-base:${scaledClamp(11,.92,15,cal*ps('calendar','eventText'))};--ld-cal-empty-base:${scaledClamp(12,1,17,cal)}}
     #bottom{grid-template-columns:${leftW}px minmax(0,1fr);min-height:${bottomH}px;padding-left:${sidePad}px;padding-right:${sidePad}px}
     #wx-left{width:${leftW}px}
     .wx-details{width:${detailW}px;grid-template-columns:repeat(${weatherDetailColumnCount(detailCount)},minmax(0,1fr));display:${detailEnabledCount>0?'grid':'none'}}
@@ -323,8 +323,8 @@ function applyUiCustomization(source=cfg){
     .day-num{font-size:${scaledClamp(30,2.55,42,cal)};color:${textColor};${pe('calendar','dayNumber')}}
     .day-label{font-size:${scaledClamp(14,1.18,20,cal)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${secondary.toFixed(3)});${pe('calendar','dayLabel')}}
     .no-events{font-size:${scaledClamp(12,1,17,cal)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${tertiary.toFixed(3)});${pe('calendar','emptyText')}}
-    .event-time{font-size:${scaledClamp(11,.92,15,cal*ps('calendar','eventText'))};color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.86).toFixed(3)});${pe('calendar','eventText')}${pe('calendar','eventTime')}}
-    .event-title{font-size:${scaledClamp(12,1.02,17,cal*ps('calendar','eventText'))};color:${textColor};padding-left:${source.showEventTimes===false?'0':'9px'};${pe('calendar','eventText')}${pe('calendar','eventTitle')}}
+    .event-time{font-size:${scaledClamp(11,.92,15,cal*ps('calendar','eventText')*ps('calendar','eventTime'))};scale:none!important;color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.86).toFixed(3)});${pe('calendar','eventText')}${pe('calendar','eventTime')}}
+    .event-title{font-size:${scaledClamp(12,1.02,17,cal*ps('calendar','eventText')*ps('calendar','eventTitle'))};scale:none!important;color:${textColor};padding-left:${source.showEventTimes===false?'0':'9px'};${pe('calendar','eventText')}${pe('calendar','eventTitle')}}
     .event-title-no-time{display:flex;align-items:center;gap:6px;padding-left:0}
     .wx-location{font-size:${scaledClamp(11,.82,15,cur)};color:rgba(${rgb.r},${rgb.g},${rgb.b},${Math.min(1,secondary*.9).toFixed(3)});${pe('current','locationLabel')}}
     .wx-temp{font-size:${scaledClamp(66,5.9,96,cur)};color:${textColor};${pe('current','temperature')}}

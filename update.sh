@@ -56,7 +56,7 @@ restart_installed_runtime_after_failure() {
 }
 
 [ -f "$SRC_DIR/VERSION" ] || { printf 'This does not look like a LibreDisplay release folder.\n' >&2; exit 1; }
-for required in README.md HELP.md LICENSE install.sh update.sh uninstall.sh app/dashboard.html app/dashboard_server.py app/qrcode_vendor.zip app/js/app.js app/css/dashboard.css scripts/release-rollback.py scripts/verify-frontend.py; do
+for required in README.md HELP.md LICENSE install.sh update.sh uninstall.sh app/dashboard.html app/dashboard_server.py app/qrcode_vendor.zip app/js/app.js app/css/dashboard.css scripts/release-rollback.py scripts/update-health.py scripts/verify-frontend.py; do
   [ -f "$SRC_DIR/$required" ] || { printf 'LibreDisplay release is incomplete: missing %s\n' "$required" >&2; exit 1; }
 done
 [ -f "$SRC_DIR/scripts/verify-frontend.py" ] || { printf 'LibreDisplay release is incomplete: missing frontend verifier.\n' >&2; exit 1; }
@@ -74,8 +74,49 @@ python3 "$SRC_DIR/scripts/verify-frontend.py" "$SRC_DIR"
 
 NEW_VERSION=$(cat "$SRC_DIR/VERSION")
 OLD_VERSION=$(cat "$DATA_DIR/.installed" 2>/dev/null || printf 'unknown')
+# Keep a verified recovery implementation outside the application tree.
+# It survives replacement of scripts/ during an interrupted installation.
+RECOVERY_DIR="$HOME/libredisplay-recovery"
+RECOVERY_GUARD="$RECOVERY_DIR/release-rollback.py"
+mkdir -p "$RECOVERY_DIR"
+chmod 700 "$RECOVERY_DIR"
+if [ ! -f "$RECOVERY_GUARD" ]; then
+  [ -f "$INSTALL_DIR/scripts/release-rollback.py" ] || {
+    printf 'Existing recovery tooling is missing; refusing update.\n' >&2
+    exit 1
+  }
+  recovery_temp=$(mktemp "$RECOVERY_DIR/.guard.XXXXXX")
+  cp "$INSTALL_DIR/scripts/release-rollback.py" "$recovery_temp"
+  chmod 600 "$recovery_temp"
+  python3 - "$recovery_temp" <<'PYCOMPILE' || { rm -f "$recovery_temp"; exit 1; }
+import sys
+from pathlib import Path
+path=Path(sys.argv[1])
+compile(path.read_text(encoding="utf-8"),str(path),"exec")
+PYCOMPILE
+  mv "$recovery_temp" "$RECOVERY_GUARD"
+fi
+# An unknown or damaged rescue helper is an update blocker, not a reason to
+# proceed without an independent recovery path.
+python3 - "$RECOVERY_GUARD" <<'PYGUARD'
+import ast, sys
+from pathlib import Path
+source=Path(sys.argv[1]).read_text(encoding='utf-8')
+tree=ast.parse(source)
+required={'recover_pending_update','verify_snapshot','apply_snapshot_payload'}
+found={node.name for node in tree.body if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef))}
+if required-found:raise SystemExit('The external recovery helper is incomplete')
+PYGUARD
+
 printf 'Validating the new release before stopping LibreDisplay...\n'
 python3 "$SRC_DIR/scripts/release-rollback.py" --install-dir "$SRC_DIR" verify-install --expected-version "$NEW_VERSION" >/dev/null
+
+# Critical power-loss boundary: the boot recovery launcher must be installed
+# BEFORE we stop the working runtime or move even the first application path.
+# Otherwise a power cut during scripts/ replacement leaves labwc pointing to
+# a missing start.sh and there is no path to the off-tree verified snapshot.
+printf 'Protecting next boot before starting the code transaction...\n'
+python3 "$SRC_DIR/scripts/boot-provision.py" --release "$SRC_DIR" --home "$HOME" --require-autostart
 
 printf '\nLibreDisplay Update\n'
 printf '===================\n'
@@ -95,7 +136,7 @@ pkill -f -- "--user-data-dir=$DATA_DIR/chromium" 2>/dev/null || true
 sleep 1
 
 recover_early_update_failure() {
-  code=$?
+  code=${1:-$?}
   trap - EXIT HUP INT TERM
   if [ "$code" -ne 0 ]; then
     printf 'Update preparation failed; the installed release was not replaced.\n' >&2
@@ -103,7 +144,10 @@ recover_early_update_failure() {
   fi
   exit "$code"
 }
-trap recover_early_update_failure EXIT HUP INT TERM
+trap recover_early_update_failure EXIT
+trap 'recover_early_update_failure 129' HUP
+trap 'recover_early_update_failure 130' INT
+trap 'recover_early_update_failure 143' TERM
 
 # Chromium creates transient Singleton* symlinks while its profile is active.
 # Older LibreDisplay backup code rejected those links, so remove only those
@@ -189,7 +233,7 @@ restore_previous_release() {
 }
 
 cleanup_update_swap() {
-  code=$?
+  code=${1:-$?}
   trap - EXIT HUP INT TERM
   if [ "$UPDATE_COMMITTED" -ne 1 ]; then
     printf 'Update did not complete; restoring the previous application files...\n' >&2
@@ -207,7 +251,10 @@ cleanup_update_swap() {
   exit "$code"
 }
 trap - EXIT HUP INT TERM
-trap cleanup_update_swap EXIT HUP INT TERM
+trap cleanup_update_swap EXIT
+trap 'cleanup_update_swap 129' HUP
+trap 'cleanup_update_swap 130' INT
+trap 'cleanup_update_swap 143' TERM
 
 mkdir -p "$STAGE_DIR/plugins" "$OLD_DIR/plugins" "$OLD_DIR/new-plugins" "$OLD_DIR/new-code-dirs" "$OLD_DIR/new-files" "$OLD_DIR/files"
 cp -a "$SRC_DIR/app" "$SRC_DIR/scripts" "$SRC_DIR/assets" "$STAGE_DIR/"
@@ -275,6 +322,13 @@ chmod 600 "$DATA_DIR/.installed"
 chmod 755 "$INSTALL_DIR/install.sh" "$INSTALL_DIR/update.sh" "$INSTALL_DIR/uninstall.sh" "$INSTALL_DIR/scripts/"*.sh "$INSTALL_DIR/scripts/libredisplay" "$INSTALL_DIR/scripts/libredisplay-privileged" "$INSTALL_DIR/scripts/release-rollback.py" "$INSTALL_DIR/scripts/field-readiness.py" "$INSTALL_DIR/app/dashboard_server.py"
 find "$INSTALL_DIR/app/js" "$INSTALL_DIR/app/css" -type f -exec chmod 644 {} +
 
+printf 'Validating the installed release before committing the update...\n'
+python3 "$INSTALL_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" verify-install --expected-version "$NEW_VERSION"
+printf 'Checking the new dashboard in an isolated local server before commit...\n'
+python3 "$INSTALL_DIR/scripts/update-health.py" --release "$INSTALL_DIR" --timeout 30
+printf 'Installing the independent boot recovery bridge...\n'
+python3 "$INSTALL_DIR/scripts/boot-provision.py" --release "$INSTALL_DIR" --home "$HOME" --require-autostart
+
 PRIV_HELPER=/usr/local/libexec/libredisplay-privileged
 helper_ready=0
 if [ -x "$PRIV_HELPER" ] && command -v sudo >/dev/null 2>&1 && sudo -n "$PRIV_HELPER" probe >/dev/null 2>&1; then
@@ -306,11 +360,11 @@ for file in Dockerfile docker-compose.deploy.yml docker-compose.yml .dockerignor
   chmod 644 "$INSTALL_DIR/$file"
 done
 
-printf 'Validating the installed release before committing the update...\n'
-python3 "$INSTALL_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" verify-install --expected-version "$NEW_VERSION"
 python3 "$INSTALL_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" transaction --snapshot-id "$SNAPSHOT_ID" --state validated
 python3 "$INSTALL_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" record-update --from-version "$OLD_VERSION" --to-version "$NEW_VERSION" --snapshot-id "$SNAPSHOT_ID" || true
-python3 "$INSTALL_DIR/scripts/release-rollback.py" --install-dir "$INSTALL_DIR" complete-update --snapshot-id "$SNAPSHOT_ID"
+# Keep the validated transaction until the restarted dashboard passes real
+# localhost health probes from the off-tree boot bridge.
+printf 'Update staged and validated; boot health acceptance remains pending.\n'
 
 UPDATE_COMMITTED=1
 rm -rf "$STAGE_DIR" "$OLD_DIR"
@@ -325,21 +379,26 @@ if [ "$NO_REBOOT" -eq 1 ]; then
   printf 'Restarting LibreDisplay without rebooting the Pi...\n'
   START_LOG="$DATA_DIR/start.log"
   if [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] || server_only_requested; then
-    nohup /bin/sh "$INSTALL_DIR/scripts/start.sh" >>"$START_LOG" 2>&1 </dev/null &
+    nohup /bin/sh "$HOME/libredisplay-recovery/launch.sh" >>"$START_LOG" 2>&1 </dev/null &
     if server_only_requested; then
       printf 'LibreDisplay server restart requested in Server-only mode. A host reboot is not required for this update.\n'
     else
       printf 'LibreDisplay restart requested. A host reboot is not required for this update.\n'
     fi
   else
-    start_installed_server_headlessly
+    DASHBOARD_NO_BROWSER=1 nohup /bin/sh "$HOME/libredisplay-recovery/launch.sh" >>"$DATA_DIR/start.log" 2>&1 </dev/null &
     printf 'LibreDisplay server restart requested headlessly. No graphical session was available to restart kiosk mode; reboot when convenient to restore the local display: sudo reboot\n'
   fi
 else
   printf 'Rebooting to start the updated release...\n'
-  if [ "${helper_ready:-0}" -eq 1 ]; then
-    sudo -n "$PRIV_HELPER" reboot
+  if [ "${helper_ready:-0}" -eq 1 ] && sudo -n "$PRIV_HELPER" reboot; then
+    : # Reboot initiated; the off-tree bridge completes or reverts the update.
+  elif [ "${helper_ready:-0}" -ne 1 ] && sudo reboot; then
+    : # Legacy privileged helper path.
   else
-    sudo reboot
+    # A denied reboot must not leave remotely managed displays offline.
+    # The bridge checks real server health before committing this transaction.
+    printf 'Automatic reboot unavailable; restarting the server through protected recovery. Reboot the kiosk when practical.\n' >&2
+    DASHBOARD_NO_BROWSER=1 nohup /bin/sh "$HOME/libredisplay-recovery/launch.sh" >>"$DATA_DIR/start.log" 2>&1 </dev/null &
   fi
 fi

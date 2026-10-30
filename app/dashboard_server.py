@@ -5506,7 +5506,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if parsed.path == "/healthz":
             if not self.client_is_loopback():
                 return self.json_response(403, {"ok": False})
-            return self.json_response(200, {"ok": True})
+            return self.json_response(200, {"ok": True, "version": APP_VERSION})
         if parsed.path == "/pair":
             if not self.client_network_allowed():
                 return self.text_response(403, "Remote management is limited to private/LAN/VPN clients by default.")

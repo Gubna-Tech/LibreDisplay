@@ -113,6 +113,16 @@ if [ "$SRC_DIR" != "$INSTALL_DIR" ]; then
   done
 fi
 
+# Keep a recovery implementation outside the application directory on new
+# installations as well as upgrades, so a later interrupted swap can recover.
+RECOVERY_DIR="$HOME/libredisplay-recovery"
+mkdir -p "$RECOVERY_DIR"
+chmod 700 "$RECOVERY_DIR"
+if [ ! -f "$RECOVERY_DIR/release-rollback.py" ]; then
+  install -m 600 "$INSTALL_DIR/scripts/release-rollback.py" "$RECOVERY_DIR/release-rollback.py"
+fi
+python3 "$INSTALL_DIR/scripts/boot-provision.py" --release "$INSTALL_DIR" --home "$HOME"
+
 mkdir -p "$DATA_DIR" "$INSTALL_DIR/media" "$INSTALL_DIR/plugins" "$HOME/Pictures" "$LABWC_DIR"
 chmod 700 "$DATA_DIR"
 chmod 755 "$INSTALL_DIR/media"
@@ -216,7 +226,7 @@ printf '%s\n%s\n%s\n%s\n' \
   '# LibreDisplay' \
   'wtype -k F24 &' \
   "swayidle -w timeout 2 'wtype -k F24' &" \
-  "sleep 5 && sh \"$INSTALL_DIR/scripts/start.sh\" &" >> "$AUTOSTART_FILE"
+  "sleep 5 && sh \"$HOME/libredisplay-recovery/launch.sh\" &" >> "$AUTOSTART_FILE"
 
 SETUP_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
 if [ -n "$SETUP_IP" ]; then SETUP_URL="http://$SETUP_IP:8787/"; else SETUP_URL="http://127.0.0.1:8787/"; fi
