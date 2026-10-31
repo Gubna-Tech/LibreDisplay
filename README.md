@@ -47,6 +47,10 @@ For the full task-oriented installation, setup, Settings, terminal, troubleshoot
 
 </details>
 
+**High-resolution photo backgrounds (4K / 8K):**
+
+In Settings → Backgrounds, Google Photos can request Automatic screen-matched detail or explicit 1080p, 1440p, 4K, and 8K. The stock-photo provider can also be asked for 8K (availability depends on the provider); local/NAS photos are served without resizing by LibreDisplay. The **Image quality & screen fit** readout shows the actual decoded image dimensions compared with the browser viewport in physical pixels, and warns when the browser has to upscale. Use this check on the physical display, not only in a remote administration browser. Photo fit (Cover vs Contain), focal position, and Background blur remain independently adjustable under Background appearance. Larger files consume substantially more RAM/bandwidth and may affect Pi performance; the provider or browser may return or decode fewer pixels than requested. A request for 4K/8K is not a guarantee of equivalent source detail or panel output.
+
 ### Compatible devices
 
 | Device / role | Run server | Native wall kiosk | Server-only host | Read-only viewer | Remote settings |

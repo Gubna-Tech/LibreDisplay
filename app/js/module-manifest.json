@@ -40,7 +40,7 @@
     "module": "config",
     "part": "bundle",
     "path": "/js/modules/config.js",
-    "lines": 606,
+    "lines": 608,
     "functions": 17,
     "bindings": 53,
     "sections": [
@@ -94,8 +94,8 @@
     "module": "backgrounds",
     "part": "bundle",
     "path": "/js/modules/backgrounds.js",
-    "lines": 890,
-    "functions": 75,
+    "lines": 927,
+    "functions": 78,
     "bindings": 3,
     "sections": [
       "/js/backgrounds/google-photos.js",
@@ -176,7 +176,7 @@
     "module": "onboarding",
     "part": "bundle",
     "path": "/js/modules/onboarding.js",
-    "lines": 511,
+    "lines": 512,
     "functions": 55,
     "bindings": 4,
     "sections": [
@@ -188,7 +188,7 @@
     "module": "settings",
     "part": "bundle",
     "path": "/js/modules/settings.js",
-    "lines": 1757,
+    "lines": 1759,
     "functions": 82,
     "bindings": 18,
     "sections": [

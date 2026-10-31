@@ -23,6 +23,17 @@ function decodeGoogleMarkup(text){
   return out;
 }
 
+function googlePhotoRequestSize(quality='auto',viewportWidth=0,viewportHeight=0,dpr=1){
+  const sizes={1080:[1920,1080],1440:[2560,1440],'4k':[3840,2160],'8k':[7680,4320]};
+  if(sizes[quality])return sizes[quality];
+  // Use the physical dashboard browser's viewport density; do not force 8K on a 1080p Pi.
+  const pixelWidth=Math.max(0,Number(viewportWidth)||0)*Math.min(4,Math.max(1,Number(dpr)||1));
+  const pixelHeight=Math.max(0,Number(viewportHeight)||0)*Math.min(4,Math.max(1,Number(dpr)||1));
+  if(pixelWidth>3840||pixelHeight>2160)return sizes['8k'];
+  if(pixelWidth>2560||pixelHeight>1440)return sizes['4k'];
+  if(pixelWidth>1920||pixelHeight>1080)return sizes['1440'];
+  return sizes['1080'];
+}
 function googlePhotoSizedUrl(raw){
   let u=decodeGoogleMarkup(raw).trim();
   if(!u)return '';
@@ -34,7 +45,9 @@ function googlePhotoSizedUrl(raw){
   base=base
     .replace(/=(?:w\d+(?:-h\d+)?|s\d+)(?:-[a-z0-9-]+)?$/i,'')
     .replace(/=d$/i,'');
-  return base+'=w1920-h1080-no'+tail;
+  const cfg=LibreDisplayRuntime.getModule('config').cfg;
+  const [w,h]=googlePhotoRequestSize(cfg?.googlePhotoQuality||'auto',typeof window==='undefined'?1920:window.innerWidth,typeof window==='undefined'?1080:window.innerHeight,typeof devicePixelRatio==='undefined'?1:devicePixelRatio);
+  return base+'=w'+w+'-h'+h+'-no'+tail;
 }
 
 const GOOGLE_PHOTOS_MAX_ITEMS=1000;
@@ -246,7 +259,7 @@ async function extractAllGooglePhotoUrls(html){
 }
 
 
-LibreDisplayRuntime.exposeModule("backgrounds", {decodeGoogleMarkup,googlePhotoSizedUrl,extractGooglePhotoUrls,googleBalancedArrayAt,googleTopLevelArrayItems,googleTokenFromDataArray,extractGoogleInitialPageToken,extractGooglePageRequest,extractGooglePhotoUrlsFromData,parseGoogleBatchPage,fetchGoogleAlbumPage,extractAllGooglePhotoUrls}, {
+LibreDisplayRuntime.exposeModule("backgrounds", {decodeGoogleMarkup,googlePhotoRequestSize,googlePhotoSizedUrl,extractGooglePhotoUrls,googleBalancedArrayAt,googleTopLevelArrayItems,googleTokenFromDataArray,extractGoogleInitialPageToken,extractGooglePageRequest,extractGooglePhotoUrlsFromData,parseGoogleBatchPage,fetchGoogleAlbumPage,extractAllGooglePhotoUrls}, {
   "GOOGLE_PHOTOS_MAX_ITEMS": {configurable:true,get:()=>GOOGLE_PHOTOS_MAX_ITEMS}
 }, {globals:false});
 }
@@ -279,7 +292,31 @@ function loadBackgroundMedia(layer,remoteUrl,priority='low'){
   if(kind==='video')return new Promise(resolve=>{let settled=false,timeout=0;const done=ok=>{if(settled)return;settled=true;if(timeout)clearTimeout(timeout);video.onloadeddata=video.onerror=null;resolve(!!ok&&video.readyState>=2&&video.videoWidth>0);};video.style.display='block';img.style.display='none';video.muted=true;video.loop=true;video.playsInline=true;video.autoplay=false;video.preload='auto';video.onloadeddata=()=>done(true);video.onerror=()=>done(false);timeout=setTimeout(()=>done(backgroundMediaHasVisual(layer)),20000);video.src=assetUrl;video.load();if(video.readyState>=2)setTimeout(()=>done(true),0);});
   return new Promise(resolve=>{let settled=false,timeout=0;const done=async ok=>{if(settled)return;settled=true;if(timeout)clearTimeout(timeout);img.onload=img.onerror=null;if(ok&&kind==='image'&&typeof img.decode==='function'){try{await Promise.race([img.decode(),new Promise(r=>setTimeout(r,2500))]);}catch(_e){}}resolve(!!ok&&img.naturalWidth>0);};video.style.display='none';img.style.display='block';try{img.fetchPriority=priority;}catch(_e){}img.onload=()=>done(true);img.onerror=()=>done(false);timeout=setTimeout(()=>done(backgroundMediaHasVisual(layer)),20000);img.src=assetUrl;if(img.complete)setTimeout(()=>done(img.naturalWidth>0),0);});
 }
-LibreDisplayRuntime.exposeModule('backgrounds',{VIDEO_EXTENSIONS,MJPEG_EXTENSIONS,MOTION_IMAGE_EXTENSIONS,backgroundMediaPath,backgroundMediaKind,backgroundMediaIsMotion,backgroundMediaAssetUrl,backgroundLayerMedia,backgroundMediaHasVisual,resetBackgroundLayerMedia,activateBackgroundLayerMedia,deactivateBackgroundLayerMedia,backgroundTransitionMask,resetBackgroundTransitionMask,animateBackgroundTransitionMask,loadBackgroundMedia},{},{globalFunctions:[],globalStates:[]});
+function backgroundDecodedResolution(layer=null,viewportWidth=window.innerWidth,viewportHeight=window.innerHeight,dpr=window.devicePixelRatio||1,fit=LibreDisplayRuntime.getModule('config').cfg.bgFit){
+  layer=layer||document.getElementById(LibreDisplayRuntime.getModule('config').bgActiveLayerId)||document.getElementById('bg');
+  const media=layer?.dataset?.mediaKind||'image',node=layer?.querySelector(media==='video'?'video':'img');
+  const width=media==='video'?Number(node?.videoWidth)||0:Number(node?.naturalWidth)||0;
+  const height=media==='video'?Number(node?.videoHeight)||0:Number(node?.naturalHeight)||0;
+  const vw=Math.max(1,Number(viewportWidth)||1),vh=Math.max(1,Number(viewportHeight)||1);
+  const pixelRatio=Math.min(4,Math.max(1,Number(dpr)||1));
+  const scale=width&&height?((fit==='contain'?Math.min:Math.max)(vw/width,vh/height)):0;
+  return {width,height,viewportPixels:[Math.round(vw*pixelRatio),Math.round(vh*pixelRatio)],fit:fit==='contain'?'contain':'cover',
+    upscale:!!scale&&scale*pixelRatio>1.015,requiredScale:scale*pixelRatio,media};
+}
+function refreshBackgroundResolutionStatus(){
+  const status=document.getElementById('s-bg-resolution-status');if(!status)return;
+  const layer=null,row=backgroundDecodedResolution(layer);
+  const format=(w,h)=>`${w.toLocaleString()}×${h.toLocaleString()}`;
+  if(cfg.backgroundSource==='none'){status.textContent='Photo background is disabled.';return;}
+  if(!row.width||!row.height){status.textContent='No decoded photo available yet. Select a source and load a background, then check again.';return;}
+  const label=row.media==='video'?'Video frame':'Decoded image';
+  const px=format(...row.viewportPixels),native=format(row.width,row.height);
+  const verdict=row.upscale?'Upscaled to fill the displayed area — fine detail may look softer. Use a larger source image.':'Enough decoded pixels for the displayed area at this browser size.';
+  status.textContent=`${label}: ${native} · This browser: ${px} physical pixels · ${row.fit} · ${verdict}`;
+}
+document.addEventListener('click',event=>{if(event.target?.closest?.('#s-bg-diagnostic-refresh'))refreshBackgroundResolutionStatus();});
+window.addEventListener('resize',()=>{if(document.getElementById('s-bg-resolution-status'))refreshBackgroundResolutionStatus();});
+LibreDisplayRuntime.exposeModule('backgrounds',{VIDEO_EXTENSIONS,MJPEG_EXTENSIONS,MOTION_IMAGE_EXTENSIONS,backgroundMediaPath,backgroundMediaKind,backgroundMediaIsMotion,backgroundMediaAssetUrl,backgroundLayerMedia,backgroundMediaHasVisual,resetBackgroundLayerMedia,activateBackgroundLayerMedia,deactivateBackgroundLayerMedia,backgroundTransitionMask,resetBackgroundTransitionMask,animateBackgroundTransitionMask,loadBackgroundMedia,backgroundDecodedResolution,refreshBackgroundResolutionStatus},{},{globalFunctions:[],globalStates:[]});
 }
 // End source section: /js/backgrounds/media.js
 
@@ -290,7 +327,7 @@ const configApi=LibreDisplayRuntime.getModule('config');
 const performanceApi=LibreDisplayRuntime.getModule('performance');
 const {serverPath}=LibreDisplayRuntime.getModule('bootstrap');
 const {fetchRemoteText,escHtml,scaledClamp,resilientFetch,uiCfg}=LibreDisplayRuntime.getModule('shared');
-const {extractAllGooglePhotoUrls,extractGoogleInitialPageToken,extractGooglePageRequest,fetchGoogleAlbumPage,GOOGLE_PHOTOS_MAX_ITEMS,backgroundMediaKind,backgroundMediaIsMotion,backgroundMediaHasVisual,resetBackgroundLayerMedia,activateBackgroundLayerMedia,deactivateBackgroundLayerMedia,backgroundTransitionMask,resetBackgroundTransitionMask,animateBackgroundTransitionMask,loadBackgroundMedia}=LibreDisplayRuntime.getModule('backgrounds');
+const {extractAllGooglePhotoUrls,extractGoogleInitialPageToken,extractGooglePageRequest,fetchGoogleAlbumPage,GOOGLE_PHOTOS_MAX_ITEMS,backgroundMediaKind,backgroundMediaIsMotion,backgroundMediaHasVisual,backgroundDecodedResolution,refreshBackgroundResolutionStatus,resetBackgroundLayerMedia,activateBackgroundLayerMedia,deactivateBackgroundLayerMedia,backgroundTransitionMask,resetBackgroundTransitionMask,animateBackgroundTransitionMask,loadBackgroundMedia}=LibreDisplayRuntime.getModule('backgrounds');
 const BACKGROUND_SOURCE_PRIVACY=Object.freeze({google:Object.freeze({name:'Google Photos shared album',access:'no-key',dataFlow:'provider-cloud',dataLeavesDevice:true,privacyNote:'LibreDisplay fetches the public shared-album link and photo assets from Google. No Google account or API key is required by LibreDisplay.',freedomAlternative:'Local / NAS media folders avoid third-party photo hosting and can stay under your control.'}),stock:Object.freeze({name:'SourceSplash stock photos',access:'no-key',dataFlow:'public-internet',dataLeavesDevice:true,privacyNote:'LibreDisplay sends the selected stock category/query and requested dimensions to SourceSplash and downloads the returned image from an external provider.',freedomAlternative:'Local / NAS media folders avoid the external stock-image service.'})});function backgroundSourcePrivacy(source){return BACKGROUND_SOURCE_PRIVACY[String(source||'')]||null;}function backgroundPrivacyText(source){const meta=backgroundSourcePrivacy(source);if(!meta)return '';const access=meta.access==='no-key'?'No key · no signup':'Access model not declared',flow=meta.dataFlow==='provider-cloud'?'Provider cloud':meta.dataFlow==='public-internet'?'Public Internet service':'External service',data=meta.dataLeavesDevice?`Leaves device · ${flow}`:'Stays on this device';return `${access} · ${data}. ${meta.privacyNote} Freedom-first: ${meta.freedomAlternative}`;}
 let bgTimer=null;
 const LAST_BACKGROUND_KEY='libredisplay_last_background_v2';
@@ -318,7 +355,7 @@ function backgroundRuntimeSnapshot(){const inactive=inactiveBackgroundLayer?.();
 function pi4BackgroundRuntime(){try{return LibreDisplayRuntime.getModule('performance')?.frontendCapabilities?.().pi4Class===true;}catch(_e){return false;}}
 function smoothBackgroundRuntime(){try{const caps=LibreDisplayRuntime.getModule('performance')?.frontendCapabilities?.()||{};return caps.pi4Class===true||caps.pi5Class===true;}catch(_e){return false;}}
 function runBackgroundIdleTask(task,{timeout=4500,delay=0}={}){const invoke=()=>{if(typeof requestIdleCallback==='function')requestIdleCallback(()=>task(),{timeout});else setTimeout(task,0);};if(delay>0)setTimeout(invoke,delay);else invoke();}
-function backgroundAwait(promise,timeoutMs=3500,fallback=null){return Promise.race([Promise.resolve(promise).catch(()=>fallback),new Promise(resolve=>setTimeout(()=>resolve(fallback),timeoutMs))]);}function backgroundSourceFingerprint(source=cfg){const kind=String(source?.backgroundSource||'none');if(kind==='stock')return ['stock',String(source?.stockCategory||''),String(source?.stockQuery||''),String(source?.stockResolution||'')].join('|');if(kind==='google')return ['google',String(source?.photosUrl||'').trim()].join('|');if(kind==='folders'){const folders=[...(source?.mediaFolders||[])].map(x=>String(x||'').trim()).filter(Boolean).sort();return ['folders',source?.mediaRecursive===false?'0':'1',...folders].join('|');}return kind;}
+function backgroundAwait(promise,timeoutMs=3500,fallback=null){return Promise.race([Promise.resolve(promise).catch(()=>fallback),new Promise(resolve=>setTimeout(()=>resolve(fallback),timeoutMs))]);}function backgroundSourceFingerprint(source=cfg){const kind=String(source?.backgroundSource||'none');if(kind==='stock')return ['stock',String(source?.stockCategory||''),String(source?.stockQuery||''),String(source?.stockResolution||'')].join('|');if(kind==='google')return ['google',String(source?.photosUrl||'').trim(),String(source?.googlePhotoQuality||'auto')].join('|');if(kind==='folders'){const folders=[...(source?.mediaFolders||[])].map(x=>String(x||'').trim()).filter(Boolean).sort();return ['folders',source?.mediaRecursive===false?'0':'1',...folders].join('|');}return kind;}
 function rememberLastBackground(remoteUrl,persistAsset=true){try{if(remoteUrl)localStorage.setItem(LAST_BACKGROUND_KEY,JSON.stringify({url:remoteUrl,source:cfg.backgroundSource,sourceKey:backgroundSourceFingerprint(cfg),at:Date.now()}));}catch(_e){}if(!remoteUrl||!persistAsset)return;if(backgroundPersistTimer)clearTimeout(backgroundPersistTimer);const pi4=pi4BackgroundRuntime(),since=Date.now()-lastBackgroundPersistAssetAt;if(pi4&&lastBackgroundPersistAssetAt>0&&since<BACKGROUND_PERSIST_ASSET_MIN_MS){backgroundRuntime.persistSkips++;backgroundRuntimeEvent('persist-skip',{remainingMs:BACKGROUND_PERSIST_ASSET_MIN_MS-since});return;}const delay=pi4?30000:2200;backgroundPersistTimer=setTimeout(()=>{backgroundPersistTimer=null;runBackgroundIdleTask(()=>{if(configApi.bgTransitionBusy){rememberLastBackground(remoteUrl,persistAsset);return;}const started=performance.now();backgroundRuntimeEvent('persist-start',{url:remoteUrl});void persistLastBackgroundAsset(remoteUrl).finally(()=>{const elapsed=performance.now()-started;backgroundRuntime.persists++;backgroundRuntime.lastPersistMs=Number(elapsed.toFixed(1));lastBackgroundPersistAssetAt=Date.now();backgroundRuntimeEvent('persist-end',{ms:backgroundRuntime.lastPersistMs});});},{timeout:pi4?12000:2200});},delay);}
 async function persistLastBackgroundAsset(remoteUrl){
   if(!remoteUrl||!('caches' in globalThis))return false;
@@ -616,7 +653,7 @@ async function revealBackgroundLayer(layer,remoteUrl){
     }else{
       layer.style.zIndex='1';if(active&&active!==layer)active.style.zIndex='0';layer.classList.remove('show','ld-bg-retired','ld-bg-prepared','ld-bg-prewarming','ld-bg-prewarmed','ld-bg-retiring');layer.classList.add('ld-bg-transitioning');await nextAnimationFrame();layer.classList.add('show');await waitForBackgroundLayerVisible(layer);if(active&&active!==layer){active.classList.add('ld-bg-retired');active.classList.remove('show');await nextAnimationFrame();deferBackgroundLayerCleanup(active);}layer.classList.remove('ld-bg-transitioning');
     }
-    configApi.bgActiveLayerId=layer.id;configApi.bgLastUrl=remoteUrl;rememberLastBackground(remoteUrl);return true;
+    configApi.bgActiveLayerId=layer.id;configApi.bgLastUrl=remoteUrl;rememberLastBackground(remoteUrl);refreshBackgroundResolutionStatus();return true;
   }finally{const elapsed=performance.now()-transitionStarted;backgroundRuntime.transitions++;backgroundRuntime.lastTransitionMs=Number(elapsed.toFixed(1));backgroundRuntime.maxTransitionMs=Math.max(backgroundRuntime.maxTransitionMs,backgroundRuntime.lastTransitionMs);backgroundRuntimeEvent('transition-end',{ms:backgroundRuntime.lastTransitionMs});}
 }
 

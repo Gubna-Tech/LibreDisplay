@@ -452,6 +452,7 @@ async function saveSetup(options={}){
   cfg.stockCategory=document.getElementById('s-stock-category')?.value||'nature';
   cfg.stockQuery=(document.getElementById('s-stock-query')?.value||'').trim().slice(0,80);
   cfg.stockResolution=document.getElementById('s-stock-resolution')?.value||'3840x2160';
+  cfg.googlePhotoQuality=document.getElementById('s-google-photo-quality')?.value||'auto';
   cfg.photosUrl=document.getElementById('s-photos').value.trim();
   cfg.mediaFolders=mediaFoldersFromForm();
   cfg.mediaRecursive=document.getElementById('s-media-recursive')?.checked!==false;

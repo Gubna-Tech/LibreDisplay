@@ -104,6 +104,9 @@ except OSError:
     APP_VERSION = "dev"
 DATA_ROOT = Path(os.environ.get("DASHBOARD_DATA_DIR", str(PROJECT_ROOT / "data"))).expanduser().resolve()
 MAX_BYTES = 25 * 1024 * 1024
+# Image-only background proxy: 4K/8K originals can exceed the normal data-feed cap.
+# Keep ordinary calendars, weather and integration broker requests at 25 MiB.
+MAX_BACKGROUND_IMAGE_BYTES = _env_int("DASHBOARD_MAX_BACKGROUND_IMAGE_BYTES", 128 * 1024 * 1024, minimum=1, maximum=256 * 1024 * 1024)
 MAX_STATE_BYTES = 2 * 1024 * 1024
 MAX_MEDIA_FILE_BYTES = _env_int("DASHBOARD_MAX_MEDIA_FILE_BYTES", 100 * 1024 * 1024, minimum=1)
 MAX_MEDIA_ITEMS = _env_int("DASHBOARD_MAX_MEDIA_ITEMS", 20000, minimum=1)
@@ -926,14 +929,14 @@ def broker_paths(key):
     return BROKER_DIR / f"{key}.bin", BROKER_DIR / f"{key}.json"
 
 
-def broker_load(key):
+def broker_load(key, max_bytes=MAX_BYTES):
     body_path, meta_path = broker_paths(key)
     try:
         if not body_path.exists() or not meta_path.exists():
             return None
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
         data = body_path.read_bytes()
-        if len(data) > MAX_BYTES:
+        if len(data) > max_bytes:
             return None
         return data, str(meta.get("contentType") or "application/octet-stream"), int(meta.get("savedAt") or 0), str(meta.get("source") or "")
     except Exception:
@@ -1011,9 +1014,9 @@ def broker_release_transient_backoff():
     return released
 
 
-def broker_refresh_once(key, ttl, fetcher, source, cached=None):
+def broker_refresh_once(key, ttl, fetcher, source, cached=None, max_bytes=MAX_BYTES):
     now = int(time.time())
-    cached = cached or broker_load(key)
+    cached = cached or broker_load(key, max_bytes=max_bytes)
     broker_record(key, source=source, lastAttemptAt=now, refreshing=True)
     started = time.monotonic()
     try:
@@ -1051,7 +1054,7 @@ def broker_refresh_once(key, ttl, fetcher, source, cached=None):
         raise
 
 
-def broker_start_background_refresh(key, ttl, fetcher, source, cached):
+def broker_start_background_refresh(key, ttl, fetcher, source, cached, max_bytes=MAX_BYTES):
     with BROKER_LOCK:
         if key in BROKER_REFRESHING:
             return False
@@ -1060,12 +1063,12 @@ def broker_start_background_refresh(key, ttl, fetcher, source, cached):
         try:
             lock = broker_lock_for(key)
             with lock:
-                latest = broker_load(key) or cached
+                latest = broker_load(key, max_bytes=max_bytes) or cached
                 now = int(time.time())
                 if latest and now - latest[2] < ttl:
                     broker_record(key, source=source, status="fresh", savedAt=latest[2], age=now-latest[2], error="", errorKind="", lastSuccessAt=latest[2], refreshing=False, consecutiveFailures=0, retryAt=0)
                     return
-                broker_refresh_once(key, ttl, fetcher, source, latest)
+                broker_refresh_once(key, ttl, fetcher, source, latest, max_bytes=max_bytes)
         except Exception:
             pass
         finally:
@@ -1080,9 +1083,9 @@ def broker_start_background_refresh(key, ttl, fetcher, source, cached):
     return True
 
 
-def broker_fetch(key, ttl_seconds, fetcher, source="", force=False):
+def broker_fetch(key, ttl_seconds, fetcher, source="", force=False, max_bytes=MAX_BYTES):
     ttl = max(5, min(86400, int(ttl_seconds or 300)))
-    cached = broker_load(key)
+    cached = broker_load(key, max_bytes=max_bytes)
     now = int(time.time())
     if not force and cached and now - cached[2] < ttl:
         broker_record(key, source=source, status="fresh", savedAt=cached[2], age=now-cached[2], error="", errorKind="", lastSuccessAt=cached[2], refreshing=False, consecutiveFailures=0, retryAt=0)
@@ -1122,17 +1125,17 @@ def broker_fetch(key, ttl_seconds, fetcher, source="", force=False):
                 lastSuccessAt=cached[2], refreshing=True, consecutiveFailures=0, retryAt=0,
             )
             response_state = "refreshing"
-        broker_start_background_refresh(key, ttl, fetcher, source, cached)
+        broker_start_background_refresh(key, ttl, fetcher, source, cached, max_bytes=max_bytes)
         return cached[0], cached[1], response_state, age
 
     lock = broker_lock_for(key)
     with lock:
-        cached = broker_load(key)
+        cached = broker_load(key, max_bytes=max_bytes)
         now = int(time.time())
         if not force and cached and now - cached[2] < ttl:
             broker_record(key, source=source, status="fresh", savedAt=cached[2], age=now-cached[2], error="", errorKind="", lastSuccessAt=cached[2], refreshing=False, consecutiveFailures=0, retryAt=0)
             return cached[0], cached[1], "fresh", now-cached[2]
-        return broker_refresh_once(key, ttl, fetcher, source, cached)
+        return broker_refresh_once(key, ttl, fetcher, source, cached, max_bytes=max_bytes)
 
 
 def queue_device_command(endpoint_id, action, payload=None):
@@ -3603,20 +3606,24 @@ def broker_request_headers(target):
     return {"User-Agent": f"LibreDisplay/{APP_VERSION}", "Accept": "text/calendar, text/plain;q=0.9, image/*;q=0.8, application/json;q=0.8, application/xml;q=0.7, */*;q=0.5", "Accept-Language": "en-US,en;q=0.9"}
 
 
-def broker_remote_url(target, ttl_seconds=300):
+def broker_remote_url(target, ttl_seconds=300, *, background_image=False):
     target = str(target or "").replace("\\&", "&").replace("&amp;", "&").replace("&#38;", "&").replace("&#x26;", "&")
     target = re.sub(r"[\u200B-\u200D\uFEFF]", "", target).strip()
-    key = hashlib.sha256(("remote\n" + target).encode("utf-8", "replace")).hexdigest()
+    # Separate photo caching from data feeds: never return a large cached photo
+    # to ordinary API consumers that still enforce the smaller response limit.
+    cache_scope = "background-image\n" if background_image else "remote\n"
+    limit = MAX_BACKGROUND_IMAGE_BYTES if background_image else MAX_BYTES
+    key = hashlib.sha256((cache_scope + target).encode("utf-8", "replace")).hexdigest()
     def fetcher():
-        status, response_headers, data, _ = resilient_safe_fetch(target, headers=broker_request_headers(target), timeout=10, max_bytes=MAX_BYTES)
+        status, response_headers, data, _ = resilient_safe_fetch(target, headers=broker_request_headers(target), timeout=10, max_bytes=limit)
         if status >= 400:
             raise RuntimeError(f"Remote server returned HTTP {status}")
         content_type = response_headers.get("Content-Type", "application/octet-stream")
         base_type = content_type.split(";", 1)[0].strip().lower()
-        if base_type not in ALLOWED_BROKER_TYPES:
+        if base_type not in ALLOWED_BROKER_TYPES or (background_image and not base_type.startswith("image/")):
             raise ValueError("Remote content type is not allowed by the LibreDisplay data broker")
         return data, content_type
-    return broker_fetch(key, ttl_seconds, fetcher, target)
+    return broker_fetch(key, ttl_seconds, fetcher, target, max_bytes=limit)
 
 
 def integration_block_for(endpoint_id, block_id):
@@ -4750,7 +4757,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return self.text_response(400, "Missing url")
         try:
             ttl = max(5, min(86400, int(qs.get("ttl", ["300"])[0] or 300)))
-            data, content_type, state, age = broker_remote_url(target, ttl)
+            data, content_type, state, age = broker_remote_url(target, ttl, background_image=(parsed.path == "/proxy"))
             headers = {
                 "X-LibreDisplay-Broker": state,
                 "X-LibreDisplay-Broker-Age": str(age),

@@ -16,6 +16,7 @@ let cfg = {
   stockCategory:'nature',
   stockQuery:'',
   stockResolution:'3840x2160',
+  googlePhotoQuality:'auto',
   photoIntervalSec:300,
   photoOrder:'sequential',
   photoRandomStart:false,photoPreload:false,
@@ -247,7 +248,8 @@ function ensureCfgDefaults(){
   cfg.pi3StaticSceneRefreshSec=[30,60,90,120,180,300].includes(Number(cfg.pi3StaticSceneRefreshSec))?Number(cfg.pi3StaticSceneRefreshSec):60;
   cfg.stockCategory=['nature','space','animals','architecture','abstract','ocean','mountains','forest','city','beach','minimal','technology','wallpaper','custom'].includes(cfg.stockCategory)?cfg.stockCategory:'nature';
   cfg.stockQuery=String(cfg.stockQuery||'').slice(0,80);
-  cfg.stockResolution=['1920x1080','2560x1440','3840x2160'].includes(cfg.stockResolution)?cfg.stockResolution:'3840x2160';
+  cfg.stockResolution=['1920x1080','2560x1440','3840x2160','7680x4320'].includes(cfg.stockResolution)?cfg.stockResolution:'3840x2160';
+  cfg.googlePhotoQuality=['auto','1080','1440','4k','8k'].includes(cfg.googlePhotoQuality)?cfg.googlePhotoQuality:'auto';
   cfg.photoOrder=['sequential','shuffle','random'].includes(cfg.photoOrder)?cfg.photoOrder:'sequential';
   if(typeof cfg.photoRandomStart!=='boolean')cfg.photoRandomStart=false;if(typeof cfg.photoPreload!=='boolean')cfg.photoPreload=cfg.onboardingComplete===true;
   if(typeof cfg.backgroundOfflineCacheEnabled!=='boolean')cfg.backgroundOfflineCacheEnabled=true;cfg.backgroundOfflineCacheMaxMb=Math.round(Math.min(384,Math.max(0,Number(cfg.backgroundOfflineCacheMaxMb))));if(!Number.isFinite(cfg.backgroundOfflineCacheMaxMb))cfg.backgroundOfflineCacheMaxMb=192;if(cfg.backgroundOfflineCacheEnabled===false)cfg.backgroundOfflineCacheMaxMb=0;cfg.backgroundOfflineCacheEnabled=cfg.backgroundOfflineCacheMaxMb>0;cfg.backgroundOfflineCacheCount=cfg.backgroundOfflineCacheEnabled?Math.min(256,Math.ceil(cfg.backgroundOfflineCacheMaxMb/1.5)):0;

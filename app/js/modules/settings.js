@@ -178,6 +178,8 @@ function openSetup(startWizard=false){
     document.getElementById('s-stock-category').value=cfg.stockCategory||'nature';
     document.getElementById('s-stock-query').value=cfg.stockQuery||'';
     document.getElementById('s-stock-resolution').value=cfg.stockResolution||'3840x2160';
+    document.getElementById('s-google-photo-quality').value=cfg.googlePhotoQuality||'auto';
+    LibreDisplayRuntime.getModule('backgrounds').refreshBackgroundResolutionStatus();
     document.getElementById('s-photos').value=cfg.photosUrl||'';
     document.getElementById('s-media-folders').value=(cfg.mediaFolders||[]).join('\n');
     document.getElementById('s-media-recursive').checked=cfg.mediaRecursive!==false;
