@@ -94,12 +94,13 @@
     "module": "backgrounds",
     "part": "bundle",
     "path": "/js/modules/backgrounds.js",
-    "lines": 927,
-    "functions": 78,
+    "lines": 961,
+    "functions": 84,
     "bindings": 3,
     "sections": [
       "/js/backgrounds/google-photos.js",
       "/js/backgrounds/media.js",
+      "/js/backgrounds/startup-recovery.js",
       "/js/backgrounds/index.js",
       "/js/backgrounds/portable.js"
     ]

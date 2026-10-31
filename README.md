@@ -13,10 +13,10 @@ Free, open-source, self-hosted home dashboards for Raspberry Pi, Docker, NAS, mi
 Use a current Raspberry Pi OS **with Desktop**, then paste this into Terminal:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.8/scripts/install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.9/scripts/install-one-line.sh)"
 ```
 
-The bootstrap validates the pinned **v1.16.8** release before starting the installer. It preserves completed installations and user data. If a first installation was interrupted, running the same command again safely resumes it; use `libredisplay update` only after a completed install. Reboot when prompted.
+The bootstrap validates the pinned **v1.16.9** release before starting the installer. It preserves completed installations and user data. If a first installation was interrupted, running the same command again safely resumes it; use `libredisplay update` only after a completed install. Reboot when prompted.
 
 > Raspberry Pi OS Lite is not supported by the native kiosk installer. A native Pi can, however, be switched to **Server-only mode** after installation so it runs LibreDisplay without launching a local webpage. Docker/NAS/Linux server deployments are already server-style hosts.
 
@@ -50,6 +50,8 @@ For the full task-oriented installation, setup, Settings, terminal, troubleshoot
 **High-resolution photo backgrounds (4K / 8K):**
 
 In Settings → Backgrounds, Google Photos can request Automatic screen-matched detail or explicit 1080p, 1440p, 4K, and 8K. The stock-photo provider can also be asked for 8K (availability depends on the provider); local/NAS photos are served without resizing by LibreDisplay. The **Image quality & screen fit** readout shows the actual decoded image dimensions compared with the browser viewport in physical pixels, and warns when the browser has to upscale. Use this check on the physical display, not only in a remote administration browser. Photo fit (Cover vs Contain), focal position, and Background blur remain independently adjustable under Background appearance. Larger files consume substantially more RAM/bandwidth and may affect Pi performance; the provider or browser may return or decode fewer pixels than requested. A request for 4K/8K is not a guarantee of equivalent source detail or panel output.
+
+**Background startup reliability:** Shared-album images now begin displaying from the initial page without waiting for full pagination. Blank backgrounds caused by transient image or source errors retry automatically, and Pi-class hardware does not delay the first photo for slideshow prewarming. Existing image-quality selections and saved settings are preserved.
 
 ### Compatible devices
 
@@ -278,7 +280,7 @@ Supported updates keep settings, media, display endpoints, and custom plugins.
 Docker Engine/Desktop and Docker Compose v2 users can install the pinned release with one command:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.8/scripts/docker-install-one-line.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Gubna-Tech/LibreDisplay/v1.16.9/scripts/docker-install-one-line.sh)"
 ```
 
 The installer creates `~/libredisplay-docker`, downloads `docker/docker-compose.deploy.yml` from the pinned release, creates persistent `data/` and `media/` directories, and starts the server on port `8787` for the trusted LAN. It tries the public multi-architecture container image first; if it cannot pull that image, it downloads the matching tagged source and builds locally using Docker. A published GitHub tag and a working Docker daemon are required for either path. The installer checks container health before reporting success. **First-time Docker access:** the installer also prints a short-lived, one-time Owner connection link. Open that link on the browser you want to manage LibreDisplay from; opening the ordinary dashboard URL before pairing will show an Owner authorization error because Docker networking is not a local Owner session. Keep the code private and use it within approximately 10 minutes.
