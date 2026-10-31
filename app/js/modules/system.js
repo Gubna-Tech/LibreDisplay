@@ -601,12 +601,12 @@ if(!window.__ldSystemPerformanceBenchmarkDelegated){window.__ldSystemPerformance
 if(!window.__ldServerModeDelegated){window.__ldServerModeDelegated=true;document.addEventListener('change',event=>{if(event.target?.id!=='s-server-only-mode')return;handleServerOnlyToggle(event);});}
 
 document.getElementById('setup')?.addEventListener('input',e=>{
-  if(['s-settings-search','s-import-file','s-server-only-mode'].includes(e.target?.id))return;
+  if(['s-settings-search','s-import-file','s-server-only-mode'].includes(e.target?.id)||e.target?.closest?.('#settings-profiles'))return;
   markSettingsDirty();
   if(e.target?.classList?.contains('cal-enabled')||e.target?.closest?.('.cal-entry'))LibreDisplayRuntime.getModule('onboarding').updateCalendarEntryVisibility();
 });
 document.getElementById('setup')?.addEventListener('change',e=>{
-  if(['s-settings-search','s-import-file','s-server-only-mode'].includes(e.target?.id))return;
+  if(['s-settings-search','s-import-file','s-server-only-mode'].includes(e.target?.id)||e.target?.closest?.('#settings-profiles'))return;
   markSettingsDirty();
   if(e.target?.classList?.contains('cal-enabled')||e.target?.closest?.('.cal-entry'))LibreDisplayRuntime.getModule('onboarding').updateCalendarEntryVisibility();
 });
@@ -681,21 +681,49 @@ function updateProfileControls(){
 function uniqueProfileId(){return 'p_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);}
 function profileSnapshot(){const snap=JSON.parse(JSON.stringify(cfg));delete snap._savedAt;return snap;}
 function currentDisplayProfileMeta(){return {sourceEndpoint:bootstrapApi.ACTIVE_ENDPOINT,sourceDisplayName:profileDisplayName(bootstrapApi.ACTIVE_ENDPOINT)};}
-function createProfile(){
-  if(systemApi.settingsDirty){setProfileStatus('Save & Apply your current changes before creating a profile.',true);return;}
+// Profiles may be captured while Settings is dirty. Persist the same form data as
+// Save & Apply, but keep the panel open so the user can finish the profile action.
+let profileSnapshotSaving=false;
+async function savePendingProfileSettings(){
+  if(!systemApi.settingsDirty)return true;
+  const result=await LibreDisplayRuntime.getModule('onboarding').saveSetup({closeAfter:false});
+  if(!result?.ok){setProfileStatus('Finish the required Settings fields before saving this profile.',true);return false;}
+  if(!result.persistence?.ok||result.persistence?.verified!==true){
+    systemApi.markSettingsDirty();
+    setProfileStatus('Could not verify the dashboard save: '+(result.persistence?.error||'Please retry.'),true);
+    return false;
+  }
+  return true;
+}
+async function createProfile(){
+  if(profileSnapshotSaving)return;
   const name=(document.getElementById('s-profile-name')?.value||'').trim();
   if(!name){setProfileStatus('Enter a profile name first.',true);return;}
-  const id=uniqueProfileId();
-  configApi.profileStore.items.push({id,name:name.slice(0,48),config:profileSnapshot(),updatedAt:Date.now(),...currentDisplayProfileMeta()});
-  setActiveProfileForEndpoint(bootstrapApi.ACTIVE_ENDPOINT,id);persistProfiles();renderProfileSelect();
-  document.getElementById('s-profile-select').value=id;setProfileStatus(`Saved profile “${name}” from ${profileDisplayName(bootstrapApi.ACTIVE_ENDPOINT)}.`);
+  profileSnapshotSaving=true;
+  try{
+    if(!await savePendingProfileSettings())return;
+    const id=uniqueProfileId();
+    configApi.profileStore.items.push({id,name:name.slice(0,48),config:profileSnapshot(),updatedAt:Date.now(),...currentDisplayProfileMeta()});
+    setActiveProfileForEndpoint(bootstrapApi.ACTIVE_ENDPOINT,id);
+    const persisted=await persistProfiles();renderProfileSelect();
+    document.getElementById('s-profile-select').value=id;
+    setProfileStatus(persisted?.ok?`Saved profile “${name}” from ${profileDisplayName(bootstrapApi.ACTIVE_ENDPOINT)}.`:'Profile save could not be confirmed on the server. Please retry.',!persisted?.ok);
+  }catch(e){setProfileStatus('Could not create profile: '+String(e?.message||e),true);}
+  finally{profileSnapshotSaving=false;}
 }
-function updateSelectedProfile(){
-  if(systemApi.settingsDirty){setProfileStatus('Save & Apply your current changes before updating a profile.',true);return;}
+async function updateSelectedProfile(){
+  if(profileSnapshotSaving)return;
   const id=document.getElementById('s-profile-select')?.value,p=configApi.profileStore.items.find(x=>x.id===id);
   if(!p){setProfileStatus('Choose a saved profile first.',true);return;}
-  p.config=profileSnapshot();p.updatedAt=Date.now();Object.assign(p,currentDisplayProfileMeta());setActiveProfileForEndpoint(bootstrapApi.ACTIVE_ENDPOINT,id);persistProfiles();renderProfileSelect();
-  document.getElementById('s-profile-select').value=id;setProfileStatus(`Updated “${p.name}” from the currently saved ${profileDisplayName(bootstrapApi.ACTIVE_ENDPOINT)} dashboard.`);
+  profileSnapshotSaving=true;
+  try{
+    if(!await savePendingProfileSettings())return;
+    p.config=profileSnapshot();p.updatedAt=Date.now();Object.assign(p,currentDisplayProfileMeta());setActiveProfileForEndpoint(bootstrapApi.ACTIVE_ENDPOINT,id);
+    const persisted=await persistProfiles();renderProfileSelect();
+    document.getElementById('s-profile-select').value=id;
+    setProfileStatus(persisted?.ok?`Updated “${p.name}” from the currently saved ${profileDisplayName(bootstrapApi.ACTIVE_ENDPOINT)} dashboard.`:'Profile update could not be confirmed on the server. Please retry.',!persisted?.ok);
+  }catch(e){setProfileStatus('Could not update profile: '+String(e?.message||e),true);}
+  finally{profileSnapshotSaving=false;}
 }
 function duplicateSelectedProfile(){
   const id=document.getElementById('s-profile-select')?.value,p=configApi.profileStore.items.find(x=>x.id===id);if(!p){setProfileStatus('Choose a profile to duplicate first.',true);return;}
