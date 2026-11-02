@@ -654,7 +654,7 @@ let calendarAddonEventCache={key:'',events:[]};
 const calendarRuntime={fetches:0,cacheHits:0,parseRuns:0,expandRuns:0,lastParseMs:0,maxParseMs:0,lastExpandMs:0,maxExpandMs:0,lastRenderMs:0,maxRenderMs:0,lastRefreshMs:0,maxRefreshMs:0,lastFeedLabel:'',lastFeedRevision:'',lastEventCount:0};
 function calendarRuntimeSnapshot(){return {...calendarRuntime,feedCacheEntries:calendarFeedCache.size,addonCacheReady:!!calendarAddonEventCache.key};}
 function calendarFeedCacheKey(cal,url,calIdx){return String(cal?.id||url||('calendar-'+calIdx));}
-function calendarAddonCacheKey(referenceDate=null){const d=referenceDate instanceof Date?referenceDate:new Date(),day=[d.getFullYear(),d.getMonth()+1,d.getDate()].join('-');return day+'|'+JSON.stringify([!!cfg.calendarAddonsEnabled,!!cfg.calendarAddonCivicUS,!!cfg.calendarAddonChristian,!!cfg.calendarAddonJewish,!!cfg.calendarAddonIslamic,!!cfg.calendarAddonAstronomy,!!cfg.calendarAddonCultural,cfg.calendarAddonCategorySettings||{},cfg.calendarAddonItemSettings||{}]);}
+function calendarAddonCacheKey(referenceDate=null){const d=referenceDate instanceof Date?referenceDate:new Date(),day=[d.getFullYear(),d.getMonth()+1,d.getDate()].join('-');return day+'|'+JSON.stringify([!!cfg.calendarAddonsEnabled,!!cfg.calendarAddonCivicUS,!!cfg.calendarAddonChristian,!!cfg.calendarAddonJewish,!!cfg.calendarAddonIslamic,!!cfg.calendarAddonAstronomy,!!cfg.calendarAddonCultural,cfg.calendarAddonCategorySettings||{},cfg.calendarAddonItemSettings||{},cfg.calendarAddonPassoverDays===7?7:8]);}
 
 function updateCalStatusUI(){
   const el=document.getElementById('cal-status');
@@ -738,13 +738,13 @@ async function fetchCal(cal,calIdx,{preferFormUrl=false}={}){
 
 const CALENDAR_ADDON_DEFINITIONS={
   civicUS:{configKey:'calendarAddonCivicUS',label:'U.S. civic holidays & observances',color:'#64748b',items:[
-    {key:'newYear',title:"New Year's Day"},{key:'mlk',title:'Martin Luther King Jr. Day'},{key:'presidents',title:"Washington's Birthday (Presidents' Day)"},{key:'armedForces',title:'Armed Forces Day'},{key:'memorial',title:'Memorial Day'},{key:'flagDay',title:'Flag Day'},{key:'juneteenth',title:'Juneteenth'},{key:'independence',title:'Independence Day'},{key:'labor',title:'Labor Day'},{key:'patriot',title:'Patriot Day'},{key:'constitution',title:'Constitution Day and Citizenship Day'},{key:'leifErikson',title:'Leif Erikson Day'},{key:'columbus',title:"Columbus Day / Indigenous Peoples' Day"},{key:'election',title:'Election Day'},{key:'veterans',title:'Veterans Day'},{key:'thanksgiving',title:'Thanksgiving'},{key:'nativeHeritage',title:'Native American Heritage Day'},{key:'pearlHarbor',title:'Pearl Harbor Remembrance Day'}
+    {key:'newYear',title:"New Year's Day"},{key:'newYearsEve',title:"New Year's Eve"},{key:'mlk',title:'Martin Luther King Jr. Day'},{key:'presidents',title:"Washington's Birthday (Presidents' Day)"},{key:'armedForces',title:'Armed Forces Day'},{key:'memorial',title:'Memorial Day'},{key:'flagDay',title:'Flag Day'},{key:'juneteenth',title:'Juneteenth'},{key:'independence',title:'Independence Day'},{key:'labor',title:'Labor Day'},{key:'patriot',title:'Patriot Day'},{key:'constitution',title:'Constitution Day and Citizenship Day'},{key:'leifErikson',title:'Leif Erikson Day'},{key:'columbus',title:"Columbus Day / Indigenous Peoples' Day"},{key:'election',title:'Election Day'},{key:'veterans',title:'Veterans Day'},{key:'thanksgiving',title:'Thanksgiving'},{key:'nativeHeritage',title:'Native American Heritage Day'},{key:'pearlHarbor',title:'Pearl Harbor Remembrance Day'}
   ]},
-  christian:{configKey:'calendarAddonChristian',label:'Christian observances',color:'#8b5cf6',items:[{key:'goodFriday',title:'Good Friday'},{key:'easter',title:'Easter'},{key:'christmas',title:'Christmas'}]},
-  jewish:{configKey:'calendarAddonJewish',label:'Jewish observances',color:'#2563eb',items:[{key:'roshHashanah',title:'Rosh Hashanah'},{key:'yomKippur',title:'Yom Kippur'},{key:'hanukkah',title:'Hanukkah begins'}]},
-  islamic:{configKey:'calendarAddonIslamic',label:'Islamic observances',color:'#0f766e',items:[{key:'ramadan',title:'Ramadan begins'},{key:'eidFitr',title:'Eid al-Fitr'},{key:'eidAdha',title:'Eid al-Adha'}]},
+  christian:{configKey:'calendarAddonChristian',label:'Christian observances',color:'#8b5cf6',items:[{key:'holyWeek',title:'Holy Week'},{key:'goodFriday',title:'Good Friday'},{key:'easter',title:'Easter'},{key:'christmas',title:'Christmas'}]},
+  jewish:{configKey:'calendarAddonJewish',label:'Jewish observances',color:'#2563eb',items:[{key:'roshHashanah',title:'Rosh Hashanah'},{key:'yomKippur',title:'Yom Kippur'},{key:'passover',title:'Passover'},{key:'sukkot',title:'Sukkot'},{key:'hanukkah',title:'Hanukkah'}]},
+  islamic:{configKey:'calendarAddonIslamic',label:'Islamic observances',color:'#0f766e',items:[{key:'ramadan',title:'Ramadan'},{key:'eidFitr',title:'Eid al-Fitr'},{key:'eidAdha',title:'Eid al-Adha'}]},
   astronomy:{configKey:'calendarAddonAstronomy',label:'Astronomy & clock changes',color:'#0ea5e9',items:[{key:'marchEquinox',title:'March equinox'},{key:'juneSolstice',title:'June solstice'},{key:'septemberEquinox',title:'September equinox'},{key:'decemberSolstice',title:'December solstice'},{key:'dstBegins',title:'Daylight saving time begins'},{key:'dstEnds',title:'Daylight saving time ends'},{key:'harvestMoon',title:'Harvest Moon'}]},
-  cultural:{configKey:'calendarAddonCultural',label:'Cultural & seasonal dates',color:'#ec4899',items:[{key:'valentines',title:"Valentine's Day"},{key:'stPatrick',title:"St. Patrick's Day"},{key:'halloween',title:'Halloween'},{key:'dayOfDead',title:'Day of the Dead'}]}
+  cultural:{configKey:'calendarAddonCultural',label:'Cultural & seasonal dates',color:'#ec4899',items:[{key:'valentines',title:"Valentine's Day"},{key:'stPatrick',title:"St. Patrick's Day"},{key:'halloween',title:'Halloween'},{key:'dayOfDead',title:'Day of the Dead'},{key:'kwanzaa',title:'Kwanzaa'}]}
 };
 function calendarAddonDefinitions(){return CALENDAR_ADDON_DEFINITIONS;}
 function addonValidColor(value){const v=String(value||'').trim();return /^#[0-9a-f]{6}$/i.test(v)?v:'';}
@@ -753,7 +753,7 @@ function calendarAddonCategorySettings(key,source=cfg){const def=CALENDAR_ADDON_
 function calendarAddonItemSettings(categoryKey,itemKey,source=cfg){const def=CALENDAR_ADDON_DEFINITIONS[categoryKey],item=def?.items?.find(x=>x.key===itemKey);if(!def||!item)return null;const raw=source?.calendarAddonItemSettings?.[categoryKey]?.[itemKey],category=calendarAddonCategorySettings(categoryKey,source);return {key:item.key,enabled:raw?.enabled!==false,title:addonSafeText(raw?.title,item.title,120),color:addonValidColor(raw?.color)||addonValidColor(item.color)||category.color,colorOverride:addonValidColor(raw?.color)};}
 function calendarAddonLegendRows(source=cfg){if(!source?.calendarAddonsEnabled)return [];const rows=[];for(const [key,def] of Object.entries(CALENDAR_ADDON_DEFINITIONS)){if(!source?.[def.configKey])continue;const category=calendarAddonCategorySettings(key,source);if(def.items.some(item=>calendarAddonItemSettings(key,item.key,source)?.enabled!==false))rows.push({key,label:category.label,color:category.color,calendarAddon:true});}return rows;}
 function addonNthWeekdayOfMonth(year,month,weekday,n){const d=new Date(year,month,1),add=(7+weekday-d.getDay())%7;d.setDate(1+add+(n-1)*7);return d;}
-function calendarAddonEvent(title,date,color='#94a3b8',categoryKey='',itemKey=''){const start=new Date(date);start.setHours(0,0,0,0);const end=new Date(start);end.setDate(end.getDate()+1);const category=calendarAddonCategorySettings(categoryKey);return {title,allDay:true,start,end,calIdx:999,color,calendarAddon:true,calendarAddonCategory:categoryKey,calendarAddonItem:itemKey,calendarAddonCategoryLabel:category?.label||''};}
+function calendarAddonEvent(title,date,color='#94a3b8',categoryKey='',itemKey='',days=1){const start=new Date(date);start.setHours(0,0,0,0);const end=new Date(start);end.setDate(end.getDate()+Math.min(35,Math.max(1,Number(days)||1)));const category=calendarAddonCategorySettings(categoryKey);return {title,allDay:true,start,end,calIdx:999,color,calendarAddon:true,calendarAddonCategory:categoryKey,calendarAddonItem:itemKey,calendarAddonCategoryLabel:category?.label||''};}
 function lastWeekdayOfMonth(year,month,weekday){const d=new Date(year,month+1,0);d.setDate(d.getDate()-((7+d.getDay()-weekday)%7));return d;}
 function calendarAddonSeasonMoment(year,season){const t=(year-2000)/1000,coeff={march:[2451623.80984,365242.37404,.05169,-.00411,-.00057],june:[2451716.56767,365241.62603,.00325,.00888,-.00030],september:[2451810.21715,365242.01767,-.11575,.00337,.00078],december:[2451900.05952,365242.74049,-.06223,-.00823,.00032]}[season];if(!coeff)return null;const jd=coeff.reduce((sum,c,i)=>sum+c*(t**i),0),ms=(jd-2440587.5)*86400000,d=new Date(ms);return Number.isFinite(d.getTime())?d:null;}
 function calendarAddonHarvestMoon(year){const equinox=calendarAddonSeasonMoment(year,'september')||new Date(year,8,22,12),rows=[];for(let d=new Date(year,7,15,12);d<=new Date(year,9,15,12);d.setDate(d.getDate()+1)){const details=LibreDisplayRuntime.getModule('weatherEffects').lunarPhaseDetails?.(d);if(!details)continue;rows.push({date:new Date(d),delta:Math.abs((Number(details.phase)||0)-.5)});}const peaks=rows.filter((row,i)=>row.delta<=(rows[i-1]?.delta??Infinity)&&row.delta<=(rows[i+1]?.delta??Infinity));if(!peaks.length)return null;peaks.sort((a,b)=>Math.abs(a.date-equinox)-Math.abs(b.date-equinox));return peaks[0].date;}
@@ -766,11 +766,11 @@ function builtInCalendarEvents(referenceDate=null){
   if(!referenceDate&&calendarAddonEventCache.key===cacheKey)return calendarAddonEventCache.events;
   const now=referenceDate instanceof Date?new Date(referenceDate):new Date();
   const from=new Date(now.getFullYear(),now.getMonth(),now.getDate()-7),to=new Date(now.getFullYear()+1,11,31),events=[];
-  const add=(categoryKey,itemKey,d)=>{const def=CALENDAR_ADDON_DEFINITIONS[categoryKey],item=def?.items?.find(x=>x.key===itemKey),settings=calendarAddonItemSettings(categoryKey,itemKey);if(!def||!item||settings?.enabled===false||!(d instanceof Date)||!Number.isFinite(d.getTime()))return;if(d>=from&&d<=to)events.push(calendarAddonEvent(settings.title,d,settings.color,categoryKey,itemKey));};
+  const add=(categoryKey,itemKey,d,days=1)=>{const def=CALENDAR_ADDON_DEFINITIONS[categoryKey],item=def?.items?.find(x=>x.key===itemKey),settings=calendarAddonItemSettings(categoryKey,itemKey);if(!def||!item||settings?.enabled===false||!(d instanceof Date)||!Number.isFinite(d.getTime()))return;const event=calendarAddonEvent(settings.title,d,settings.color,categoryKey,itemKey,days);if(event.start<=to&&event.end>from)events.push(event);};
   for(let year=from.getFullYear();year<=to.getFullYear();year++){
     if(cfg.calendarAddonCivicUS){
       const thanksgiving=addonNthWeekdayOfMonth(year,10,4,4),nativeHeritage=new Date(thanksgiving);nativeHeritage.setDate(nativeHeritage.getDate()+1);
-      add('civicUS','newYear',new Date(year,0,1));
+      add('civicUS','newYear',new Date(year,0,1));add('civicUS','newYearsEve',new Date(year,11,31));
       add('civicUS','mlk',addonNthWeekdayOfMonth(year,0,1,3));
       add('civicUS','presidents',addonNthWeekdayOfMonth(year,1,1,3));
       add('civicUS','armedForces',addonNthWeekdayOfMonth(year,4,6,3));
@@ -789,8 +789,8 @@ function builtInCalendarEvents(referenceDate=null){
       add('civicUS','nativeHeritage',nativeHeritage);
       add('civicUS','pearlHarbor',new Date(year,11,7));
     }
-    if(cfg.calendarAddonChristian){const easter=easterSunday(year),good=new Date(easter);good.setDate(good.getDate()-2);add('christian','goodFriday',good);add('christian','easter',easter);add('christian','christmas',new Date(year,11,25));}
-    if(cfg.calendarAddonCultural){add('cultural','valentines',new Date(year,1,14));add('cultural','stPatrick',new Date(year,2,17));add('cultural','halloween',new Date(year,9,31));add('cultural','dayOfDead',new Date(year,10,1));}
+    if(cfg.calendarAddonChristian){const easter=easterSunday(year),good=new Date(easter),holy=new Date(easter);good.setDate(good.getDate()-2);holy.setDate(holy.getDate()-7);add('christian','holyWeek',holy,7);add('christian','goodFriday',good);add('christian','easter',easter);add('christian','christmas',new Date(year,11,25));}
+    if(cfg.calendarAddonCultural){add('cultural','valentines',new Date(year,1,14));add('cultural','stPatrick',new Date(year,2,17));add('cultural','halloween',new Date(year,9,31));add('cultural','dayOfDead',new Date(year,10,1),2);add('cultural','kwanzaa',new Date(year,11,26),7);}
     if(cfg.calendarAddonAstronomy){
       const march=calendarAddonSeasonMoment(year,'march'),june=calendarAddonSeasonMoment(year,'june'),september=calendarAddonSeasonMoment(year,'september'),december=calendarAddonSeasonMoment(year,'december');
       if(march)add('astronomy','marchEquinox',march);if(june)add('astronomy','juneSolstice',june);if(september)add('astronomy','septemberEquinox',september);if(december)add('astronomy','decemberSolstice',december);
@@ -798,10 +798,30 @@ function builtInCalendarEvents(referenceDate=null){
       const harvest=calendarAddonHarvestMoon(year);if(harvest)add('astronomy','harvestMoon',harvest);
     }
   }
-  if(cfg.calendarAddonJewish||cfg.calendarAddonIslamic){for(let d=new Date(from);d<=to;d.setDate(d.getDate()+1)){
-    if(cfg.calendarAddonJewish){const p=calendarPartsFor(d,'hebrew');if((p.month==='tishri'||p.month==='tishrei')&&p.day===1)add('jewish','roshHashanah',d);if((p.month==='tishri'||p.month==='tishrei')&&p.day===10)add('jewish','yomKippur',d);if(p.month==='kislev'&&p.day===25)add('jewish','hanukkah',d);}
-    if(cfg.calendarAddonIslamic){const p=calendarPartsFor(d,'islamic');if(p.month==='ramadan'&&p.day===1)add('islamic','ramadan',d);if((p.month==='shawwal'||p.month==='shawal')&&p.day===1)add('islamic','eidFitr',d);if((p.month==='dhualhijjah'||p.month==='dhualhijja'||p.month==='zulhijjah')&&p.day===10)add('islamic','eidAdha',d);}
-  }}
+  if(cfg.calendarAddonJewish||cfg.calendarAddonIslamic){
+    // Scan before the visible window so an observance begun in the prior month/year still appears.
+    const scanStart=new Date(from);scanStart.setDate(scanStart.getDate()-35);
+    for(let d=scanStart;d<=to;d.setDate(d.getDate()+1)){
+      if(cfg.calendarAddonJewish){
+        const p=calendarPartsFor(d,'hebrew'),tishri=p.month==='tishri'||p.month==='tishrei';
+        if(tishri&&p.day===1)add('jewish','roshHashanah',d,2);
+        if(tishri&&p.day===10)add('jewish','yomKippur',d);
+        if(tishri&&p.day===15)add('jewish','sukkot',d,7);
+        if((p.month==='nisan'||p.month==='nissan')&&p.day===15)add('jewish','passover',d,cfg.calendarAddonPassoverDays===7?7:8);
+        if(p.month==='kislev'&&p.day===25)add('jewish','hanukkah',d,8);
+      }
+      if(cfg.calendarAddonIslamic){
+        const p=calendarPartsFor(d,'islamic');
+        if(p.month==='ramadan'&&p.day===1){
+          let days=1;
+          for(let next=new Date(d);days<30;){next.setDate(next.getDate()+1);if(calendarPartsFor(next,'islamic').month!=='ramadan')break;days++;}
+          add('islamic','ramadan',d,days);
+        }
+        if((p.month==='shawwal'||p.month==='shawal')&&p.day===1)add('islamic','eidFitr',d);
+        if((p.month==='dhualhijjah'||p.month==='dhualhijja'||p.month==='zulhijjah')&&p.day===10)add('islamic','eidAdha',d,4);
+      }
+    }
+  }
   const seen=new Set(),out=events.filter(e=>{const k=e.calendarAddonCategory+'|'+e.calendarAddonItem+'|'+e.start.toDateString();if(seen.has(k))return false;seen.add(k);return true;});if(!referenceDate)calendarAddonEventCache={key:cacheKey,events:out};return out;
 }
 async function loadCalendars(){

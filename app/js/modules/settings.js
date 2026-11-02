@@ -162,7 +162,7 @@ function openSetup(startWizard=false){
   try{
     bindCalendarColorControls();
     bindCalendarUxInputs();
-    for(const el of document.querySelectorAll('#settings-calendar-addons [id^="s-calendar-addon-"],#s-calendar-addons-enabled'))if(!el.dataset.addonBound){el.dataset.addonBound='1';el.addEventListener('change',()=>{markSettingsDirty();if(el.id==='s-calendar-addons-enabled')syncCalendarAddonControls();refreshCalendarAddonEditorSummaries();});}
+    for(const el of document.querySelectorAll('#settings-calendar-addons [id^="s-calendar-addon-"],#s-calendar-addons-enabled,#s-calendar-passover-days'))if(!el.dataset.addonBound){el.dataset.addonBound='1';el.addEventListener('change',()=>{markSettingsDirty();if(el.id==='s-calendar-addons-enabled')syncCalendarAddonControls();refreshCalendarAddonEditorSummaries();});}
     renderProfileSelect();
     setProfileStatus('');
     loadScenes();
@@ -200,7 +200,7 @@ function openSetup(startWizard=false){
     document.getElementById('s-calendar-legend').checked=!!cfg.calendarLegend;
     document.getElementById('s-calendar-show-continuation').checked=cfg.calendarShowContinuation!==false;
     document.getElementById('s-calendar-addons-enabled').checked=!!cfg.calendarAddonsEnabled;
-    for(const [id,key] of [['s-calendar-addon-civic-us','calendarAddonCivicUS'],['s-calendar-addon-christian','calendarAddonChristian'],['s-calendar-addon-jewish','calendarAddonJewish'],['s-calendar-addon-islamic','calendarAddonIslamic'],['s-calendar-addon-astronomy','calendarAddonAstronomy'],['s-calendar-addon-cultural','calendarAddonCultural']]){const el=document.getElementById(id);if(el)el.checked=!!cfg[key];}syncCalendarAddonControls();renderCalendarAddonCustomization();
+    for(const [id,key] of [['s-calendar-addon-civic-us','calendarAddonCivicUS'],['s-calendar-addon-christian','calendarAddonChristian'],['s-calendar-addon-jewish','calendarAddonJewish'],['s-calendar-addon-islamic','calendarAddonIslamic'],['s-calendar-addon-astronomy','calendarAddonAstronomy'],['s-calendar-addon-cultural','calendarAddonCultural']]){const el=document.getElementById(id);if(el)el.checked=!!cfg[key];}const passover=document.getElementById('s-calendar-passover-days');if(passover)passover.value=cfg.calendarAddonPassoverDays===7?'7':'8';syncCalendarAddonControls();renderCalendarAddonCustomization();
     renderCalendarOrderList();
     document.getElementById('s-alerts-enabled').checked=cfg.alertsEnabled;
     document.getElementById('s-alert-test').checked=cfg.alertTestMode;

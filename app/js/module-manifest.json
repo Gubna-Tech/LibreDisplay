@@ -80,7 +80,7 @@
     "module": "calendar",
     "part": "bundle",
     "path": "/js/modules/calendar.js",
-    "lines": 940,
+    "lines": 960,
     "functions": 46,
     "bindings": 2,
     "sections": [
@@ -177,7 +177,7 @@
     "module": "onboarding",
     "part": "bundle",
     "path": "/js/modules/onboarding.js",
-    "lines": 512,
+    "lines": 513,
     "functions": 55,
     "bindings": 4,
     "sections": [

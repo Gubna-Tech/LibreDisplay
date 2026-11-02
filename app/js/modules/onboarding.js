@@ -473,6 +473,7 @@ async function saveSetup(options={}){
   cfg.calendarLegend=!!document.getElementById('s-calendar-legend')?.checked;
   cfg.calendarShowContinuation=!!document.getElementById('s-calendar-show-continuation')?.checked;
   cfg.calendarAddonsEnabled=!!document.getElementById('s-calendar-addons-enabled')?.checked;
+  cfg.calendarAddonPassoverDays=Number(document.getElementById('s-calendar-passover-days')?.value)===7?7:8;
   for(const [id,key] of [['s-calendar-addon-civic-us','calendarAddonCivicUS'],['s-calendar-addon-christian','calendarAddonChristian'],['s-calendar-addon-jewish','calendarAddonJewish'],['s-calendar-addon-islamic','calendarAddonIslamic'],['s-calendar-addon-astronomy','calendarAddonAstronomy'],['s-calendar-addon-cultural','calendarAddonCultural']])cfg[key]=!!document.getElementById(id)?.checked;
   const addonCustomization=readCalendarAddonCustomization();
   cfg.calendarAddonCategorySettings=addonCustomization.categorySettings;cfg.calendarAddonItemSettings=addonCustomization.itemSettings;
