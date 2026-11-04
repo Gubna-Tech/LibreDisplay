@@ -4523,6 +4523,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         try:
                             if not item.is_file() or item.suffix.lower() not in BACKGROUND_MEDIA_EXTENSIONS:
                                 continue
+                            # A zero-byte photo can be a failed or in-progress NAS copy.
+                            # Never advertise it as a background the browser can load.
+                            if item.stat().st_size <= 0:
+                                continue
                             resolved = item.resolve()
                             if not _path_within(resolved, folder) or resolved in seen:
                                 continue
@@ -4563,7 +4567,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return self.text_response(404, "Media file not found or not allowed")
         try:
             size = path.stat().st_size
-            if size < 0 or size > MAX_MEDIA_FILE_BYTES:
+            if size <= 0:
+                return self.text_response(422, "Media file is empty")
+            if size > MAX_MEDIA_FILE_BYTES:
                 return self.text_response(413, "Media file is too large")
             content_type = mimetypes.guess_type(str(path))[0] or ("video/mp4" if path.suffix.lower() in VIDEO_EXTENSIONS else "application/octet-stream")
             start, end, status = 0, max(0, size - 1), 200
