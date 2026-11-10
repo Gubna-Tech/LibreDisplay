@@ -110,7 +110,7 @@
     "module": "blocks",
     "part": "bundle",
     "path": "/js/modules/blocks.js",
-    "lines": 559,
+    "lines": 560,
     "functions": 105,
     "bindings": 10,
     "sections": [
@@ -122,8 +122,8 @@
     "module": "layout",
     "part": "bundle",
     "path": "/js/modules/layout.js",
-    "lines": 1426,
-    "functions": 223,
+    "lines": 1510,
+    "functions": 229,
     "bindings": 35,
     "sections": [
       "/js/layout/index.js",

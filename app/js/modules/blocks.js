@@ -164,9 +164,10 @@ function applyCustomBlockRect(el,block){if(!el||!block)return;const r=customBloc
 function fitAirQualityBlockBoundary(el,block){
   if(!el||block?.type!=='airquality')return false;const card=el.querySelector('.custom-block-card'),label=el.querySelector('.custom-aq-label');if(!card||!label)return false;
   if(label.classList.contains('ld-internal-free-part')){const parent=label.offsetParent||label.parentElement,pr=parent?.getBoundingClientRect?.();if(pr?.width>2){label.style.height='auto';label.style.width='max-content';const natural=Math.ceil(label.getBoundingClientRect().width),lr=label.getBoundingClientRect(),available=Math.max(36,Math.floor(pr.right-lr.left-2));label.style.width=`${Math.max(36,Math.min(natural,available))}px`;label.style.height='auto';}}
-  const nodes=[...el.querySelectorAll('.custom-block-title,.custom-aq-value,.custom-aq-label,.custom-aq-meta')];let changed=false;
-  for(let pass=0;pass<5;pass++){const er=el.getBoundingClientRect();let right=-Infinity,bottom=-Infinity;for(const node of nodes){const r=node.getBoundingClientRect?.();if(!r||r.width<1||r.height<1)continue;right=Math.max(right,r.right);bottom=Math.max(bottom,r.bottom);}if(!Number.isFinite(right)||!Number.isFinite(bottom))break;const extraW=Math.max(0,Math.ceil(right+10-er.right)),extraH=Math.max(0,Math.ceil(bottom+10-er.bottom));if(extraW<1&&extraH<1)break;const vp=layoutViewportSize(),left=er.left,top=er.top,maxW=Math.max(er.width,vp.width-left),maxH=Math.max(er.height,vp.height-top),nextW=Math.min(maxW,er.width+extraW),nextH=Math.min(maxH,er.height+extraH);if(nextW>er.width+.5){el.style.width=`${nextW.toFixed(1)}px`;changed=true;}if(nextH>er.height+.5){el.style.height=`${nextH.toFixed(1)}px`;changed=true;}}
-  return changed;
+  // Geometry belongs to the saved custom-block rectangle. Long AQI labels
+  // may wrap or overflow within that rectangle; content rendering must not
+  // silently enlarge the block on the dashboard or in Arrange.
+  return false;
 }
 function blockTitleVisible(block){const c=block?.config||{};return c._showTitle!==false&&c?._internalLayout?.blockTitle?.hidden!==true;}
 function blockCardHtml(block,inner){const c=block.config||{},title=String(c.title??block.name??'').trim();return `<div class="custom-block-card">${title&&blockTitleVisible(block)?`<div class="custom-block-title">${escHtml(title)}</div>`:''}${inner}</div>`;}
