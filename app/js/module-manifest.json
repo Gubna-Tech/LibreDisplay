@@ -28,7 +28,7 @@
     "module": "integrations",
     "part": "bundle",
     "path": "/js/modules/integrations.js",
-    "lines": 180,
+    "lines": 202,
     "functions": 25,
     "bindings": 6,
     "sections": [
@@ -40,7 +40,7 @@
     "module": "config",
     "part": "bundle",
     "path": "/js/modules/config.js",
-    "lines": 608,
+    "lines": 623,
     "functions": 17,
     "bindings": 53,
     "sections": [
@@ -64,8 +64,8 @@
     "module": "weather",
     "part": "bundle",
     "path": "/js/modules/weather.js",
-    "lines": 1794,
-    "functions": 194,
+    "lines": 1800,
+    "functions": 195,
     "bindings": 14,
     "sections": [
       "/js/weather/index.js",
@@ -80,7 +80,7 @@
     "module": "calendar",
     "part": "bundle",
     "path": "/js/modules/calendar.js",
-    "lines": 960,
+    "lines": 967,
     "functions": 46,
     "bindings": 2,
     "sections": [
@@ -122,7 +122,7 @@
     "module": "layout",
     "part": "bundle",
     "path": "/js/modules/layout.js",
-    "lines": 1510,
+    "lines": 1527,
     "functions": 229,
     "bindings": 35,
     "sections": [
@@ -164,7 +164,7 @@
     "module": "system",
     "part": "bundle",
     "path": "/js/modules/system.js",
-    "lines": 798,
+    "lines": 809,
     "functions": 62,
     "bindings": 18,
     "sections": [
@@ -177,7 +177,7 @@
     "module": "onboarding",
     "part": "bundle",
     "path": "/js/modules/onboarding.js",
-    "lines": 513,
+    "lines": 525,
     "functions": 55,
     "bindings": 4,
     "sections": [

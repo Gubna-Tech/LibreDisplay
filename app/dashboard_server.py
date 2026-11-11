@@ -230,6 +230,7 @@ DEVICE_REBOOT_CAP_CACHE = {"checkedAt": 0.0, "capable": False, "reason": ""}
 DEVICE_REBOOT_CAP_TTL_SECONDS = 300
 DEVICE_REBOOT_STATE_LOCK = threading.Lock()
 DEVICE_REBOOT_STATE = {"state": "idle", "requestedAt": 0, "startedAt": 0, "error": "", "returnCode": None}
+CONFIG_SAVE_LOCK = threading.Lock()  # Serialize conditional /api/config writes per server instance.
 ROLLBACK_RUN_LOCK = threading.Lock()
 ROLLBACK_RUN_STATE = {"state": "idle", "startedAt": 0, "targetVersion": "", "snapshotId": "", "error": ""}
 
@@ -5447,7 +5448,21 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 endpoint_id = requested_endpoint(parsed)
                 if not endpoint_id:
                     raise ValueError("Unknown display endpoint")
-                self.atomic_write_json(endpoint_config_path(endpoint_id), config, endpoint_backup_path(endpoint_id))
+                # An Arrange editor can supply its opening snapshot's revision to
+                # prevent a second browser from silently replacing a newer layout.
+                # Older callers remain compatible and continue using unconditional saves.
+                conditional = isinstance(body, dict) and "config" in body and "expectedSavedAt" in body
+                if conditional:
+                    expected = body["expectedSavedAt"]
+                    if isinstance(expected, bool) or not isinstance(expected, (int, float)) or not math.isfinite(expected) or expected < 0 or int(expected) != expected:
+                        raise ValueError("expectedSavedAt must be a non-negative integer")
+                with CONFIG_SAVE_LOCK:
+                    if conditional:
+                        current = load_endpoint_config_resilient(endpoint_id)
+                        current_saved_at = max(0, int((current or {}).get("_savedAt") or 0))
+                        if current_saved_at != int(expected):
+                            return self.json_response(409, {"ok": False, "error": "Another editor changed this display configuration. Reopen Settings to review the newest saved version before retrying.", "savedAt": current_saved_at})
+                    self.atomic_write_json(endpoint_config_path(endpoint_id), config, endpoint_backup_path(endpoint_id))
                 publish_event(endpoint_id, "config", {"savedAt": config.get("_savedAt", 0)})
                 return self.json_response(200, {"ok": True, "saved": True, "endpoint": endpoint_id, "savedAt": config.get("_savedAt", 0)})
             except ValueError as exc:

@@ -121,8 +121,8 @@ function buildWizardHealthRows(){
   rows.push({name:'Saved configuration',detail:configApi.serverConfigAvailable?'Saved to the LibreDisplay server':'Browser fallback is active; server persistence could not be confirmed',state:configApi.serverConfigAvailable?'good':'warn'});
   rows.push({name:'Weather',detail:weatherApi.weatherLastError?(configApi.wxData?'Live refresh failed; last good forecast retained':weatherApi.weatherLastError):(configApi.wxData?'Forecast loaded for the verified location':(cfg.lat&&cfg.lon?'Verified location saved; waiting for forecast data':'Location is not configured')),state:weatherApi.weatherLastError?(configApi.wxData?'warn':'bad'):(configApi.wxData?'good':(cfg.lat&&cfg.lon?'warn':'bad'))});
   const enabledCalendars=(cfg.calendars||[]).filter(c=>c.enabled!==false&&(c.url||c.configured));
-  const calendarFailures=(calendarApi.calStatuses||[]).filter(x=>x&&!x.pending&&!x.disabled&&x.ok===false).length;
-  rows.push({name:'Calendars',detail:enabledCalendars.length?(calendarFailures?`${calendarFailures} calendar source${calendarFailures===1?'':'s'} need attention`:`${enabledCalendars.length} enabled calendar${enabledCalendars.length===1?'':'s'} configured`):'No calendars configured — this is optional',state:calendarFailures?'bad':'good'});
+  const calendarFailures=(calendarApi.calStatuses||[]).filter(x=>x&&!x.pending&&!x.disabled&&x.ok===false).length,calendarStale=(calendarApi.calStatuses||[]).filter(x=>x?.stale).length;
+  rows.push({name:'Calendars',detail:enabledCalendars.length?(calendarFailures?`${calendarFailures} calendar source${calendarFailures===1?'':'s'} need attention`:calendarStale?`${calendarStale} calendar source${calendarStale===1?'':'s'} using cached events`:`${enabledCalendars.length} enabled calendar${enabledCalendars.length===1?'':'s'} configured`):'No calendars configured — this is optional',state:calendarFailures?'bad':calendarStale?'warn':'good'});
   const bgReady=cfg.backgroundSource==='none'||cfg.backgroundSource==='stock'||(cfg.backgroundSource==='folders'&&!!cfg.mediaFolders?.length)||(cfg.backgroundSource==='google'&&!!cfg.photosUrl);
   rows.push({name:'Background',detail:bgReady?(cfg.backgroundSource==='none'?'Photo background disabled by choice':'Background source configured'):'Background source still needs setup',state:bgReady?'good':'warn'});
   rows.push({name:'Remote management',detail:configApi.remoteInfo?.remoteEnabled?'Enabled on the trusted private network':'Disabled — local-only management is valid',state:'good'});
@@ -493,7 +493,19 @@ async function saveSetup(options={}){
     appearanceApi.settingsLayoutPresetKey='current';
   }
   cfg.onboardingComplete=true;
-  const persistence=await saveCfg();
+  // The browser's cached config must not become the next startup recovery
+  // snapshot until the server has confirmed the Settings save.
+  const cacheBefore=[bootstrapApi.CFG_KEY,bootstrapApi.CFG_BACKUP_KEY].map(key=>{
+    try{return {key,value:localStorage.getItem(key)};}catch{return {key,value:null};}
+  });
+  let persistence;
+  try{persistence=await saveCfg();}catch(error){persistence={ok:false,verified:false,error:String(error?.message||error)};}
+  if(!persistence?.ok||persistence?.verified!==true){
+    for(const entry of cacheBefore){try{if(entry.value===null)localStorage.removeItem(entry.key);else localStorage.setItem(entry.key,entry.value);}catch(_e){}}
+    markSettingsDirty();
+    alert('Settings were not confirmed on the display. They remain open for you to retry; the previous browser recovery copy was retained. '+(persistence?.error||'Save verification failed.'));
+    return {ok:false,persistence};
+  }
   markSettingsClean();
   if(options?.closeAfter!==false)closeSetup(false);
   applySettings();

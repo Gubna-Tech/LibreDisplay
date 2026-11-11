@@ -809,6 +809,8 @@ body.remote-layout-proxy #layout-editor-layer{display:none!important}
   touch-action:none;
 }
 .layout-edit-box.locked{cursor:not-allowed;border-style:dashed}.layout-edit-box.locked .layout-resize-handle{display:none}
+/* A visible focus ring distinguishes keyboard editing from pointer selection. */
+body.layout-editing .layout-edit-box:focus-visible{outline:3px solid #ffdf73;outline-offset:3px}
 .layout-edit-box.selected {
   z-index:2;
   border-color:#fff;
@@ -846,6 +848,23 @@ body.remote-layout-proxy #layout-editor-layer{display:none!important}
   touch-action:none;
 }
 .layout-resize-handle.se{right:-7px;bottom:-7px;cursor:nwse-resize}.layout-resize-handle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.layout-resize-handle.ne{right:-7px;top:-7px;cursor:nesw-resize}.layout-resize-handle.nw{left:-7px;top:-7px;cursor:nwse-resize}
+/* Coarse pointers need a larger interactive corner, but not a larger visible marker.
+   Keep the 18px cue centered and leave geometry/saved rects unchanged. */
+@media (pointer:coarse){
+  body.layout-editing .layout-resize-handle{
+    width:32px;height:32px;border:0;background:transparent;box-shadow:none;
+  }
+  body.layout-editing .layout-resize-handle::before{
+    content:"";position:absolute;left:7px;top:7px;width:18px;height:18px;
+    box-sizing:border-box;border-radius:50%;border:2px solid var(--ld-accent);
+    background:var(--ld-surface);box-shadow:0 2px 8px rgba(0,0,0,.55);
+    pointer-events:none;
+  }
+  body.layout-editing .layout-resize-handle.se{right:-13px;bottom:-13px}
+  body.layout-editing .layout-resize-handle.sw{left:-13px;bottom:-13px}
+  body.layout-editing .layout-resize-handle.ne{right:-13px;top:-13px}
+  body.layout-editing .layout-resize-handle.nw{left:-13px;top:-13px}
+}
 #layout-toolbar {
   position:fixed;
   z-index:255;
@@ -907,6 +926,16 @@ body.layout-editing #alert-zone:not(.show) + .layout-edit-placeholder { display:
 @media (max-width:760px) {
   #layout-toolbar { flex-wrap:wrap;justify-content:center; }
   #layout-selected-info { display:none; }
+}
+/* On phones, keep the editing actions in one scrollable strip rather than
+   stacking them over the working canvas. Full toolbar contents remain available. */
+@media (max-width:600px) {
+  body.layout-editing:not(.remote-layout-proxy) #layout-toolbar{
+    top:8px;left:8px;right:8px;transform:none;max-width:none;width:auto;
+    flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;
+    white-space:nowrap;
+  }
+  body.layout-editing:not(.remote-layout-proxy) #layout-toolbar>*{flex-shrink:0;}
 }
 
 #custom-block-layer { position:fixed; inset:0; z-index:3; pointer-events:none; }

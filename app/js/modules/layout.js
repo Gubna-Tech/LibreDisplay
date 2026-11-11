@@ -531,6 +531,8 @@ function genericPartAlignmentRects(movingRect,siblingBoxes=[],excludeBlockKey=''
 function magneticSnapForBounds(bounds,excludedKeys=[]){if(!layoutSmartGuidesOn()||!bounds)return {dx:0,dy:0,guides:[]};return magneticSnapForScreenRect(bounds,layoutBlockAlignmentRects(excludedKeys));}
 function renderLayoutEditorBoxes(){
   const layer=document.getElementById('layout-editor-layer');if(!layer)return;
+  // Keep keyboard focus on its named block when resize, nudge or undo redraws overlays.
+  const focusKey=layer.contains(document.activeElement)?document.activeElement?.closest?.('.layout-edit-box')?.dataset?.layoutKey:null;
   layer.innerHTML='';
   const entries=[];
   for(const [key,def] of Object.entries(LAYOUT_BLOCK_DEFS)){
@@ -547,10 +549,11 @@ function renderLayoutEditorBoxes(){
   }
   entries.sort((a,b)=>(Number(b.r.w)*Number(b.r.h))-(Number(a.r.w)*Number(a.r.h)));
   for(const item of entries)appendLayoutEditBox(layer,item.key,item.label,item.r);
+  if(focusKey){const replacement=[...layer.querySelectorAll('.layout-edit-box')].find(el=>el.dataset.layoutKey===focusKey);replacement?.focus({preventScroll:true});}
   refreshLayoutToolbarBlockOptions();
   updateLayoutSelectedInfo();renderCurrentWeatherPartBoxes();renderBuiltInPartBoxes();
 }
-function appendLayoutEditBox(layer,key,label,r){const px=pxRectFromNormalized(r),def=layoutEditorDefForKey(key),locked=def?.locked===true,selected=layoutSelectionKeys().includes(key),box=document.createElement('div');box.className='layout-edit-box'+(selected?' selected':'')+(layoutSelectedKey===key?' primary-selected':'')+(locked?' locked':'');box.dataset.layoutKey=key;box.style.left=px.left+'px';box.style.top=px.top+'px';box.style.width=px.width+'px';box.style.height=px.height+'px';box.innerHTML=`<div class="layout-edit-label">${escHtml(label)}${locked?' · 🔒':''}</div><div class="layout-resize-handle nw" data-resize="nw" title="Resize from top left"></div><div class="layout-resize-handle ne" data-resize="ne" title="Resize from top right"></div><div class="layout-resize-handle sw" data-resize="sw" title="Resize from bottom left"></div><div class="layout-resize-handle se" data-resize="se" title="Resize from bottom right"></div>`;box.addEventListener('pointerdown',beginLayoutPointer);if(customKeyId(key)){box.title='Double-click to configure this added block · Shift/Ctrl/Cmd-click to multi-select';box.addEventListener('dblclick',e=>{e.preventDefault();selectLayoutBlock(key);configureSelectedCustomBlock();});}else box.title='Shift/Ctrl/Cmd-click to multi-select';layer.appendChild(box);}
+function appendLayoutEditBox(layer,key,label,r){const px=pxRectFromNormalized(r),def=layoutEditorDefForKey(key),locked=def?.locked===true,selected=layoutSelectionKeys().includes(key),box=document.createElement('div');box.className='layout-edit-box'+(selected?' selected':'')+(layoutSelectedKey===key?' primary-selected':'')+(locked?' locked':'');box.dataset.layoutKey=key;box.tabIndex=0;box.setAttribute('role','button');box.setAttribute('aria-label',`${label} layout block${locked?' (locked)':''}. Press Enter or Space to select, then use the arrow keys to move or Shift plus arrow keys to resize.`);box.setAttribute('aria-pressed',selected?'true':'false');box.style.left=px.left+'px';box.style.top=px.top+'px';box.style.width=px.width+'px';box.style.height=px.height+'px';box.innerHTML=`<div class="layout-edit-label">${escHtml(label)}${locked?' · 🔒':''}</div><div class="layout-resize-handle nw" data-resize="nw" title="Resize from top left"></div><div class="layout-resize-handle ne" data-resize="ne" title="Resize from top right"></div><div class="layout-resize-handle sw" data-resize="sw" title="Resize from bottom left"></div><div class="layout-resize-handle se" data-resize="se" title="Resize from bottom right"></div>`;box.addEventListener('pointerdown',beginLayoutPointer);box.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();e.stopPropagation();selectLayoutBlock(key,false,!!(e.shiftKey||e.ctrlKey||e.metaKey));});if(customKeyId(key)){box.title='Double-click to configure this added block · Shift/Ctrl/Cmd-click to multi-select';box.addEventListener('dblclick',e=>{e.preventDefault();selectLayoutBlock(key);configureSelectedCustomBlock();});}else box.title='Shift/Ctrl/Cmd-click to multi-select';layer.appendChild(box);}
 function refreshLayoutToolbarBlockOptions(){const picker=document.getElementById('layout-toolbar-block');if(!picker)return;const current=layoutSelectedKey;picker.innerHTML='<option value="">Choose…</option>'+Object.entries(LAYOUT_BLOCK_DEFS).map(([k,d])=>`<option value="${k}">${escHtml(d.label)}</option>`).join('')+(layoutCustomBlocksDraft.length?'<optgroup label="Added blocks">'+layoutCustomBlocksDraft.map(b=>`<option value="${customBlockKey(b.id)}">${escHtml(b.name||BLOCK_TYPE_INFO[b.type]?.name||'Block')}</option>`).join('')+'</optgroup>':'');picker.value=current||'';}
 function layoutEditorRectForKey(key){const id=customKeyId(key);if(id)return customBlockById(id,layoutCustomBlocksDraft)?.rect||null;return layoutEditorDraft[key]||null;}
 function layoutEditorDefForKey(key){const id=customKeyId(key);if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return null;const [minW,minH]=customBlockMin(b.type,b);return {label:b.name||BLOCK_TYPE_INFO[b.type]?.name||'Block',minW,minH,custom:true,block:b,locked:b.config?._locked===true};}return LAYOUT_BLOCK_DEFS[key]||null;}
@@ -681,7 +684,7 @@ function selectLayoutBlock(key,preservePart=false,multi=false){
   const next=key||'',previous=layoutSelectedKey;
   if(multi&&next){const selected=layoutSelectionKeys();if(selected.includes(next)){layoutSelectedKeys=selected.filter(k=>k!==next);layoutSelectedKey=layoutSelectedKeys.at(-1)||'';}else{layoutSelectedKeys=[...selected,next];layoutSelectedKey=next;}}else{layoutSelectedKey=next;layoutSelectedKeys=next?[next]:[];}
   if(layoutSelectedKey!==previous&&!preservePart){layoutSelectedPart='whole';layoutSelectedPartKeys=[];}
-  const selectedNow=new Set(layoutSelectionKeys());document.querySelectorAll('.layout-edit-box').forEach(el=>{el.classList.toggle('selected',selectedNow.has(el.dataset.layoutKey));el.classList.toggle('primary-selected',el.dataset.layoutKey===layoutSelectedKey);});
+  const selectedNow=new Set(layoutSelectionKeys());document.querySelectorAll('.layout-edit-box').forEach(el=>{el.classList.toggle('selected',selectedNow.has(el.dataset.layoutKey));el.classList.toggle('primary-selected',el.dataset.layoutKey===layoutSelectedKey);el.setAttribute('aria-pressed',selectedNow.has(el.dataset.layoutKey)?'true':'false');});
   const picker=document.getElementById('layout-toolbar-block');if(picker&&picker.value!==layoutSelectedKey)picker.value=layoutSelectedKey;
   refreshToolbarCustomActions();refreshLayoutPartPicker();updateLayoutSelectedInfo();renderCurrentWeatherPartBoxes();renderBuiltInPartBoxes();
 }
@@ -722,7 +725,7 @@ function beginLayoutPointer(e){
   const box=e.currentTarget,key=box.dataset.layoutKey,r=layoutEditorRectForKey(key);if(!r)return;
   const additive=!!(e.shiftKey||e.ctrlKey||e.metaKey),before=layoutSelectionKeys();
   if(additive)selectLayoutBlock(key,false,true);
-  else if(before.includes(key)&&before.length>1){layoutSelectedKey=key;layoutSelectedKeys=before;layoutSelectedPart='whole';layoutSelectedPartKeys=[];const chosen=new Set(before);document.querySelectorAll('.layout-edit-box').forEach(el=>{el.classList.toggle('selected',chosen.has(el.dataset.layoutKey));el.classList.toggle('primary-selected',el.dataset.layoutKey===key);});const picker=document.getElementById('layout-toolbar-block');if(picker)picker.value=key;refreshToolbarCustomActions();refreshLayoutPartPicker();updateLayoutSelectedInfo();}
+  else if(before.includes(key)&&before.length>1){layoutSelectedKey=key;layoutSelectedKeys=before;layoutSelectedPart='whole';layoutSelectedPartKeys=[];const chosen=new Set(before);document.querySelectorAll('.layout-edit-box').forEach(el=>{el.classList.toggle('selected',chosen.has(el.dataset.layoutKey));el.classList.toggle('primary-selected',el.dataset.layoutKey===key);el.setAttribute('aria-pressed',chosen.has(el.dataset.layoutKey)?'true':'false');});const picker=document.getElementById('layout-toolbar-block');if(picker)picker.value=key;refreshToolbarCustomActions();refreshLayoutPartPicker();updateLayoutSelectedInfo();}
   else selectLayoutBlock(key);
   if(additive&&!layoutSelectionKeys().includes(key)){e.preventDefault();return;}
   const def=layoutEditorDefForKey(key);if(def?.locked){e.preventDefault();return;}
@@ -793,7 +796,7 @@ function setLayoutEditorSnap(on){
 function startLayoutEditor(){
   if(layoutEditorActive)return;
   refreshLayoutSessionViewport();
-  layoutEditorOriginal={layoutMode:cfg.layoutMode,layoutBlocks:JSON.parse(JSON.stringify(cfg.layoutBlocks||{})),layoutContentScale:JSON.parse(JSON.stringify(cfg.layoutContentScale||{})),layoutElementStyle:JSON.parse(JSON.stringify(cfg.layoutElementStyle||{})),layoutPartStyle:JSON.parse(JSON.stringify(cfg.layoutPartStyle||{})),currentWeatherLayout:cfg.currentWeatherLayout||'stacked',currentWeatherPartLayout:JSON.parse(JSON.stringify(cfg.currentWeatherPartLayout||{})),layoutGridPx:cfg.layoutGridPx,layoutSnap:cfg.layoutSnap};
+  layoutEditorOriginal={savedAt:Number(cfg._savedAt||0),layoutMode:cfg.layoutMode,layoutBlocks:JSON.parse(JSON.stringify(cfg.layoutBlocks||{})),layoutContentScale:JSON.parse(JSON.stringify(cfg.layoutContentScale||{})),layoutElementStyle:JSON.parse(JSON.stringify(cfg.layoutElementStyle||{})),layoutPartStyle:JSON.parse(JSON.stringify(cfg.layoutPartStyle||{})),currentWeatherLayout:cfg.currentWeatherLayout||'stacked',currentWeatherPartLayout:JSON.parse(JSON.stringify(cfg.currentWeatherPartLayout||{})),layoutGridPx:cfg.layoutGridPx,layoutSnap:cfg.layoutSnap};
   layoutCustomBlocksOriginal=JSON.parse(JSON.stringify(cfg.customBlocks||[]));layoutCustomBlocksDraft=normalizeCustomBlockDraftRects(JSON.parse(JSON.stringify(cfg.customBlocks||[])));
   layoutEditorDraft=ensureLayoutDraft();layoutContentScaleDraft=JSON.parse(JSON.stringify(cfg.layoutContentScale||{}));layoutElementStyleDraft=JSON.parse(JSON.stringify(cfg.layoutElementStyle||{}));layoutPartStyleDraft=JSON.parse(JSON.stringify(cfg.layoutPartStyle||{}));currentWeatherLayoutDraft=cfg.currentWeatherLayout||'stacked';currentWeatherPartLayoutDraft=JSON.parse(JSON.stringify(cfg.currentWeatherPartLayout||{}));layoutSelectedKey='';layoutSelectedKeys=[];layoutSelectedPart='whole';layoutSelectedPartKeys=[];layoutEditorActive=true;layoutScaleEditActive=false;layoutStyleEditField='';layoutPartFineEditField='';layoutUndoStack=[];layoutRedoStack=[];updateLayoutHistoryButtons();
   cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));
@@ -802,6 +805,11 @@ function startLayoutEditor(){
   renderCustomBlocks(layoutCustomBlocksDraft);customBlockRenderSignature=LibreDisplayRuntime.getModule('blocks').customBlockSignature(layoutCustomBlocksDraft);
   const layer=document.getElementById('layout-editor-layer'),toolbar=document.getElementById('layout-toolbar'),props=document.getElementById('layout-properties');
   layer?.classList.add('show');toolbar?.classList.add('show');props?.classList.add('show');
+  // An expanded inspector obscures virtually the entire canvas on phones.
+  // Collapse only for the opening narrow-screen editor; users may expand it.
+  if(innerWidth<=600&&!remoteLayoutProxyActive){
+    props?.classList.add('collapsed');const toggle= document.getElementById('layout-properties-collapse');if(toggle)toggle.textContent='+';
+  }
   layer?.setAttribute('aria-hidden','false');toolbar?.setAttribute('aria-hidden','false');props?.setAttribute('aria-hidden','false');initLayoutInspectorDrag();restoreLayoutInspectorPosition();
   const grid=Number(document.getElementById('s-layout-grid')?.value)||cfg.layoutGridPx||20,snap=document.getElementById('s-layout-snap')?.checked!==false;
   const gridSel=document.getElementById('layout-toolbar-grid');if(gridSel)gridSel.value=String(grid);
@@ -841,7 +849,7 @@ async function saveLayoutEditor(){
     cfg.layoutGridPx=Number(document.getElementById('layout-toolbar-grid')?.value)||20;
     cfg.layoutSnap=document.getElementById('layout-toolbar-snap')?.checked!==false;
     let persisted;
-    try{persisted=await saveCfg();}catch(error){persisted={ok:false,verified:false,error:String(error?.message||error)};}
+    try{persisted=await saveCfg({expectedSavedAt:Number(layoutEditorOriginal?.savedAt||0)});}catch(error){persisted={ok:false,verified:false,error:String(error?.message||error)};}
     if(!persisted?.ok||persisted?.verified!==true){
       restoreFailedArrangeSave(savedConfig,savedLocal);
       alert('Could not verify this Arrange layout on the display. The draft remains open and the previous local settings were restored. Check the display before retrying, because a timed-out server request may still have reached it. '+(persisted?.error||'Server persistence verification failed.'));
@@ -1467,9 +1475,18 @@ function resetSelectedLayoutBlock(){
   for(const [key,rect] of Object.entries(layoutApi().layoutEditorDraft))applyOneLayoutRect(key,rect);
   renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);
 }
-function resetSavedBlockLayout(){
-  if(!confirm('Reset the saved drag/resize block arrangement and return to the default dashboard geometry?'))return;
-  cfg.layoutMode='default';cfg.layoutBlocks={};saveCfg();applyUiCustomization(cfg);updateLayoutModeStatus(cfg);setAppearanceForm(cfg);
+async function resetSavedBlockLayout(){
+  if(!confirm('Reset the saved drag/resize block arrangement and return to the default dashboard geometry?'))return false;
+  const previous=JSON.parse(JSON.stringify(cfg)),localBefore=layoutApi().snapshotArrangeLocalStorage();
+  cfg.layoutMode='default';cfg.layoutBlocks={};
+  const result=await saveCfg({expectedSavedAt:Number(previous._savedAt||0)});
+  if(!result?.ok||result?.verified!==true){
+    layoutApi().restoreFailedArrangeSave(previous,localBefore);
+    alert('The previous layout has been restored locally because resetting could not be verified on the display. '+(result?.error||'Save verification failed.'));
+    return false;
+  }
+  applyUiCustomization(cfg);updateLayoutModeStatus(cfg);setAppearanceForm(cfg);
+  return true;
 }
 function nudgeSelectedLayoutBlock(key,resize=false){
   const l=layoutApi(),selectedKey=l.layoutSelectedKey,selectedPart=l.layoutSelectedPart;
