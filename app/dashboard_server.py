@@ -4138,7 +4138,7 @@ def capture_physical_screen_png():
             raise RuntimeError('Physical Wayland socket unavailable')
         env['XDG_RUNTIME_DIR'] = str(runtime)
         env['WAYLAND_DISPLAY'] = candidate
-        result = subprocess.run(['grim', '-'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=4, check=False, env=env)
+        result = subprocess.run(['grim', '-l', '1', '-'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=12, check=False, env=env)
         data = result.stdout
         if result.returncode != 0 or not data.startswith(b'\x89PNG\r\n\x1a\n') or len(data)>16000000:
             raise RuntimeError('The physical compositor did not provide a valid screenshot')

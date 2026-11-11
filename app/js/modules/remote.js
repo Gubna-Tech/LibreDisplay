@@ -487,13 +487,13 @@ function remoteWallMirrorFail(reason){
   if(remoteWallMirrorUrl){URL.revokeObjectURL(remoteWallMirrorUrl);remoteWallMirrorUrl='';}
   remoteWallMirrorStatusMessage('NOT 1:1 · '+remoteWallMirrorError,'error');
 }
-function remoteWallMirrorSchedule(delay=2400){
+function remoteWallMirrorSchedule(delay=4500){
   clearTimeout(remoteWallMirrorTimer);
   if(remoteWallMirrorStarted)remoteWallMirrorTimer=setTimeout(()=>{void refreshRemoteWallMirror();},delay);
 }
 async function refreshRemoteWallMirror(){
   if(!remoteWallMirrorStarted||remoteWallMirrorBusy)return;
-  if(document.hidden){remoteWallMirrorSchedule(2400);return;}
+  if(document.hidden){remoteWallMirrorSchedule(4500);return;}
   // Arrange has its own synchronized screenshot stream. Avoid contention for grim.
   if(document.getElementById('remote-layout-preview-shell')?.classList.contains('show')){remoteWallMirrorSchedule(2500);return;}
   remoteWallMirrorBusy=true;
@@ -507,7 +507,7 @@ async function refreshRemoteWallMirror(){
     const width=Math.round(Number(device.layoutWidth||device.viewportWidth||device.width)||0),height=Math.round(Number(device.layoutHeight||device.viewportHeight||device.height)||0),dpr=Number(device.dpr)||1;
     if(width<1||height<1||dpr<=0)throw new Error('Physical kiosk viewport is invalid');
     remoteWallMirrorTarget={width,height,dpr,deviceId:String(device.deviceId||'')};
-    const response=await resilientFetch(serverPath('/api/physical-screen'),{cache:'no-store'},{timeoutMs:7000,retry:false});
+    const response=await resilientFetch(serverPath('/api/physical-screen'),{cache:'no-store'},{timeoutMs:17000,retry:false});
     if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(String(data?.error||`Capture HTTP ${response.status}`));}
     const blob=await response.blob();
     if(blob.size<64||blob.type!=='image/png')throw new Error('The Pi returned an invalid screen image');
@@ -527,7 +527,7 @@ async function refreshRemoteWallMirror(){
       remoteWallMirrorStatusMessage(`Live Pi screen · ${probe.naturalWidth}×${probe.naturalHeight} · scaled to fit remote window`,'live');
     }catch(error){if(remoteWallMirrorUrl!==url)URL.revokeObjectURL(url);throw error;}
   }catch(error){remoteWallMirrorFail(error?.message||String(error));}
-  finally{remoteWallMirrorBusy=false;remoteWallMirrorSchedule(2400);}
+  finally{remoteWallMirrorBusy=false;remoteWallMirrorSchedule(4500);}
 }
 function startRemoteWallMirror(){
   if(remoteWallMirrorStarted||bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LAYOUT_PREVIEW_MODE||bootstrapApi.SESSION_ROLE!=='owner')return;

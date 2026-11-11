@@ -1236,7 +1236,7 @@ function discardRemotePhysicalImage(){
 async function showRemotePhysicalImage(previewId,revision,{verified=false}={}){
   const token=++remotePhysicalImagePending;
   try{
-    const response=await resilientFetch(serverPath('/api/physical-screen'),{cache:'no-store'},{timeoutMs:6500,retry:false});
+    const response=await resilientFetch(serverPath('/api/physical-screen'),{cache:'no-store'},{timeoutMs:17000,retry:false});
     if(!response.ok){const problem=await response.json().catch(()=>({}));throw new Error(String(problem?.error||`Screen capture unavailable (HTTP ${response.status})`).slice(0,140));}
     const blob=await response.blob();
     if(blob.type!=='image/png'||blob.size<64||blob.size>16000000)throw new Error('Invalid physical screen image');
@@ -1285,7 +1285,7 @@ function startRemotePhysicalPreviewLease(){
   remotePhysicalPreviewLeaseTimer=setInterval(()=>sendRemotePhysicalLayoutPreview({renew:true}),6500);
   remotePhysicalImageRefreshTimer=setInterval(()=>{
     if(remoteLayoutProxyActive&&remotePhysicalConfirmedRevision===remotePhysicalPreviewRevision&&remotePhysicalPreviewId)showRemotePhysicalImage(remotePhysicalPreviewId,remotePhysicalPreviewRevision);
-  },3500);
+  },9500);
 }
 function clearRemotePhysicalLayoutPreview(){remotePhysicalConfirmedRevision=-1;discardRemotePhysicalImage();const previewId=remotePhysicalPreviewId;if(!previewId)return;stopRemotePhysicalPreviewTimers();clearRemotePhysicalParityOverlay();remotePhysicalPreviewId='';remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';remotePhysicalPreviewRevision=0;try{resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'clear-layout-preview',endpoint:bootstrapApi.ACTIVE_ENDPOINT,previewId}),cache:'no-store',keepalive:true},{timeoutMs:2500,retry:false}).catch(()=>{});}catch(e){}}
 
