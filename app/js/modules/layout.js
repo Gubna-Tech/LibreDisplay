@@ -1122,12 +1122,13 @@ LibreDisplayRuntime.exposeModule('layout',{integrationPartDefs,applyIntegrationI
 // LibreDisplay source section: /js/layout/remote.js
 {
 const layoutApi=()=>LibreDisplayRuntime.getModule("layout");
-// Remote-display Arrange proxy and preview workspace.
+// Remote Arrange edits an independent local draft. The physical Pi changes only after Save & Lock.
 const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 const {serverPath}=bootstrapApi;
 const {escHtml,resilientFetch}=LibreDisplayRuntime.getModule('shared');
 
 
+const REMOTE_LIVE_PREVIEW_ENABLED=false; // Never send temporary drafts to the Pi.
 let remoteLayoutProxyActive=false;
 let remoteLayoutProxySyncTimer=null;
 function remoteLayoutFrame(){return document.getElementById('remote-layout-preview-frame');}
@@ -1165,7 +1166,7 @@ function syncRemoteLayoutProxyUi(){
   if(innerCatalog&&outerCatalog){const show=innerCatalog.classList.contains('show');outerCatalog.classList.toggle('show',show);outerCatalog.setAttribute('aria-hidden',show?'false':'true');if(show){const ig=doc.getElementById('block-catalog-grid'),og=document.getElementById('block-catalog-grid');if(ig&&og&&og.innerHTML!==ig.innerHTML)og.innerHTML=ig.innerHTML;const is=doc.getElementById('block-catalog-search'),os=document.getElementById('block-catalog-search');if(is&&os&&os.value!==is.value)os.value=is.value;}}
   const innerConfig=doc.getElementById('block-config-modal'),outerConfig=document.getElementById('block-config-modal');
   if(innerConfig&&outerConfig){const show=innerConfig.classList.contains('show');outerConfig.classList.toggle('show',show);outerConfig.setAttribute('aria-hidden',show?'false':'true');if(show){for(const id of ['block-config-title','block-config-sub']){const a=doc.getElementById(id),b=document.getElementById(id);if(a&&b)b.textContent=a.textContent;}const inf=doc.getElementById('block-config-fields'),outf=document.getElementById('block-config-fields');if(inf&&outf&&outf.innerHTML!==inf.innerHTML)outf.innerHTML=inf.innerHTML;for(const dst of outf?.querySelectorAll?.('[id]')||[]){const src=doc.getElementById(dst.id);if(src)remoteLayoutProxyMirrorElement(dst,src);}}}
-  maybeQueueRemotePhysicalLayoutPreview();
+  // The iframe updates its draft locally; no Pi preview command is sent.
 }
 function scheduleRemoteLayoutProxySync(delay=0){if(!remoteLayoutProxyActive)return;if(delay){setTimeout(()=>remoteLayoutProxyActive&&syncRemoteLayoutProxyUi(),delay);return;}requestAnimationFrame(()=>remoteLayoutProxyActive&&syncRemoteLayoutProxyUi());}
 function activateRemoteLayoutProxy(){
@@ -1220,7 +1221,7 @@ let remotePhysicalImageVerified=false;
 let remotePhysicalCaptureError='';
 let remotePhysicalImageSize=null;
 function remotePhysicalPreviewDiagnostics(){
-  return {active:!!remoteLayoutProxyActive,physicalTarget:!!remoteLayoutPreviewTarget?.physical,
+  return {mode:'local-draft-save-only',active:!!remoteLayoutProxyActive,physicalTarget:!!remoteLayoutPreviewTarget?.physical,
     target:remoteLayoutPreviewTarget?{width:remoteLayoutPreviewTarget.width,height:remoteLayoutPreviewTarget.height,dpr:remoteLayoutPreviewTarget.dpr,deviceId:remoteLayoutPreviewTarget.deviceId,online:remoteLayoutPreviewTarget.online}:null,
     screenshotVisible:!!remoteLayoutInnerDocument()?.documentElement?.classList.contains('ld-physical-image-active'),
     screenshotSize:remotePhysicalImageSize,previewRevision:remotePhysicalPreviewRevision,
@@ -1292,6 +1293,7 @@ function compareLayoutRenderSnapshots(pi,preview){
   const a=new Map((pi?.entities||[]).map(x=>[String(x.key||''),x])),b=new Map((preview?.entities||[]).map(x=>[String(x.key||''),x]));let maxDelta=0;const mismatchKeys=[];for(const [key,row] of a){const other=b.get(key);if(!other)continue;let delta=0;for(const scope of ['footprint','visual'])for(const field of ['x','y','w','h'])delta=Math.max(delta,Math.abs((Number(row?.[scope]?.[field])||0)-(Number(other?.[scope]?.[field])||0)));maxDelta=Math.max(maxDelta,delta);if(delta>2.5)mismatchKeys.push(key);}const sig=s=>new Set((s?.overlaps||[]).map(x=>[String(x.a||''),String(x.b||'')].sort().join('|'))),pa=sig(pi),pb=sig(preview);let collisionDiff=0;for(const key of pa)if(!pb.has(key))collisionDiff++;for(const key of pb)if(!pa.has(key))collisionDiff++;return {maxDelta,mismatchKeys,collisionDiff,piOverlaps:pa.size,piOffscreen:(pi?.offscreen||[]).length};
 }
 async function pollRemotePhysicalParity(previewId=remotePhysicalPreviewId,revision=remotePhysicalPreviewRevision){
+  if(!REMOTE_LIVE_PREVIEW_ENABLED)return;
   if(!previewId||!remoteLayoutPreviewTarget||remotePhysicalParityPolls.has(revision))return;
   remotePhysicalParityPolls.add(revision);
   const deadline=Date.now()+22000;
@@ -1328,6 +1330,7 @@ async function pollRemotePhysicalParity(previewId=remotePhysicalPreviewId,revisi
   }finally{remotePhysicalParityPolls.delete(revision);}
 }
 async function sendRemotePhysicalLayoutPreview({renew=false}={}){
+  if(!REMOTE_LIVE_PREVIEW_ENABLED)return false;
   if(!remoteLayoutPreviewTarget?.physical||!remotePhysicalPreviewId)return false;
   // Serialize commands: an older POST must not overtake a newer drag position.
   if(remotePhysicalPreviewPostBusy){remotePhysicalPreviewQueued=true;return false;}
@@ -1351,8 +1354,9 @@ async function sendRemotePhysicalLayoutPreview({renew=false}={}){
     if(remotePhysicalPreviewQueued){remotePhysicalPreviewQueued=false;setTimeout(()=>{if(remoteLayoutProxyActive)void sendRemotePhysicalLayoutPreview();},0);}
   }
 }
-function maybeQueueRemotePhysicalLayoutPreview(){if(remotePhysicalInitialCapturePending||!remoteLayoutProxyActive||!remotePhysicalPreviewId)return;const state=remoteLayoutDraftState();if(!state)return;let signature='';try{signature=JSON.stringify(state);}catch(e){return;}if(signature===remotePhysicalPreviewSeenSignature)return;remotePhysicalPreviewSeenSignature=signature;clearTimeout(remotePhysicalPreviewSendTimer);remotePhysicalPreviewSendTimer=setTimeout(()=>{remotePhysicalPreviewSendTimer=null;sendRemotePhysicalLayoutPreview();},220);}
+function maybeQueueRemotePhysicalLayoutPreview(){if(!REMOTE_LIVE_PREVIEW_ENABLED)return;if(remotePhysicalInitialCapturePending||!remoteLayoutProxyActive||!remotePhysicalPreviewId)return;const state=remoteLayoutDraftState();if(!state)return;let signature='';try{signature=JSON.stringify(state);}catch(e){return;}if(signature===remotePhysicalPreviewSeenSignature)return;remotePhysicalPreviewSeenSignature=signature;clearTimeout(remotePhysicalPreviewSendTimer);remotePhysicalPreviewSendTimer=setTimeout(()=>{remotePhysicalPreviewSendTimer=null;sendRemotePhysicalLayoutPreview();},220);}
 function startRemotePhysicalPreviewLease(){
+  if(!REMOTE_LIVE_PREVIEW_ENABLED)return;
   clearInterval(remotePhysicalPreviewLeaseTimer);clearInterval(remotePhysicalImageRefreshTimer);
   remotePhysicalPreviewLeaseTimer=setInterval(()=>{if(!remotePhysicalInitialCapturePending&&remotePhysicalPreviewSignature)void sendRemotePhysicalLayoutPreview({renew:true});},6500);
   remotePhysicalImageRefreshTimer=setInterval(()=>{
@@ -1463,7 +1467,7 @@ function fitRemoteLayoutPreview(){
   const gutter=14,sw=Math.max(1,stage.clientWidth-gutter*2),sh=Math.max(1,stage.clientHeight-gutter*2),tw=remoteLayoutPreviewTarget.width,th=remoteLayoutPreviewTarget.height;
   const scale=Math.max(.1,Math.min(1,sw/tw,sh/th)),left=gutter+Math.max(0,(sw-tw*scale)/2),top=gutter+Math.max(0,(sh-th*scale)/2);
   primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);frame.style.left=left.toFixed(1)+'px';frame.style.top=top.toFixed(1)+'px';frame.style.transform=`scale(${scale})`;syncRemoteEditorHitTargets(scale);
-  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'live physical display':(remoteLayoutPreviewTarget.persisted?'last physical kiosk heartbeat':'last reported physical display'),dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} physical CSS viewport${dpr} · ${state} · preview fit ${Math.round(scale*100)}% (scaled preview, not pixel-identical)`;}
+  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'Pi viewport · local draft':(remoteLayoutPreviewTarget.persisted?'last Pi viewport · local draft':'last reported viewport · local draft'),dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} physical CSS viewport${dpr} · ${state} · edit zoom ${Math.round(scale*100)}% · Save & Lock applies to Pi`;}
 }
 async function openRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame'),meta=document.getElementById('remote-layout-preview-meta');if(!shell||!frame)return;
@@ -1479,14 +1483,14 @@ async function openRemoteLayoutPreview(){
     if(meta)meta.textContent='Arrange unavailable · no physical kiosk viewport is available for this display. Open or reload the actual LibreDisplay wall screen, then choose Reload preview.';
     return;
   }
-  remotePhysicalPreviewId=newRemotePhysicalPreviewId();remotePhysicalPreviewRevision=0;remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';setRemotePhysicalParityStatus('NOT 1:1 · requesting actual Pi image; editor remains usable','pending');startRemotePhysicalPreviewLease();
+  // Do not apply a single intermediate layout to the kiosk. Editing is local and instantaneous.
+  remotePhysicalPreviewId='';remotePhysicalPreviewRevision=0;remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';
+  setRemotePhysicalParityStatus('Local draft · Pi unchanged until Save & Lock','pending');
   primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
   frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;
-    if(remoteLayoutPreviewTarget?.physical){frame.contentDocument?.documentElement?.classList.add('ld-physical-image-required');
-      remotePhysicalInitialCapturePending=true;
-      void showRemotePhysicalImage(remotePhysicalPreviewId,remotePhysicalPreviewRevision).finally(()=>{remotePhysicalInitialCapturePending=false;if(session===remoteLayoutPreviewSession&&shell.classList.contains('show'))maybeQueueRemotePhysicalLayoutPreview();});
-    }
-    activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);if(!remoteLayoutPreviewTarget?.physical)setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);
+    // Keep the locally rendered dashboard and its handles in the SAME coordinate system.
+    // The ordinary remote owner dashboard already mirrors the actual Pi outside Arrange.
+    activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);
   };
   frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
   fitRemoteLayoutPreview();requestAnimationFrame(fitRemoteLayoutPreview);
@@ -1505,12 +1509,9 @@ function reloadRemoteLayoutPreview(){
   if(!remoteLayoutPreviewTarget){openRemoteLayoutPreview();return;}
   const session=++remoteLayoutPreviewSession;remotePhysicalInitialCapturePending=false;deactivateRemoteLayoutProxy();remotePhysicalConfirmedRevision=-1;discardRemotePhysicalImage();
   primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
+  setRemotePhysicalParityStatus('Local draft · Pi unchanged until Save & Lock','pending');
   frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;
-    if(remoteLayoutPreviewTarget?.physical){frame.contentDocument?.documentElement?.classList.add('ld-physical-image-required');
-      remotePhysicalInitialCapturePending=true;
-      void showRemotePhysicalImage(remotePhysicalPreviewId,remotePhysicalPreviewRevision).finally(()=>{remotePhysicalInitialCapturePending=false;if(session===remoteLayoutPreviewSession&&shell.classList.contains('show'))maybeQueueRemotePhysicalLayoutPreview();});
-    }
-    activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);remotePhysicalPreviewSeenSignature='';if(!remoteLayoutPreviewTarget?.physical)setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);
+    activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);
   };
   frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
 }
