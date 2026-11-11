@@ -858,11 +858,13 @@ async function saveLayoutEditor(){
     savePersisted=true;
     stopLayoutEditorUi();layoutEditorOriginal=null;layoutCustomBlocksOriginal=[];applyUiCustomization(cfg);updateLayoutModeStatus(cfg);
     requestAnimationFrame(()=>{applyUiCustomization(cfg);updateLayoutModeStatus(cfg);LibreDisplayRuntime.getModule('layout').scheduleBuiltInLayoutAutoFitDeferred?.();});
+    let physicalApplyRequested=false;
     try{
       const displayApply=await LibreDisplayRuntime.getModule('layout').requestSavedLayoutDisplayApply();
+      physicalApplyRequested=!!displayApply?.ok&&!!displayApply?.requested;
       if(!displayApply?.ok)console.warn('Arrange was saved, but the target display reload was not confirmed.',displayApply?.error||'');
     }catch(error){console.warn('Arrange was saved, but the display reload request failed.',error);}
-    if(LAYOUT_PREVIEW_MODE&&window.parent!==window)notifyLayoutPreviewParent('saved');
+    if(LAYOUT_PREVIEW_MODE&&window.parent!==window)notifyLayoutPreviewParent('saved',{savedAt:Number(cfg?._savedAt||0),applyRequested:physicalApplyRequested});
   }catch(error){
     if(!savePersisted){restoreFailedArrangeSave(savedConfig,savedLocal);alert('Arrange could not be saved. The previous settings were restored and your draft is still open. '+String(error?.message||error));}
     else console.warn('Arrange was persisted, but post-save UI refresh encountered an error.',error);
@@ -1195,6 +1197,108 @@ function handleRemoteLayoutProxyEvent(e){
 document.addEventListener('click',handleRemoteLayoutProxyEvent,true);
 document.addEventListener('input',handleRemoteLayoutProxyEvent,true);
 document.addEventListener('change',handleRemoteLayoutProxyEvent,true);
+// The draft and the compositor pixels are different sources of truth.
+// A captured Pi image is never inserted into the editing iframe.
+let remoteReferenceVisible=true,remoteReferenceCaptureId=0,remoteReferenceBusy=false;
+let remoteReferenceUrl='',remoteReferenceSize=null,remoteReferenceCapturedAt=0,remoteReferenceError='';
+let remoteReferenceSavedView=false,remoteReferencePostUrl='',remoteReferenceSaveMeta=null,remoteReferenceCaptureQueued=false;
+function setRemoteReferenceStatus(message,state='pending'){const el=document.getElementById('remote-layout-reference-status');if(el){el.textContent=message;el.dataset.state=state;}}
+function setRemotePostSaveStatus(message,state='pending'){const el=document.getElementById('remote-layout-postsave-status');if(el){el.textContent=message;el.dataset.state=state;}}
+function discardRemotePiReference(){
+  remoteReferenceCaptureId++;remoteReferenceSize=null;remoteReferenceCapturedAt=0;remoteReferenceError='';remoteReferenceSavedView=false;remoteReferenceSaveMeta=null;
+  for(const id of ['remote-layout-reference-image','remote-layout-before-image','remote-layout-after-image']){const el=document.getElementById(id);if(el){el.hidden=true;el.removeAttribute('src');}}
+  if(remoteReferenceUrl){URL.revokeObjectURL(remoteReferenceUrl);remoteReferenceUrl='';}
+  if(remoteReferencePostUrl){URL.revokeObjectURL(remoteReferencePostUrl);remoteReferencePostUrl='';}
+}
+function setRemoteReferenceVisible(visible){
+  remoteReferenceVisible=!!visible;
+  const el=document.getElementById('remote-layout-reference'),button=document.getElementById('remote-layout-reference-toggle');
+  if(el)el.hidden=!remoteReferenceVisible||remoteReferenceSavedView;
+  if(button){button.setAttribute('aria-pressed',String(remoteReferenceVisible));button.textContent=remoteReferenceVisible?'Hide Pi reference':'Show Pi reference';}
+  fitRemoteLayoutPreview();
+}
+function remoteReferenceDiagnostics(){return {visible:remoteReferenceVisible,postSave:remoteReferenceSavedView,received:!!remoteReferenceUrl,size:remoteReferenceSize,capturedAt:remoteReferenceCapturedAt,error:remoteReferenceError};}
+async function captureRemotePiReference({postSave=false}={}){
+  if(remoteReferenceBusy){remoteReferenceCaptureQueued=true;return false;}
+  const session=remoteLayoutPreviewSession,target=remoteLayoutPreviewTarget;
+  if(!target?.physical||!target?.online){setRemoteReferenceStatus('No online physical Pi · local draft only','warn');return false;}
+  const captureId=++remoteReferenceCaptureId;remoteReferenceBusy=true;
+  if(!postSave)setRemoteReferenceStatus('Capturing actual Pi pixels…');
+  else setRemotePostSaveStatus('Reading physical Pi pixels after configuration acknowledgement…');
+  try{
+    const response=await resilientFetch(serverPath('/api/physical-screen'),{cache:'no-store'},{timeoutMs:17000,retry:false});
+    if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(String(data?.error||`Pi capture HTTP ${response.status}`));}
+    const blob=await response.blob();if(blob.size<64||blob.size>100000000||blob.type!=='image/png')throw new Error('Pi returned an invalid PNG');
+    const url=URL.createObjectURL(blob),img=new Image();
+    try{img.src=url;await img.decode();}catch(error){URL.revokeObjectURL(url);throw error;}
+    if(captureId!==remoteReferenceCaptureId||session!==remoteLayoutPreviewSession){URL.revokeObjectURL(url);return false;}
+    const expectedW=Math.round(target.width*target.dpr),expectedH=Math.round(target.height*target.dpr);
+    if(Math.abs(img.naturalWidth-expectedW)>1||Math.abs(img.naturalHeight-expectedH)>1){URL.revokeObjectURL(url);throw new Error(`Pi PNG ${img.naturalWidth}×${img.naturalHeight} differs from reported ${expectedW}×${expectedH}`);}
+    if(postSave){
+      const el=document.getElementById('remote-layout-after-image');if(el){el.src=url;el.hidden=false;}
+      if(remoteReferencePostUrl)URL.revokeObjectURL(remoteReferencePostUrl);remoteReferencePostUrl=url;
+      setRemotePostSaveStatus('Pi reported the saved configuration and a fresh screen was captured. Inspect the after image for visual alignment.','good');
+    }else{
+      const el=document.getElementById('remote-layout-reference-image');if(el){el.src=url;el.hidden=false;}
+      if(remoteReferenceUrl)URL.revokeObjectURL(remoteReferenceUrl);remoteReferenceUrl=url;
+      remoteReferenceSize={width:img.naturalWidth,height:img.naturalHeight};remoteReferenceCapturedAt=Date.now();
+      const timestamp=new Date(remoteReferenceCapturedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      setRemoteReferenceStatus(`Captured Pi ${img.naturalWidth}×${img.naturalHeight} at ${timestamp} · static reference`,'good');
+      fitRemoteLayoutPreview();
+    }
+    remoteReferenceError='';return true;
+  }catch(error){
+    if(captureId===remoteReferenceCaptureId){remoteReferenceError=String(error?.message||error).slice(0,160);
+      if(postSave)setRemotePostSaveStatus('No verified after-image: '+remoteReferenceError,'warn');
+      else setRemoteReferenceStatus('Pi reference unavailable: '+remoteReferenceError+' · local editor still works','warn');
+    }
+    return false;
+  }finally{
+    remoteReferenceBusy=false;
+    if(remoteReferenceCaptureQueued){remoteReferenceCaptureQueued=false;
+      if(remoteLayoutPreviewTarget&&document.getElementById('remote-layout-preview-shell')?.classList.contains('show')){
+        if(remoteReferenceSavedView){if(remoteReferenceSaveMeta?.applyRequested)void verifySavedPhysicalReference(remoteReferenceSaveMeta.savedAt,remoteReferenceSaveMeta.deviceId);}
+        else void captureRemotePiReference();
+      }
+    }
+  }
+}
+function refreshRemotePiReference(){
+  if(remoteReferenceSavedView){
+    if(!remoteReferenceSaveMeta?.applyRequested){setRemotePostSaveStatus('Pi apply was not confirmed; cannot verify a physical after-image.','warn');return false;}
+    return verifySavedPhysicalReference(remoteReferenceSaveMeta.savedAt,remoteReferenceSaveMeta.deviceId);
+  }
+  return captureRemotePiReference();
+}
+async function verifySavedPhysicalReference(savedAt,deviceId){
+  if(!Number.isFinite(savedAt)||savedAt<=0){setRemotePostSaveStatus('Save revision unavailable. Cannot confirm physical application.','warn');return;}
+  const session=remoteLayoutPreviewSession,startedAt=Date.now()/1000,deadline=Date.now()+28000;
+  while(Date.now()<deadline){
+    if(session!==remoteLayoutPreviewSession||!remoteReferenceSavedView)return;
+    try{
+      const rows=await readDisplayDevices(),row=rows.find(row=>row.endpoint===bootstrapApi.ACTIVE_ENDPOINT&&row.mode==='local'&&row.online&&String(row.deviceId||'')===String(deviceId||'')&&Number(row.ageSeconds||0)<75);
+      if(row&&Number(row.configSavedAt||0)>=savedAt&&Number(row.lastSeen||0)>=startedAt-.5){
+        await new Promise(resolve=>setTimeout(resolve,500));
+        if(session===remoteLayoutPreviewSession&&remoteReferenceSavedView)await captureRemotePiReference({postSave:true});
+        return;
+      }
+    }catch(error){remoteReferenceError=String(error?.message||error).slice(0,160);}
+    await new Promise(resolve=>setTimeout(resolve,1000));
+  }
+  if(session===remoteLayoutPreviewSession&&remoteReferenceSavedView)setRemotePostSaveStatus('Saved on server; Pi application was not confirmed by a fresh device heartbeat. No after-image is verified.','warn');
+}
+function showRemotePhysicalSaveResult({savedAt=0,applyRequested=false}={}){
+  // Freeze the pre-save image: any in-flight capture can no longer be labeled 'before'.
+  remoteReferenceCaptureId++;remoteReferenceSavedView=true;deactivateRemoteLayoutProxy();
+  remoteReferenceSaveMeta={savedAt:Number(savedAt)||0,deviceId:String(remoteLayoutPreviewTarget?.deviceId||''),applyRequested:!!applyRequested};
+  setRemotePhysicalParityStatus('Saved draft · verifying physical Pi result','pending');
+  document.getElementById('remote-layout-preview-shell')?.classList.add('post-save');
+  const panel=document.getElementById('remote-layout-postsave');if(panel)panel.hidden=false;
+  const reference=document.getElementById('remote-layout-reference');if(reference)reference.hidden=true;
+  const before=document.getElementById('remote-layout-before-image');if(before&&remoteReferenceUrl){before.src=remoteReferenceUrl;before.hidden=false;}
+  setRemotePostSaveStatus(applyRequested?'Saved and Pi apply requested · waiting for physical acknowledgement…':'Saved on server, but Pi apply request failed or was not confirmed. No after-image is verified.',applyRequested?'pending':'warn');
+  if(applyRequested)void verifySavedPhysicalReference(Number(savedAt),String(remoteLayoutPreviewTarget?.deviceId||''));
+}
 let remoteLayoutPreviewTarget=null;
 let remoteLayoutPreviewSession=0;
 let remotePhysicalPreviewId='';
@@ -1227,7 +1331,7 @@ function remotePhysicalPreviewDiagnostics(){
     screenshotSize:remotePhysicalImageSize,previewRevision:remotePhysicalPreviewRevision,
     confirmedRevision:remotePhysicalConfirmedRevision,imageRevision:remotePhysicalImageRevision,
     screenshotRevisionVerified:remotePhysicalImageVerified,error:remotePhysicalCaptureError,
-    status:document.getElementById('remote-layout-parity-status')?.textContent||''};
+    status:document.getElementById('remote-layout-parity-status')?.textContent||'',reference:remoteReferenceDiagnostics()};
 }
 function discardRemotePhysicalImage(){
   remotePhysicalImagePending++;const doc=remoteLayoutInnerDocument();
@@ -1462,16 +1566,25 @@ function syncRemoteEditorHitTargets(scale){
   }catch(e){}
 }
 function fitRemoteLayoutPreview(){
-  const shell=document.getElementById('remote-layout-preview-shell'),stage=document.getElementById('remote-layout-preview-stage'),frame=document.getElementById('remote-layout-preview-frame');
-  if(!shell?.classList.contains('show')||!stage||!frame||!remoteLayoutPreviewTarget)return;
-  const gutter=14,sw=Math.max(1,stage.clientWidth-gutter*2),sh=Math.max(1,stage.clientHeight-gutter*2),tw=remoteLayoutPreviewTarget.width,th=remoteLayoutPreviewTarget.height;
-  const scale=Math.max(.1,Math.min(1,sw/tw,sh/th)),left=gutter+Math.max(0,(sw-tw*scale)/2),top=gutter+Math.max(0,(sh-th*scale)/2);
-  primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);frame.style.left=left.toFixed(1)+'px';frame.style.top=top.toFixed(1)+'px';frame.style.transform=`scale(${scale})`;syncRemoteEditorHitTargets(scale);
-  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'Pi viewport · local draft':(remoteLayoutPreviewTarget.persisted?'last Pi viewport · local draft':'last reported viewport · local draft'),dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} physical CSS viewport${dpr} · ${state} · edit zoom ${Math.round(scale*100)}% · Save & Lock applies to Pi`;}
+  const shell=document.getElementById('remote-layout-preview-shell'),stage=document.getElementById('remote-layout-preview-stage'),frame=remoteLayoutFrame(),reference=document.getElementById('remote-layout-reference'),photo=document.getElementById('remote-layout-reference-image');
+  if(!shell?.classList.contains('show')||!stage||!frame||!remoteLayoutPreviewTarget||remoteReferenceSavedView)return;
+  const split=remoteReferenceVisible,tw=remoteLayoutPreviewTarget.width,th=remoteLayoutPreviewTarget.height,gutter=14,labelSpace=32;
+  const slotWidth=split?stage.clientWidth/2:stage.clientWidth;
+  const sw=Math.max(1,slotWidth-gutter*2),sh=Math.max(1,stage.clientHeight-gutter*2-labelSpace);
+  const scale=Math.max(.1,Math.min(1,sw/tw,sh/th));
+  const left=gutter+Math.max(0,(sw-tw*scale)/2),top=gutter+labelSpace+Math.max(0,(sh-th*scale)/2);
+  primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
+  frame.style.left=left.toFixed(1)+'px';frame.style.top=top.toFixed(1)+'px';frame.style.transform=`scale(${scale})`;syncRemoteEditorHitTargets(scale);
+  if(reference)reference.hidden=!split;
+  if(photo){photo.style.left=left.toFixed(1)+'px';photo.style.top=top.toFixed(1)+'px';photo.style.width=(tw*scale).toFixed(1)+'px';photo.style.height=(th*scale).toFixed(1)+'px';}
+  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'Pi viewport · local draft':(remoteLayoutPreviewTarget.persisted?'last Pi viewport · local draft':'last reported viewport · local draft'),dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} CSS viewport${dpr} · ${state} · edit zoom ${Math.round(scale*100)}% · Save & Lock applies to Pi`;}
 }
+
 async function openRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame'),meta=document.getElementById('remote-layout-preview-meta');if(!shell||!frame)return;
   const session=++remoteLayoutPreviewSession;
+  discardRemotePiReference();shell.classList.remove('post-save');document.getElementById('remote-layout-postsave').hidden=true;
+  setRemoteReferenceVisible(true);setRemoteReferenceStatus('Waiting to capture the physical screen…');
   if(meta)meta.textContent='Reading the wall display viewport…';shell.classList.add('show');shell.setAttribute('aria-hidden','false');
   const target=await fetchRemoteLayoutTarget();
   if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;
@@ -1494,12 +1607,14 @@ async function openRemoteLayoutPreview(){
   };
   frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
   fitRemoteLayoutPreview();requestAnimationFrame(fitRemoteLayoutPreview);
+  // An independent snapshot, never a draft overlay and never a Pi layout command.
+  void captureRemotePiReference();
 }
 function closeRemoteLayoutPreview({preservePhysical=false}={}){
-  remotePhysicalInitialCapturePending=false;remoteLayoutPreviewSession++;deactivateRemoteLayoutProxy();
+  remotePhysicalInitialCapturePending=false;remoteLayoutPreviewSession++;deactivateRemoteLayoutProxy();discardRemotePiReference();
   if(preservePhysical){remotePhysicalConfirmedRevision=-1;stopRemotePhysicalPreviewTimers();discardRemotePhysicalImage();clearRemotePhysicalParityOverlay();remotePhysicalPreviewId='';remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';remotePhysicalPreviewRevision=0;}else clearRemotePhysicalLayoutPreview();
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');
-  if(shell){shell.classList.remove('show');shell.setAttribute('aria-hidden','true');}
+  if(shell){shell.classList.remove('show','post-save');shell.setAttribute('aria-hidden','true');}document.getElementById('remote-layout-postsave').hidden=true;
   if(frame){frame.onload=null;frame.removeAttribute('src');frame.src='about:blank';frame.style.removeProperty('transform');frame.style.removeProperty('width');frame.style.removeProperty('height');frame.style.removeProperty('left');frame.style.removeProperty('top');}
   remoteLayoutPreviewTarget=null;document.body.classList.remove('remote-layout-proxy');
   document.getElementById('layout-toolbar')?.classList.remove('show');document.getElementById('layout-properties')?.classList.remove('show');document.getElementById('block-catalog')?.classList.remove('show');document.getElementById('block-config-modal')?.classList.remove('show');
@@ -1507,29 +1622,32 @@ function closeRemoteLayoutPreview({preservePhysical=false}={}){
 function reloadRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');if(!frame||!shell?.classList.contains('show'))return;
   if(!remoteLayoutPreviewTarget){openRemoteLayoutPreview();return;}
-  const session=++remoteLayoutPreviewSession;remotePhysicalInitialCapturePending=false;deactivateRemoteLayoutProxy();remotePhysicalConfirmedRevision=-1;discardRemotePhysicalImage();
+  if(remoteReferenceSavedView){closeRemoteLayoutPreview();openSetup(false);return;}
+  const session=++remoteLayoutPreviewSession;remotePhysicalInitialCapturePending=false;deactivateRemoteLayoutProxy();remotePhysicalConfirmedRevision=-1;discardRemotePhysicalImage();discardRemotePiReference();setRemoteReferenceStatus('Capturing actual Pi pixels…');
   primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
   setRemotePhysicalParityStatus('Local draft · Pi unchanged until Save & Lock','pending');
   frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;
     activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);
   };
   frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
+  void captureRemotePiReference();
 }
-async function handleEmbeddedLayoutEditorAction(action){
+async function handleEmbeddedLayoutEditorAction(action,detail={}){
   if(action==='saved'){
-    closeRemoteLayoutPreview({preservePhysical:true});
+    showRemotePhysicalSaveResult(detail);
     await LibreDisplayRuntime.getModule('remote').pollServerConfig();
-    openSetup(false);
     return;
   }
   if(action==='cancelled'){closeRemoteLayoutPreview();openSetup(false);}
 }
-function notifyLayoutPreviewParent(action){
+function notifyLayoutPreviewParent(action,detail={}){
   if(!LAYOUT_PREVIEW_MODE||window.parent===window)return;
-  try{if(window.parent.location.origin===location.origin&&typeof window.parent.handleEmbeddedLayoutEditorAction==='function'){window.parent.handleEmbeddedLayoutEditorAction(action);return;}}catch(e){}
-  window.parent.postMessage({type:'libredisplay-layout-editor',action},location.origin);
+  try{if(window.parent.location.origin===location.origin&&typeof window.parent.handleEmbeddedLayoutEditorAction==='function'){window.parent.handleEmbeddedLayoutEditorAction(action,detail);return;}}catch(e){}
+  window.parent.postMessage({type:'libredisplay-layout-editor',action,detail},location.origin);
 }
-window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==document.getElementById('remote-layout-preview-frame')?.contentWindow)return;const msg=e.data||{};if(msg.type!=='libredisplay-layout-editor')return;handleEmbeddedLayoutEditorAction(msg.action);});
+window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==document.getElementById('remote-layout-preview-frame')?.contentWindow)return;const msg=e.data||{};if(msg.type!=='libredisplay-layout-editor')return;handleEmbeddedLayoutEditorAction(msg.action,msg.detail);});
+document.getElementById('remote-layout-reference-toggle')?.addEventListener('click',()=>setRemoteReferenceVisible(!remoteReferenceVisible));
+document.getElementById('remote-layout-reference-refresh')?.addEventListener('click',()=>{if(!remoteReferenceBusy)void refreshRemotePiReference();});
 function launchLayoutEditorFromSettings(){
   if(LibreDisplayRuntime.getModule('system').settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;
   closeSetup(true);if(!bootstrapApi.LOCAL_CLIENT_MODE&&!bootstrapApi.READ_ONLY_DISPLAY_MODE){setTimeout(openRemoteLayoutPreview,80);return;}setTimeout(startLayoutEditor,80);
@@ -1546,7 +1664,7 @@ function stopLayoutEditorUi(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("layout", {remoteLayoutFrame,remoteLayoutInnerDocument,remotePhysicalPreviewDiagnostics,remoteLayoutProxyRoot,remoteLayoutProxyCounterpart,remoteLayoutProxyMirrorElement,syncRemoteLayoutProxyUi,scheduleRemoteLayoutProxySync,activateRemoteLayoutProxy,deactivateRemoteLayoutProxy,handleRemoteLayoutProxyEvent,targetViewportFromDevice,bestLayoutTargetDevice,readDisplayDevices,requestFreshDisplayMetrics,fetchRemoteLayoutTarget,newRemotePhysicalPreviewId,setRemotePhysicalParityStatus,compareLayoutRenderSnapshots,pollRemotePhysicalParity,sendRemotePhysicalLayoutPreview,maybeQueueRemotePhysicalLayoutPreview,clearRemotePhysicalLayoutPreview,remoteLayoutPreviewUrl,primeRemoteLayoutFrameViewport,syncRemoteLayoutEditorAffordances,selectRemoteLayoutElement,syncRemoteEditorHitTargets,fitRemoteLayoutPreview,openRemoteLayoutPreview,closeRemoteLayoutPreview,reloadRemoteLayoutPreview,handleEmbeddedLayoutEditorAction,notifyLayoutPreviewParent,launchLayoutEditorFromSettings,stopLayoutEditorUi}, {
+LibreDisplayRuntime.exposeModule("layout", {remoteLayoutFrame,remoteLayoutInnerDocument,remotePhysicalPreviewDiagnostics,remoteReferenceDiagnostics,setRemoteReferenceVisible,captureRemotePiReference,refreshRemotePiReference,verifySavedPhysicalReference,showRemotePhysicalSaveResult,remoteLayoutProxyRoot,remoteLayoutProxyCounterpart,remoteLayoutProxyMirrorElement,syncRemoteLayoutProxyUi,scheduleRemoteLayoutProxySync,activateRemoteLayoutProxy,deactivateRemoteLayoutProxy,handleRemoteLayoutProxyEvent,targetViewportFromDevice,bestLayoutTargetDevice,readDisplayDevices,requestFreshDisplayMetrics,fetchRemoteLayoutTarget,newRemotePhysicalPreviewId,setRemotePhysicalParityStatus,compareLayoutRenderSnapshots,pollRemotePhysicalParity,sendRemotePhysicalLayoutPreview,maybeQueueRemotePhysicalLayoutPreview,clearRemotePhysicalLayoutPreview,remoteLayoutPreviewUrl,primeRemoteLayoutFrameViewport,syncRemoteLayoutEditorAffordances,selectRemoteLayoutElement,syncRemoteEditorHitTargets,fitRemoteLayoutPreview,openRemoteLayoutPreview,closeRemoteLayoutPreview,reloadRemoteLayoutPreview,handleEmbeddedLayoutEditorAction,notifyLayoutPreviewParent,launchLayoutEditorFromSettings,stopLayoutEditorUi}, {
   "remoteLayoutProxyActive": {configurable:true,get:()=>remoteLayoutProxyActive,set:(value)=>{remoteLayoutProxyActive=value;}},
   "remoteLayoutProxySyncTimer": {configurable:true,get:()=>remoteLayoutProxySyncTimer,set:(value)=>{remoteLayoutProxySyncTimer=value;}},
   "remoteLayoutPreviewTarget": {configurable:true,get:()=>remoteLayoutPreviewTarget,set:(value)=>{remoteLayoutPreviewTarget=value;}},
