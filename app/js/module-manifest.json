@@ -28,8 +28,8 @@
     "module": "integrations",
     "part": "bundle",
     "path": "/js/modules/integrations.js",
-    "lines": 202,
-    "functions": 25,
+    "lines": 220,
+    "functions": 26,
     "bindings": 6,
     "sections": [
       "/js/integrations/index.js"
@@ -152,8 +152,8 @@
     "module": "remote",
     "part": "bundle",
     "path": "/js/modules/remote.js",
-    "lines": 474,
-    "functions": 54,
+    "lines": 560,
+    "functions": 60,
     "bindings": 10,
     "sections": [
       "/js/remote/index.js"
@@ -164,7 +164,7 @@
     "module": "system",
     "part": "bundle",
     "path": "/js/modules/system.js",
-    "lines": 810,
+    "lines": 811,
     "functions": 62,
     "bindings": 18,
     "sections": [
@@ -189,7 +189,7 @@
     "module": "settings",
     "part": "bundle",
     "path": "/js/modules/settings.js",
-    "lines": 1759,
+    "lines": 1779,
     "functions": 82,
     "bindings": 18,
     "sections": [
@@ -218,7 +218,7 @@
     "module": "lifecycle",
     "part": "bundle",
     "path": "/js/modules/lifecycle.js",
-    "lines": 122,
+    "lines": 123,
     "functions": 5,
     "bindings": 3,
     "sections": [

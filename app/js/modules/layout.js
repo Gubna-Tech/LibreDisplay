@@ -1459,7 +1459,7 @@ function notifyLayoutPreviewParent(action){
 window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==document.getElementById('remote-layout-preview-frame')?.contentWindow)return;const msg=e.data||{};if(msg.type!=='libredisplay-layout-editor')return;handleEmbeddedLayoutEditorAction(msg.action);});
 function launchLayoutEditorFromSettings(){
   if(LibreDisplayRuntime.getModule('system').settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;
-  closeSetup(true);if(bootstrapApi.REMOTE_SETTINGS_MODE){setTimeout(openRemoteLayoutPreview,80);return;}setTimeout(startLayoutEditor,80);
+  closeSetup(true);if(!bootstrapApi.LOCAL_CLIENT_MODE&&!bootstrapApi.READ_ONLY_DISPLAY_MODE){setTimeout(openRemoteLayoutPreview,80);return;}setTimeout(startLayoutEditor,80);
 }
 function stopLayoutEditorUi(){
   toggleLayoutShortcuts(false);

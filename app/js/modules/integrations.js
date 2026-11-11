@@ -1,6 +1,7 @@
 // LibreDisplay source section: /js/integrations/index.js
 {
-const {serverPath}=LibreDisplayRuntime.getModule('bootstrap');
+const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
+const {serverPath}=bootstrapApi;
 const {escHtml,resilientFetch}=LibreDisplayRuntime.getModule('shared');
 
 const DEFAULT_CAL_COLORS=['#4ade80','#38bdf8','#f472b6','#a78bfa','#fb923c','#22d3ee','#facc15','#fb7185','#c084fc','#86efac','#60a5fa','#f97316'];
@@ -184,13 +185,30 @@ async function checkAllIntegrationsNow(){
   await Promise.all(Array.from({length:Math.min(3,rows.length)},()=>worker()));
   await loadIntegrationHealth();if(status)status.textContent=failed?`Provider checks complete · ${rows.length-failed} healthy · ${failed} need attention`:`All ${rows.length} configured integration${rows.length===1?'':'s'} responded successfully.`;
 }
-function launchCustomBlockFromSettings(blockId,configure=false){const block=(cfg.customBlocks||[]).find(b=>b?.id===blockId);if(!block)return;if(LibreDisplayRuntime.getModule('system').settingsDirty&&!confirm('You have unsaved Settings changes. Opening Arrange will discard those unsaved Settings edits. Continue?'))return;closeSetup(true);setTimeout(()=>{startLayoutEditor();selectLayoutBlock(customBlockKey(blockId));if(configure)setTimeout(()=>configureSelectedCustomBlock(),40);},80);}
+function openRemoteBlockEditor(action,value,configure=false){
+  const layout=LibreDisplayRuntime.getModule('layout');
+  void layout.openRemoteLayoutPreview();
+  let attempts=0;
+  const applyWhenReady=()=>{
+    const frame=layout.remoteLayoutFrame?.(),inner=frame?.contentWindow,api=inner?.LibreDisplayRuntime;
+    if(inner?.document?.body?.classList.contains('layout-editing')&&api){
+      if(action==='select'){
+        api.getModule('layout').selectLayoutBlock(api.getModule('blocks').customBlockKey(value));
+        if(configure)api.getModule('blocks').configureSelectedCustomBlock();
+      }else if(action==='add')api.getModule('blocks').beginAddIntegration(value);
+      return;
+    }
+    if(++attempts<40&&document.getElementById('remote-layout-preview-shell')?.classList.contains('show'))setTimeout(applyWhenReady,150);
+  };
+  setTimeout(applyWhenReady,150);
+}
+function launchCustomBlockFromSettings(blockId,configure=false){const block=(cfg.customBlocks||[]).find(b=>b?.id===blockId);if(!block)return;if(LibreDisplayRuntime.getModule('system').settingsDirty&&!confirm('You have unsaved Settings changes. Opening Arrange will discard those unsaved Settings edits. Continue?'))return;closeSetup(true);setTimeout(()=>{if(!bootstrapApi.LOCAL_CLIENT_MODE&&!bootstrapApi.READ_ONLY_DISPLAY_MODE){openRemoteBlockEditor('select',blockId,configure);return;}startLayoutEditor();selectLayoutBlock(customBlockKey(blockId));if(configure)setTimeout(()=>configureSelectedCustomBlock(),40);},80);}
 function editCustomBlockFromSettings(blockId){launchCustomBlockFromSettings(blockId,true);}
 function arrangeCustomBlockFromSettings(blockId){launchCustomBlockFromSettings(blockId,false);}
-function addIntegrationFromSettings(pluginId){if(LibreDisplayRuntime.getModule('system').settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;closeSetup(true);setTimeout(()=>{startLayoutEditor();beginAddIntegration(pluginId);},80);}
+function addIntegrationFromSettings(pluginId){if(LibreDisplayRuntime.getModule('system').settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;closeSetup(true);setTimeout(()=>{if(!bootstrapApi.LOCAL_CLIENT_MODE&&!bootstrapApi.READ_ONLY_DISPLAY_MODE){openRemoteBlockEditor('add',pluginId);return;}startLayoutEditor();beginAddIntegration(pluginId);},80);}
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("integrations", {loadIntegrations,ensureIntegrationClientScript,integrationManifest,integrationLayoutParts,configuredIntegrationBlocks,integrationDirectoryCategories,integrationAccessKind,integrationAccessLabel,integrationDataFlowKind,integrationDataLabel,integrationFreedomRank,integrationMatchesAccess,healthAgeText,healthTimeText,integrationStateLabel,integrationErrorKindLabel,integrationStatusRank,integrationRowsForPlugin,integrationAggregateForPlugin,loadIntegrationHealth,renderConfiguredIntegrationBlocks,renderIntegrationDirectory,renderIntegrationHealth,forceIntegrationCheck,checkIntegrationNow,checkAllIntegrationsNow,launchCustomBlockFromSettings,editCustomBlockFromSettings,arrangeCustomBlockFromSettings,addIntegrationFromSettings}, {
+LibreDisplayRuntime.exposeModule("integrations", {loadIntegrations,ensureIntegrationClientScript,integrationManifest,integrationLayoutParts,configuredIntegrationBlocks,integrationDirectoryCategories,integrationAccessKind,integrationAccessLabel,integrationDataFlowKind,integrationDataLabel,integrationFreedomRank,integrationMatchesAccess,healthAgeText,healthTimeText,integrationStateLabel,integrationErrorKindLabel,integrationStatusRank,integrationRowsForPlugin,integrationAggregateForPlugin,loadIntegrationHealth,renderConfiguredIntegrationBlocks,renderIntegrationDirectory,renderIntegrationHealth,forceIntegrationCheck,checkIntegrationNow,checkAllIntegrationsNow,openRemoteBlockEditor,launchCustomBlockFromSettings,editCustomBlockFromSettings,arrangeCustomBlockFromSettings,addIntegrationFromSettings}, {
   "DEFAULT_CAL_COLORS": {configurable:true,get:()=>DEFAULT_CAL_COLORS},
   "integrationManifests": {configurable:true,get:()=>integrationManifests,set:(value)=>{integrationManifests=value;}},
   "integrationManifestMap": {configurable:true,get:()=>integrationManifestMap,set:(value)=>{integrationManifestMap=value;}},

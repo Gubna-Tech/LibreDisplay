@@ -571,6 +571,7 @@ function buildDiagnosticsPayload(){
     hostMode:systemHealthState?.serverMode||serverModeState||undefined,
     layout:{mode:cfg.layoutMode||'default',gridPx:cfg.layoutGridPx||20,snap:cfg.layoutSnap!==false,blocks:Object.keys(cfg.layoutBlocks||{})},
     remoteArrangeCapture:LibreDisplayRuntime.getModule('layout').remotePhysicalPreviewDiagnostics?.(),
+    remoteWallMirror:LibreDisplayRuntime.getModule('remote').remoteWallMirrorDiagnostics?.(),
     offlineCache:{staleSources:[...new Set([...configApi.staleCacheSources.values()].map(v=>v?.name||'remote data'))]}
   };
 }

@@ -456,8 +456,94 @@ function clearSettingsInitializationError(){
 }
 
 
+// The remote owner dashboard shows compositor pixels, not a second browser rendering.
+// This is a visual reference; editing remains in the physical-screen Arrange workspace.
+let remoteWallMirrorStarted=false;
+let remoteWallMirrorTimer=null;
+let remoteWallMirrorUrl='';
+let remoteWallMirrorBusy=false;
+let remoteWallMirrorAttempts=0;
+let remoteWallMirrorLastSuccess=0;
+let remoteWallMirrorError='';
+let remoteWallMirrorSize=null;
+let remoteWallMirrorTarget=null;
+let remoteWallMirrorStatus='inactive';
+function remoteWallMirrorDiagnostics(){
+  return {active:remoteWallMirrorStarted,status:remoteWallMirrorStatus,error:remoteWallMirrorError,
+    screenshotVisible:!!document.getElementById('ld-wall-mirror-image')?.getAttribute('src')&&!document.getElementById('ld-wall-mirror-image')?.hidden,
+    screenshotSize:remoteWallMirrorSize,target:remoteWallMirrorTarget,lastSuccessAt:remoteWallMirrorLastSuccess,
+    attempts:remoteWallMirrorAttempts};
+}
+function remoteWallMirrorStatusMessage(message,kind='pending'){
+  remoteWallMirrorStatus=kind;
+  const element=document.getElementById('ld-wall-mirror-status');
+  if(element){element.textContent=message;element.dataset.state=kind;}
+}
+function remoteWallMirrorFail(reason){
+  remoteWallMirrorError=String(reason||'Physical screen capture unavailable').slice(0,180);
+  remoteWallMirrorSize=null;
+  document.documentElement.classList.remove('ld-wall-mirror-live');
+  const image=document.getElementById('ld-wall-mirror-image');if(image){image.hidden=true;image.removeAttribute('src');}
+  if(remoteWallMirrorUrl){URL.revokeObjectURL(remoteWallMirrorUrl);remoteWallMirrorUrl='';}
+  remoteWallMirrorStatusMessage('NOT 1:1 · '+remoteWallMirrorError,'error');
+}
+function remoteWallMirrorSchedule(delay=2400){
+  clearTimeout(remoteWallMirrorTimer);
+  if(remoteWallMirrorStarted)remoteWallMirrorTimer=setTimeout(()=>{void refreshRemoteWallMirror();},delay);
+}
+async function refreshRemoteWallMirror(){
+  if(!remoteWallMirrorStarted||remoteWallMirrorBusy)return;
+  if(document.hidden){remoteWallMirrorSchedule(2400);return;}
+  // Arrange has its own synchronized screenshot stream. Avoid contention for grim.
+  if(document.getElementById('remote-layout-preview-shell')?.classList.contains('show')){remoteWallMirrorSchedule(2500);return;}
+  remoteWallMirrorBusy=true;
+  remoteWallMirrorAttempts++;
+  try{
+    const deviceResponse=await resilientFetch(serverPath('/api/devices'),{cache:'no-store'},{timeoutMs:5000,retry:false});
+    if(!deviceResponse.ok)throw new Error('Cannot read physical kiosk status (HTTP '+deviceResponse.status+')');
+    const devices=await deviceResponse.json();
+    const device=(devices?.devices||[]).find(d=>d.endpoint===bootstrapApi.ACTIVE_ENDPOINT&&d.mode==='local'&&d.online===true&&Number(d.ageSeconds||0)<75);
+    if(!device)throw new Error('No live physical Pi display for this endpoint');
+    const width=Math.round(Number(device.layoutWidth||device.viewportWidth||device.width)||0),height=Math.round(Number(device.layoutHeight||device.viewportHeight||device.height)||0),dpr=Number(device.dpr)||1;
+    if(width<1||height<1||dpr<=0)throw new Error('Physical kiosk viewport is invalid');
+    remoteWallMirrorTarget={width,height,dpr,deviceId:String(device.deviceId||'')};
+    const response=await resilientFetch(serverPath('/api/physical-screen'),{cache:'no-store'},{timeoutMs:7000,retry:false});
+    if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(String(data?.error||`Capture HTTP ${response.status}`));}
+    const blob=await response.blob();
+    if(blob.size<64||blob.type!=='image/png')throw new Error('The Pi returned an invalid screen image');
+    const url=URL.createObjectURL(blob),probe=new Image();
+    try{
+      probe.src=url;await probe.decode();
+      remoteWallMirrorSize={width:probe.naturalWidth,height:probe.naturalHeight};
+      if(probe.naturalWidth!==Math.round(width*dpr)||probe.naturalHeight!==Math.round(height*dpr))throw new Error(`Pi screenshot ${probe.naturalWidth}×${probe.naturalHeight} differs from reported ${Math.round(width*dpr)}×${Math.round(height*dpr)}`);
+      const image=document.getElementById('ld-wall-mirror-image');
+      if(!remoteWallMirrorStarted||!image)throw new Error('Remote mirror closed during capture');
+      const oldUrl=remoteWallMirrorUrl;
+      remoteWallMirrorUrl=url;
+      image.src=url;image.hidden=false;
+      document.documentElement.classList.add('ld-wall-mirror-live');
+      if(oldUrl)URL.revokeObjectURL(oldUrl);
+      remoteWallMirrorLastSuccess=Date.now();remoteWallMirrorError='';
+      remoteWallMirrorStatusMessage(`Live Pi screen · ${probe.naturalWidth}×${probe.naturalHeight} · scaled to fit remote window`,'live');
+    }catch(error){if(remoteWallMirrorUrl!==url)URL.revokeObjectURL(url);throw error;}
+  }catch(error){remoteWallMirrorFail(error?.message||String(error));}
+  finally{remoteWallMirrorBusy=false;remoteWallMirrorSchedule(2400);}
+}
+function startRemoteWallMirror(){
+  if(remoteWallMirrorStarted||bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LAYOUT_PREVIEW_MODE||bootstrapApi.SESSION_ROLE!=='owner')return;
+  remoteWallMirrorStarted=true;
+  const root=document.createElement('div');root.id='ld-wall-mirror';root.setAttribute('aria-label','Actual physical Raspberry Pi display');
+  const image=document.createElement('img');image.id='ld-wall-mirror-image';image.alt='Live captured image of the physical Pi display';image.hidden=true;
+  const status=document.createElement('div');status.id='ld-wall-mirror-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.textContent='Connecting to physical Pi display…';
+  root.append(image,status);document.body.append(root);
+  document.documentElement.classList.add('ld-wall-mirror-required');
+  window.addEventListener('focus',()=>remoteWallMirrorStarted&&remoteWallMirrorSchedule(80));
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)remoteWallMirrorSchedule(80);});
+  void refreshRemoteWallMirror();
+}
+
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
+LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError,startRemoteWallMirror,remoteWallMirrorDiagnostics}, {
   "displayEndpoints": {configurable:true,get:()=>displayEndpoints,set:(value)=>{displayEndpoints=value;}},
   "displayDevices": {configurable:true,get:()=>displayDevices,set:(value)=>{displayDevices=value;}},
   "endpointsRemoteEnabled": {configurable:true,get:()=>endpointsRemoteEnabled,set:(value)=>{endpointsRemoteEnabled=value;}},
