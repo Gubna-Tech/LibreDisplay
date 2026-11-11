@@ -116,7 +116,7 @@ sudo -v
 sudo apt update
 sudo DEBIAN_FRONTEND=noninteractive apt install -y \
   python3 chromium curl ca-certificates unzip labwc raspi-config \
-  swayidle wtype qrencode cifs-utils nfs-common \
+  swayidle wtype grim qrencode cifs-utils nfs-common \
   fonts-liberation2 fonts-noto-core fonts-noto-color-emoji fonts-dejavu-core
 
 if [ "$SRC_DIR" != "$INSTALL_DIR" ]; then

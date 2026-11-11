@@ -4111,6 +4111,42 @@ except Exception:
     pass
 
 
+# A screenshot is captured from the actual compositor, never re-rendered in an
+# administrator browser. It is owner-only and transient; nothing is written to disk.
+PHYSICAL_SCREEN_LOCK = threading.Lock()
+PHYSICAL_SCREEN_LAST = [0.0]
+
+
+def capture_physical_screen_png():
+    if sys.platform != 'linux' or not shutil.which('grim'):
+        raise RuntimeError('Physical screen capture requires grim on the Pi')
+    if not PHYSICAL_SCREEN_LOCK.acquire(blocking=False):
+        raise RuntimeError('Physical screen capture is busy')
+    try:
+        now = time.monotonic()
+        if now - PHYSICAL_SCREEN_LAST[0] < 0.8:
+            raise RuntimeError('Physical screen capture rate limited')
+        PHYSICAL_SCREEN_LAST[0] = now
+        env = os.environ.copy()
+        runtime = Path(env.get('XDG_RUNTIME_DIR') or f'/run/user/{os.getuid()}')
+        if not runtime.is_dir() or runtime.stat().st_uid != os.getuid():
+            raise RuntimeError('Physical Wayland session unavailable')
+        wayland = env.get('WAYLAND_DISPLAY') or ''
+        candidates = [wayland] if wayland else [p.name for p in sorted(runtime.glob('wayland-*')) if p.is_socket()]
+        candidate = next((name for name in candidates if re.fullmatch(r'wayland-[0-9]+', name) and (runtime/name).is_socket()), '')
+        if not candidate:
+            raise RuntimeError('Physical Wayland socket unavailable')
+        env['XDG_RUNTIME_DIR'] = str(runtime)
+        env['WAYLAND_DISPLAY'] = candidate
+        result = subprocess.run(['grim', '-'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=4, check=False, env=env)
+        data = result.stdout
+        if result.returncode != 0 or not data.startswith(b'\x89PNG\r\n\x1a\n') or len(data)>16000000:
+            raise RuntimeError('The physical compositor did not provide a valid screenshot')
+        return data
+    finally:
+        PHYSICAL_SCREEN_LOCK.release()
+
+
 class DashboardHandler(BaseHTTPRequestHandler):
     server_version = "LibreDisplay"
     sys_version = ""
@@ -5787,6 +5823,16 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if not self.require_owner():
                 return
             return self.json_response(200, {"ok": True, "users": public_users()})
+        if parsed.path == "/api/physical-screen":
+            if not self.require_owner():
+                return
+            if not any(str(row.get('mode') or '') == 'local' and row.get('online') and row.get('endpoint') == (requested_endpoint(parsed) or 'main') for row in self.device_payload()):
+                return self.json_response(503, {'ok': False, 'error': 'No live physical kiosk is connected'})
+            try:
+                screenshot = capture_physical_screen_png()
+            except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+                return self.json_response(503, {'ok': False, 'error': str(error)[:180]})
+            return self.bytes_response(200, screenshot, 'image/png', {'Cache-Control': 'no-store, private'})
         if parsed.path == "/api/devices":
             if not self.require_authorized(parsed):
                 return

@@ -761,6 +761,10 @@ body.layout-preview-embedded #cog,body.layout-preview-embedded #settings-preview
 /* Remote Arrange uses two deliberately separate UI layers. The iframe contains only
    the target-display canvas and edit rectangles. Laptop editor chrome lives in the
    outer document and is never scaled with the TV/Pi viewport. */
+/* The real kiosk compositor image replaces the browser's approximation only when verified. */
+html.ld-physical-image-active body.layout-preview-embedded > :not(#layout-editor-layer):not(#ld-actual-wall-image):not(#ld-physical-parity-overlay){visibility:hidden!important}
+html.ld-physical-image-active body.layout-preview-embedded #ld-actual-wall-image{display:block}
+#ld-actual-wall-image{display:none;position:fixed;inset:0;width:100vw;height:100vh;object-fit:fill;z-index:1;pointer-events:none;user-select:none}
 body.layout-preview-embedded #layout-toolbar,
 body.layout-preview-embedded #layout-properties,
 body.layout-preview-embedded #block-catalog,
