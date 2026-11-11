@@ -761,8 +761,8 @@ body.layout-editing #calendar-legend {
 #remote-layout-preview-shell.post-save #remote-layout-draft-label,
 #remote-layout-preview-shell.post-save #remote-layout-reference-toggle,
 #remote-layout-preview-shell.post-save #remote-layout-reference-refresh{display:none!important}
-/* Save-only remote editor: physical image is an independent, read-only reference.
-   Never hide or replace the locally moving draft content with Pi pixels. */
+/* Save-only physical-first editor: only the real Pi image is visible behind
+   the editable positions. It remains a frozen last-applied snapshot until Save & Lock. */
 #remote-layout-reference{position:absolute;inset:0 0 0 50%;background:#080c0d;border-left:1px solid rgba(255,255,255,.2);overflow:hidden}
 #remote-layout-reference[hidden],#remote-layout-postsave[hidden]{display:none!important}
 #remote-layout-reference-image{position:absolute;object-fit:fill;max-width:none;max-height:none;pointer-events:none;box-shadow:0 0 0 1px rgba(255,255,255,.18)}
@@ -779,7 +779,12 @@ body.layout-editing #calendar-legend {
 .remote-layout-postsave-pictures>div{min-width:0}
 .remote-layout-postsave-pictures b{display:block;font-size:11px;margin-bottom:8px}
 .remote-layout-postsave-pictures img{width:100%;height:auto;max-height:60vh;object-fit:contain;background:#000;border:1px solid rgba(255,255,255,.2)}
-#remote-layout-reference-toggle[aria-pressed=true]{border-color:rgba(173,222,138,.6);color:#d1f2bf}
+/* Physical-first Arrange always uses the actual Pi capture as its one visual canvas. */
+#remote-layout-reference{display:none!important}
+#remote-layout-draft-label{display:none!important}
+#remote-layout-preview-shell:not(.pi-captured):not(.post-save) #remote-layout-preview-frame{visibility:hidden}
+#remote-layout-preview-shell.pi-captured #remote-layout-preview-frame{visibility:visible}
+#remote-layout-reference-status{pointer-events:none;z-index:4;max-width:calc(100% - 24px);font-size:10px}
 @media(max-width:1100px){#remote-layout-preview-title span{max-width:200px}#remote-layout-preview-actions{gap:3px}#remote-layout-preview-actions button{padding:6px}#remote-layout-reference-status{font-size:9px}}
 @media(max-width:650px){.remote-layout-postsave-pictures{grid-template-columns:1fr}#remote-layout-preview-title span{display:none}}
 body.layout-preview-embedded #cog,body.layout-preview-embedded #settings-preview-return{display:none!important}
