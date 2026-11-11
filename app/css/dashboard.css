@@ -763,9 +763,9 @@ body.layout-preview-embedded #cog,body.layout-preview-embedded #settings-preview
    outer document and is never scaled with the TV/Pi viewport. */
 /* The real kiosk compositor image replaces the browser's approximation only when verified. */
 /* Never show an administrator-browser approximation as the physical Pi image. */
-html.ld-physical-image-required body > :not(#layout-editor-layer):not(#ld-actual-wall-image):not(#ld-physical-parity-overlay),
+/* When the compositor cannot be captured, retain the functional editor as an
+   explicitly unverified fallback. Never black out the editor or disable dragging. */
 html.ld-physical-image-active body > :not(#layout-editor-layer):not(#ld-actual-wall-image):not(#ld-physical-parity-overlay){visibility:hidden!important}
-html.ld-physical-image-required:not(.ld-physical-image-active) #layout-editor-layer{visibility:hidden!important;pointer-events:none!important}
 html.ld-physical-image-active body.layout-preview-embedded #ld-actual-wall-image{display:block}
 #ld-actual-wall-image{display:none;position:fixed;inset:0;width:100vw;height:100vh;object-fit:fill;z-index:1;pointer-events:none;user-select:none}
 body.layout-preview-embedded #layout-toolbar,
