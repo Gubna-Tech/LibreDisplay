@@ -129,6 +129,61 @@ if command -v pgrep >/dev/null 2>&1; then
   fi
 fi
 
+# The remote Arrange editor uses a PNG from the actual Pi Wayland compositor.
+# Provision the capture dependency BEFORE stopping the working kiosk or entering
+# the transactional file swap, so a denied/failed package install leaves the
+# installed release and live display intact.
+ensure_physical_capture_dependency() {
+  if server_only_requested; then
+    return 0  # This native instance intentionally has no local compositor.
+  fi
+  if command -v grim >/dev/null 2>&1; then
+    printf 'Physical-screen capture dependency already available (grim).\n'
+    return 0
+  fi
+  printf 'Installing physical-screen capture dependency (grim) automatically...\n'
+  if ! command -v apt-get >/dev/null 2>&1 || ! command -v sudo >/dev/null 2>&1; then
+    printf 'Cannot install grim automatically: apt-get or sudo is unavailable. The installed LibreDisplay has not been changed.\n' >&2
+    return 1
+  fi
+  # A new installation may already have a narrowly authorized helper. Older
+  # installations cannot be granted new root permissions by a browser update.
+  # Never broaden sudoers or bypass package-manager authorization silently.
+  helper=/usr/local/libexec/libredisplay-privileged
+  if [ -x "$helper" ] && sudo -n "$helper" install-grim >/dev/null 2>&1; then
+    if command -v grim >/dev/null 2>&1; then
+      printf 'Physical-screen capture dependency installed.\n'
+      return 0
+    fi
+  fi
+  if [ -t 0 ]; then
+    # Interactive updates may ask for the user's normal sudo authorization.
+    if ! sudo -v; then
+      printf 'System authorization for grim installation was declined. The running LibreDisplay has not been interrupted.\n' >&2
+      return 1
+    fi
+    sudo_cmd='sudo'
+  else
+    # Settings-driven updates have no terminal for a password prompt.
+    sudo_cmd='sudo -n'
+  fi
+  if ! $sudo_cmd env DEBIAN_FRONTEND=noninteractive apt-get update ||
+     ! $sudo_cmd env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends grim; then
+    printf 'Automatic grim installation failed (system authorization, package repository, or network). No application files were replaced and the existing display remains running.\n' >&2
+    return 1
+  fi
+  if ! command -v grim >/dev/null 2>&1; then
+    printf 'The package manager finished, but grim is still unavailable. No application files were replaced.\n' >&2
+    return 1
+  fi
+  printf 'Physical-screen capture dependency installed successfully.\n'
+}
+
+if ! ensure_physical_capture_dependency; then
+  printf 'Update stopped safely before interrupting LibreDisplay. A terminal update can request normal system authorization automatically; grim never needs to be installed manually.\n' >&2
+  exit 1
+fi
+
 printf 'Stopping LibreDisplay and Chromium...\n'
 pkill -f "$INSTALL_DIR/scripts/start.sh" 2>/dev/null || true
 pkill -f "$INSTALL_DIR/app/dashboard_server.py" 2>/dev/null || true
