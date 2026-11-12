@@ -1079,7 +1079,7 @@ function scheduleRemoteLayoutProxySync(delay=0){if(!remoteLayoutProxyActive)retu
 function activateRemoteLayoutProxy(){
   if(remoteLayoutProxyActive)return;remoteLayoutProxyActive=true;document.body.classList.add('remote-layout-proxy');
   const toolbar=document.getElementById('layout-toolbar'),props=document.getElementById('layout-properties');toolbar?.classList.add('show');props?.classList.add('show');toolbar?.setAttribute('aria-hidden','false');props?.setAttribute('aria-hidden','false');
-  initLayoutInspectorDrag();restoreLayoutInspectorPosition();syncRemoteLayoutProxyUi();startRemotePiCaptureTimer();
+  initLayoutInspectorDrag();restoreLayoutInspectorPosition();bindRemotePiArrangeGestures();syncRemoteLayoutProxyUi();startRemotePiCaptureTimer();
   clearInterval(remoteLayoutProxySyncTimer);remoteLayoutProxySyncTimer=setInterval(syncRemoteLayoutProxyUi,140);
 }
 function deactivateRemoteLayoutProxy(){
@@ -1093,9 +1093,13 @@ function handleRemoteLayoutProxyEvent(e){
   if(t.id==='layout-properties-collapse'||t.id==='layout-properties-reset-position')return;
   const src=remoteLayoutProxyCounterpart(t);if(!src)return;
   if(e.type==='click'){
-    if(t.tagName!=='BUTTON')return;e.preventDefault();e.stopImmediatePropagation();src.click();scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(40);return;
+    if(t.tagName!=='BUTTON')return;e.preventDefault();e.stopImmediatePropagation();
+    showRemotePiLocalDraft();src.click();scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(40);return;
   }
   if(!['INPUT','SELECT','TEXTAREA'].includes(t.tagName))return;e.stopImmediatePropagation();
+  // Outer inspector controls edit the *inner* v1.16.12 dashboard. Uncover that
+  // live dashboard before forwarding changes; a previous Pi PNG cannot move.
+  showRemotePiLocalDraft();
   if(t.type==='checkbox'||t.type==='radio')src.checked=t.checked;else src.value=t.value;
   src.dispatchEvent(new Event(e.type,{bubbles:true}));scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(35);
 }
@@ -1120,22 +1124,63 @@ let remotePiCaptureBusy=false;
 let remotePiAcknowledgedRevision=-1;
 let remotePiCapturedRevision=-1;
 let remotePiCaptureAttempt=0;
+let remotePiEditorInteracting=false;
+let remotePiDraftPending=false;
+let remotePiGestureDocument=null;
+function remotePiImageElement(){return remoteLayoutInnerDocument()?.getElementById('ld-live-pi-pixels')||null;}
+function showRemotePiLocalDraft(){
+  if(!remoteLayoutProxyActive)return;
+  // The Pi image is a frozen compositor frame. Never let it cover a live move,
+  // resize, alignment or content-scale change in the original Arrange editor.
+  remotePiCaptureAttempt++;
+  remotePiDraftPending=true;
+  const image=remotePiImageElement();if(image)image.style.display='none';
+  setRemotePhysicalParityStatus('Editing locally · awaiting updated Pi pixels','pending');
+}
+function endRemotePiArrangeGesture(){
+  if(!remotePiEditorInteracting)return;
+  remotePiEditorInteracting=false;
+  maybeQueueRemotePhysicalLayoutPreview();
+  // Pure selection/click gestures must not leave the PNG unnecessarily hidden.
+  const state=remoteLayoutDraftState();let signature='';try{signature=JSON.stringify(state);}catch(e){}
+  if(signature&&signature===remotePhysicalPreviewSignature&&remotePiCapturedRevision===remotePhysicalPreviewRevision){
+    remotePiDraftPending=false;
+    const image=remotePiImageElement();if(image)image.style.display='block';
+    setRemotePhysicalParityStatus('Pi pixels · last acknowledged layout','good');
+  }
+}
+function bindRemotePiArrangeGestures(){
+  const doc=remoteLayoutInnerDocument();if(!doc||remotePiGestureDocument===doc)return;
+  remotePiGestureDocument=doc;
+  doc.addEventListener('pointerdown',e=>{
+    if(!remoteLayoutProxyActive||!e.target?.closest?.('.layout-edit-box,.layout-built-in-part-box,.layout-current-part-box,.layout-internal-edit-box'))return;
+    remotePiEditorInteracting=true;showRemotePiLocalDraft();
+  },true);
+  doc.addEventListener('pointerup',endRemotePiArrangeGesture,true);
+  doc.addEventListener('pointercancel',endRemotePiArrangeGesture,true);
+  doc.defaultView?.addEventListener('pointerup',endRemotePiArrangeGesture,true);
+  doc.defaultView?.addEventListener('pointercancel',endRemotePiArrangeGesture,true);
+  doc.defaultView?.addEventListener('blur',endRemotePiArrangeGesture);
+}
 function clearRemotePiPixels(){
   clearInterval(remotePiCaptureTimer);remotePiCaptureTimer=null;
   remotePiAcknowledgedRevision=-1;remotePiCapturedRevision=-1;remotePiCaptureAttempt++;
-  try{remoteLayoutInnerDocument()?.getElementById('ld-live-pi-pixels')?.remove();}catch(e){}
+  remotePiEditorInteracting=false;remotePiDraftPending=false;remotePiGestureDocument=null;
+  try{remotePiImageElement()?.remove();}catch(e){}
   if(remotePiImageUrl){URL.revokeObjectURL(remotePiImageUrl);remotePiImageUrl='';}
 }
-function physicalPiImageIsVisible(){try{return !!remoteLayoutInnerDocument()?.getElementById('ld-live-pi-pixels')?.complete;}catch(e){return false;}}
+function physicalPiImageIsVisible(){try{const image=remotePiImageElement();return !!image?.complete&&image.style.display!=='none';}catch(e){return false;}}
 async function captureRemotePiPixels(previewId=remotePhysicalPreviewId,revision=remotePhysicalPreviewRevision){
   if(remotePiCaptureBusy||!remoteLayoutProxyActive||!remoteLayoutPreviewTarget?.physical||!remoteLayoutPreviewTarget.deviceId||!previewId)return false;
   if(previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision||revision!==remotePiAcknowledgedRevision)return false;
+  if(remotePiEditorInteracting||remotePiDraftPending)return false;
+  const state=remoteLayoutDraftState();if(!state||JSON.stringify(state)!==remotePhysicalPreviewSignature)return false;
   const doc=remoteLayoutInnerDocument(),target=remoteLayoutPreviewTarget;if(!doc||!doc.body)return false;
   remotePiCaptureBusy=true;const token=remotePiCaptureAttempt;
   let newUrl='';
   try{
     const url=serverPath('/api/physical-screen')+'&_='+Date.now();
-    const response=await resilientFetch(url,{cache:'no-store',headers:{'X-LibreDisplay-Capture-Device':target.deviceId,'X-LibreDisplay-Capture-Fresh':remotePiCapturedRevision!==revision?'1':'0'}},{timeoutMs:15000,retry:false});
+    const response=await resilientFetch(url,{cache:'no-store',headers:{'X-LibreDisplay-Capture-Device':target.deviceId}},{timeoutMs:15000,retry:false});
     if(!response.ok){const error=await response.json().catch(()=>({}));throw new Error(error.error||('HTTP '+response.status));}
     if(response.headers.get('X-LibreDisplay-Device-Id')!==target.deviceId||response.headers.get('X-LibreDisplay-Endpoint')!==bootstrapApi.ACTIVE_ENDPOINT)throw new Error('Pi screenshot identity differs from target');
     const blob=await response.blob();if(blob.type!=='image/png'||blob.size<64||blob.size>16000000)throw new Error('Invalid Pi screenshot data');
@@ -1145,7 +1190,8 @@ async function captureRemotePiPixels(previewId=remotePhysicalPreviewId,revision=
     candidate.src=newUrl;await candidate.decode();
     const expectedW=Math.round(target.width*target.dpr),expectedH=Math.round(target.height*target.dpr);
     if(Math.abs(candidate.naturalWidth-expectedW)>2||Math.abs(candidate.naturalHeight-expectedH)>2)throw new Error('Pi framebuffer does not match kiosk CSS viewport and DPR');
-    if(token!==remotePiCaptureAttempt||!remoteLayoutProxyActive||previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision||revision!==remotePiAcknowledgedRevision)return false;
+    if(token!==remotePiCaptureAttempt||!remoteLayoutProxyActive||previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision||revision!==remotePiAcknowledgedRevision||remotePiEditorInteracting||remotePiDraftPending)return false;
+    const latest=remoteLayoutDraftState();if(!latest||JSON.stringify(latest)!==remotePhysicalPreviewSignature)return false;
     candidate.style.width=target.width+'px';candidate.style.height=target.height+'px';
     doc.getElementById('ld-live-pi-pixels')?.remove();doc.body.appendChild(candidate);
     if(remotePiImageUrl)URL.revokeObjectURL(remotePiImageUrl);
@@ -1154,7 +1200,7 @@ async function captureRemotePiPixels(previewId=remotePhysicalPreviewId,revision=
     return true;
   }catch(e){
     if(token===remotePiCaptureAttempt&&previewId===remotePhysicalPreviewId){
-      setRemotePhysicalParityStatus(physicalPiImageIsVisible()?'Pi capture delayed · last image is stale':'Pi capture unavailable · local rendering only','warn');
+      setRemotePhysicalParityStatus(remotePiDraftPending||remotePiEditorInteracting?'Live local draft · Pi capture pending':(physicalPiImageIsVisible()?'Pi capture delayed · last image is stale':'Pi capture unavailable · local rendering only'),'warn');
     }
     return false;
   }finally{if(newUrl)URL.revokeObjectURL(newUrl);remotePiCaptureBusy=false;}
@@ -1186,7 +1232,11 @@ async function pollRemotePhysicalParity(previewId=remotePhysicalPreviewId,revisi
       if(row&&row.online&&String(row.deviceId||'')===String(remoteLayoutPreviewTarget.deviceId||'')&&
           String(row.layoutPreviewId||'')===previewId&&Number(snap?.revision||-1)===revision){
         remotePiAcknowledgedRevision=revision;
-        // Give the kiosk compositor a chance to paint after its heartbeat.
+        // Physical pixels may replace the live local draft only when its exact
+        // geometry/style revision is acknowledged and no pointer is active.
+        const current=remoteLayoutDraftState();
+        if(!current||JSON.stringify(current)!==remotePhysicalPreviewSignature)return;
+        remotePiDraftPending=false;
         await new Promise(resolve=>setTimeout(resolve,140));
         if(previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision)return;
         await captureRemotePiPixels(previewId,revision);
@@ -1199,9 +1249,9 @@ async function pollRemotePhysicalParity(previewId=remotePhysicalPreviewId,revisi
     setRemotePhysicalParityStatus('Pi preview not acknowledged · local rendering only','warn');
 }
 async function sendRemotePhysicalLayoutPreview({renew=false}={}){
-  if(!remoteLayoutPreviewTarget?.physical||!remotePhysicalPreviewId)return false;const state=remoteLayoutDraftState();if(!state)return false;const signature=JSON.stringify(state);if(!renew&&signature===remotePhysicalPreviewSignature)return false;if(signature!==remotePhysicalPreviewSignature){remotePhysicalPreviewSignature=signature;remotePhysicalPreviewRevision++;}remotePiAcknowledgedRevision=-1;setRemotePhysicalParityStatus('Updating physical Pi · waiting for pixels','pending');try{const res=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'preview-layout',endpoint:bootstrapApi.ACTIVE_ENDPOINT,previewId:remotePhysicalPreviewId,previewRevision:remotePhysicalPreviewRevision,layoutPreview:state}),cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);pollRemotePhysicalParity(remotePhysicalPreviewId,remotePhysicalPreviewRevision);return true;}catch(e){setRemotePhysicalParityStatus('Pi live verification unavailable — using measured wall viewport','warn');return false;}
+  if(!remoteLayoutPreviewTarget?.physical||!remotePhysicalPreviewId)return false;const state=remoteLayoutDraftState();if(!state)return false;const signature=JSON.stringify(state);if(!renew&&signature===remotePhysicalPreviewSignature)return false;if(signature!==remotePhysicalPreviewSignature){showRemotePiLocalDraft();remotePhysicalPreviewSignature=signature;remotePhysicalPreviewRevision++;}remotePiAcknowledgedRevision=-1;setRemotePhysicalParityStatus('Updating physical Pi · waiting for pixels','pending');try{const res=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'preview-layout',endpoint:bootstrapApi.ACTIVE_ENDPOINT,previewId:remotePhysicalPreviewId,previewRevision:remotePhysicalPreviewRevision,layoutPreview:state}),cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);pollRemotePhysicalParity(remotePhysicalPreviewId,remotePhysicalPreviewRevision);return true;}catch(e){setRemotePhysicalParityStatus('Pi live verification unavailable — using measured wall viewport','warn');return false;}
 }
-function maybeQueueRemotePhysicalLayoutPreview(){if(!remoteLayoutProxyActive||!remotePhysicalPreviewId)return;const state=remoteLayoutDraftState();if(!state)return;let signature='';try{signature=JSON.stringify(state);}catch(e){return;}if(signature===remotePhysicalPreviewSeenSignature)return;remotePhysicalPreviewSeenSignature=signature;clearTimeout(remotePhysicalPreviewSendTimer);remotePhysicalPreviewSendTimer=setTimeout(()=>{remotePhysicalPreviewSendTimer=null;sendRemotePhysicalLayoutPreview();},220);}
+function maybeQueueRemotePhysicalLayoutPreview(){if(!remoteLayoutProxyActive||!remotePhysicalPreviewId)return;const state=remoteLayoutDraftState();if(!state)return;let signature='';try{signature=JSON.stringify(state);}catch(e){return;}if(signature===remotePhysicalPreviewSeenSignature)return;remotePhysicalPreviewSeenSignature=signature;showRemotePiLocalDraft();clearTimeout(remotePhysicalPreviewSendTimer);remotePhysicalPreviewSendTimer=setTimeout(()=>{remotePhysicalPreviewSendTimer=null;sendRemotePhysicalLayoutPreview();},220);}
 function startRemotePhysicalPreviewLease(){clearInterval(remotePhysicalPreviewLeaseTimer);remotePhysicalPreviewLeaseTimer=setInterval(()=>sendRemotePhysicalLayoutPreview({renew:true}),6500);}
 function clearRemotePhysicalLayoutPreview(){const previewId=remotePhysicalPreviewId;if(!previewId)return;stopRemotePhysicalPreviewTimers();clearRemotePhysicalParityOverlay();remotePhysicalPreviewId='';remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';remotePhysicalPreviewRevision=0;try{resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'clear-layout-preview',endpoint:bootstrapApi.ACTIVE_ENDPOINT,previewId}),cache:'no-store',keepalive:true},{timeoutMs:2500,retry:false}).catch(()=>{});}catch(e){}}
 
