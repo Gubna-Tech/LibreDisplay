@@ -1230,10 +1230,11 @@ function syncRemoteEditorHitTargets(scale){
 function fitRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),stage=document.getElementById('remote-layout-preview-stage'),frame=document.getElementById('remote-layout-preview-frame');
   if(!shell?.classList.contains('show')||!stage||!frame||!remoteLayoutPreviewTarget)return;
-  const gutter=14,sw=Math.max(1,stage.clientWidth-gutter*2),sh=Math.max(1,stage.clientHeight-gutter*2),tw=remoteLayoutPreviewTarget.width,th=remoteLayoutPreviewTarget.height;
-  const scale=Math.max(.1,Math.min(1,sw/tw,sh/th)),left=gutter+Math.max(0,(sw-tw*scale)/2),top=gutter+Math.max(0,(sh-th*scale)/2);
-  primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);frame.style.left=left.toFixed(1)+'px';frame.style.top=top.toFixed(1)+'px';frame.style.transform=`scale(${scale})`;syncRemoteEditorHitTargets(scale);
-  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'live physical display':(remoteLayoutPreviewTarget.persisted?'last physical kiosk heartbeat':'last reported physical display'),dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} physical CSS viewport${dpr} · ${state} · preview fit ${Math.round(scale*100)}% (geometry remains 1:1)`;}
+  // Physical CSS coordinates are never scaled to fit the remote browser.
+  // A smaller browser scrolls around the full-sized Pi canvas.
+  const tw=remoteLayoutPreviewTarget.width,th=remoteLayoutPreviewTarget.height;
+  primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);frame.style.left='0px';frame.style.top='0px';frame.style.transform='none';syncRemoteEditorHitTargets(1);
+  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'live physical display':(remoteLayoutPreviewTarget.persisted?'last physical kiosk heartbeat':'last reported physical display'),dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} physical CSS viewport${dpr} · ${state} · native 100% viewport · scroll to navigate`;}
 }
 async function openRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame'),meta=document.getElementById('remote-layout-preview-meta');if(!shell||!frame)return;

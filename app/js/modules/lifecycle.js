@@ -81,6 +81,7 @@ async function init(){
   }
   remote.startLiveDisplayConnection();
   remote.startRemoteConfigPolling();
+  remote.startNativeOwnerLiveViewport();
 
   const finishSecondaryHydration=async()=>{
     const jobs=[];

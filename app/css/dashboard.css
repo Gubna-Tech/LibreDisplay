@@ -755,7 +755,7 @@ body.layout-editing #calendar-legend {
 #remote-layout-preview-title{min-width:0;display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,.72)}#remote-layout-preview-title b{font-size:13px;color:#fff}#remote-layout-preview-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #remote-layout-parity-status{flex:0 0 auto;font-style:normal;font-weight:800;font-size:10px;line-height:1;padding:6px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);color:rgba(255,255,255,.72);white-space:nowrap}#remote-layout-parity-status[data-state=good]{border-color:rgba(92,230,153,.42);background:rgba(36,151,91,.18);color:#aaf2ca}#remote-layout-parity-status[data-state=warn]{border-color:rgba(255,184,86,.5);background:rgba(183,105,17,.2);color:#ffd69c}
 #remote-layout-preview-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}#remote-layout-preview-actions button,#remote-layout-preview-actions select{border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:11px;padding:7px 10px}#remote-layout-preview-actions button{cursor:pointer}.remote-layout-element-control{display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,.64)}.remote-layout-element-control select{min-width:150px;max-width:230px}.remote-layout-element-control option{background:#101410;color:#fff}
-#remote-layout-preview-stage{position:absolute;left:0;right:0;top:52px;bottom:0;overflow:hidden;background:#000}
+#remote-layout-preview-stage{position:absolute;left:0;right:0;top:52px;bottom:0;overflow:auto;background:#000}
 #remote-layout-preview-frame{position:absolute;left:0;top:0;border:0;background:#000;transform-origin:0 0;box-shadow:0 0 0 1px rgba(255,255,255,.12),0 22px 70px rgba(0,0,0,.55)}
 body.layout-preview-embedded #cog,body.layout-preview-embedded #settings-preview-return{display:none!important}
 /* Remote Arrange uses two deliberately separate UI layers. The iframe contains only
@@ -4722,3 +4722,11 @@ html.ld-native-pi-view body{min-width:var(--ld-native-pi-width,100vw);min-height
 /* The exact 1.16.12 Arrange editor must never be covered by a compositor PNG. */
 body.layout-editing #ld-native-pi-view,body.remote-layout-proxy #ld-native-pi-view,body:has(#remote-layout-preview-shell.show) #ld-native-pi-view{display:none!important}
 body.layout-editing #ld-native-pi-status,body.remote-layout-proxy #ld-native-pi-status,body:has(#remote-layout-preview-shell.show) #ld-native-pi-status{display:none!important}
+
+/* The normal remote Owner live dashboard uses the same CSS viewport as the Pi.
+   The iframe is an existing LibreDisplay browser dashboard, never a PNG layer. */
+html.ld-native-live-parent,html.ld-native-live-parent body{overflow:auto!important}
+html.ld-native-live-parent body{min-width:var(--ld-live-width,100vw);min-height:var(--ld-live-height,100vh)}
+#ld-native-live-frame{position:absolute;left:0;top:0;z-index:6;border:0;display:block;max-width:none;max-height:none;transform:none!important;background:var(--ld-canvas)}
+#ld-native-live-frame[hidden],body.remote-layout-proxy #ld-native-live-frame,body.layout-editing #ld-native-live-frame,body:has(#remote-layout-preview-shell.show) #ld-native-live-frame,body:has(#setup:not(.hidden)) #ld-native-live-frame{display:none!important}
+html.ld-native-live-child #cog{display:none!important}

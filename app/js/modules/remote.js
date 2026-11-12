@@ -522,8 +522,43 @@ function startNativeRemotePiView(){
 }
 
 
+// Native CSS-sized live Owner view. It is the *existing* continuously rendered
+// dashboard in a fixed-size frame, not a screenshot or a Pi-video stream.
+let ownerLiveViewportTimer=null,ownerLiveViewportBusy=false,ownerLiveViewportDevice='';
+async function refreshNativeOwnerLiveViewport(){
+  if(ownerLiveViewportBusy||bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LAYOUT_PREVIEW_MODE||bootstrapApi.PAGE_PARAMS.get('nativeLive')==='1'||bootstrapApi.SESSION_ROLE!=='owner')return;
+  ownerLiveViewportBusy=true;
+  try{
+    const layout=LibreDisplayRuntime.getModule('layout');
+    const row=layout.bestLayoutTargetDevice(await layout.readDisplayDevices());
+    const target=layout.targetViewportFromDevice(row);
+    if(!target?.physical||!target.online||!target.deviceId)return;
+    const w=target.width,h=target.height;
+    let frame=document.getElementById('ld-native-live-frame');
+    if(!frame){
+      frame=document.createElement('iframe');frame.id='ld-native-live-frame';frame.title='Live LibreDisplay dashboard at physical Pi viewport';
+      frame.setAttribute('scrolling','no');frame.setAttribute('aria-label','Live LibreDisplay at native Pi display dimensions');
+      document.body.appendChild(frame);
+    }
+    frame.width=String(w);frame.height=String(h);frame.style.width=w+'px';frame.style.height=h+'px';
+    document.documentElement.style.setProperty('--ld-live-width',w+'px');
+    document.documentElement.style.setProperty('--ld-live-height',h+'px');
+    document.documentElement.classList.add('ld-native-live-parent');
+    if(ownerLiveViewportDevice!==target.deviceId||!frame.getAttribute('src')){
+      ownerLiveViewportDevice=target.deviceId;
+      frame.src='/dashboard.html?'+new URLSearchParams({endpoint:bootstrapApi.ACTIVE_ENDPOINT,nativeLive:'1'}).toString();
+    }
+  }catch(_e){/* Leave the original live browser dashboard available without claiming native parity. */}
+  finally{ownerLiveViewportBusy=false;}
+}
+function startNativeOwnerLiveViewport(){
+  if(bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LAYOUT_PREVIEW_MODE||bootstrapApi.PAGE_PARAMS.get('nativeLive')==='1'||bootstrapApi.SESSION_ROLE!=='owner')return;
+  void refreshNativeOwnerLiveViewport();
+  if(!ownerLiveViewportTimer)ownerLiveViewportTimer=setInterval(()=>{if(!document.hidden)void refreshNativeOwnerLiveViewport();},10000);
+}
+
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("remote", {startNativeRemotePiView,endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
+LibreDisplayRuntime.exposeModule("remote", {startNativeOwnerLiveViewport,refreshNativeOwnerLiveViewport,startNativeRemotePiView,endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
   "displayEndpoints": {configurable:true,get:()=>displayEndpoints,set:(value)=>{displayEndpoints=value;}},
   "displayDevices": {configurable:true,get:()=>displayDevices,set:(value)=>{displayDevices=value;}},
   "endpointsRemoteEnabled": {configurable:true,get:()=>endpointsRemoteEnabled,set:(value)=>{endpointsRemoteEnabled=value;}},

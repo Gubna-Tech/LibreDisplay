@@ -1,7 +1,7 @@
 // LibreDisplay source section: /js/core/bootstrap.js
 {
 
-const DASHBOARD_BUILD = '1.16.34';
+const DASHBOARD_BUILD = '1.16.35';
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const ACTIVE_ENDPOINT=(String(PAGE_PARAMS.get('endpoint')||'main').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'')||'main').slice(0,48);
 const CFG_KEY = 'libredisplay_cfg_'+ACTIVE_ENDPOINT;
@@ -10,6 +10,8 @@ const PROFILES_KEY = 'libredisplay_profiles';
 const REMOTE_SETTINGS_MODE=PAGE_PARAMS.get('settings')==='1';
 const OPEN_SETTINGS_MODE=PAGE_PARAMS.get('openSettings')==='1';
 const LAYOUT_PREVIEW_MODE=PAGE_PARAMS.get('layoutPreview')==='1';
+const NATIVE_OWNER_LIVE_CHILD=PAGE_PARAMS.get('nativeLive')==='1';
+if(NATIVE_OWNER_LIVE_CHILD)document.documentElement.classList.add('ld-native-live-child');
 let READ_ONLY_DISPLAY_MODE=PAGE_PARAMS.get('display')==='1';
 let LOCAL_CLIENT_MODE=false;
 let SESSION_ROLE='';
