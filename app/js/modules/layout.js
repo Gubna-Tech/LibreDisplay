@@ -1092,6 +1092,7 @@ function handleRemoteLayoutProxyEvent(e){
   if(t.classList.contains('help-tip'))return;
   if(t.id==='layout-properties-collapse'||t.id==='layout-properties-reset-position')return;
   const src=remoteLayoutProxyCounterpart(t);if(!src)return;
+  hideRemoteArrangePiReference();
   if(e.type==='click'){
     if(t.tagName!=='BUTTON')return;e.preventDefault();e.stopImmediatePropagation();src.click();scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(40);return;
   }
@@ -1110,6 +1111,74 @@ let remotePhysicalPreviewSignature='';
 let remotePhysicalPreviewSeenSignature='';
 let remotePhysicalPreviewSendTimer=null;
 let remotePhysicalPreviewLeaseTimer=null;
+let remoteArrangePiCaptureEpoch=0;
+let remoteArrangePiImageUrl='';
+let remoteArrangePiPointerDown=false;
+function ensureRemoteArrangePiLayer(){
+  const stage=document.getElementById('remote-layout-preview-stage');if(!stage)return null;
+  let layer=document.getElementById('ld-arrange-physical-reference');
+  if(!layer){layer=document.createElement('div');layer.id='ld-arrange-physical-reference';layer.hidden=true;layer.setAttribute('aria-label','Actual Pi frame at native 1:1 CSS size');const image=document.createElement('img');image.alt='Pi compositor screenshot matching the applied temporary preview';image.draggable=false;layer.appendChild(image);stage.insertBefore(layer,remoteLayoutFrame());}
+  return layer;
+}
+function installRemoteArrangePiVisibilityStyle(doc){
+  if(!doc?.head||doc.getElementById('ld-arrange-reference-style'))return;
+  const style=doc.createElement('style');style.id='ld-arrange-reference-style';
+  style.textContent='html.ld-arrange-physical-frame,html.ld-arrange-physical-frame body{background:transparent!important;background-image:none!important}html.ld-arrange-physical-frame body>:not(#layout-editor-layer){visibility:hidden!important}html.ld-arrange-physical-frame #layout-editor-layer{visibility:visible!important}';
+  doc.head.appendChild(style);
+}
+function hideRemoteArrangePiReference(){
+  remoteArrangePiCaptureEpoch++;
+  const doc=remoteLayoutInnerDocument();doc?.documentElement?.classList.remove('ld-arrange-physical-frame');
+  const layer=document.getElementById('ld-arrange-physical-reference');if(layer)layer.hidden=true;
+}
+function resetRemoteArrangePiReference(){
+  hideRemoteArrangePiReference();remoteArrangePiPointerDown=false;
+  if(remoteArrangePiImageUrl){URL.revokeObjectURL(remoteArrangePiImageUrl);remoteArrangePiImageUrl='';}
+  document.getElementById('ld-arrange-physical-reference')?.remove();
+}
+function bindRemoteArrangePiEditingGuards(){
+  const doc=remoteLayoutInnerDocument();if(!doc)return;
+  installRemoteArrangePiVisibilityStyle(doc);
+  // Always show the REAL live editor before the first pointer movement.
+  doc.addEventListener('pointerdown',()=>{remoteArrangePiPointerDown=true;hideRemoteArrangePiReference();},true);
+  const ended=()=>{remoteArrangePiPointerDown=false;};
+  doc.addEventListener('pointerup',ended,true);doc.addEventListener('pointercancel',ended,true);
+  for(const eventName of ['input','change','keydown'])doc.addEventListener(eventName,()=>hideRemoteArrangePiReference(),true);
+}
+async function captureRemoteArrangePiReference(previewId,revision,signature){
+  if(remoteArrangePiPointerDown||!remoteLayoutProxyActive)return false;
+  const epoch=remoteArrangePiCaptureEpoch,target=remoteLayoutPreviewTarget;
+  const valid=()=>!remoteArrangePiPointerDown&&remoteLayoutProxyActive&&
+    previewId===remotePhysicalPreviewId&&revision===remotePhysicalPreviewRevision&&
+    signature===remotePhysicalPreviewSignature&&epoch===remoteArrangePiCaptureEpoch&&
+    remoteLayoutPreviewTarget?.deviceId===target?.deviceId&&
+    document.getElementById('remote-layout-preview-shell')?.classList.contains('show')&&
+    JSON.stringify(remoteLayoutDraftState())===signature;
+  if(!target?.physical||!target.deviceId||!valid())return false;
+  let nextUrl='';
+  try{
+    const response=await resilientFetch(serverPath('/api/physical-screen')+'?endpoint='+encodeURIComponent(bootstrapApi.ACTIVE_ENDPOINT),{cache:'no-store',headers:{'X-LibreDisplay-Capture-Device':target.deviceId,'X-LibreDisplay-Capture-Fresh':'1'}},{timeoutMs:15000,retry:false});
+    if(!response.ok)throw new Error('Physical Pi screenshot unavailable');
+    if(response.headers.get('X-LibreDisplay-Device-Id')!==target.deviceId||response.headers.get('X-LibreDisplay-Endpoint')!==bootstrapApi.ACTIVE_ENDPOINT)throw new Error('Physical Pi screenshot identity mismatch');
+    const blob=await response.blob();if(blob.type!=='image/png'||blob.size<64||blob.size>16000000)throw new Error('Invalid physical Pi image');
+    nextUrl=URL.createObjectURL(blob);const decoded=new Image();decoded.src=nextUrl;await decoded.decode();
+    if(Math.abs(decoded.naturalWidth-Math.round(target.width*target.dpr))>2||Math.abs(decoded.naturalHeight-Math.round(target.height*target.dpr))>2)throw new Error('Physical Pi dimensions differ');
+    if(!valid())return false;
+    const layer=ensureRemoteArrangePiLayer(),image=layer?.querySelector('img'),doc=remoteLayoutInnerDocument();
+    if(!layer||!image||!doc?.getElementById('layout-editor-layer')?.classList.contains('show'))return false;
+    installRemoteArrangePiVisibilityStyle(doc);
+    layer.style.width=target.width+'px';layer.style.height=target.height+'px';
+    image.style.width=target.width+'px';image.style.height=target.height+'px';
+    image.src=nextUrl;const previous=remoteArrangePiImageUrl;remoteArrangePiImageUrl=nextUrl;nextUrl='';
+    if(previous)URL.revokeObjectURL(previous);
+    layer.hidden=false;doc.documentElement.classList.add('ld-arrange-physical-frame');
+    setRemotePhysicalParityStatus('Pi pixels verified · preview '+revision,'good');
+    return true;
+  }catch(e){
+    if(valid())setRemotePhysicalParityStatus('Editing locally · Pi pixel capture unavailable','warn');
+    return false;
+  }finally{if(nextUrl)URL.revokeObjectURL(nextUrl);}
+}
 function newRemotePhysicalPreviewId(){const rand=globalThis.crypto?.getRandomValues?Array.from(globalThis.crypto.getRandomValues(new Uint32Array(2))).map(n=>n.toString(36)).join(''):Math.random().toString(36).slice(2);return `arrange-${Date.now().toString(36)}-${rand}`.slice(0,90);}
 function setRemotePhysicalParityStatus(text,state='pending'){const el=document.getElementById('remote-layout-parity-status');if(el){el.textContent=String(text||'');el.dataset.state=state;}}
 function remoteLayoutDraftState(){try{return remoteLayoutFrame()?.contentWindow?.LibreDisplayRuntime?.getModule?.('layout')?.layoutEditorPreviewState?.()||null;}catch(e){return null;}}
@@ -1122,12 +1191,12 @@ function compareLayoutRenderSnapshots(pi,preview){
   const a=new Map((pi?.entities||[]).map(x=>[String(x.key||''),x])),b=new Map((preview?.entities||[]).map(x=>[String(x.key||''),x]));let maxDelta=0;const mismatchKeys=[];for(const [key,row] of a){const other=b.get(key);if(!other)continue;let delta=0;for(const scope of ['footprint','visual'])for(const field of ['x','y','w','h'])delta=Math.max(delta,Math.abs((Number(row?.[scope]?.[field])||0)-(Number(other?.[scope]?.[field])||0)));maxDelta=Math.max(maxDelta,delta);if(delta>2.5)mismatchKeys.push(key);}const sig=s=>new Set((s?.overlaps||[]).map(x=>[String(x.a||''),String(x.b||'')].sort().join('|'))),pa=sig(pi),pb=sig(preview);let collisionDiff=0;for(const key of pa)if(!pb.has(key))collisionDiff++;for(const key of pb)if(!pa.has(key))collisionDiff++;return {maxDelta,mismatchKeys,collisionDiff,piOverlaps:pa.size,piOffscreen:(pi?.offscreen||[]).length};
 }
 async function pollRemotePhysicalParity(previewId=remotePhysicalPreviewId,revision=remotePhysicalPreviewRevision){
-  if(!previewId||!remoteLayoutPreviewTarget)return;for(let attempt=0;attempt<10;attempt++){if(previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision)return;try{const rows=await readDisplayDevices(),row=bestLayoutTargetDevice(rows),snap=row?.layoutRenderSnapshot;if(row&&String(row.deviceId||'')===String(remoteLayoutPreviewTarget.deviceId||'')&&String(row.layoutPreviewId||'')===previewId&&Number(snap?.revision||0)===revision){let local={};try{local=remoteLayoutFrame()?.contentWindow?.LibreDisplayRuntime?.getModule?.('remote')?.captureLayoutRenderSnapshot?.(previewId,revision)||{};}catch(e){}const cmp=compareLayoutRenderSnapshots(snap,local);renderRemotePhysicalParityOverlay(snap,cmp);const delta=Math.round(cmp.maxDelta*10)/10;if(cmp.piOverlaps||cmp.piOffscreen)setRemotePhysicalParityStatus(`Pi reports ${cmp.piOverlaps} overlap${cmp.piOverlaps===1?'':'s'}${cmp.piOffscreen?` · ${cmp.piOffscreen} off-screen`:''}`,'warn');else if(cmp.maxDelta>2.5||cmp.collisionDiff)setRemotePhysicalParityStatus(`Pi differs · max render shift ${delta}px`,'warn');else setRemotePhysicalParityStatus(`Pi verified · rendered geometry matches${delta?` within ${delta}px`:''}`,'good');return;}}catch(e){}await new Promise(resolve=>setTimeout(resolve,attempt<4?180:320));}if(previewId===remotePhysicalPreviewId)setRemotePhysicalParityStatus('Pi verification pending — using the measured wall viewport','pending');
+  if(!previewId||!remoteLayoutPreviewTarget)return;for(let attempt=0;attempt<10;attempt++){if(previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision)return;try{const rows=await readDisplayDevices(),row=bestLayoutTargetDevice(rows),snap=row?.layoutRenderSnapshot;if(row&&String(row.deviceId||'')===String(remoteLayoutPreviewTarget.deviceId||'')&&String(row.layoutPreviewId||'')===previewId&&Number(snap?.revision||0)===revision){let local={};try{local=remoteLayoutFrame()?.contentWindow?.LibreDisplayRuntime?.getModule?.('remote')?.captureLayoutRenderSnapshot?.(previewId,revision)||{};}catch(e){}const cmp=compareLayoutRenderSnapshots(snap,local);void captureRemoteArrangePiReference(previewId,revision,remotePhysicalPreviewSignature);const delta=Math.round(cmp.maxDelta*10)/10;if(cmp.piOverlaps||cmp.piOffscreen)setRemotePhysicalParityStatus(`Pi reports ${cmp.piOverlaps} overlap${cmp.piOverlaps===1?'':'s'}${cmp.piOffscreen?` · ${cmp.piOffscreen} off-screen`:''}`,'warn');else if(cmp.maxDelta>2.5||cmp.collisionDiff)setRemotePhysicalParityStatus(`Pi differs · max render shift ${delta}px`,'warn');else setRemotePhysicalParityStatus(`Pi preview acknowledged · capturing real pixels`,'pending');return;}}catch(e){}await new Promise(resolve=>setTimeout(resolve,attempt<4?180:320));}if(previewId===remotePhysicalPreviewId)setRemotePhysicalParityStatus('Pi verification pending — using the measured wall viewport','pending');
 }
 async function sendRemotePhysicalLayoutPreview({renew=false}={}){
   if(!remoteLayoutPreviewTarget?.physical||!remotePhysicalPreviewId)return false;const state=remoteLayoutDraftState();if(!state)return false;const signature=JSON.stringify(state);if(!renew&&signature===remotePhysicalPreviewSignature)return false;if(signature!==remotePhysicalPreviewSignature){remotePhysicalPreviewSignature=signature;remotePhysicalPreviewRevision++;}setRemotePhysicalParityStatus('Applying draft on Pi…','pending');try{const res=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'preview-layout',endpoint:bootstrapApi.ACTIVE_ENDPOINT,previewId:remotePhysicalPreviewId,previewRevision:remotePhysicalPreviewRevision,layoutPreview:state}),cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);pollRemotePhysicalParity(remotePhysicalPreviewId,remotePhysicalPreviewRevision);return true;}catch(e){setRemotePhysicalParityStatus('Pi live verification unavailable — using measured wall viewport','warn');return false;}
 }
-function maybeQueueRemotePhysicalLayoutPreview(){if(!remoteLayoutProxyActive||!remotePhysicalPreviewId)return;const state=remoteLayoutDraftState();if(!state)return;let signature='';try{signature=JSON.stringify(state);}catch(e){return;}if(signature===remotePhysicalPreviewSeenSignature)return;remotePhysicalPreviewSeenSignature=signature;clearTimeout(remotePhysicalPreviewSendTimer);remotePhysicalPreviewSendTimer=setTimeout(()=>{remotePhysicalPreviewSendTimer=null;sendRemotePhysicalLayoutPreview();},220);}
+function maybeQueueRemotePhysicalLayoutPreview(){if(!remoteLayoutProxyActive||!remotePhysicalPreviewId)return;const state=remoteLayoutDraftState();if(!state)return;let signature='';try{signature=JSON.stringify(state);}catch(e){return;}if(signature===remotePhysicalPreviewSeenSignature)return;remotePhysicalPreviewSeenSignature=signature;hideRemoteArrangePiReference();clearTimeout(remotePhysicalPreviewSendTimer);remotePhysicalPreviewSendTimer=setTimeout(()=>{remotePhysicalPreviewSendTimer=null;sendRemotePhysicalLayoutPreview();},220);}
 function startRemotePhysicalPreviewLease(){clearInterval(remotePhysicalPreviewLeaseTimer);remotePhysicalPreviewLeaseTimer=setInterval(()=>sendRemotePhysicalLayoutPreview({renew:true}),6500);}
 function clearRemotePhysicalLayoutPreview(){const previewId=remotePhysicalPreviewId;if(!previewId)return;stopRemotePhysicalPreviewTimers();clearRemotePhysicalParityOverlay();remotePhysicalPreviewId='';remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';remotePhysicalPreviewRevision=0;try{resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'clear-layout-preview',endpoint:bootstrapApi.ACTIVE_ENDPOINT,previewId}),cache:'no-store',keepalive:true},{timeoutMs:2500,retry:false}).catch(()=>{});}catch(e){}}
 
@@ -1228,15 +1297,19 @@ function syncRemoteEditorHitTargets(scale){
   }catch(e){}
 }
 function fitRemoteLayoutPreview(){
-  const shell=document.getElementById('remote-layout-preview-shell'),stage=document.getElementById('remote-layout-preview-stage'),frame=document.getElementById('remote-layout-preview-frame');
+  const shell=document.getElementById('remote-layout-preview-shell'),stage=document.getElementById('remote-layout-preview-stage'),frame=remoteLayoutFrame();
   if(!shell?.classList.contains('show')||!stage||!frame||!remoteLayoutPreviewTarget)return;
-  const gutter=14,sw=Math.max(1,stage.clientWidth-gutter*2),sh=Math.max(1,stage.clientHeight-gutter*2),tw=remoteLayoutPreviewTarget.width,th=remoteLayoutPreviewTarget.height;
-  const scale=Math.max(.1,Math.min(1,sw/tw,sh/th)),left=gutter+Math.max(0,(sw-tw*scale)/2),top=gutter+Math.max(0,(sh-th*scale)/2);
-  primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);frame.style.left=left.toFixed(1)+'px';frame.style.top=top.toFixed(1)+'px';frame.style.transform=`scale(${scale})`;syncRemoteEditorHitTargets(scale);
-  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'live physical display':(remoteLayoutPreviewTarget.persisted?'last physical kiosk heartbeat':'last reported physical display'),dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} physical CSS viewport${dpr} · ${state} · preview fit ${Math.round(scale*100)}% (geometry remains 1:1)`;}
+  const target=remoteLayoutPreviewTarget;
+  primeRemoteLayoutFrameViewport(frame,target);
+  frame.style.left='14px';frame.style.top='14px';frame.style.transform='none';frame.style.background='transparent';
+  stage.style.overflow='auto';syncRemoteEditorHitTargets(1);
+  const meta=document.getElementById('remote-layout-preview-meta');
+  if(meta)meta.textContent=`${target.width}×${target.height} physical CSS viewport · 100% native · scroll to navigate`;
 }
+
 async function openRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame'),meta=document.getElementById('remote-layout-preview-meta');if(!shell||!frame)return;
+  resetRemoteArrangePiReference();
   const session=++remoteLayoutPreviewSession;
   if(meta)meta.textContent='Reading the wall display viewport…';shell.classList.add('show');shell.setAttribute('aria-hidden','false');
   const target=await fetchRemoteLayoutTarget();
@@ -1251,12 +1324,12 @@ async function openRemoteLayoutPreview(){
   }
   remotePhysicalPreviewId=newRemotePhysicalPreviewId();remotePhysicalPreviewRevision=0;remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';setRemotePhysicalParityStatus('Pi verification pending…','pending');startRemotePhysicalPreviewLease();
   primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
-  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
+  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;bindRemoteArrangePiEditingGuards();activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
   frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
   fitRemoteLayoutPreview();requestAnimationFrame(fitRemoteLayoutPreview);
 }
 function closeRemoteLayoutPreview({preservePhysical=false}={}){
-  remoteLayoutPreviewSession++;deactivateRemoteLayoutProxy();
+  remoteLayoutPreviewSession++;resetRemoteArrangePiReference();deactivateRemoteLayoutProxy();
   if(preservePhysical){stopRemotePhysicalPreviewTimers();clearRemotePhysicalParityOverlay();remotePhysicalPreviewId='';remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';remotePhysicalPreviewRevision=0;}else clearRemotePhysicalLayoutPreview();
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');
   if(shell){shell.classList.remove('show');shell.setAttribute('aria-hidden','true');}
@@ -1267,9 +1340,9 @@ function closeRemoteLayoutPreview({preservePhysical=false}={}){
 function reloadRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');if(!frame||!shell?.classList.contains('show'))return;
   if(!remoteLayoutPreviewTarget){openRemoteLayoutPreview();return;}
-  const session=++remoteLayoutPreviewSession;deactivateRemoteLayoutProxy();
+  const session=++remoteLayoutPreviewSession;resetRemoteArrangePiReference();deactivateRemoteLayoutProxy();
   primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
-  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);remotePhysicalPreviewSeenSignature='';setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
+  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;bindRemoteArrangePiEditingGuards();activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);remotePhysicalPreviewSeenSignature='';setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
   frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
 }
 async function handleEmbeddedLayoutEditorAction(action){
@@ -1303,7 +1376,7 @@ function stopLayoutEditorUi(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("layout", {remoteLayoutFrame,remoteLayoutInnerDocument,remoteLayoutProxyRoot,remoteLayoutProxyCounterpart,remoteLayoutProxyMirrorElement,syncRemoteLayoutProxyUi,scheduleRemoteLayoutProxySync,activateRemoteLayoutProxy,deactivateRemoteLayoutProxy,handleRemoteLayoutProxyEvent,targetViewportFromDevice,bestLayoutTargetDevice,readDisplayDevices,requestFreshDisplayMetrics,fetchRemoteLayoutTarget,newRemotePhysicalPreviewId,setRemotePhysicalParityStatus,compareLayoutRenderSnapshots,pollRemotePhysicalParity,sendRemotePhysicalLayoutPreview,maybeQueueRemotePhysicalLayoutPreview,clearRemotePhysicalLayoutPreview,remoteLayoutPreviewUrl,primeRemoteLayoutFrameViewport,syncRemoteLayoutEditorAffordances,selectRemoteLayoutElement,syncRemoteEditorHitTargets,fitRemoteLayoutPreview,openRemoteLayoutPreview,closeRemoteLayoutPreview,reloadRemoteLayoutPreview,handleEmbeddedLayoutEditorAction,notifyLayoutPreviewParent,launchLayoutEditorFromSettings,stopLayoutEditorUi}, {
+LibreDisplayRuntime.exposeModule("layout", {remoteLayoutFrame,remoteLayoutInnerDocument,ensureRemoteArrangePiLayer,hideRemoteArrangePiReference,resetRemoteArrangePiReference,bindRemoteArrangePiEditingGuards,captureRemoteArrangePiReference,remoteLayoutProxyRoot,remoteLayoutProxyCounterpart,remoteLayoutProxyMirrorElement,syncRemoteLayoutProxyUi,scheduleRemoteLayoutProxySync,activateRemoteLayoutProxy,deactivateRemoteLayoutProxy,handleRemoteLayoutProxyEvent,targetViewportFromDevice,bestLayoutTargetDevice,readDisplayDevices,requestFreshDisplayMetrics,fetchRemoteLayoutTarget,newRemotePhysicalPreviewId,setRemotePhysicalParityStatus,compareLayoutRenderSnapshots,pollRemotePhysicalParity,sendRemotePhysicalLayoutPreview,maybeQueueRemotePhysicalLayoutPreview,clearRemotePhysicalLayoutPreview,remoteLayoutPreviewUrl,primeRemoteLayoutFrameViewport,syncRemoteLayoutEditorAffordances,selectRemoteLayoutElement,syncRemoteEditorHitTargets,fitRemoteLayoutPreview,openRemoteLayoutPreview,closeRemoteLayoutPreview,reloadRemoteLayoutPreview,handleEmbeddedLayoutEditorAction,notifyLayoutPreviewParent,launchLayoutEditorFromSettings,stopLayoutEditorUi}, {
   "remoteLayoutProxyActive": {configurable:true,get:()=>remoteLayoutProxyActive,set:(value)=>{remoteLayoutProxyActive=value;}},
   "remoteLayoutProxySyncTimer": {configurable:true,get:()=>remoteLayoutProxySyncTimer,set:(value)=>{remoteLayoutProxySyncTimer=value;}},
   "remoteLayoutPreviewTarget": {configurable:true,get:()=>remoteLayoutPreviewTarget,set:(value)=>{remoteLayoutPreviewTarget=value;}},

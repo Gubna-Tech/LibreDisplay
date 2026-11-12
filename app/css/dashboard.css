@@ -4722,3 +4722,11 @@ html.ld-native-pi-view body{min-width:var(--ld-native-pi-width,100vw);min-height
 /* The exact 1.16.12 Arrange editor must never be covered by a compositor PNG. */
 body.layout-editing #ld-native-pi-view,body.remote-layout-proxy #ld-native-pi-view,body:has(#remote-layout-preview-shell.show) #ld-native-pi-view{display:none!important}
 body.layout-editing #ld-native-pi-status,body.remote-layout-proxy #ld-native-pi-status,body:has(#remote-layout-preview-shell.show) #ld-native-pi-status{display:none!important}
+
+/* Physical Pi reference is BELOW the iframe. Its local dashboard is concealed
+   only while a matching Pi frame is displayed; edit handles stay interactive. */
+#remote-layout-preview-stage{overflow:auto}
+#remote-layout-preview-frame{background:transparent!important;transform:none!important;z-index:2}
+#ld-arrange-physical-reference{position:absolute;left:14px;top:14px;z-index:1;pointer-events:none;background:#000}
+#ld-arrange-physical-reference[hidden]{display:none!important}
+#ld-arrange-physical-reference img{display:block;max-width:none;max-height:none;object-fit:fill;pointer-events:none}
