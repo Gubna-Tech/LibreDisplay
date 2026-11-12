@@ -551,7 +551,7 @@ function startRemoteWallMirror(){
   void refreshRemoteWallMirror();
 }
 
-// v1.16.24: the Pi image is authoritative only for the LAST APPLIED layout.
+// v1.16.25: the Pi image is authoritative only for the LAST APPLIED layout.
 // A changed element must show a responsive local draft, not frozen screenshot
 // pixels that ignore inspector alignment, size, color and typography controls.
 // This is deliberately NOT described as an exact Pi render before Save & Lock.

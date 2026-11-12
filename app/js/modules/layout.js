@@ -322,13 +322,12 @@ function currentWeatherFitScale(el){
   const needH=Math.max(1,el.scrollHeight);
   return clampLayoutFit(Math.min((el.clientWidth-2)/needW,(el.clientHeight-2)/needH));
 }
-// Keep 165% clock text within its frame without changing the saved content scale.
 function clockFitScale(el){
   if(!el||el.clientWidth<2||el.clientHeight<2)return 1;
-  const kids=[...el.children].filter(x=>x instanceof HTMLElement&&getComputedStyle(x).display!=='none');if(!kids.length)return 1;
-  const width=Math.max(1,...kids.map(x=>{const zoom=parseFloat(getComputedStyle(x).zoom)||1;return Math.max(x.scrollWidth*zoom,x.getBoundingClientRect().width);}));
-  const limit=Math.min(1,(el.clientWidth-8)/width,(el.clientHeight-8)/Math.max(1,el.scrollHeight));
-  return Math.max(.12,Number.isFinite(limit)?limit:1);
+  const kids=[...el.children].filter(x=>x instanceof HTMLElement);if(!kids.length)return 1;
+  const needW=Math.max(1,...kids.map(x=>{const zoom=parseFloat(getComputedStyle(x).zoom)||1;return Math.max(x.scrollWidth*zoom,x.getBoundingClientRect().width);}));
+  const needH=Math.max(1,el.scrollHeight);
+  return clampLayoutFit(Math.min((el.clientWidth-2)/needW,(el.clientHeight-2)/needH));
 }
 function syncWeatherDetailsArrangeGrid(el){
   if(!el)return 0;
@@ -365,14 +364,21 @@ function ensureWeatherDetailsContentBoundary(el=document.querySelector('.wx-deta
   if(!el||getComputedStyle(el).display==='none'||!document.body.classList.contains('custom-layout'))return null;
   const vp=layoutViewportSize(),r=el.getBoundingClientRect();if(r.width<2||r.height<2)return null;
   const required=Math.min(vp.width,weatherDetailsRequiredWidth(el)||r.width),flowSource=layoutEditorActive?{layoutPartStyle:layoutPartStyleDraft}:cfg,hasFreeParts=builtInPartFreeModeActive('details',flowSource);
-  // Saved Arrange geometry stays authoritative in both the editor and kiosk.
-  // Expose a content constraint for UI diagnostics, but never resize the frame.
-  return {left:r.left,width:r.width,right:r.right,required,changed:false,constrained:required>r.width+.5,hasFreeParts};
+  // Saved Arrange rectangles are authoritative in normal display mode. Earlier
+  // AQI fitting changed the live outer rectangle after weather rendered, so the
+  // kiosk could overlap neighboring blocks even though Arrange still showed the
+  // saved geometry. Only Arrange may grow the draft boundary, where that growth
+  // is visible to the user and can be persisted. Free internal-part layouts are
+  // never auto-resized because their geometry is explicitly user-controlled.
+  if(!layoutEditorActive||hasFreeParts)return {left:r.left,width:r.width,right:r.right,required,changed:false,constrained:required>r.width+.5};
+  const width=Math.min(vp.width,Math.max(r.width,required)),left=Math.max(0,Math.min(vp.width-width,r.left)),changed=Math.abs(width-r.width)>.5||Math.abs(left-r.left)>.5;
+  if(changed){el.style.left=left.toFixed(1)+'px';el.style.width=width.toFixed(1)+'px';if(layoutEditorDraft?.details){layoutEditorDraft.details=normalizedRectFromPx({left,top:r.top,width,height:r.height});renderLayoutEditorBoxes();}}
+  return {left,width,right:left+width,required,changed,constrained:false};
 }
 function resetBuiltInLayoutFitForKey(key){const el=builtInLayoutAutoFitElement(key);if(!el)return null;if(key==='calendar'){el.style.setProperty('--ld-layout-fit-calendar','1');el.style.removeProperty('--ld-layout-calendar-row');}else el.style.setProperty(`--ld-layout-fit-${key}`,'1');return el;}
-function builtInLayoutFitFastPath(key,el){if(!el||key==='calendar'||key==='clock'||layoutEditorActive||!layoutFrameFitContentEnabled(key))return false;const raw=parseFloat(el.style.getPropertyValue(`--ld-layout-fit-${key}`)||'1');if(!Number.isFinite(raw)||raw<.999)return false;const fits=(node)=>!node||((node.scrollWidth||0)<=Math.ceil((node.clientWidth||0)+1)&&(node.scrollHeight||0)<=Math.ceil((node.clientHeight||0)+1));if(!fits(el))return false;if(key==='daily')return [...el.querySelectorAll(':scope > .fc-col')].every(fits);if(key==='hourly')return [...el.querySelectorAll('.wx-hourly > .hr-col')].every(fits);if(key==='details')return [...el.querySelectorAll(':scope > .wx-detail')].every(fits);return true;}
+function builtInLayoutFitFastPath(key,el){if(!el||key==='calendar'||layoutEditorActive||!layoutFrameFitContentEnabled(key))return false;const raw=parseFloat(el.style.getPropertyValue(`--ld-layout-fit-${key}`)||'1');if(!Number.isFinite(raw)||raw<.999)return false;const fits=(node)=>!node||((node.scrollWidth||0)<=Math.ceil((node.clientWidth||0)+1)&&(node.scrollHeight||0)<=Math.ceil((node.clientHeight||0)+1));if(!fits(el))return false;if(key==='daily')return [...el.querySelectorAll(':scope > .fc-col')].every(fits);if(key==='hourly')return [...el.querySelectorAll('.wx-hourly > .hr-col')].every(fits);if(key==='details')return [...el.querySelectorAll(':scope > .wx-detail')].every(fits);return true;}
 function builtInPartFreeModeActive(key,source=cfg){const rows=source?.layoutPartStyle?.[key];if(!rows||typeof rows!=='object')return false;return (LAYOUT_PART_DEFS[key]||[]).some(def=>def.movable!==false&&normalizePartStyleValue(rows?.[def.key]||{}).mode==='free');}
-function measureBuiltInLayoutFitForKey(key,el){if(!el)return 1;if(!layoutFrameFitContentEnabled(key)&&key!=='clock')return 1;if(builtInPartFreeModeActive(key)&&key!=='clock')return 1;if(key==='current'&&(cfg.currentWeatherLayout==='free'||el.dataset?.weatherLayout==='free'))return 1;const measure=()=>{if(key==='calendar')return calendarFitScale(el);if(key==='current')return currentWeatherFitScale(el);if(key==='clock')return clockFitScale(el);if(key==='details')return weatherDetailsFitScale(el);if(key==='daily')return forecastFitScale(el,null,':scope > .fc-col');if(key==='hourly')return forecastFitScale(el,'.wx-hourly',':scope > .hr-col');return 1;};return withNeutralizedBuiltInPartScale(key,measure);}
+function measureBuiltInLayoutFitForKey(key,el){if(!el)return 1;if(!layoutFrameFitContentEnabled(key))return 1;if(builtInPartFreeModeActive(key))return 1;if(key==='current'&&(cfg.currentWeatherLayout==='free'||el.dataset?.weatherLayout==='free'))return 1;const measure=()=>{if(key==='calendar')return calendarFitScale(el);if(key==='current')return currentWeatherFitScale(el);if(key==='clock')return clockFitScale(el);if(key==='details')return weatherDetailsFitScale(el);if(key==='daily')return forecastFitScale(el,null,':scope > .fc-col');if(key==='hourly')return forecastFitScale(el,'.wx-hourly',':scope > .hr-col');return 1;};return withNeutralizedBuiltInPartScale(key,measure);}
 function updateBuiltInLayoutAutoFit(){
   builtInLayoutAutoFitRaf=0;if(builtInLayoutAutoFitProcessing)return;builtInLayoutAutoFitProcessing=true;
   try{
@@ -380,9 +386,9 @@ function updateBuiltInLayoutAutoFit(){
     if(builtInLayoutAutoFitSuspended)return;
     if(!builtInLayoutAutoFitQueue.length){const keys=builtInLayoutAutoFitPending.size?[...builtInLayoutAutoFitPending]:BUILTIN_LAYOUT_AUTOFIT_KEYS.slice();builtInLayoutAutoFitPending.clear();const details=keys.includes('details')?builtInLayoutAutoFitElement('details'):null;if(details)syncWeatherDetailsArrangeGrid(details);builtInLayoutAutoFitQueue.push(...keys);builtInLayoutAutoFitBatchWorkMs=0;}
     const key=builtInLayoutAutoFitQueue.shift();if(!key)return;
-    const started=performance.now(),existing=builtInLayoutAutoFitElement(key);if(existing&&!layoutFrameFitContentEnabled(key)&&key!=='clock'){const frozen=layoutEditorActive?layoutElementStyleDraft?.[key]?.frozenFit:cfg.layoutElementStyle?.[key]?.frozenFit;if(Number.isFinite(Number(frozen)))existing.style.setProperty(`--ld-layout-fit-${key}`,Math.min(1,Math.max(.15,Number(frozen))).toFixed(4));builtInLayoutAutoFitStats.fastSkips++;return;}const fast=builtInLayoutFitFastPath(key,existing),el=fast?existing:resetBuiltInLayoutFitForKey(key);
+    const started=performance.now(),existing=builtInLayoutAutoFitElement(key);if(existing&&!layoutFrameFitContentEnabled(key)){const frozen=layoutEditorActive?layoutElementStyleDraft?.[key]?.frozenFit:cfg.layoutElementStyle?.[key]?.frozenFit;if(Number.isFinite(Number(frozen)))existing.style.setProperty(`--ld-layout-fit-${key}`,Math.min(1,Math.max(.15,Number(frozen))).toFixed(4));builtInLayoutAutoFitStats.fastSkips++;return;}const fast=builtInLayoutFitFastPath(key,existing),el=fast?existing:resetBuiltInLayoutFitForKey(key);
     if(fast){builtInLayoutAutoFitStats.fastSkips++;const stats=builtInLayoutAutoFitStats.keys[key]||(builtInLayoutAutoFitStats.keys[key]={runs:0,totalMs:0,maxMs:0});stats.runs++;}
-    else if(el){const keyStarted=performance.now(),measured=measureBuiltInLayoutFitForKey(key,el),frozen=(layoutEditorActive?layoutElementStyleDraft:cfg.layoutElementStyle)?.[key]?.frozenFit,ceiling=key==='clock'&&!layoutFrameFitContentEnabled(key)&&Number.isFinite(Number(frozen))?Math.max(.12,Math.min(1,Number(frozen))):1,scale=Math.min(measured,ceiling),prop=`--ld-layout-fit-${key}`,next=scale.toFixed(4);if(el.style.getPropertyValue(prop)!==next)el.style.setProperty(prop,next);const elapsed=performance.now()-keyStarted,stats=builtInLayoutAutoFitStats.keys[key]||(builtInLayoutAutoFitStats.keys[key]={runs:0,totalMs:0,maxMs:0});stats.runs++;stats.totalMs+=elapsed;stats.maxMs=Math.max(stats.maxMs,elapsed);}
+    else if(el){const keyStarted=performance.now(),scale=measureBuiltInLayoutFitForKey(key,el),prop=`--ld-layout-fit-${key}`,next=scale.toFixed(4);if(el.style.getPropertyValue(prop)!==next)el.style.setProperty(prop,next);const elapsed=performance.now()-keyStarted,stats=builtInLayoutAutoFitStats.keys[key]||(builtInLayoutAutoFitStats.keys[key]={runs:0,totalMs:0,maxMs:0});stats.runs++;stats.totalMs+=elapsed;stats.maxMs=Math.max(stats.maxMs,elapsed);}
     builtInLayoutAutoFitBatchWorkMs+=performance.now()-started;
     if(!builtInLayoutAutoFitQueue.length){const elapsed=builtInLayoutAutoFitBatchWorkMs;builtInLayoutAutoFitStats.runs++;builtInLayoutAutoFitStats.totalMs+=elapsed;builtInLayoutAutoFitStats.maxMs=Math.max(builtInLayoutAutoFitStats.maxMs,elapsed);builtInLayoutAutoFitStats.lastMs=elapsed;builtInLayoutAutoFitStats.lastAt=Date.now();builtInLayoutAutoFitBatchWorkMs=0;}
   }finally{builtInLayoutAutoFitProcessing=false;if(!builtInLayoutAutoFitSuspended&&(builtInLayoutAutoFitQueue.length||builtInLayoutAutoFitPending.size))startBuiltInLayoutAutoFit();}
@@ -395,9 +401,9 @@ function scheduleBuiltInLayoutAutoFit(keys){
 function scheduleBuiltInLayoutAutoFitDeferred(keys,delay=96){
   queueBuiltInLayoutAutoFitKeys(keys);if(builtInLayoutAutoFitSuspended)return;if(builtInLayoutAutoFitDeferredTimer)clearTimeout(builtInLayoutAutoFitDeferredTimer);builtInLayoutAutoFitDeferredTimer=setTimeout(()=>{builtInLayoutAutoFitDeferredTimer=0;startBuiltInLayoutAutoFit();},Math.max(40,Number(delay)||96));
 }
-let builtInLayoutAutoFitClockGuardAt=0;function bindBuiltInLayoutAutoFitObserver(){
+function bindBuiltInLayoutAutoFitObserver(){
   const targets=BUILTIN_LAYOUT_AUTOFIT_KEYS.map(key=>builtInLayoutAutoFitElement(key)).filter(Boolean);
-  if(!builtInLayoutAutoFitObserver){builtInLayoutAutoFitObserver=new MutationObserver(records=>{const keys=new Set();for(const record of records){const key=builtInLayoutAutoFitKeyForNode(record.target);if(!key)continue;const el=record.target instanceof Element?record.target:record.target?.parentElement;if(key==='clock'&&el?.closest('#clock-sec'))continue;if(key==='clock'&&!layoutEditorActive&&el?.closest('.clock-time')){builtInLayoutAutoFitStats.skippedClockText++;if(Date.now()-(builtInLayoutAutoFitClockGuardAt||0)>30000){builtInLayoutAutoFitClockGuardAt=Date.now();keys.add('clock');}continue;}keys.add(key);}if(keys.size){scheduleBuiltInPartFlowOffsets();scheduleBuiltInLayoutAutoFitDeferred([...keys],layoutEditorActive?96:(performanceApi.frontendCapabilities().pi4Class?700:220));}});for(const el of targets)builtInLayoutAutoFitObserver.observe(el,{subtree:true,childList:true,characterData:true});}
+  if(!builtInLayoutAutoFitObserver){builtInLayoutAutoFitObserver=new MutationObserver(records=>{const keys=new Set();for(const record of records){const key=builtInLayoutAutoFitKeyForNode(record.target);if(!key)continue;const el=record.target instanceof Element?record.target:record.target?.parentElement;if(key==='clock'&&el?.closest('#clock-sec'))continue;if(key==='clock'&&!layoutEditorActive&&el?.closest('.clock-time')){builtInLayoutAutoFitStats.skippedClockText++;continue;}keys.add(key);}if(keys.size){scheduleBuiltInPartFlowOffsets();scheduleBuiltInLayoutAutoFitDeferred([...keys],layoutEditorActive?96:(performanceApi.frontendCapabilities().pi4Class?700:220));}});for(const el of targets)builtInLayoutAutoFitObserver.observe(el,{subtree:true,childList:true,characterData:true});}
   if(!builtInLayoutAutoFitResizeObserver&&typeof ResizeObserver==='function'){builtInLayoutAutoFitResizeObserver=new ResizeObserver(entries=>{const keys=new Set();for(const entry of entries){const key=builtInLayoutAutoFitKeyForNode(entry.target);if(!key)continue;const box=entry.contentRect||entry.target.getBoundingClientRect(),sig=`${Math.round((box.width||0)*2)/2}x${Math.round((box.height||0)*2)/2}`,prior=builtInLayoutObservedBoxes.get(key);if(prior===sig){builtInLayoutAutoFitStats.resizeSkips++;continue;}builtInLayoutObservedBoxes.set(key,sig);keys.add(key);}if(keys.size){scheduleBuiltInPartFlowOffsets();scheduleBuiltInLayoutAutoFitDeferred([...keys],layoutEditorActive?120:(performanceApi.frontendCapabilities().pi4Class?900:360));}});for(const el of targets)builtInLayoutAutoFitResizeObserver.observe(el);}
 }
 
@@ -532,8 +538,6 @@ function genericPartAlignmentRects(movingRect,siblingBoxes=[],excludeBlockKey=''
 function magneticSnapForBounds(bounds,excludedKeys=[]){if(!layoutSmartGuidesOn()||!bounds)return {dx:0,dy:0,guides:[]};return magneticSnapForScreenRect(bounds,layoutBlockAlignmentRects(excludedKeys));}
 function renderLayoutEditorBoxes(){
   const layer=document.getElementById('layout-editor-layer');if(!layer)return;
-  // Keep keyboard focus on its named block when resize, nudge or undo redraws overlays.
-  const focusKey=layer.contains(document.activeElement)?document.activeElement?.closest?.('.layout-edit-box')?.dataset?.layoutKey:null;
   layer.innerHTML='';
   const entries=[];
   for(const [key,def] of Object.entries(LAYOUT_BLOCK_DEFS)){
@@ -550,11 +554,10 @@ function renderLayoutEditorBoxes(){
   }
   entries.sort((a,b)=>(Number(b.r.w)*Number(b.r.h))-(Number(a.r.w)*Number(a.r.h)));
   for(const item of entries)appendLayoutEditBox(layer,item.key,item.label,item.r);
-  if(focusKey){const replacement=[...layer.querySelectorAll('.layout-edit-box')].find(el=>el.dataset.layoutKey===focusKey);replacement?.focus({preventScroll:true});}
   refreshLayoutToolbarBlockOptions();
   updateLayoutSelectedInfo();renderCurrentWeatherPartBoxes();renderBuiltInPartBoxes();
 }
-function appendLayoutEditBox(layer,key,label,r){const px=pxRectFromNormalized(r),def=layoutEditorDefForKey(key),locked=def?.locked===true,selected=layoutSelectionKeys().includes(key),box=document.createElement('div');box.className='layout-edit-box'+(selected?' selected':'')+(layoutSelectedKey===key?' primary-selected':'')+(locked?' locked':'');box.dataset.layoutKey=key;box.tabIndex=0;box.setAttribute('role','button');box.setAttribute('aria-label',`${label} layout block${locked?' (locked)':''}. Press Enter or Space to select, then use the arrow keys to move or Shift plus arrow keys to resize.`);box.setAttribute('aria-pressed',selected?'true':'false');box.style.left=px.left+'px';box.style.top=px.top+'px';box.style.width=px.width+'px';box.style.height=px.height+'px';box.innerHTML=`<div class="layout-edit-label">${escHtml(label)}${locked?' · 🔒':''}</div><div class="layout-resize-handle nw" data-resize="nw" title="Resize from top left"></div><div class="layout-resize-handle ne" data-resize="ne" title="Resize from top right"></div><div class="layout-resize-handle sw" data-resize="sw" title="Resize from bottom left"></div><div class="layout-resize-handle se" data-resize="se" title="Resize from bottom right"></div>`;box.addEventListener('pointerdown',beginLayoutPointer);box.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();e.stopPropagation();selectLayoutBlock(key,false,!!(e.shiftKey||e.ctrlKey||e.metaKey));});if(customKeyId(key)){box.title='Double-click to configure this added block · Shift/Ctrl/Cmd-click to multi-select';box.addEventListener('dblclick',e=>{e.preventDefault();selectLayoutBlock(key);configureSelectedCustomBlock();});}else box.title='Shift/Ctrl/Cmd-click to multi-select';layer.appendChild(box);}
+function appendLayoutEditBox(layer,key,label,r){const px=pxRectFromNormalized(r),def=layoutEditorDefForKey(key),locked=def?.locked===true,selected=layoutSelectionKeys().includes(key),box=document.createElement('div');box.className='layout-edit-box'+(selected?' selected':'')+(layoutSelectedKey===key?' primary-selected':'')+(locked?' locked':'');box.dataset.layoutKey=key;box.style.left=px.left+'px';box.style.top=px.top+'px';box.style.width=px.width+'px';box.style.height=px.height+'px';box.innerHTML=`<div class="layout-edit-label">${escHtml(label)}${locked?' · 🔒':''}</div><div class="layout-resize-handle nw" data-resize="nw" title="Resize from top left"></div><div class="layout-resize-handle ne" data-resize="ne" title="Resize from top right"></div><div class="layout-resize-handle sw" data-resize="sw" title="Resize from bottom left"></div><div class="layout-resize-handle se" data-resize="se" title="Resize from bottom right"></div>`;box.addEventListener('pointerdown',beginLayoutPointer);if(customKeyId(key)){box.title='Double-click to configure this added block · Shift/Ctrl/Cmd-click to multi-select';box.addEventListener('dblclick',e=>{e.preventDefault();selectLayoutBlock(key);configureSelectedCustomBlock();});}else box.title='Shift/Ctrl/Cmd-click to multi-select';layer.appendChild(box);}
 function refreshLayoutToolbarBlockOptions(){const picker=document.getElementById('layout-toolbar-block');if(!picker)return;const current=layoutSelectedKey;picker.innerHTML='<option value="">Choose…</option>'+Object.entries(LAYOUT_BLOCK_DEFS).map(([k,d])=>`<option value="${k}">${escHtml(d.label)}</option>`).join('')+(layoutCustomBlocksDraft.length?'<optgroup label="Added blocks">'+layoutCustomBlocksDraft.map(b=>`<option value="${customBlockKey(b.id)}">${escHtml(b.name||BLOCK_TYPE_INFO[b.type]?.name||'Block')}</option>`).join('')+'</optgroup>':'');picker.value=current||'';}
 function layoutEditorRectForKey(key){const id=customKeyId(key);if(id)return customBlockById(id,layoutCustomBlocksDraft)?.rect||null;return layoutEditorDraft[key]||null;}
 function layoutEditorDefForKey(key){const id=customKeyId(key);if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return null;const [minW,minH]=customBlockMin(b.type,b);return {label:b.name||BLOCK_TYPE_INFO[b.type]?.name||'Block',minW,minH,custom:true,block:b,locked:b.config?._locked===true};}return LAYOUT_BLOCK_DEFS[key]||null;}
@@ -562,7 +565,7 @@ function setLayoutEditorRectForKey(key,r){const id=customKeyId(key);if(id){const
 function selectedPartDefs(){const id=customKeyId(layoutSelectedKey);if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return [];try{const runtimeDefs=LibreDisplayRuntime.getModule('layout')?.integrationPartDefs?.(b)||[];if(runtimeDefs.length)return runtimeDefs.filter(x=>x.key!=='outer'&&x.movable!==false).map(x=>({key:x.key,label:x.label,selectors:x.selector,size:{em:1}}));}catch{}return customBlockLayoutPartDefs(b);}return LAYOUT_PART_DEFS[layoutSelectedKey]||[];}
 function selectedPartDefinition(){return selectedPartDefs().find(x=>x.key===layoutSelectedPart)||null;}
 function selectedPartStyle(){if(layoutSelectedPart==='whole')return normalizePartStyleValue({});const id=customKeyId(layoutSelectedKey);if(id){const b=customBlockById(id,layoutCustomBlocksDraft);return normalizePartStyleValue(b?.config?._partStyles?.[layoutSelectedPart]||{});}return normalizePartStyleValue(layoutPartStyleDraft?.[layoutSelectedKey]?.[layoutSelectedPart]||{});}
-function setSelectedPartStyleValue(field,value,continuous=false){if(!layoutEditorActive||!layoutSelectedKey||layoutSelectedPart==='whole'||!selectedPartDefinition())return;if(continuous){if(layoutPartFineEditField!==field){pushLayoutHistory();layoutPartFineEditField=field;}}else{pushLayoutHistory();layoutPartFineEditField='';}const current=selectedPartStyle(),next=normalizePartStyleValue({...current,[field]:value}),id=customKeyId(layoutSelectedKey);if(!id&&LAYOUT_BLOCK_DEFS[layoutSelectedKey]){freezeBuiltInFrameFit(layoutSelectedKey);}if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return;b.config=b.config||{};b.config._partStyles=b.config._partStyles&&typeof b.config._partStyles==='object'?b.config._partStyles:{};b.config._partStyles[layoutSelectedPart]=next;}else{layoutPartStyleDraft[layoutSelectedKey]=layoutPartStyleDraft[layoutSelectedKey]&&typeof layoutPartStyleDraft[layoutSelectedKey]==='object'?layoutPartStyleDraft[layoutSelectedKey]:{};layoutPartStyleDraft[layoutSelectedKey][layoutSelectedPart]=next;}applyLayoutInspectorPreview();renderCurrentWeatherPartBoxes();renderBuiltInPartBoxes();updateLayoutSelectedInfo();}
+function setSelectedPartStyleValue(field,value,continuous=false){if(!layoutEditorActive||!layoutSelectedKey||layoutSelectedPart==='whole'||!selectedPartDefinition())return;if(continuous){if(layoutPartFineEditField!==field){pushLayoutHistory();layoutPartFineEditField=field;}}else{pushLayoutHistory();layoutPartFineEditField='';}const current=selectedPartStyle(),next=normalizePartStyleValue({...current,[field]:value}),id=customKeyId(layoutSelectedKey);if(!id&&LAYOUT_BLOCK_DEFS[layoutSelectedKey]){const st=layoutElementStyleDraft[layoutSelectedKey]||{};if(st.fitContent!==false){const el=builtInLayoutAutoFitElement(layoutSelectedKey),prop=`--ld-layout-fit-${layoutSelectedKey}`,fit=Math.min(1,Math.max(.15,parseFloat(el?.style?.getPropertyValue(prop)||getComputedStyle(el||document.documentElement).getPropertyValue(prop)||'1')||1));layoutElementStyleDraft[layoutSelectedKey]={...st,fitContent:false,frozenFit:fit};if(el)el.style.setProperty(prop,fit.toFixed(4));}}if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return;b.config=b.config||{};b.config._partStyles=b.config._partStyles&&typeof b.config._partStyles==='object'?b.config._partStyles:{};b.config._partStyles[layoutSelectedPart]=next;}else{layoutPartStyleDraft[layoutSelectedKey]=layoutPartStyleDraft[layoutSelectedKey]&&typeof layoutPartStyleDraft[layoutSelectedKey]==='object'?layoutPartStyleDraft[layoutSelectedKey]:{};layoutPartStyleDraft[layoutSelectedKey][layoutSelectedPart]=next;}applyLayoutInspectorPreview();renderCurrentWeatherPartBoxes();renderBuiltInPartBoxes();updateLayoutSelectedInfo();}
 function setSelectedPartFineStyle(field,value,continuous=false){setSelectedPartStyleValue(field,value,continuous);}
 function finishSelectedPartFineStyleEdit(){layoutPartFineEditField='';}
 function selectedContentScale(){if(layoutSelectedPart!=='whole')return selectedPartStyle().scale;const id=customKeyId(layoutSelectedKey);if(id)return Math.min(200,Math.max(50,Number(customBlockById(id,layoutCustomBlocksDraft)?.config?._contentScale)||100));return Math.min(200,Math.max(50,Number(layoutContentScaleDraft?.[layoutSelectedKey])||100));}
@@ -572,27 +575,7 @@ function finishSelectedContentScaleEdit(){layoutScaleEditActive=false;layoutPart
 function resetSelectedContentScale(){if(!layoutEditorActive||!layoutSelectedKey)return;if(layoutSelectedPart!=='whole'){setSelectedPartStyleValue('scale',100,false);return;}pushLayoutHistory();layoutScaleEditActive=false;const id=customKeyId(layoutSelectedKey);if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return;b.config=b.config||{};b.config._contentScale=100;applyCustomBlockUniversalState(document.querySelector(`.custom-block[data-block-id="${CSS.escape(id)}"]`),b);}else {layoutContentScaleDraft[layoutSelectedKey]=100;applyLayoutEditorContentScalePreview();}updateLayoutSelectedInfo();}
 function selectedLayoutStyle(){if(layoutSelectedPart!=='whole'){const p=selectedPartStyle();return {hAlign:p.textAlign,vAlign:p.vAlign,fontFamily:p.fontFamily,textColor:p.textColor,opacity:p.opacity,fitContent:true};}const id=customKeyId(layoutSelectedKey);if(id){const c=customBlockById(id,layoutCustomBlocksDraft)?.config||{};return {hAlign:c._hAlign||'auto',vAlign:c._vAlign||'auto',fontFamily:c._fontFamily||'',textColor:c._textColor||'',opacity:Math.min(100,Math.max(20,Number(c._opacity)||100)),fitContent:true};}const s=layoutElementStyleDraft?.[layoutSelectedKey]||{};return {hAlign:s.hAlign||'auto',vAlign:s.vAlign||'auto',fontFamily:s.fontFamily||'',textColor:s.textColor||'',opacity:Math.min(100,Math.max(20,Number(s.opacity)||100)),fitContent:s.fitContent!==false};}
 function layoutFrameFitContentEnabled(key){const source=layoutEditorActive?layoutElementStyleDraft:cfg.layoutElementStyle;return source?.[key]?.fitContent!==false;}
-// The frame's rectangle is independent of its text fit. Never reset the live
-// fitted scale to 1 while taking manual control of a block or its typography.
-function freezeBuiltInFrameFit(key){
-  if(!layoutEditorActive||!LAYOUT_BLOCK_DEFS[key])return;
-  const st=layoutElementStyleDraft[key]||{},el=builtInLayoutAutoFitElement(key),prop=`--ld-layout-fit-${key}`;
-  const current=Number.parseFloat(el?.style?.getPropertyValue(prop)||'');
-  const frozen=st.fitContent===false&&Number.isFinite(Number(st.frozenFit))
-    ?Number(st.frozenFit):(Number.isFinite(current)?current:(Number.isFinite(Number(st.frozenFit))?Number(st.frozenFit):1));
-  const fit=Math.min(1,Math.max(.15,frozen));
-  layoutElementStyleDraft[key]={...st,fitContent:false,frozenFit:fit};
-  el?.style?.setProperty(prop,fit.toFixed(4));
-}
-function setSelectedFrameFitContent(enabled){
-  if(!layoutEditorActive||!layoutSelectedKey||customKeyId(layoutSelectedKey)||!LAYOUT_BLOCK_DEFS[layoutSelectedKey]||layoutSelectedPart!=='whole')return;
-  const key=layoutSelectedKey,current=layoutElementStyleDraft[key]?.fitContent!==false;
-  if(current===!!enabled)return;
-  pushLayoutHistory();
-  if(enabled){layoutElementStyleDraft[key]={...(layoutElementStyleDraft[key]||{}),fitContent:true};scheduleBuiltInLayoutAutoFit(key);}
-  else freezeBuiltInFrameFit(key);
-  applyLayoutInspectorPreview();updateLayoutSelectedInfo();
-}
+function setSelectedFrameFitContent(enabled){if(!layoutEditorActive||!layoutSelectedKey||customKeyId(layoutSelectedKey)||!LAYOUT_BLOCK_DEFS[layoutSelectedKey]||layoutSelectedPart!=='whole')return;pushLayoutHistory();layoutElementStyleDraft[layoutSelectedKey]={...(layoutElementStyleDraft[layoutSelectedKey]||{}),fitContent:!!enabled};resetBuiltInLayoutFitForKey(layoutSelectedKey);if(enabled)scheduleBuiltInLayoutAutoFit(layoutSelectedKey);updateLayoutSelectedInfo();}
 function applyLayoutInspectorPreview(){if(!layoutEditorActive)return;applyUiCustomization({...cfg,layoutMode:'custom',layoutBlocks:layoutEditorDraft,layoutContentScale:layoutContentScaleDraft,layoutElementStyle:layoutElementStyleDraft,layoutPartStyle:layoutPartStyleDraft,currentWeatherLayout:currentWeatherLayoutDraft,currentWeatherPartLayout:currentWeatherPartLayoutDraft,customBlocks:layoutCustomBlocksDraft});}
 function setSelectedLayoutStyle(field,value,continuous=false){if(!layoutEditorActive||!layoutSelectedKey)return;if(layoutSelectedPart!=='whole'){const map={hAlign:'textAlign',vAlign:'vAlign',fontFamily:'fontFamily',textColor:'textColor',opacity:'opacity'};const target=map[field];if(!target)return;setSelectedPartStyleValue(target,value,continuous);return;}if(continuous){if(layoutStyleEditField!==field){pushLayoutHistory();layoutStyleEditField=field;}}else{pushLayoutHistory();layoutStyleEditField='';}const id=customKeyId(layoutSelectedKey);const h=['auto','left','center','right'],v=['auto','top','middle','bottom'],fonts=LAYOUT_PART_FONT_FAMILIES;let val=value;if(field==='hAlign')val=h.includes(value)?value:'auto';if(field==='vAlign')val=v.includes(value)?value:'auto';if(field==='fontFamily')val=fonts.includes(value)?value:'';if(field==='textColor')val=/^#[0-9a-f]{6}$/i.test(value||'')?String(value).toLowerCase():'';if(field==='opacity')val=Math.min(100,Math.max(20,Number(value)||100));if(id){const b=customBlockById(id,layoutCustomBlocksDraft);if(!b)return;b.config=b.config||{};const map={hAlign:'_hAlign',vAlign:'_vAlign',fontFamily:'_fontFamily',textColor:'_textColor',opacity:'_opacity'};b.config[map[field]]=val;applyCustomBlockUniversalState(document.querySelector(`.custom-block[data-block-id="${CSS.escape(id)}"]`),b);}else{layoutElementStyleDraft[layoutSelectedKey]={...(layoutElementStyleDraft[layoutSelectedKey]||{}),[field]:val};applyLayoutInspectorPreview();}updateLayoutSelectedInfo();}
 function finishSelectedLayoutStyleEdit(){layoutStyleEditField='';layoutPartFineEditField='';}
@@ -619,10 +602,10 @@ function resetBuiltInPartArrangement(){if(!layoutEditorActive||customKeyId(layou
 function resetAllBuiltInPartArrangements(){if(!layoutEditorActive||customKeyId(layoutSelectedKey)||layoutSelectedKey==='current')return;pushLayoutHistory();layoutPartStyleDraft[layoutSelectedKey]=layoutPartStyleDraft[layoutSelectedKey]||{};for(const def of LAYOUT_PART_DEFS[layoutSelectedKey]||[]){if(!layoutPartStyleDraft[layoutSelectedKey][def.key])continue;const current=normalizePartStyleValue(layoutPartStyleDraft[layoutSelectedKey][def.key]);layoutPartStyleDraft[layoutSelectedKey][def.key]=normalizePartStyleValue({...current,mode:'flow',x:0,y:0,w:20,h:10,z:2,preserveFlow:false,originX:0,originY:0,freeSize:false});}applyLayoutInspectorPreview();renderBuiltInPartBoxes();updateLayoutSelectedInfo();}
 function renderBuiltInPartBoxes(){const layer=document.getElementById('layout-editor-layer');if(!layer)return;for(const el of layer.querySelectorAll('.layout-built-in-part-box'))el.remove();if(!layoutEditorActive||!layoutSelectedKey||customKeyId(layoutSelectedKey)||layoutSelectedKey==='current')return;const selected=new Set(layoutPartSelectionKeys());for(const def of LAYOUT_PART_DEFS[layoutSelectedKey]||[]){if(def.movable===false||!def.selector)continue;const targets=builtInPartTargets(layoutSelectedKey,def.key);targets.forEach((target,index)=>{const r=builtInPartFootprintRect(layoutSelectedKey,def.key,target);if(!r)return;const box=document.createElement('div');box.className='layout-built-in-part-box'+(selected.has(def.key)?' selected':'')+(layoutSelectedPart===def.key?' primary-selected':'');box.dataset.builtInPart=def.key;box.dataset.builtInIndex=String(index);box.style.left=r.left+'px';box.style.top=r.top+'px';box.style.width=r.width+'px';box.style.height=r.height+'px';box.title='Ctrl/Cmd-click to multi-select parts';box.innerHTML=`<span class="layout-built-in-part-label">${index===0?escHtml(def.label):''}</span><span class="layout-built-in-part-resize-handle" data-built-in-resize="1" title="Scale this part without changing its footprint"></span>`;box.addEventListener('pointerdown',beginBuiltInPartPointer);layer.appendChild(box);});}}
 const LAYOUT_PART_DRAG_THRESHOLD_PX=4;
-function beginBuiltInPartPointer(e){if(!layoutEditorActive||customKeyId(layoutSelectedKey)||layoutSelectedKey==='current')return;const partKey=e.currentTarget?.dataset?.builtInPart,def=builtInPartDef(layoutSelectedKey,partKey);if(!def||def.movable===false)return;const targets=builtInPartTargets(layoutSelectedKey,partKey),index=Math.max(0,Number(e.currentTarget?.dataset?.builtInIndex)||0),target=targets[index]||targets[0];if(!target)return;e.stopPropagation();e.preventDefault();const resizing=!!e.target?.dataset?.builtInResize,additive=!resizing&&!!(e.shiftKey||e.ctrlKey||e.metaKey),before=layoutPartSelectionKeys();if(additive)selectLayoutPart(partKey,true);else if(before.includes(partKey)&&before.length>1)selectLayoutPart(partKey,false,true);else selectLayoutPart(partKey);if(additive&&!layoutPartSelectionKeys().includes(partKey))return;const visual=builtInPartFootprintRect(layoutSelectedKey,partKey,target)||target.getBoundingClientRect(),parent=builtInPartParentElement(layoutSelectedKey,def,target),pr=parent?.getBoundingClientRect?.();if(!resizing&&(!parent||!pr||pr.width<2||pr.height<2))return;const groupKeys=!resizing&&layoutPartSelectionKeys().includes(partKey)?layoutPartSelectionKeys().filter(key=>builtInPartDef(layoutSelectedKey,key)?.movable!==false):[partKey];builtInPartPointerState={blockKey:layoutSelectedKey,partKey,groupKeys,intent:resizing?'scale':'move',active:false,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,target,startScale:selectedPartStyle().scale,startWidthPx:Math.max(1,visual.width),startHeightPx:Math.max(1,visual.height),starts:{}};captureStableArrangePointer(e);}
+function beginBuiltInPartPointer(e){if(!layoutEditorActive||customKeyId(layoutSelectedKey)||layoutSelectedKey==='current')return;const partKey=e.currentTarget?.dataset?.builtInPart,def=builtInPartDef(layoutSelectedKey,partKey);if(!def||def.movable===false)return;const targets=builtInPartTargets(layoutSelectedKey,partKey),index=Math.max(0,Number(e.currentTarget?.dataset?.builtInIndex)||0),target=targets[index]||targets[0];if(!target)return;e.stopPropagation();e.preventDefault();const resizing=!!e.target?.dataset?.builtInResize,additive=!resizing&&!!(e.shiftKey||e.ctrlKey||e.metaKey),before=layoutPartSelectionKeys();if(additive)selectLayoutPart(partKey,true);else if(before.includes(partKey)&&before.length>1)selectLayoutPart(partKey,false,true);else selectLayoutPart(partKey);if(additive&&!layoutPartSelectionKeys().includes(partKey))return;const visual=builtInPartFootprintRect(layoutSelectedKey,partKey,target)||target.getBoundingClientRect(),parent=builtInPartParentElement(layoutSelectedKey,def,target),pr=parent?.getBoundingClientRect?.();if(!resizing&&(!parent||!pr||pr.width<2||pr.height<2))return;const groupKeys=!resizing&&layoutPartSelectionKeys().includes(partKey)?layoutPartSelectionKeys().filter(key=>builtInPartDef(layoutSelectedKey,key)?.movable!==false):[partKey];builtInPartPointerState={blockKey:layoutSelectedKey,partKey,groupKeys,intent:resizing?'scale':'move',active:false,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,target,startScale:selectedPartStyle().scale,startWidthPx:Math.max(1,visual.width),startHeightPx:Math.max(1,visual.height),starts:{}};try{e.currentTarget.setPointerCapture?.(e.pointerId);}catch{}}
 function activateBuiltInPartPointer(st){if(st.active)return true;pushLayoutHistory();if(st.intent==='scale'){const style=layoutElementStyleDraft[st.blockKey]||{};if(style.fitContent!==false){const fitEl=builtInLayoutAutoFitElement(st.blockKey),prop=`--ld-layout-fit-${st.blockKey}`,fit=Math.min(1,Math.max(.15,parseFloat(fitEl?.style?.getPropertyValue(prop)||getComputedStyle(fitEl||document.documentElement).getPropertyValue(prop)||'1')||1));layoutElementStyleDraft[st.blockKey]={...style,fitContent:false,frozenFit:fit};if(fitEl)fitEl.style.setProperty(prop,fit.toFixed(4));}}else{const prepared=[],keys=st.groupKeys||[st.partKey];for(const key of keys){const target=key===st.partKey?st.target:builtInPartTargets(st.blockKey,key)[0],def=builtInPartDef(st.blockKey,key),parent=builtInPartParentElement(st.blockKey,def,target),pr=parent?.getBoundingClientRect?.();if(!target||!pr||pr.width<2||pr.height<2)continue;let row=normalizePartStyleValue(layoutPartStyleDraft?.[st.blockKey]?.[key]||{});const captured=row.mode==='free'?null:captureBuiltInPartGeometry(st.blockKey,key,target);if(row.mode!=='free'&&!captured)continue;prepared.push({key,target,parentWidth:pr.width,parentHeight:pr.height,row:captured||row,captured});}if(!prepared.some(x=>x.key===st.partKey))return false;const conversions=prepared.filter(x=>x.captured);if(conversions.length){const fitEl=builtInLayoutAutoFitElement(st.blockKey),prop=`--ld-layout-fit-${st.blockKey}`,currentFit=Math.min(1,Math.max(.15,parseFloat(fitEl?.style?.getPropertyValue(prop)||'1')||1));for(const item of conversions)item.row=writeBuiltInPartStyle(st.blockKey,item.key,item.captured);layoutElementStyleDraft[st.blockKey]={...(layoutElementStyleDraft[st.blockKey]||{}),fitContent:false,frozenFit:currentFit};if(fitEl)fitEl.style.setProperty(prop,currentFit.toFixed(4));applyLayoutInspectorPreview();}for(const item of prepared)st.starts[item.key]={row:{...item.row},parentWidth:item.parentWidth,parentHeight:item.parentHeight,target:item.target};}st.active=true;return true;}
 function moveBuiltInPartPointer(e){const st=builtInPartPointerState;if(!st||e.pointerId!==st.pointerId)return false;let moveX=e.clientX-st.startX,moveY=e.clientY-st.startY;if(!st.active&&Math.hypot(moveX,moveY)<LAYOUT_PART_DRAG_THRESHOLD_PX){e.preventDefault();return true;}if(!activateBuiltInPartPointer(st)){builtInPartPointerState=null;return true;}let guides=[];if(st.intent==='scale'){const nx=moveX/st.startWidthPx,ny=moveY/st.startHeightPx,delta=Math.abs(nx)>=Math.abs(ny)?nx:ny;writeBuiltInPartStyle(st.blockKey,st.partKey,{scale:Math.min(300,Math.max(25,st.startScale*(1+delta)))});applyLayoutInspectorPreview();}else{for(const key of st.groupKeys||[st.partKey]){const entry=st.starts[key];if(!entry)continue;writeBuiltInPartStyle(st.blockKey,key,{x:Math.min(200,Math.max(-100,entry.row.x+moveX/entry.parentWidth*100)),y:Math.min(200,Math.max(-100,entry.row.y+moveY/entry.parentHeight*100))});}applyLayoutInspectorPreview();if(!e.altKey){const primary=st.starts[st.partKey],target=primary?.target,live=builtInPartFootprintRect(st.blockKey,st.partKey,target)||target?.getBoundingClientRect?.(),parent=builtInPartParentElement(st.blockKey,builtInPartDef(st.blockKey,st.partKey),target),pr=parent?.getBoundingClientRect?.();if(live&&pr?.width>1&&pr?.height>1){const candidates=builtInPartAlignmentRects(st.blockKey,st.partKey,target,live),magnetic=magneticSnapForScreenRect(live,candidates);if(magnetic.dx||magnetic.dy){for(const key of st.groupKeys||[st.partKey]){const entry=st.starts[key],row=normalizePartStyleValue(layoutPartStyleDraft?.[st.blockKey]?.[key]||{});if(!entry)continue;writeBuiltInPartStyle(st.blockKey,key,{x:Math.min(200,Math.max(-100,row.x+magnetic.dx/entry.parentWidth*100)),y:Math.min(200,Math.max(-100,row.y+magnetic.dy/entry.parentHeight*100))});}applyLayoutInspectorPreview();}guides=magnetic.guides;}}}renderBuiltInPartBoxes();renderLayoutSmartGuides(guides);updateLayoutSelectedInfo();e.preventDefault();return true;}
-function endBuiltInPartPointer(e){const st=builtInPartPointerState;if(!st||e&&e.pointerId!==st.pointerId)return false;builtInPartPointerState=null;releaseStableArrangePointer(st.pointerId);clearLayoutSmartGuides();renderBuiltInPartBoxes();return true;}
+function endBuiltInPartPointer(e){const st=builtInPartPointerState;if(!st||e&&e.pointerId!==st.pointerId)return false;builtInPartPointerState=null;clearLayoutSmartGuides();renderBuiltInPartBoxes();return true;}
 const CURRENT_WEATHER_MOVABLE_PARTS=[
   {key:'locationLabel',label:'Location / display label',selector:'.wx-location'},
   {key:'icon',label:'Weather icon',selector:'.wx-icon-big'},
@@ -652,10 +635,10 @@ function renderCurrentWeatherPartBoxes(){
   const layer=document.getElementById('layout-editor-layer');if(!layer)return;for(const el of layer.querySelectorAll('.layout-current-part-box'))el.remove();if(!layoutEditorActive||layoutSelectedKey!=='current')return;const main=document.querySelector('.wx-main'),mr=main?.getBoundingClientRect?.();if(!main||!mr||mr.width<2||mr.height<2)return;const selected=new Set(layoutPartSelectionKeys());
   for(const def of CURRENT_WEATHER_MOVABLE_PARTS){const target=main.querySelector(def.selector);if(!target||getComputedStyle(target).display==='none')continue;const r=builtInPartFootprintRect('current',def.key,target);if(!r||r.width<2||r.height<2)continue;const box=document.createElement('div');box.className='layout-current-part-box'+(selected.has(def.key)?' selected':'')+(layoutSelectedPart===def.key?' primary-selected':'');box.dataset.currentWeatherPart=def.key;box.style.left=r.left+'px';box.style.top=r.top+'px';box.style.width=r.width+'px';box.style.height=r.height+'px';box.title='Ctrl/Cmd-click to multi-select parts';box.innerHTML=`<span class="layout-current-part-label">${escHtml(def.label)}</span><span class="layout-current-part-resize-handle" data-current-resize="1" title="Scale this weather part without changing its footprint"></span>`;box.addEventListener('pointerdown',beginCurrentWeatherPartPointer);layer.appendChild(box);}
 }
-function beginCurrentWeatherPartPointer(e){if(!layoutEditorActive||layoutSelectedKey!=='current')return;const key=e.currentTarget?.dataset?.currentWeatherPart,def=currentWeatherMovablePartDef(key);if(!def)return;e.stopPropagation();e.preventDefault();const resizing=!!e.target?.dataset?.currentResize,additive=!resizing&&!!(e.shiftKey||e.ctrlKey||e.metaKey),before=layoutPartSelectionKeys();if(additive)selectLayoutPart(key,true);else if(before.includes(key)&&before.length>1)selectLayoutPart(key,false,true);else selectLayoutPart(key);if(additive&&!layoutPartSelectionKeys().includes(key))return;const targetEl=currentWeatherPartElement(key),visual=builtInPartFootprintRect('current',key,targetEl)||targetEl?.getBoundingClientRect?.(),main=document.querySelector('.wx-main')?.getBoundingClientRect?.();if(!targetEl||!visual||!main||main.width<2||main.height<2)return;const groupKeys=!resizing&&layoutPartSelectionKeys().includes(key)?layoutPartSelectionKeys().filter(k=>currentWeatherMovablePartDef(k)):[key];currentWeatherPartPointerState={key,groupKeys,intent:resizing?'scale':'move',active:false,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,startScale:selectedPartStyle().scale,startWidthPx:Math.max(1,visual.width),startHeightPx:Math.max(1,visual.height),mainWidth:main.width,mainHeight:main.height,startScreen:{left:visual.left,top:visual.top,width:visual.width,height:visual.height},starts:{}};captureStableArrangePointer(e);}
+function beginCurrentWeatherPartPointer(e){if(!layoutEditorActive||layoutSelectedKey!=='current')return;const key=e.currentTarget?.dataset?.currentWeatherPart,def=currentWeatherMovablePartDef(key);if(!def)return;e.stopPropagation();e.preventDefault();const resizing=!!e.target?.dataset?.currentResize,additive=!resizing&&!!(e.shiftKey||e.ctrlKey||e.metaKey),before=layoutPartSelectionKeys();if(additive)selectLayoutPart(key,true);else if(before.includes(key)&&before.length>1)selectLayoutPart(key,false,true);else selectLayoutPart(key);if(additive&&!layoutPartSelectionKeys().includes(key))return;const targetEl=currentWeatherPartElement(key),visual=builtInPartFootprintRect('current',key,targetEl)||targetEl?.getBoundingClientRect?.(),main=document.querySelector('.wx-main')?.getBoundingClientRect?.();if(!targetEl||!visual||!main||main.width<2||main.height<2)return;const groupKeys=!resizing&&layoutPartSelectionKeys().includes(key)?layoutPartSelectionKeys().filter(k=>currentWeatherMovablePartDef(k)):[key];currentWeatherPartPointerState={key,groupKeys,intent:resizing?'scale':'move',active:false,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,startScale:selectedPartStyle().scale,startWidthPx:Math.max(1,visual.width),startHeightPx:Math.max(1,visual.height),mainWidth:main.width,mainHeight:main.height,startScreen:{left:visual.left,top:visual.top,width:visual.width,height:visual.height},starts:{}};try{e.currentTarget.setPointerCapture?.(e.pointerId);}catch{}}
 function activateCurrentWeatherPartPointer(st){if(st.active)return true;pushLayoutHistory();if(st.intent==='scale'){const style=layoutElementStyleDraft.current||{};if(style.fitContent!==false){const fitEl=builtInLayoutAutoFitElement('current'),prop='--ld-layout-fit-current',fit=Math.min(1,Math.max(.15,parseFloat(fitEl?.style?.getPropertyValue(prop)||getComputedStyle(fitEl||document.documentElement).getPropertyValue(prop)||'1')||1));layoutElementStyleDraft.current={...style,fitContent:false,frozenFit:fit};if(fitEl)fitEl.style.setProperty(prop,fit.toFixed(4));}}else if(currentWeatherLayoutDraft==='free'){for(const key of st.groupKeys||[st.key]){const row={...(currentWeatherPartLayoutDraft[key]||CURRENT_WEATHER_PART_FALLBACKS[key])},targetEl=currentWeatherPartElement(key),footprint=builtInPartFootprintRect('current',key,targetEl);if(!footprint)continue;if(!(Number(row.h)>0))row.h=Math.max(2,footprint.height/st.mainHeight*100);st.starts[key]=row;}if(!st.starts[st.key])return false;}else{const prepared=[];for(const key of st.groupKeys||[st.key]){const target=currentWeatherPartElement(key);if(!target)continue;let row=normalizePartStyleValue(layoutPartStyleDraft?.current?.[key]||{}),captured=row.mode==='free'?null:captureBuiltInPartGeometry('current',key,target);if(row.mode!=='free'&&!captured)continue;prepared.push({key,row:captured||row,captured});}if(!prepared.some(x=>x.key===st.key))return false;const conversions=prepared.filter(x=>x.captured);if(conversions.length){const fitEl=builtInLayoutAutoFitElement('current'),prop='--ld-layout-fit-current',currentFit=Math.min(1,Math.max(.15,parseFloat(fitEl?.style?.getPropertyValue(prop)||'1')||1));for(const item of conversions)item.row=writeBuiltInPartStyle('current',item.key,item.captured);layoutElementStyleDraft.current={...(layoutElementStyleDraft.current||{}),fitContent:false,frozenFit:currentFit};if(fitEl)fitEl.style.setProperty(prop,currentFit.toFixed(4));applyLayoutInspectorPreview();}for(const item of prepared)st.starts[item.key]={...item.row};}st.active=true;return true;}
 function moveCurrentWeatherPartPointer(e){const st=currentWeatherPartPointerState;if(!st||e.pointerId!==st.pointerId)return false;let moveX=e.clientX-st.startX,moveY=e.clientY-st.startY;if(!st.active&&Math.hypot(moveX,moveY)<LAYOUT_PART_DRAG_THRESHOLD_PX){e.preventDefault();return true;}if(!activateCurrentWeatherPartPointer(st)){currentWeatherPartPointerState=null;return true;}let guides=[];if(st.intent==='scale'){const nx=moveX/st.startWidthPx,ny=moveY/st.startHeightPx,delta=Math.abs(nx)>=Math.abs(ny)?nx:ny;writeBuiltInPartStyle('current',st.key,{scale:Math.min(300,Math.max(25,st.startScale*(1+delta)))});applyLayoutInspectorPreview();}else{const dx=moveX/st.mainWidth*100,dy=moveY/st.mainHeight*100;for(const key of st.groupKeys||[st.key]){const start=st.starts[key];if(!start)continue;const row={...start,x:Math.max(-100,Math.min(200,start.x+dx)),y:Math.max(-100,Math.min(200,start.y+dy))};if(currentWeatherLayoutDraft==='free')currentWeatherPartLayoutDraft[key]=row;else writeBuiltInPartStyle('current',key,{x:row.x,y:row.y});}applyLayoutInspectorPreview();if(!e.altKey){const targetEl=currentWeatherPartElement(st.key),live=builtInPartFootprintRect('current',st.key,targetEl)||targetEl?.getBoundingClientRect?.(),main=document.querySelector('.wx-main')?.getBoundingClientRect?.();if(live&&main?.width>1&&main?.height>1){const magnetic=magneticSnapForScreenRect(live,builtInPartAlignmentRects('current',st.key,targetEl,live)),mx=magnetic.dx/main.width*100,my=magnetic.dy/main.height*100;if(magnetic.dx||magnetic.dy){for(const key of st.groupKeys||[st.key]){if(currentWeatherLayoutDraft==='free'){const current={...(currentWeatherPartLayoutDraft[key]||st.starts[key])};current.x=Math.max(-100,Math.min(200,current.x+mx));current.y=Math.max(-100,Math.min(200,current.y+my));currentWeatherPartLayoutDraft[key]=current;}else{const current=normalizePartStyleValue(layoutPartStyleDraft?.current?.[key]||{});writeBuiltInPartStyle('current',key,{x:Math.max(-100,Math.min(200,current.x+mx)),y:Math.max(-100,Math.min(200,current.y+my))});}}applyLayoutInspectorPreview();}guides=magnetic.guides;}}}renderCurrentWeatherPartBoxes();renderLayoutSmartGuides(guides);updateLayoutSelectedInfo();e.preventDefault();return true;}
-function endCurrentWeatherPartPointer(e){const st=currentWeatherPartPointerState;if(!st||e&&e.pointerId!==st.pointerId)return false;currentWeatherPartPointerState=null;releaseStableArrangePointer(st.pointerId);clearLayoutSmartGuides();renderCurrentWeatherPartBoxes();return true;}
+function endCurrentWeatherPartPointer(e){const st=currentWeatherPartPointerState;if(!st||e&&e.pointerId!==st.pointerId)return false;currentWeatherPartPointerState=null;clearLayoutSmartGuides();renderCurrentWeatherPartBoxes();return true;}
 
 function placeSelectedBuiltInPart(anchor){if(!layoutEditorActive||layoutSelectedPart==='whole'||customKeyId(layoutSelectedKey))return;const def=builtInPartDef(layoutSelectedKey,layoutSelectedPart);if(!def||def.movable===false)return;pushLayoutHistory();const parts=String(anchor||'middle-center').split('-'),v=parts[0],h=parts[1]||'center';if(layoutSelectedKey==='current'&&currentWeatherLayoutDraft==='free'){const measured=captureCurrentWeatherPartLayout()[layoutSelectedPart]||CURRENT_WEATHER_PART_FALLBACKS[layoutSelectedPart],row={...measured,...(currentWeatherPartLayoutDraft?.[layoutSelectedPart]||{})},x=h==='left'?0:h==='right'?100-row.w:(100-row.w)/2,y=v==='top'?0:v==='bottom'?100-row.h:(100-row.h)/2;currentWeatherPartLayoutDraft[layoutSelectedPart]={...row,x:Math.max(-100,Math.min(200,x)),y:Math.max(-100,Math.min(200,y))};}else{const target=layoutSelectedKey==='current'?currentWeatherPartElement(layoutSelectedPart):builtInPartTargets(layoutSelectedKey,layoutSelectedPart)[0],row=ensureBuiltInPartFreeLayout(layoutSelectedKey,layoutSelectedPart,target)||selectedPartStyle(),x=h==='left'?0:h==='right'?100-row.w:(100-row.w)/2,y=v==='top'?0:v==='bottom'?100-row.h:(100-row.h)/2;writeBuiltInPartStyle(layoutSelectedKey,layoutSelectedPart,{x:Math.max(-100,Math.min(200,x)),y:Math.max(-100,Math.min(200,y))});}applyLayoutInspectorPreview();renderCurrentWeatherPartBoxes();renderBuiltInPartBoxes();updateLayoutSelectedInfo();}
 
@@ -685,7 +668,7 @@ function selectLayoutBlock(key,preservePart=false,multi=false){
   const next=key||'',previous=layoutSelectedKey;
   if(multi&&next){const selected=layoutSelectionKeys();if(selected.includes(next)){layoutSelectedKeys=selected.filter(k=>k!==next);layoutSelectedKey=layoutSelectedKeys.at(-1)||'';}else{layoutSelectedKeys=[...selected,next];layoutSelectedKey=next;}}else{layoutSelectedKey=next;layoutSelectedKeys=next?[next]:[];}
   if(layoutSelectedKey!==previous&&!preservePart){layoutSelectedPart='whole';layoutSelectedPartKeys=[];}
-  const selectedNow=new Set(layoutSelectionKeys());document.querySelectorAll('.layout-edit-box').forEach(el=>{el.classList.toggle('selected',selectedNow.has(el.dataset.layoutKey));el.classList.toggle('primary-selected',el.dataset.layoutKey===layoutSelectedKey);el.setAttribute('aria-pressed',selectedNow.has(el.dataset.layoutKey)?'true':'false');});
+  const selectedNow=new Set(layoutSelectionKeys());document.querySelectorAll('.layout-edit-box').forEach(el=>{el.classList.toggle('selected',selectedNow.has(el.dataset.layoutKey));el.classList.toggle('primary-selected',el.dataset.layoutKey===layoutSelectedKey);});
   const picker=document.getElementById('layout-toolbar-block');if(picker&&picker.value!==layoutSelectedKey)picker.value=layoutSelectedKey;
   refreshToolbarCustomActions();refreshLayoutPartPicker();updateLayoutSelectedInfo();renderCurrentWeatherPartBoxes();renderBuiltInPartBoxes();
 }
@@ -710,81 +693,36 @@ function updateLayoutSelectedInfo(){
   const fitToggle=document.getElementById('layout-frame-fit-content');if(fitToggle)fitToggle.checked=st.fitContent!==false;if(currentWeatherPartMode){const measured=captureCurrentWeatherPartLayout()[layoutSelectedPart]||CURRENT_WEATHER_PART_FALLBACKS[layoutSelectedPart],ps=selectedPartStyle(),captured=currentWeatherLayoutDraft==='free'?{...measured,...(currentWeatherPartLayoutDraft?.[layoutSelectedPart]||{})}:ps.mode==='free'?{...measured,...ps}:measured;if(!(Number(captured.h)>0))captured.h=measured.h;for(const [id,key] of [['layout-current-part-x','x'],['layout-current-part-y','y'],['layout-current-part-w','w'],['layout-current-part-h','h'],['layout-current-part-z','z']]){const input=document.getElementById(id);if(input)input.value=String(Math.round((Number(captured?.[key])||0)*10)/10);}}
   const recoveryNeeded=selectedLayoutItemNeedsRecovery();el.classList.toggle('layout-needs-recovery',recoveryNeeded);const baseInfo=partMode?(partSelectionCount>1?`${partSelectionCount} parts selected · primary ${partDef.label}`:`${def.label} · ${partDef.label} · ${scale}%`):(selectionCount>1?`${selectionCount} selected · primary ${def.label}`:`${def.label} · ${Math.round(px.width)}×${Math.round(px.height)} · ${scale}%`);el.textContent=recoveryNeeded?`${baseInfo} · OFF-SCREEN · Home or Recover selected`:baseInfo;
 }
-const LAYOUT_BLOCK_DRAG_THRESHOLD_PX=4;
-function captureStableArrangePointer(e){
-  // Box overlays are recreated during a gesture. Capture on the persistent
-  // layer instead, so a redraw cannot steal the pointer from the editor.
-  const layer=document.getElementById('layout-editor-layer');
-  try{layer?.setPointerCapture?.(e.pointerId);}catch{}
-}
-function releaseStableArrangePointer(pointerId){
-  const layer=document.getElementById('layout-editor-layer');
-  try{if(layer?.hasPointerCapture?.(pointerId))layer.releasePointerCapture(pointerId);}catch{}
-}
 function beginLayoutPointer(e){
-  if(!layoutEditorActive||e.button!==0)return;
-  const box=e.currentTarget,key=box.dataset.layoutKey,r=layoutEditorRectForKey(key);if(!r)return;
-  const additive=!!(e.shiftKey||e.ctrlKey||e.metaKey),before=layoutSelectionKeys();
-  if(additive)selectLayoutBlock(key,false,true);
-  else if(before.includes(key)&&before.length>1){layoutSelectedKey=key;layoutSelectedKeys=before;layoutSelectedPart='whole';layoutSelectedPartKeys=[];const chosen=new Set(before);document.querySelectorAll('.layout-edit-box').forEach(el=>{el.classList.toggle('selected',chosen.has(el.dataset.layoutKey));el.classList.toggle('primary-selected',el.dataset.layoutKey===key);el.setAttribute('aria-pressed',chosen.has(el.dataset.layoutKey)?'true':'false');});const picker=document.getElementById('layout-toolbar-block');if(picker)picker.value=key;refreshToolbarCustomActions();refreshLayoutPartPicker();updateLayoutSelectedInfo();}
-  else selectLayoutBlock(key);
-  if(additive&&!layoutSelectionKeys().includes(key)){e.preventDefault();return;}
-  const def=layoutEditorDefForKey(key);if(def?.locked){e.preventDefault();return;}
-  const px=pxRectFromNormalized(r),mode=e.target?.dataset?.resize?('resize-'+e.target.dataset.resize):'move',groupKeys=mode==='move'&&layoutSelectionKeys().includes(key)?layoutSelectionMovableKeys():[key],startRects={};
-  for(const k of groupKeys){const rr=layoutEditorRectForKey(k);if(rr)startRects[k]=pxRectFromNormalized(rr);}
-  const groupBounds=layoutSelectionBounds(groupKeys);
-  // A click/select is not an edit. All layout mutations and the single Undo
-  // checkpoint are delayed until a real 4px drag/resize gesture begins.
-  layoutPointerState={key,mode,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,start:px,groupKeys,startRects,groupBounds,active:false,currentWeatherScreenRects:null,integrationFrameState:null};
-  captureStableArrangePointer(e);e.preventDefault();
-}
-function activateLayoutPointer(st){
-  if(st.active)return;
-  pushLayoutHistory();
-  if(st.mode.startsWith('resize-')){
-    if(!customKeyId(st.key)&&LAYOUT_BLOCK_DEFS[st.key])freezeBuiltInFrameFit(st.key);
-    if(st.key==='current'&&currentWeatherLayoutDraft==='free')st.currentWeatherScreenRects=captureCurrentWeatherPartScreenRects();
-    if(customKeyId(st.key))st.integrationFrameState=LibreDisplayRuntime.getModule('layout').captureIntegrationFreePartScreenRects?.(st.key);
-  }
-  st.active=true;
+  if(!layoutEditorActive)return;
+  const box=e.currentTarget,key=box.dataset.layoutKey,r=layoutEditorRectForKey(key);if(!r)return;const additive=!!(e.shiftKey||e.ctrlKey||e.metaKey),before=layoutSelectionKeys();
+  if(additive)selectLayoutBlock(key,false,true);else if(before.includes(key)&&before.length>1){layoutSelectedKey=key;layoutSelectedKeys=before;layoutSelectedPart='whole';layoutSelectedPartKeys=[];const chosen=new Set(before);document.querySelectorAll('.layout-edit-box').forEach(el=>{el.classList.toggle('selected',chosen.has(el.dataset.layoutKey));el.classList.toggle('primary-selected',el.dataset.layoutKey===key);});const picker=document.getElementById('layout-toolbar-block');if(picker)picker.value=key;refreshToolbarCustomActions();refreshLayoutPartPicker();updateLayoutSelectedInfo();}else selectLayoutBlock(key);
+  if(additive&&!layoutSelectionKeys().includes(key)){e.preventDefault();return;}const def=layoutEditorDefForKey(key);if(def?.locked){e.preventDefault();return;}pushLayoutHistory();box.setPointerCapture?.(e.pointerId);
+  const px=pxRectFromNormalized(r),mode=e.target?.dataset?.resize?('resize-'+e.target.dataset.resize):'move',groupKeys=mode==='move'&&layoutSelectionKeys().includes(key)?layoutSelectionMovableKeys():[key],startRects={};for(const k of groupKeys){const rr=layoutEditorRectForKey(k);if(rr)startRects[k]=pxRectFromNormalized(rr);}const groupBounds=layoutSelectionBounds(groupKeys),manualResize=mode.startsWith('resize-');if(manualResize&&!customKeyId(key)&&LAYOUT_BLOCK_DEFS[key]){layoutElementStyleDraft[key]={...(layoutElementStyleDraft[key]||{}),fitContent:false};resetBuiltInLayoutFitForKey(key);}const currentWeatherScreenRects=manualResize&&key==='current'&&currentWeatherLayoutDraft==='free'?captureCurrentWeatherPartScreenRects():null,integrationFrameState=manualResize&&customKeyId(key)?LibreDisplayRuntime.getModule('layout').captureIntegrationFreePartScreenRects?.(key):null;
+  layoutPointerState={key,mode,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,start:px,groupKeys,startRects,groupBounds,currentWeatherScreenRects,integrationFrameState};
+  e.preventDefault();
 }
 function moveLayoutPointer(e){
   if(moveCurrentWeatherPartPointer(e))return;
   if(moveBuiltInPartPointer(e))return;
-  const st=layoutPointerState;if(!st||!layoutEditorActive||e.pointerId!==st.pointerId)return;
-  const dx=e.clientX-st.startX,dy=e.clientY-st.startY;
-  if(!st.active&&Math.hypot(dx,dy)<LAYOUT_BLOCK_DRAG_THRESHOLD_PX){e.preventDefault();return;}
-  const def=layoutEditorDefForKey(st.key),vp=layoutViewportSize();if(!def)return;
-  activateLayoutPointer(st);
+  const st=layoutPointerState;if(!st||!layoutEditorActive)return;
+  const def=layoutEditorDefForKey(st.key),dx=e.clientX-st.startX,dy=e.clientY-st.startY,vp=layoutViewportSize();if(!def)return;
   let left=st.start.left,top=st.start.top,width=st.start.width,height=st.start.height,guides=[];
   if(st.mode==='move'){
-    const groupKeys=st.groupKeys?.length?st.groupKeys:[st.key],bounds=st.groupBounds||{left:st.start.left,top:st.start.top,width:st.start.width,height:st.start.height,right:st.start.left+st.start.width,bottom:st.start.top+st.start.height};
-    // Snap the delta, never the original rectangle. Previously, touching a
-    // non-grid-aligned block could move it even before the user dragged it.
-    let moveX=editorSnapPx(dx),moveY=editorSnapPx(dy);
-    moveX=Math.max(-bounds.left,Math.min(vp.width-bounds.right,moveX));moveY=Math.max(-bounds.top,Math.min(vp.height-bounds.bottom,moveY));
-    const moved={left:bounds.left+moveX,top:bounds.top+moveY,width:bounds.width,height:bounds.height};
-    if(!e.altKey){const magnetic=magneticSnapForBounds(moved,layoutSelectionKeys());moveX+=magnetic.dx;moveY+=magnetic.dy;moveX=Math.max(-bounds.left,Math.min(vp.width-bounds.right,moveX));moveY=Math.max(-bounds.top,Math.min(vp.height-bounds.bottom,moveY));guides=magnetic.guides;}
+    const groupKeys=st.groupKeys?.length?st.groupKeys:[st.key],bounds=st.groupBounds||{left:st.start.left,top:st.start.top,width:st.start.width,height:st.start.height,right:st.start.left+st.start.width,bottom:st.start.top+st.start.height};let moveX=editorSnapPx(st.start.left+dx)-st.start.left,moveY=editorSnapPx(st.start.top+dy)-st.start.top;
+    moveX=Math.max(-bounds.left,Math.min(vp.width-bounds.right,moveX));moveY=Math.max(-bounds.top,Math.min(vp.height-bounds.bottom,moveY));let moved={left:bounds.left+moveX,top:bounds.top+moveY,width:bounds.width,height:bounds.height};if(!e.altKey){const magnetic=magneticSnapForBounds(moved,layoutSelectionKeys());moveX+=magnetic.dx;moveY+=magnetic.dy;moveX=Math.max(-bounds.left,Math.min(vp.width-bounds.right,moveX));moveY=Math.max(-bounds.top,Math.min(vp.height-bounds.bottom,moveY));guides=magnetic.guides;}
     for(const key of groupKeys){const r=st.startRects?.[key];if(!r)continue;setLayoutEditorRectForKey(key,normalizedRectFromPx({left:r.left+moveX,top:r.top+moveY,width:r.width,height:r.height}));}
   }else{
     const dir=String(st.mode||'').slice(7),right=st.start.left+st.start.width,bottom=st.start.top+st.start.height;
-    const snapX=editorSnapPx(dx),snapY=editorSnapPx(dy);
-    if(dir.includes('w')){left=Math.max(0,Math.min(right-def.minW,st.start.left+snapX));width=right-left;}
-    if(dir.includes('e')){width=Math.max(def.minW,Math.min(vp.width-st.start.left,st.start.width+snapX));left=st.start.left;}
-    if(dir.includes('n')){top=Math.max(0,Math.min(bottom-def.minH,st.start.top+snapY));height=bottom-top;}
-    if(dir.includes('s')){height=Math.max(def.minH,Math.min(vp.height-st.start.top,st.start.height+snapY));top=st.start.top;}
-    setLayoutEditorRectForKey(st.key,normalizedRectFromPx({left,top,width,height}));
-    if(st.key==='current'&&st.currentWeatherScreenRects)preserveCurrentWeatherPartsAcrossFrameResize(st.currentWeatherScreenRects);
-    if(st.integrationFrameState)LibreDisplayRuntime.getModule('layout').preserveIntegrationFreePartScreenRects?.(st.integrationFrameState);
+    if(dir.includes('w')){left=editorSnapPx(st.start.left+dx);left=Math.max(0,Math.min(right-def.minW,left));width=right-left;}
+    if(dir.includes('e')){width=editorSnapPx(st.start.width+dx);width=Math.max(def.minW,Math.min(vp.width-st.start.left,width));left=st.start.left;}
+    if(dir.includes('n')){top=editorSnapPx(st.start.top+dy);top=Math.max(0,Math.min(bottom-def.minH,top));height=bottom-top;}
+    if(dir.includes('s')){height=editorSnapPx(st.start.height+dy);height=Math.max(def.minH,Math.min(vp.height-st.start.top,height));top=st.start.top;}
+    setLayoutEditorRectForKey(st.key,normalizedRectFromPx({left,top,width,height}));if(st.key==='current'&&st.currentWeatherScreenRects)preserveCurrentWeatherPartsAcrossFrameResize(st.currentWeatherScreenRects);if(st.integrationFrameState)LibreDisplayRuntime.getModule('layout').preserveIntegrationFreePartScreenRects?.(st.integrationFrameState);
   }
   renderLayoutEditorBoxes();if(guides.length)renderLayoutSmartGuides(guides);e.preventDefault();
 }
-function endLayoutPointer(e){
-  if(endCurrentWeatherPartPointer(e))return;
-  if(endBuiltInPartPointer(e))return;
-  const st=layoutPointerState;if(!st||e&&e.pointerId!==st.pointerId)return;
-  layoutPointerState=null;releaseStableArrangePointer(st.pointerId);clearLayoutSmartGuides();renderLayoutEditorBoxes();
-}
+function endLayoutPointer(e){if(endCurrentWeatherPartPointer(e))return;if(endBuiltInPartPointer(e))return;if(layoutPointerState&&(!e||e.pointerId===layoutPointerState.pointerId)){layoutPointerState=null;clearLayoutSmartGuides();renderLayoutEditorBoxes();}}
 function setLayoutEditorGrid(v){
   const n=[8,12,16,20,24,32].includes(Number(v))?Number(v):20;
   document.getElementById('layout-editor-layer')?.style.setProperty('--layout-grid-size',n+'px');
@@ -797,7 +735,7 @@ function setLayoutEditorSnap(on){
 function startLayoutEditor(){
   if(layoutEditorActive)return;
   refreshLayoutSessionViewport();
-  layoutEditorOriginal={savedAt:Number(cfg._savedAt||0),layoutMode:cfg.layoutMode,layoutBlocks:JSON.parse(JSON.stringify(cfg.layoutBlocks||{})),layoutContentScale:JSON.parse(JSON.stringify(cfg.layoutContentScale||{})),layoutElementStyle:JSON.parse(JSON.stringify(cfg.layoutElementStyle||{})),layoutPartStyle:JSON.parse(JSON.stringify(cfg.layoutPartStyle||{})),currentWeatherLayout:cfg.currentWeatherLayout||'stacked',currentWeatherPartLayout:JSON.parse(JSON.stringify(cfg.currentWeatherPartLayout||{})),layoutGridPx:cfg.layoutGridPx,layoutSnap:cfg.layoutSnap};
+  layoutEditorOriginal={layoutMode:cfg.layoutMode,layoutBlocks:JSON.parse(JSON.stringify(cfg.layoutBlocks||{})),layoutContentScale:JSON.parse(JSON.stringify(cfg.layoutContentScale||{})),layoutElementStyle:JSON.parse(JSON.stringify(cfg.layoutElementStyle||{})),layoutPartStyle:JSON.parse(JSON.stringify(cfg.layoutPartStyle||{})),currentWeatherLayout:cfg.currentWeatherLayout||'stacked',currentWeatherPartLayout:JSON.parse(JSON.stringify(cfg.currentWeatherPartLayout||{})),layoutGridPx:cfg.layoutGridPx,layoutSnap:cfg.layoutSnap};
   layoutCustomBlocksOriginal=JSON.parse(JSON.stringify(cfg.customBlocks||[]));layoutCustomBlocksDraft=normalizeCustomBlockDraftRects(JSON.parse(JSON.stringify(cfg.customBlocks||[])));
   layoutEditorDraft=ensureLayoutDraft();layoutContentScaleDraft=JSON.parse(JSON.stringify(cfg.layoutContentScale||{}));layoutElementStyleDraft=JSON.parse(JSON.stringify(cfg.layoutElementStyle||{}));layoutPartStyleDraft=JSON.parse(JSON.stringify(cfg.layoutPartStyle||{}));currentWeatherLayoutDraft=cfg.currentWeatherLayout||'stacked';currentWeatherPartLayoutDraft=JSON.parse(JSON.stringify(cfg.currentWeatherPartLayout||{}));layoutSelectedKey='';layoutSelectedKeys=[];layoutSelectedPart='whole';layoutSelectedPartKeys=[];layoutEditorActive=true;layoutScaleEditActive=false;layoutStyleEditField='';layoutPartFineEditField='';layoutUndoStack=[];layoutRedoStack=[];updateLayoutHistoryButtons();
   cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));
@@ -806,69 +744,37 @@ function startLayoutEditor(){
   renderCustomBlocks(layoutCustomBlocksDraft);customBlockRenderSignature=LibreDisplayRuntime.getModule('blocks').customBlockSignature(layoutCustomBlocksDraft);
   const layer=document.getElementById('layout-editor-layer'),toolbar=document.getElementById('layout-toolbar'),props=document.getElementById('layout-properties');
   layer?.classList.add('show');toolbar?.classList.add('show');props?.classList.add('show');
-  // An expanded inspector obscures virtually the entire canvas on phones.
-  // Collapse only for the opening narrow-screen editor; users may expand it.
-  if(innerWidth<=600&&!remoteLayoutProxyActive){
-    props?.classList.add('collapsed');const toggle= document.getElementById('layout-properties-collapse');if(toggle)toggle.textContent='+';
-  }
   layer?.setAttribute('aria-hidden','false');toolbar?.setAttribute('aria-hidden','false');props?.setAttribute('aria-hidden','false');initLayoutInspectorDrag();restoreLayoutInspectorPosition();
   const grid=Number(document.getElementById('s-layout-grid')?.value)||cfg.layoutGridPx||20,snap=document.getElementById('s-layout-snap')?.checked!==false;
   const gridSel=document.getElementById('layout-toolbar-grid');if(gridSel)gridSel.value=String(grid);
   const blockSel=document.getElementById('layout-toolbar-block');if(blockSel)blockSel.value='';
   const snapEl=document.getElementById('layout-toolbar-snap');if(snapEl)snapEl.checked=snap;const smart=document.getElementById('layout-toolbar-smart-guides');if(smart)smart.checked=true;
   setLayoutEditorGrid(grid);setLayoutEditorSnap(snap);setLayoutSmartGuides(true);applyLayoutEditorContentScalePreview();renderLayoutEditorBoxes();
-  document.addEventListener('pointermove',moveLayoutPointer,{passive:false});document.addEventListener('pointerup',endLayoutPointer);document.addEventListener('pointercancel',endLayoutPointer);
+  document.addEventListener('pointermove',moveLayoutPointer,{passive:false});document.addEventListener('pointerup',endLayoutPointer);
 }
 function layoutEditorPreviewState(){
   if(!layoutEditorActive)return null;
   return {layoutMode:'custom',layoutBlocks:JSON.parse(JSON.stringify(layoutEditorDraft||{})),layoutContentScale:JSON.parse(JSON.stringify(layoutContentScaleDraft||{})),layoutElementStyle:JSON.parse(JSON.stringify(layoutElementStyleDraft||{})),layoutPartStyle:JSON.parse(JSON.stringify(layoutPartStyleDraft||{})),currentWeatherLayout:currentWeatherLayoutDraft||'stacked',currentWeatherPartLayout:JSON.parse(JSON.stringify(currentWeatherPartLayoutDraft||{})),customBlocks:JSON.parse(JSON.stringify(layoutCustomBlocksDraft||[])),layoutGridPx:Number(document.getElementById('layout-toolbar-grid')?.value)||cfg.layoutGridPx||20,layoutSnap:document.getElementById('layout-toolbar-snap')?.checked!==false};
 }
 let layoutSaveInFlight=false;
-function snapshotArrangeLocalStorage(){
-  const api=LibreDisplayRuntime.getModule('bootstrap');
-  return [api?.CFG_KEY,api?.CFG_BACKUP_KEY].filter(Boolean).map(key=>{
-    try{return {key,value:localStorage.getItem(key)};}catch{return {key,value:null};}
-  });
-}
-function restoreFailedArrangeSave(before,localBefore){
-  // saveCfg writes to localStorage before it verifies server persistence.
-  // Keep its failure from turning a rejected draft into an apparent saved layout.
-  for(const key of Object.keys(cfg))delete cfg[key];
-  Object.assign(cfg,before);
-  for(const entry of localBefore){try{if(entry.value===null)localStorage.removeItem(entry.key);else localStorage.setItem(entry.key,entry.value);}catch{}}
-  LibreDisplayRuntime.getModule('layout').applyLayoutInspectorPreview?.();
-}
 async function saveLayoutEditor(){
   if(!layoutEditorActive||layoutSaveInFlight)return;
   layoutSaveInFlight=true;
   const saveButton=document.getElementById('layout-save');
   if(saveButton){saveButton.disabled=true;saveButton.textContent='Saving…';}
-  const savedConfig=JSON.parse(JSON.stringify(cfg)),savedLocal=snapshotArrangeLocalStorage();
-  let savePersisted=false;
   try{
     cfg.layoutMode='custom';cfg.layoutBlocks=JSON.parse(JSON.stringify(layoutEditorDraft));cfg.layoutContentScale=JSON.parse(JSON.stringify(layoutContentScaleDraft));cfg.layoutElementStyle=JSON.parse(JSON.stringify(layoutElementStyleDraft));cfg.layoutPartStyle=JSON.parse(JSON.stringify(layoutPartStyleDraft));cfg.currentWeatherLayout=currentWeatherLayoutDraft;cfg.currentWeatherPartLayout=JSON.parse(JSON.stringify(currentWeatherPartLayoutDraft||{}));cfg.customBlocks=JSON.parse(JSON.stringify(layoutCustomBlocksDraft));customBlockRenderSignature='';
     cfg.layoutGridPx=Number(document.getElementById('layout-toolbar-grid')?.value)||20;
     cfg.layoutSnap=document.getElementById('layout-toolbar-snap')?.checked!==false;
-    let persisted;
-    try{persisted=await saveCfg({expectedSavedAt:Number(layoutEditorOriginal?.savedAt||0)});}catch(error){persisted={ok:false,verified:false,error:String(error?.message||error)};}
+    const persisted=await saveCfg();
     if(!persisted?.ok||persisted?.verified!==true){
-      restoreFailedArrangeSave(savedConfig,savedLocal);
-      alert('Could not verify this Arrange layout on the display. The draft remains open and the previous local settings were restored. Check the display before retrying, because a timed-out server request may still have reached it. '+(persisted?.error||'Server persistence verification failed.'));
+      alert('Could not verify this Arrange layout on the display. The editor will stay open so you can retry; no unverified layout will be treated as saved. '+(persisted?.error||'Server persistence verification failed.'));
       return;
     }
-    savePersisted=true;
     stopLayoutEditorUi();layoutEditorOriginal=null;layoutCustomBlocksOriginal=[];applyUiCustomization(cfg);updateLayoutModeStatus(cfg);
     requestAnimationFrame(()=>{applyUiCustomization(cfg);updateLayoutModeStatus(cfg);LibreDisplayRuntime.getModule('layout').scheduleBuiltInLayoutAutoFitDeferred?.();});
-    let physicalApplyRequested=false;
-    try{
-      const displayApply=await LibreDisplayRuntime.getModule('layout').requestSavedLayoutDisplayApply();
-      physicalApplyRequested=!!displayApply?.ok&&!!displayApply?.requested;
-      if(!displayApply?.ok)console.warn('Arrange was saved, but the target display reload was not confirmed.',displayApply?.error||'');
-    }catch(error){console.warn('Arrange was saved, but the display reload request failed.',error);}
-    if(LAYOUT_PREVIEW_MODE&&window.parent!==window)notifyLayoutPreviewParent('saved',{savedAt:Number(cfg?._savedAt||0),applyRequested:physicalApplyRequested});
-  }catch(error){
-    if(!savePersisted){restoreFailedArrangeSave(savedConfig,savedLocal);alert('Arrange could not be saved. The previous settings were restored and your draft is still open. '+String(error?.message||error));}
-    else console.warn('Arrange was persisted, but post-save UI refresh encountered an error.',error);
+    const displayApply=await LibreDisplayRuntime.getModule('layout').requestSavedLayoutDisplayApply();
+    if(LAYOUT_PREVIEW_MODE&&window.parent!==window){if(!displayApply.ok)console.warn('Arrange layout saved, but the target display reload request could not be delivered immediately.',displayApply.error||'');notifyLayoutPreviewParent('saved');}
   }finally{
     layoutSaveInFlight=false;
     if(saveButton){saveButton.disabled=false;saveButton.textContent='Save & Lock';}
@@ -877,7 +783,7 @@ async function saveLayoutEditor(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("layout", {customLayoutPartDefs,normalizePartStyleValue,normalizePartStyleMap,normalizeBuiltInPartStyleTree,partStyleHasOverride,partStyleExtras,customPartFontSize,buildCustomLayoutPartCss,applyBuiltInPartFlowOffsets,scheduleBuiltInPartFlowOffsets,withNeutralizedBuiltInPartScale,layoutInspectorPositionKey,layoutInspectorClamp,setLayoutInspectorPosition,restoreLayoutInspectorPosition,resetLayoutInspectorPosition,keepLayoutInspectorOnScreen,toggleLayoutInspectorCollapse,initLayoutInspectorDrag,layoutHistorySnapshot,updateLayoutHistoryButtons,pushLayoutHistory,restoreLayoutHistorySnapshot,undoLayoutEditor,redoLayoutEditor,clamp01,readLayoutViewport,layoutViewportSize,refreshLayoutSessionViewport,normalizedRectFromPx,pxRectFromNormalized,validLayoutRect,validStoredLayoutRect,cloneLayoutRect,sanitizeLayoutRect,layoutRectForDisplay,clearCustomLayoutStyles,applyOneLayoutRect,applyCustomLayout,applyBuiltInElementStyles,clearBuiltInLayoutAutoFit,clampLayoutFit,calendarFitScale,forecastFitScale,currentWeatherFitScale,clockFitScale,syncWeatherDetailsArrangeGrid,weatherDetailsFitScale,weatherDetailsRequiredWidth,ensureWeatherDetailsContentBoundary,resetBuiltInLayoutFitForKey,measureBuiltInLayoutFitForKey,updateBuiltInLayoutAutoFit,scheduleBuiltInLayoutAutoFit,scheduleBuiltInLayoutAutoFitDeferred,bindBuiltInLayoutAutoFitObserver,builtInLayoutAutoFitSnapshot,setBuiltInLayoutAutoFitSuspended,updateLayoutModeStatus,layoutVisualRect,gridTrackPixels,defaultFineBlockFallback,measureDefaultLayoutRects,ensureLayoutDraft,layoutSnapPx,editorSnapPx,renderLayoutEditorBoxes,appendLayoutEditBox,refreshLayoutToolbarBlockOptions,layoutEditorRectForKey,layoutEditorDefForKey,setLayoutEditorRectForKey,selectedPartDefs,selectedPartDefinition,selectedPartStyle,setSelectedPartStyleValue,setSelectedPartFineStyle,finishSelectedPartFineStyleEdit,selectedContentScale,applyLayoutEditorContentScalePreview,setSelectedContentScale,finishSelectedContentScaleEdit,resetSelectedContentScale,selectedLayoutStyle,layoutFrameFitContentEnabled,freezeBuiltInFrameFit,setSelectedFrameFitContent,applyLayoutInspectorPreview,setSelectedLayoutStyle,finishSelectedLayoutStyleEdit,setSelectedLayoutColorHex,resetSelectedStyleScope,selectLayoutPart,layoutPartSelectionKeys,refreshLayoutPartPicker,placeSelectedLayoutBlock,alignSelectedLayoutBlockAxis,layoutSelectionKeyIsValid,layoutSelectionKeys,layoutSelectionMovableKeys,layoutSelectionBounds,clearLayoutSmartGuides,renderLayoutSmartGuides,layoutSmartGuidesOn,setLayoutSmartGuides,layoutSnapCandidate,bestMagneticAxisSnap,magneticSnapForScreenRect,layoutBlockAlignmentRects,customPartAlignmentRects,builtInPartAlignmentRects,genericPartAlignmentRects,magneticSnapForBounds,applyLayoutSelectionRelationship,selectLayoutBlock,viewportRectHasVisibleArea,selectedLayoutItemNeedsRecovery,updateLayoutSelectedInfo,captureStableArrangePointer,releaseStableArrangePointer,beginLayoutPointer,moveLayoutPointer,endLayoutPointer,currentWeatherMovablePartDef,currentWeatherPartElement,writeBuiltInPartStyle,captureCurrentWeatherPartLayout,captureCurrentWeatherPartScreenRects,preserveCurrentWeatherPartsAcrossFrameResize,ensureCurrentWeatherFreeLayout,setCurrentWeatherPartGeometry,resetCurrentWeatherPartArrangement,resetCurrentWeatherArrangement,renderCurrentWeatherPartBoxes,beginCurrentWeatherPartPointer,moveCurrentWeatherPartPointer,endCurrentWeatherPartPointer,placeSelectedBuiltInPart,builtInPartDef,builtInPartTargets,captureBuiltInPartGeometry,ensureBuiltInPartFreeLayout,setBuiltInPartMode,setBuiltInPartGeometry,resetBuiltInPartArrangement,resetAllBuiltInPartArrangements,renderBuiltInPartBoxes,beginBuiltInPartPointer,moveBuiltInPartPointer,endBuiltInPartPointer,buildBuiltInPartLayoutCss,builtInPartScaleAnchorX,setLayoutEditorGrid,setLayoutEditorSnap,startLayoutEditor,layoutEditorPreviewState,snapshotArrangeLocalStorage,restoreFailedArrangeSave,saveLayoutEditor}, {
+LibreDisplayRuntime.exposeModule("layout", {customLayoutPartDefs,normalizePartStyleValue,normalizePartStyleMap,normalizeBuiltInPartStyleTree,partStyleHasOverride,partStyleExtras,customPartFontSize,buildCustomLayoutPartCss,applyBuiltInPartFlowOffsets,scheduleBuiltInPartFlowOffsets,withNeutralizedBuiltInPartScale,layoutInspectorPositionKey,layoutInspectorClamp,setLayoutInspectorPosition,restoreLayoutInspectorPosition,resetLayoutInspectorPosition,keepLayoutInspectorOnScreen,toggleLayoutInspectorCollapse,initLayoutInspectorDrag,layoutHistorySnapshot,updateLayoutHistoryButtons,pushLayoutHistory,restoreLayoutHistorySnapshot,undoLayoutEditor,redoLayoutEditor,clamp01,readLayoutViewport,layoutViewportSize,refreshLayoutSessionViewport,normalizedRectFromPx,pxRectFromNormalized,validLayoutRect,validStoredLayoutRect,cloneLayoutRect,sanitizeLayoutRect,layoutRectForDisplay,clearCustomLayoutStyles,applyOneLayoutRect,applyCustomLayout,applyBuiltInElementStyles,clearBuiltInLayoutAutoFit,clampLayoutFit,calendarFitScale,forecastFitScale,currentWeatherFitScale,clockFitScale,syncWeatherDetailsArrangeGrid,weatherDetailsFitScale,weatherDetailsRequiredWidth,ensureWeatherDetailsContentBoundary,resetBuiltInLayoutFitForKey,measureBuiltInLayoutFitForKey,updateBuiltInLayoutAutoFit,scheduleBuiltInLayoutAutoFit,scheduleBuiltInLayoutAutoFitDeferred,bindBuiltInLayoutAutoFitObserver,builtInLayoutAutoFitSnapshot,setBuiltInLayoutAutoFitSuspended,updateLayoutModeStatus,layoutVisualRect,gridTrackPixels,defaultFineBlockFallback,measureDefaultLayoutRects,ensureLayoutDraft,layoutSnapPx,editorSnapPx,renderLayoutEditorBoxes,appendLayoutEditBox,refreshLayoutToolbarBlockOptions,layoutEditorRectForKey,layoutEditorDefForKey,setLayoutEditorRectForKey,selectedPartDefs,selectedPartDefinition,selectedPartStyle,setSelectedPartStyleValue,setSelectedPartFineStyle,finishSelectedPartFineStyleEdit,selectedContentScale,applyLayoutEditorContentScalePreview,setSelectedContentScale,finishSelectedContentScaleEdit,resetSelectedContentScale,selectedLayoutStyle,layoutFrameFitContentEnabled,setSelectedFrameFitContent,applyLayoutInspectorPreview,setSelectedLayoutStyle,finishSelectedLayoutStyleEdit,setSelectedLayoutColorHex,resetSelectedStyleScope,selectLayoutPart,layoutPartSelectionKeys,refreshLayoutPartPicker,placeSelectedLayoutBlock,alignSelectedLayoutBlockAxis,layoutSelectionKeyIsValid,layoutSelectionKeys,layoutSelectionMovableKeys,layoutSelectionBounds,clearLayoutSmartGuides,renderLayoutSmartGuides,layoutSmartGuidesOn,setLayoutSmartGuides,layoutSnapCandidate,bestMagneticAxisSnap,magneticSnapForScreenRect,layoutBlockAlignmentRects,customPartAlignmentRects,builtInPartAlignmentRects,genericPartAlignmentRects,magneticSnapForBounds,applyLayoutSelectionRelationship,selectLayoutBlock,viewportRectHasVisibleArea,selectedLayoutItemNeedsRecovery,updateLayoutSelectedInfo,beginLayoutPointer,moveLayoutPointer,endLayoutPointer,currentWeatherMovablePartDef,currentWeatherPartElement,writeBuiltInPartStyle,captureCurrentWeatherPartLayout,captureCurrentWeatherPartScreenRects,preserveCurrentWeatherPartsAcrossFrameResize,ensureCurrentWeatherFreeLayout,setCurrentWeatherPartGeometry,resetCurrentWeatherPartArrangement,resetCurrentWeatherArrangement,renderCurrentWeatherPartBoxes,beginCurrentWeatherPartPointer,moveCurrentWeatherPartPointer,endCurrentWeatherPartPointer,placeSelectedBuiltInPart,builtInPartDef,builtInPartTargets,captureBuiltInPartGeometry,ensureBuiltInPartFreeLayout,setBuiltInPartMode,setBuiltInPartGeometry,resetBuiltInPartArrangement,resetAllBuiltInPartArrangements,renderBuiltInPartBoxes,beginBuiltInPartPointer,moveBuiltInPartPointer,endBuiltInPartPointer,buildBuiltInPartLayoutCss,builtInPartScaleAnchorX,setLayoutEditorGrid,setLayoutEditorSnap,startLayoutEditor,layoutEditorPreviewState,saveLayoutEditor}, {
   "LAYOUT_BLOCK_DEFS": {configurable:true,get:()=>LAYOUT_BLOCK_DEFS},
   "LAYOUT_PART_DEFS": {configurable:true,get:()=>LAYOUT_PART_DEFS},
   "CUSTOM_LAYOUT_PART_DEFS": {configurable:true,get:()=>CUSTOM_LAYOUT_PART_DEFS},
@@ -1100,9 +1006,9 @@ function refreshIntegrationInternalLayoutInspector(){
   renderIntegrationInternalPartBoxes();
 }
 function renderIntegrationInternalPartBoxes(){const layer=document.getElementById('layout-editor-layer');if(!layer)return;for(const el of layer.querySelectorAll('.layout-internal-edit-box'))el.remove();if(!layoutApi.layoutEditorActive)return;const block=selectedIntegrationBlock();if(!block)return;const blockEl=blockElement(block);if(!blockEl)return;const defs=integrationPartDefs(block),visibleDefs=outlinedIntegrationParts(defs),selected=new Set(layoutApi.layoutPartSelectionKeys?.()||[]);for(const def of visibleDefs){if(def.key==='outer'||def.movable===false)continue;const part=visiblePartElement(blockEl,def);if(!part)continue;const rect=part.getBoundingClientRect();if(rect.width<4||rect.height<4)continue;const box=document.createElement('div');box.className='layout-internal-edit-box'+(selected.has(def.key)?' selected':'')+(def.key===selectedPartKey?' primary-selected':'');box.dataset.integrationPart=def.key;Object.assign(box.style,{left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px'});box.title='Ctrl/Cmd-click to multi-select parts';box.innerHTML=`<div class="layout-internal-edit-label">${escHtml(def.label)}</div><div class="layout-internal-resize-handle" data-internal-resize="1" title="Resize this integration section"></div>`;box.addEventListener('pointerdown',beginIntegrationPartPointer);layer.appendChild(box);}}
-function beginIntegrationPartPointer(event){const block=selectedIntegrationBlock();if(!block)return;const defs=integrationPartDefs(block),key=event.currentTarget.dataset.integrationPart,def=defs.find(x=>x.key===key);if(!def||def.movable===false)return;const resizing=!!event.target?.dataset?.internalResize,additive=!resizing&&!!(event.shiftKey||event.ctrlKey||event.metaKey),before=layoutApi.layoutPartSelectionKeys?.()||[];if(additive)layoutApi.selectLayoutPart?.(key,true);else if(before.includes(key)&&before.length>1)layoutApi.selectLayoutPart?.(key,false,true);else layoutApi.selectLayoutPart?.(key);selectedPartKey=layoutApi.layoutSelectedPart||key;if(additive&&!(layoutApi.layoutPartSelectionKeys?.()||[]).includes(key)){event.preventDefault();event.stopPropagation();return;}const row=effectivePart(block,def),parentDef=parentForDef(def,defs),parent=visiblePartElement(blockElement(block),parentDef),parentRect=parent?.getBoundingClientRect(),screenRect=event.currentTarget.getBoundingClientRect();if(!parentRect||parentRect.width<2||parentRect.height<2)return;const groupKeys=!resizing?(layoutApi.layoutPartSelectionKeys?.()||[key]).filter(k=>defs.find(d=>d.key===k)?.movable!==false):[key];pointerState={block,key,groupKeys,def,defs,mode:resizing?'resize':'move',pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,parentRect,screenRect:{left:screenRect.left,top:screenRect.top,width:screenRect.width,height:screenRect.height},start:{...row},starts:{},activated:false};layoutApi.captureStableArrangePointer?.(event);event.preventDefault();event.stopPropagation();}
+function beginIntegrationPartPointer(event){const block=selectedIntegrationBlock();if(!block)return;const defs=integrationPartDefs(block),key=event.currentTarget.dataset.integrationPart,def=defs.find(x=>x.key===key);if(!def||def.movable===false)return;const resizing=!!event.target?.dataset?.internalResize,additive=!resizing&&!!(event.shiftKey||event.ctrlKey||event.metaKey),before=layoutApi.layoutPartSelectionKeys?.()||[];if(additive)layoutApi.selectLayoutPart?.(key,true);else if(before.includes(key)&&before.length>1)layoutApi.selectLayoutPart?.(key,false,true);else layoutApi.selectLayoutPart?.(key);selectedPartKey=layoutApi.layoutSelectedPart||key;if(additive&&!(layoutApi.layoutPartSelectionKeys?.()||[]).includes(key)){event.preventDefault();event.stopPropagation();return;}const row=effectivePart(block,def),parentDef=parentForDef(def,defs),parent=visiblePartElement(blockElement(block),parentDef),parentRect=parent?.getBoundingClientRect(),screenRect=event.currentTarget.getBoundingClientRect();if(!parentRect||parentRect.width<2||parentRect.height<2)return;const groupKeys=!resizing?(layoutApi.layoutPartSelectionKeys?.()||[key]).filter(k=>defs.find(d=>d.key===k)?.movable!==false):[key];pointerState={block,key,groupKeys,def,defs,mode:resizing?'resize':'move',pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,parentRect,screenRect:{left:screenRect.left,top:screenRect.top,width:screenRect.width,height:screenRect.height},start:{...row},starts:{},activated:false};event.currentTarget.setPointerCapture?.(event.pointerId);event.preventDefault();event.stopPropagation();}
 function moveIntegrationPartPointer(event){const st=pointerState;if(!st||event.pointerId!==st.pointerId)return;let pixelDx=event.clientX-st.startX,pixelDy=event.clientY-st.startY;if(!st.activated&&st.mode!=='resize'&&Math.hypot(pixelDx,pixelDy)<5)return;if(!st.activated){st.activated=true;beginInternalChange();if(st.mode==='resize'){if(st.start.mode!=='free'){const g=initialFreeGeometry(st.block,st.def,st.defs);st.start={...writeRow(st.block,st.key,{mode:'free',...g})};}}else{const blockEl=blockElement(st.block);for(const key of st.groupKeys||[st.key]){const def=st.defs.find(x=>x.key===key);if(!def)continue;let row=effectivePart(st.block,def);if(row.mode!=='free'){const g=initialFreeGeometry(st.block,def,st.defs);row={...writeRow(st.block,key,{mode:'free',...g})};}const parentDef=parentForDef(def,st.defs),parent=visiblePartElement(blockEl,parentDef),parentRect=parent?.getBoundingClientRect?.();if(parentRect?.width>1&&parentRect?.height>1)st.starts[key]={row:{...row},def,parentRect};}if(!st.starts[st.key])return;}}let guides=[];if(st.mode==='resize'){const dx=pixelDx/st.parentRect.width*100,dy=pixelDy/st.parentRect.height*100,w=internalClamp(st.start.w+dx,5,100-st.start.x,st.start.w),h=internalClamp((st.start.h||5)+dy,5,100-st.start.y,st.start.h||5);writeRow(st.block,st.key,{mode:'free',w,h,freeSize:true});}else{for(const key of st.groupKeys||[st.key]){const entry=st.starts[key];if(!entry)continue;const dx=pixelDx/entry.parentRect.width*100,dy=pixelDy/entry.parentRect.height*100;writeRow(st.block,key,{mode:'free',x:internalClamp(entry.row.x+dx,0,100-entry.row.w,entry.row.x),y:internalClamp(entry.row.y+dy,0,100-(entry.row.h||5),entry.row.y)});}}let el=blockElement(st.block);if(el)applyIntegrationInternalLayout(el,st.block,manifestForBlock(st.block));if(st.mode!=='resize'&&!event.altKey&&el){const primary=st.starts[st.key],livePart=visiblePartElement(el,st.def),live=livePart?.getBoundingClientRect?.(),parentDef=parentForDef(st.def,st.defs),parent=visiblePartElement(el,parentDef),parentRect=parent?.getBoundingClientRect?.();if(primary&&live&&parentRect?.width>1&&parentRect?.height>1){const siblings=[];for(const d of st.defs){if((st.groupKeys||[]).includes(d.key)||d.key==='outer'||d.movable===false)continue;const node=visiblePartElement(el,d),r=node?.getBoundingClientRect?.();if(r?.width>2&&r?.height>2)siblings.push({rect:r,meta:{priority:-7,label:d.label||'Nearby part',id:`integration:${d.key}`,scope:'sibling',centerThreshold:10,edgeThreshold:6}});}const magnetic=layoutApi.magneticSnapForScreenRect?.(live,layoutApi.genericPartAlignmentRects?.(live,siblings,`custom:${st.block.id}`)||[])||{dx:0,dy:0,guides:[]};if(magnetic.dx||magnetic.dy){for(const key of st.groupKeys||[st.key]){const entry=st.starts[key],def=entry?.def;if(!entry||!def)continue;const row=effectivePart(st.block,def);writeRow(st.block,key,{mode:'free',x:internalClamp(row.x+magnetic.dx/entry.parentRect.width*100,0,100-row.w,row.x),y:internalClamp(row.y+magnetic.dy/entry.parentRect.height*100,0,100-(row.h||5),row.y)});}applyIntegrationInternalLayout(el,st.block,manifestForBlock(st.block));}guides=magnetic.guides||[];}}renderIntegrationInternalPartBoxes();layoutApi.renderLayoutSmartGuides?.(guides);refreshIntegrationInternalLayoutInspectorValuesOnly();event.preventDefault();}
-function endIntegrationPartPointer(event){if(pointerState&&(!event||event.pointerId===pointerState.pointerId)){const finished=pointerState;pointerState=null;layoutApi.releaseStableArrangePointer?.(finished.pointerId);layoutApi.clearLayoutSmartGuides?.();scheduleInspectorRefresh();}}
+function endIntegrationPartPointer(event){if(pointerState&&(!event||event.pointerId===pointerState.pointerId)){pointerState=null;layoutApi.clearLayoutSmartGuides?.();scheduleInspectorRefresh();}}
 function refreshIntegrationInternalLayoutInspectorValuesOnly(){const info=currentInternalSelection();if(!info)return;const {def,row}=info;for(const field of ['x','y','w','h','z']){const input=document.getElementById('layout-integration-'+field);if(input&&!input.matches(':focus'))input.value=String(Math.round(row[field]*10)/10);}const mode=document.getElementById('layout-integration-mode');if(mode)mode.value=row.mode;const shown=document.getElementById('layout-integration-shown');if(shown)shown.checked=!row.hidden;const containerLayout=document.getElementById('layout-integration-container-layout');if(containerLayout)containerLayout.value=internalContainerLayoutValue(row);document.getElementById('layout-integration-free-controls')?.toggleAttribute('hidden',row.mode!=='free'||def.movable===false||row.hidden);const freeDetails=document.getElementById('layout-integration-free-details');if(freeDetails)freeDetails.hidden=row.mode!=='free'||def.movable===false||row.hidden;}
 
 
@@ -1116,7 +1022,6 @@ window.addEventListener('resize',scheduleSelectionAwareRefresh);
 new MutationObserver(scheduleSelectionAwareRefresh).observe(document.body,{attributes:true,attributeFilter:['class']});
 document.addEventListener('pointermove',moveIntegrationPartPointer,{passive:false});
 document.addEventListener('pointerup',event=>{endIntegrationPartPointer(event);scheduleSelectionAwareRefresh();});
-document.addEventListener('pointercancel',endIntegrationPartPointer);
 
 LibreDisplayRuntime.exposeModule('layout',{integrationPartDefs,applyIntegrationInternalLayout,attachIntegrationLayout,integrationObserverSnapshot,refreshIntegrationMutationWatches,captureIntegrationFreePartScreenRects,preserveIntegrationFreePartScreenRects,setIntegrationInternalScope,setIntegrationInternalPart,setIntegrationInternalMode,setIntegrationInternalGeometry,setIntegrationInternalDirection,setIntegrationInternalContainerLayout,setIntegrationMajorLayout,setIntegrationInternalHidden,setIntegrationInternalGap,setIntegrationInternalAlign,setIntegrationInternalJustify,moveIntegrationInternalOrder,placeIntegrationInternalPart,nudgeIntegrationSelectedParts,integrationInternalPartNeedsRecovery,recoverIntegrationInternalPart,resetIntegrationInternalPart,resetIntegrationInternalLayout,setIntegrationInternalContent,resetIntegrationInternalContent,refreshIntegrationInternalLayoutInspector,renderIntegrationInternalPartBoxes}, {}, {globals:false});
 }
@@ -1125,13 +1030,12 @@ LibreDisplayRuntime.exposeModule('layout',{integrationPartDefs,applyIntegrationI
 // LibreDisplay source section: /js/layout/remote.js
 {
 const layoutApi=()=>LibreDisplayRuntime.getModule("layout");
-// Remote Arrange edits an independent local draft. The physical Pi changes only after Save & Lock.
+// Remote-display Arrange proxy and preview workspace.
 const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 const {serverPath}=bootstrapApi;
 const {escHtml,resilientFetch}=LibreDisplayRuntime.getModule('shared');
 
 
-const REMOTE_LIVE_PREVIEW_ENABLED=false; // Never send temporary drafts to the Pi.
 let remoteLayoutProxyActive=false;
 let remoteLayoutProxySyncTimer=null;
 function remoteLayoutFrame(){return document.getElementById('remote-layout-preview-frame');}
@@ -1169,7 +1073,7 @@ function syncRemoteLayoutProxyUi(){
   if(innerCatalog&&outerCatalog){const show=innerCatalog.classList.contains('show');outerCatalog.classList.toggle('show',show);outerCatalog.setAttribute('aria-hidden',show?'false':'true');if(show){const ig=doc.getElementById('block-catalog-grid'),og=document.getElementById('block-catalog-grid');if(ig&&og&&og.innerHTML!==ig.innerHTML)og.innerHTML=ig.innerHTML;const is=doc.getElementById('block-catalog-search'),os=document.getElementById('block-catalog-search');if(is&&os&&os.value!==is.value)os.value=is.value;}}
   const innerConfig=doc.getElementById('block-config-modal'),outerConfig=document.getElementById('block-config-modal');
   if(innerConfig&&outerConfig){const show=innerConfig.classList.contains('show');outerConfig.classList.toggle('show',show);outerConfig.setAttribute('aria-hidden',show?'false':'true');if(show){for(const id of ['block-config-title','block-config-sub']){const a=doc.getElementById(id),b=document.getElementById(id);if(a&&b)b.textContent=a.textContent;}const inf=doc.getElementById('block-config-fields'),outf=document.getElementById('block-config-fields');if(inf&&outf&&outf.innerHTML!==inf.innerHTML)outf.innerHTML=inf.innerHTML;for(const dst of outf?.querySelectorAll?.('[id]')||[]){const src=doc.getElementById(dst.id);if(src)remoteLayoutProxyMirrorElement(dst,src);}}}
-  // The iframe updates its draft locally; no Pi preview command is sent.
+  maybeQueueRemotePhysicalLayoutPreview();
 }
 function scheduleRemoteLayoutProxySync(delay=0){if(!remoteLayoutProxyActive)return;if(delay){setTimeout(()=>remoteLayoutProxyActive&&syncRemoteLayoutProxyUi(),delay);return;}requestAnimationFrame(()=>remoteLayoutProxyActive&&syncRemoteLayoutProxyUi());}
 function activateRemoteLayoutProxy(){
@@ -1189,123 +1093,15 @@ function handleRemoteLayoutProxyEvent(e){
   if(t.id==='layout-properties-collapse'||t.id==='layout-properties-reset-position')return;
   const src=remoteLayoutProxyCounterpart(t);if(!src)return;
   if(e.type==='click'){
-    if(t.tagName!=='BUTTON')return;e.preventDefault();e.stopImmediatePropagation();src.click();scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(40);LibreDisplayRuntime.getModule('remote')?.scheduleRemoteDraftSprites?.();setTimeout(()=>LibreDisplayRuntime.getModule('remote')?.scheduleRemoteDraftSprites?.(),70);return;
+    if(t.tagName!=='BUTTON')return;e.preventDefault();e.stopImmediatePropagation();src.click();scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(40);return;
   }
   if(!['INPUT','SELECT','TEXTAREA'].includes(t.tagName))return;e.stopImmediatePropagation();
   if(t.type==='checkbox'||t.type==='radio')src.checked=t.checked;else src.value=t.value;
-  src.dispatchEvent(new Event(e.type,{bubbles:true}));scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(35);LibreDisplayRuntime.getModule('remote')?.scheduleRemoteDraftSprites?.();setTimeout(()=>LibreDisplayRuntime.getModule('remote')?.scheduleRemoteDraftSprites?.(),70);
+  src.dispatchEvent(new Event(e.type,{bubbles:true}));scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(35);
 }
 document.addEventListener('click',handleRemoteLayoutProxyEvent,true);
 document.addEventListener('input',handleRemoteLayoutProxyEvent,true);
 document.addEventListener('change',handleRemoteLayoutProxyEvent,true);
-// Physical-first Arrange: the Pi screenshot is the only visible canvas.
-// Local layout state is used solely for editable outlines/inspector until Save & Lock.
-let remoteReferenceVisible=true,remoteReferenceCaptureId=0,remoteReferenceBusy=false;
-let remoteReferenceUrl='',remoteReferenceSize=null,remoteReferenceCapturedAt=0,remoteReferenceError='';
-let remoteReferenceSavedView=false,remoteReferencePostUrl='',remoteReferenceSaveMeta=null,remoteReferenceCaptureQueued=false;
-function setRemoteReferenceStatus(message,state='pending'){const el=document.getElementById('remote-layout-reference-status');if(el){el.textContent=message;el.dataset.state=state;}}
-function setRemotePostSaveStatus(message,state='pending'){const el=document.getElementById('remote-layout-postsave-status');if(el){el.textContent=message;el.dataset.state=state;}}
-function discardRemotePiReference(){
-  LibreDisplayRuntime.getModule('remote')?.releaseRemoteDraftLayer?.();remoteReferenceCaptureId++;remoteReferenceSize=null;remoteReferenceCapturedAt=0;remoteReferenceError='';remoteReferenceSavedView=false;remoteReferenceSaveMeta=null;
-  const doc=remoteLayoutInnerDocument();doc?.documentElement?.classList.remove('ld-physical-image-active');doc?.getElementById('ld-actual-wall-image')?.remove();
-  for(const id of ['remote-layout-reference-image','remote-layout-before-image','remote-layout-after-image']){const el=document.getElementById(id);if(el){el.hidden=true;el.removeAttribute('src');}}
-  if(remoteReferenceUrl){URL.revokeObjectURL(remoteReferenceUrl);remoteReferenceUrl='';}
-  if(remoteReferencePostUrl){URL.revokeObjectURL(remoteReferencePostUrl);remoteReferencePostUrl='';}document.getElementById('remote-layout-preview-shell')?.classList.remove('pi-captured');
-}
-function setRemoteReferenceVisible(){
-  remoteReferenceVisible=true;const el=document.getElementById('remote-layout-reference');if(el)el.hidden=true;fitRemoteLayoutPreview();
-}
-function installPiReferenceIntoEditor(){
-  if(!remoteReferenceUrl||!remoteReferenceSize||remoteReferenceSavedView)return false;
-  const doc=remoteLayoutInnerDocument(),target=remoteLayoutPreviewTarget;if(!doc?.body||!target)return false;
-  const expectedW=Math.round(target.width*target.dpr),expectedH=Math.round(target.height*target.dpr);if(Math.abs(remoteReferenceSize.width-expectedW)>1||Math.abs(remoteReferenceSize.height-expectedH)>1)return false;
-  let img=doc.getElementById('ld-actual-wall-image');if(!img){img=doc.createElement('img');img.id='ld-actual-wall-image';img.alt='';img.setAttribute('aria-hidden','true');doc.body.appendChild(img);}
-  img.src=remoteReferenceUrl;doc.documentElement.classList.add('ld-physical-image-active');document.getElementById('remote-layout-preview-shell')?.classList.add('pi-captured');LibreDisplayRuntime.getModule('remote')?.startRemoteDraftSprites?.(remoteReferenceUrl);return true;
-}
-function remoteReferenceDiagnostics(){return {visible:!!remoteLayoutInnerDocument()?.documentElement?.classList.contains('ld-physical-image-active'),postSave:remoteReferenceSavedView,received:!!remoteReferenceUrl,size:remoteReferenceSize,capturedAt:remoteReferenceCapturedAt,error:remoteReferenceError};}
-async function captureRemotePiReference({postSave=false}={}){
-  if(remoteReferenceBusy){remoteReferenceCaptureQueued=true;return false;}
-  const session=remoteLayoutPreviewSession,target=remoteLayoutPreviewTarget;
-  if(!target?.physical||!target?.online){setRemoteReferenceStatus('No online physical Pi · capture required','warn');return false;}
-  const captureId=++remoteReferenceCaptureId;remoteReferenceBusy=true;
-  if(!postSave)setRemoteReferenceStatus('Capturing actual Pi pixels…');else setRemotePostSaveStatus('Reading physical Pi pixels after configuration acknowledgement…');
-  try{
-    // Retry transient screenshot lock contention without masking genuine capture failure.
-    let response;for(let attempt=0;attempt<4;attempt++){
-      response=await resilientFetch(serverPath('/api/physical-screen'),{cache:'no-store',headers:{'X-LibreDisplay-Capture-Device':String(target.deviceId||'')}},{timeoutMs:17000,retry:false});if(response.ok)break;
-      const data=await response.json().catch(()=>({})),reason=String(data?.error||`Pi capture HTTP ${response.status}`);
-      if(!/capture is busy|capture rate limited/i.test(reason)||attempt===3)throw new Error(reason);
-      if(session!==remoteLayoutPreviewSession||captureId!==remoteReferenceCaptureId)return false;await new Promise(resolve=>setTimeout(resolve,900+attempt*350));
-    }
-    if(response.headers.get('X-LibreDisplay-Device-Id')!==String(target.deviceId||''))throw new Error('Pi screenshot identity mismatch');const blob=await response.blob();if(blob.size<64||blob.size>16000000||blob.type!=='image/png')throw new Error('Pi returned an invalid PNG');
-    const url=URL.createObjectURL(blob),img=new Image();
-    try{img.src=url;await img.decode();}catch(error){URL.revokeObjectURL(url);throw error;}
-    if(captureId!==remoteReferenceCaptureId||session!==remoteLayoutPreviewSession){URL.revokeObjectURL(url);return false;}
-    const expectedW=Math.round(target.width*target.dpr),expectedH=Math.round(target.height*target.dpr);
-    if(Math.abs(img.naturalWidth-expectedW)>1||Math.abs(img.naturalHeight-expectedH)>1){URL.revokeObjectURL(url);throw new Error(`Pi PNG ${img.naturalWidth}×${img.naturalHeight} differs from reported ${expectedW}×${expectedH}`);}
-    if(postSave){
-      const el=document.getElementById('remote-layout-after-image');if(el){el.src=url;el.hidden=false;}
-      if(remoteReferencePostUrl)URL.revokeObjectURL(remoteReferencePostUrl);remoteReferencePostUrl=url;
-      setRemotePostSaveStatus('Pi reported the saved configuration and a fresh screen was captured. Inspect the after image for visual alignment.','good');
-    }else{
-      const prior=remoteReferenceUrl;remoteReferenceUrl=url;remoteReferenceSize={width:img.naturalWidth,height:img.naturalHeight};remoteReferenceCapturedAt=Date.now();
-      const timestamp=new Date(remoteReferenceCapturedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-      installPiReferenceIntoEditor();if(prior)URL.revokeObjectURL(prior);
-      setRemoteReferenceStatus(`Actual Pi capture ${timestamp} · unsaved moves are local captured-pixel drafts`,'good');LibreDisplayRuntime.getModule('remote')?.scheduleRemoteDraftSprites?.();fitRemoteLayoutPreview();
-    }
-    remoteReferenceError='';return true;
-  }catch(error){
-    if(captureId===remoteReferenceCaptureId){remoteReferenceError=String(error?.message||error).slice(0,160);
-      if(postSave)setRemotePostSaveStatus('No verified after-image: '+remoteReferenceError,'warn');
-      else{setRemoteReferenceStatus('Pi capture unavailable: '+remoteReferenceError+' · retry Capture Pi screen','warn');setRemotePhysicalParityStatus(remoteReferenceUrl?'Last Pi capture · refresh failed, may be stale':'Pi capture unavailable · no visual parity claim','warn');}
-    }
-    return false;
-  }finally{
-    remoteReferenceBusy=false;
-    if(remoteReferenceCaptureQueued){remoteReferenceCaptureQueued=false;
-      if(remoteLayoutPreviewTarget&&document.getElementById('remote-layout-preview-shell')?.classList.contains('show')){
-        if(remoteReferenceSavedView){if(remoteReferenceSaveMeta?.applyRequested)void verifySavedPhysicalReference(remoteReferenceSaveMeta.savedAt,remoteReferenceSaveMeta.deviceId);}
-        else void captureRemotePiReference();
-      }
-    }
-  }
-}
-function refreshRemotePiReference(){
-  if(remoteReferenceSavedView){
-    if(!remoteReferenceSaveMeta?.applyRequested){setRemotePostSaveStatus('Pi apply was not confirmed; cannot verify a physical after-image.','warn');return false;}
-    return verifySavedPhysicalReference(remoteReferenceSaveMeta.savedAt,remoteReferenceSaveMeta.deviceId);
-  }
-  return captureRemotePiReference();
-}
-async function verifySavedPhysicalReference(savedAt,deviceId){
-  if(!Number.isFinite(savedAt)||savedAt<=0){setRemotePostSaveStatus('Save revision unavailable. Cannot confirm physical application.','warn');return;}
-  const session=remoteLayoutPreviewSession,startedAt=Date.now()/1000,deadline=Date.now()+28000;
-  while(Date.now()<deadline){
-    if(session!==remoteLayoutPreviewSession||!remoteReferenceSavedView)return;
-    try{
-      const rows=await readDisplayDevices(),row=rows.find(row=>row.endpoint===bootstrapApi.ACTIVE_ENDPOINT&&row.mode==='local'&&row.online&&String(row.deviceId||'')===String(deviceId||'')&&Number(row.ageSeconds||0)<75);
-      if(row&&Number(row.configSavedAt||0)>=savedAt&&Number(row.lastSeen||0)>=startedAt-.5){
-        await new Promise(resolve=>setTimeout(resolve,500));
-        if(session===remoteLayoutPreviewSession&&remoteReferenceSavedView)await captureRemotePiReference({postSave:true});
-        return;
-      }
-    }catch(error){remoteReferenceError=String(error?.message||error).slice(0,160);}
-    await new Promise(resolve=>setTimeout(resolve,1000));
-  }
-  if(session===remoteLayoutPreviewSession&&remoteReferenceSavedView)setRemotePostSaveStatus('Saved on server; Pi application was not confirmed by a fresh device heartbeat. No after-image is verified.','warn');
-}
-function showRemotePhysicalSaveResult({savedAt=0,applyRequested=false}={}){
-  // Freeze the pre-save image: any in-flight capture can no longer be labeled 'before'.
-  remoteReferenceCaptureId++;remoteReferenceSavedView=true;LibreDisplayRuntime.getModule('remote')?.releaseRemoteDraftLayer?.();deactivateRemoteLayoutProxy();
-  remoteReferenceSaveMeta={savedAt:Number(savedAt)||0,deviceId:String(remoteLayoutPreviewTarget?.deviceId||''),applyRequested:!!applyRequested};
-  setRemotePhysicalParityStatus('Saved draft · verifying physical Pi result','pending');
-  document.getElementById('remote-layout-preview-shell')?.classList.add('post-save');
-  const panel=document.getElementById('remote-layout-postsave');if(panel)panel.hidden=false;
-  const reference=document.getElementById('remote-layout-reference');if(reference)reference.hidden=true;
-  const before=document.getElementById('remote-layout-before-image');if(before&&remoteReferenceUrl){before.src=remoteReferenceUrl;before.hidden=false;}
-  setRemotePostSaveStatus(applyRequested?'Saved and Pi apply requested · waiting for physical acknowledgement…':'Saved on server, but Pi apply request failed or was not confirmed. No after-image is verified.',applyRequested?'pending':'warn');
-  if(applyRequested)void verifySavedPhysicalReference(Number(savedAt),String(remoteLayoutPreviewTarget?.deviceId||''));
-}
 let remoteLayoutPreviewTarget=null;
 let remoteLayoutPreviewSession=0;
 let remotePhysicalPreviewId='';
@@ -1314,167 +1110,26 @@ let remotePhysicalPreviewSignature='';
 let remotePhysicalPreviewSeenSignature='';
 let remotePhysicalPreviewSendTimer=null;
 let remotePhysicalPreviewLeaseTimer=null;
-let remotePhysicalPreviewPostBusy=false;
-let remotePhysicalPreviewQueued=false;
 function newRemotePhysicalPreviewId(){const rand=globalThis.crypto?.getRandomValues?Array.from(globalThis.crypto.getRandomValues(new Uint32Array(2))).map(n=>n.toString(36)).join(''):Math.random().toString(36).slice(2);return `arrange-${Date.now().toString(36)}-${rand}`.slice(0,90);}
 function setRemotePhysicalParityStatus(text,state='pending'){const el=document.getElementById('remote-layout-parity-status');if(el){el.textContent=String(text||'');el.dataset.state=state;}}
 function remoteLayoutDraftState(){try{return remoteLayoutFrame()?.contentWindow?.LibreDisplayRuntime?.getModule?.('layout')?.layoutEditorPreviewState?.()||null;}catch(e){return null;}}
-function stopRemotePhysicalPreviewTimers(){clearTimeout(remotePhysicalPreviewSendTimer);remotePhysicalPreviewSendTimer=null;clearInterval(remotePhysicalPreviewLeaseTimer);remotePhysicalPreviewLeaseTimer=null;clearInterval(remotePhysicalImageRefreshTimer);remotePhysicalImageRefreshTimer=null;}
-let remotePhysicalImageUrl='';
-let remotePhysicalImageRevision=-1;
-let remotePhysicalImagePending=0;
-let remotePhysicalImageBusy=false;
-const remotePhysicalParityPolls=new Set();
-let remotePhysicalImageRefreshTimer=null;
-let remotePhysicalConfirmedRevision=-1;
-let remotePhysicalInitialCapturePending=false;
-let remotePhysicalImageVerified=false;
-let remotePhysicalCaptureError='';
-let remotePhysicalImageSize=null;
-function remotePhysicalPreviewDiagnostics(){
-  return {mode:'physical-screenshot-canvas-save-only',active:!!remoteLayoutProxyActive,physicalTarget:!!remoteLayoutPreviewTarget?.physical,
-    target:remoteLayoutPreviewTarget?{width:remoteLayoutPreviewTarget.width,height:remoteLayoutPreviewTarget.height,dpr:remoteLayoutPreviewTarget.dpr,deviceId:remoteLayoutPreviewTarget.deviceId,online:remoteLayoutPreviewTarget.online}:null,
-    screenshotVisible:!!remoteLayoutInnerDocument()?.documentElement?.classList.contains('ld-physical-image-active'),
-    screenshotSize:remotePhysicalImageSize,previewRevision:remotePhysicalPreviewRevision,
-    confirmedRevision:remotePhysicalConfirmedRevision,imageRevision:remotePhysicalImageRevision,
-    screenshotRevisionVerified:remotePhysicalImageVerified,error:remotePhysicalCaptureError,
-    status:document.getElementById('remote-layout-parity-status')?.textContent||'',reference:remoteReferenceDiagnostics()};
-}
-function discardRemotePhysicalImage(){
-  remotePhysicalImagePending++;const doc=remoteLayoutInnerDocument();
-  doc?.documentElement?.classList.remove('ld-physical-image-active');
-  doc?.getElementById('ld-actual-wall-image')?.remove();
-  if(remotePhysicalImageUrl){URL.revokeObjectURL(remotePhysicalImageUrl);remotePhysicalImageUrl='';}
-  remotePhysicalImageRevision=-1;
-  remotePhysicalImageVerified=false;
-  remotePhysicalImageSize=null;
-}
-async function showRemotePhysicalImage(previewId,revision,{verified=false}={}){
-  // The Pi can take several seconds to compress one screenshot. Do not issue
-  // simultaneous requests against its deliberately exclusive compositor gate.
-  if(remotePhysicalImageBusy)return false;
-  remotePhysicalImageBusy=true;
-  const token=++remotePhysicalImagePending;
-  try{
-    const response=await resilientFetch(serverPath('/api/physical-screen'),{cache:'no-store'},{timeoutMs:17000,retry:false});
-    if(!response.ok){const problem=await response.json().catch(()=>({}));throw new Error(String(problem?.error||`Screen capture unavailable (HTTP ${response.status})`).slice(0,140));}
-    const blob=await response.blob();
-    if(blob.type!=='image/png'||blob.size<64||blob.size>16000000)throw new Error('Invalid physical screen image');
-    const url=URL.createObjectURL(blob),img=new Image();
-    try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url;});}
-    catch(error){URL.revokeObjectURL(url);throw error;}
-    if(token!==remotePhysicalImagePending||previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision){URL.revokeObjectURL(url);return;}
-    const target=remoteLayoutPreviewTarget;
-    const expectedWidth=Math.round(Number(target?.width||0)*Math.max(.1,Number(target?.dpr)||1));
-    const expectedHeight=Math.round(Number(target?.height||0)*Math.max(.1,Number(target?.dpr)||1));
-    if(!target||Math.abs(img.naturalWidth-expectedWidth)>1||Math.abs(img.naturalHeight-expectedHeight)>1){
-      URL.revokeObjectURL(url);
-      throw new Error(`Physical screenshot ${img.naturalWidth}×${img.naturalHeight} differs from Pi viewport ${expectedWidth}×${expectedHeight}`);
-    }
-    const doc=remoteLayoutInnerDocument();if(!doc?.body){URL.revokeObjectURL(url);return;}
-    let actual=doc.getElementById('ld-actual-wall-image');
-    if(!actual){actual=doc.createElement('img');actual.id='ld-actual-wall-image';actual.setAttribute('aria-hidden','true');doc.body.appendChild(actual);}
-    const prior=remotePhysicalImageUrl;remotePhysicalImageUrl=url;actual.src=url;
-    doc.documentElement.classList.add('ld-physical-image-active');
-    if(prior)URL.revokeObjectURL(prior);
-    remotePhysicalImageRevision=revision;
-    remotePhysicalImageVerified=!!verified;
-    remotePhysicalImageSize={width:img.naturalWidth,height:img.naturalHeight};
-    remotePhysicalCaptureError='';
-    setRemotePhysicalParityStatus(verified?'Actual Pi screenshot · layout revision confirmed':'Actual Pi screenshot · waiting for layout confirmation',verified?'good':'pending');
-  }catch(error){
-    if(token===remotePhysicalImagePending){
-      remotePhysicalCaptureError=String(error.message||error).slice(0,180);
-      // Keep the last usable capture and the editing handles. A failed refresh
-      // is not proof that the image is current, so always report NOT 1:1.
-      remotePhysicalImageVerified=false;
-      setRemotePhysicalParityStatus('NOT 1:1 · '+remotePhysicalCaptureError+' · editing remains available','warn');
-    }
-    return false;
-  }finally{remotePhysicalImageBusy=false;}
-}
+function stopRemotePhysicalPreviewTimers(){clearTimeout(remotePhysicalPreviewSendTimer);remotePhysicalPreviewSendTimer=null;clearInterval(remotePhysicalPreviewLeaseTimer);remotePhysicalPreviewLeaseTimer=null;}
 function clearRemotePhysicalParityOverlay(){try{remoteLayoutInnerDocument()?.getElementById('ld-physical-parity-overlay')?.remove();}catch(e){}}
 function renderRemotePhysicalParityOverlay(snapshot,comparison){
-  // Automatic overlap annotations covered the actual screen in large orange
-  // rectangles and looked like draggable blocks. Keep numerical diagnostics,
-  // but reserve visible handles for the real layout editor.
-  clearRemotePhysicalParityOverlay();
+  const doc=remoteLayoutInnerDocument();if(!doc)return;clearRemotePhysicalParityOverlay();const collisionKeys=new Set();for(const row of snapshot?.overlaps||[]){collisionKeys.add(String(row.a||''));collisionKeys.add(String(row.b||''));}const mismatchKeys=new Set(comparison?.mismatchKeys||[]);if(!collisionKeys.size&&!mismatchKeys.size)return;const layer=doc.createElement('div');layer.id='ld-physical-parity-overlay';layer.setAttribute('aria-hidden','true');for(const row of snapshot?.entities||[]){const key=String(row?.key||'');if(!collisionKeys.has(key)&&!mismatchKeys.has(key))continue;const r=row?.visual||row?.footprint;if(!r)continue;const box=doc.createElement('div');box.className='ld-physical-parity-box';box.dataset.state=collisionKeys.has(key)?'overlap':'mismatch';box.title=(collisionKeys.has(key)?'Overlaps on physical display: ':'Physical display differs: ')+(row.label||key);Object.assign(box.style,{left:`${Number(r.x)||0}px`,top:`${Number(r.y)||0}px`,width:`${Math.max(1,Number(r.w)||1)}px`,height:`${Math.max(1,Number(r.h)||1)}px`});layer.appendChild(box);}doc.body.appendChild(layer);
 }
 function compareLayoutRenderSnapshots(pi,preview){
   const a=new Map((pi?.entities||[]).map(x=>[String(x.key||''),x])),b=new Map((preview?.entities||[]).map(x=>[String(x.key||''),x]));let maxDelta=0;const mismatchKeys=[];for(const [key,row] of a){const other=b.get(key);if(!other)continue;let delta=0;for(const scope of ['footprint','visual'])for(const field of ['x','y','w','h'])delta=Math.max(delta,Math.abs((Number(row?.[scope]?.[field])||0)-(Number(other?.[scope]?.[field])||0)));maxDelta=Math.max(maxDelta,delta);if(delta>2.5)mismatchKeys.push(key);}const sig=s=>new Set((s?.overlaps||[]).map(x=>[String(x.a||''),String(x.b||'')].sort().join('|'))),pa=sig(pi),pb=sig(preview);let collisionDiff=0;for(const key of pa)if(!pb.has(key))collisionDiff++;for(const key of pb)if(!pa.has(key))collisionDiff++;return {maxDelta,mismatchKeys,collisionDiff,piOverlaps:pa.size,piOffscreen:(pi?.offscreen||[]).length};
 }
 async function pollRemotePhysicalParity(previewId=remotePhysicalPreviewId,revision=remotePhysicalPreviewRevision){
-  if(!REMOTE_LIVE_PREVIEW_ENABLED)return;
-  if(!previewId||!remoteLayoutPreviewTarget||remotePhysicalParityPolls.has(revision))return;
-  remotePhysicalParityPolls.add(revision);
-  const deadline=Date.now()+22000;
-  try{
-    while(Date.now()<deadline){
-      if(previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision)return;
-      try{
-        const rows=await readDisplayDevices(),row=bestLayoutTargetDevice(rows),snap=row?.layoutRenderSnapshot;
-        if(row&&String(row.deviceId||'')===String(remoteLayoutPreviewTarget.deviceId||'')&&
-            String(row.layoutPreviewId||'')===previewId&&Number(snap?.revision||0)===revision){
-          let local={};
-          try{local=remoteLayoutFrame()?.contentWindow?.LibreDisplayRuntime?.getModule?.('remote')?.captureLayoutRenderSnapshot?.(previewId,revision)||{};}catch(e){}
-          const cmp=compareLayoutRenderSnapshots(snap,local);
-          remotePhysicalConfirmedRevision=revision;
-          if(remotePhysicalImageRevision!==revision||!remotePhysicalImageVerified){
-            await showRemotePhysicalImage(previewId,revision,{verified:true});
-            if(remotePhysicalImageRevision!==revision||!remotePhysicalImageVerified){
-              await new Promise(resolve=>setTimeout(resolve,550));continue;
-            }
-          }
-          renderRemotePhysicalParityOverlay(snap,cmp);
-          const delta=Math.round(cmp.maxDelta*10)/10;
-          if(cmp.piOverlaps||cmp.piOffscreen)setRemotePhysicalParityStatus(`Pi reports ${cmp.piOverlaps} overlap${cmp.piOverlaps===1?'':'s'}${cmp.piOffscreen?` · ${cmp.piOffscreen} off-screen`:''}`,'warn');
-          else if(cmp.maxDelta>2.5||cmp.collisionDiff)setRemotePhysicalParityStatus(`Pi differs · max render shift ${delta}px`,'warn');
-          return;
-        }
-      }catch(e){remotePhysicalCaptureError=String(e?.message||e).slice(0,180);}
-      await new Promise(resolve=>setTimeout(resolve,500));
-    }
-    if(previewId===remotePhysicalPreviewId&&revision===remotePhysicalPreviewRevision){
-      remotePhysicalImageVerified=false;
-      setRemotePhysicalParityStatus('NOT 1:1 · Pi has not confirmed this layout revision · editing remains available','warn');
-    }
-  }finally{remotePhysicalParityPolls.delete(revision);}
+  if(!previewId||!remoteLayoutPreviewTarget)return;for(let attempt=0;attempt<10;attempt++){if(previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision)return;try{const rows=await readDisplayDevices(),row=bestLayoutTargetDevice(rows),snap=row?.layoutRenderSnapshot;if(row&&String(row.deviceId||'')===String(remoteLayoutPreviewTarget.deviceId||'')&&String(row.layoutPreviewId||'')===previewId&&Number(snap?.revision||0)===revision){let local={};try{local=remoteLayoutFrame()?.contentWindow?.LibreDisplayRuntime?.getModule?.('remote')?.captureLayoutRenderSnapshot?.(previewId,revision)||{};}catch(e){}const cmp=compareLayoutRenderSnapshots(snap,local);renderRemotePhysicalParityOverlay(snap,cmp);const delta=Math.round(cmp.maxDelta*10)/10;if(cmp.piOverlaps||cmp.piOffscreen)setRemotePhysicalParityStatus(`Pi reports ${cmp.piOverlaps} overlap${cmp.piOverlaps===1?'':'s'}${cmp.piOffscreen?` · ${cmp.piOffscreen} off-screen`:''}`,'warn');else if(cmp.maxDelta>2.5||cmp.collisionDiff)setRemotePhysicalParityStatus(`Pi differs · max render shift ${delta}px`,'warn');else setRemotePhysicalParityStatus(`Pi verified · rendered geometry matches${delta?` within ${delta}px`:''}`,'good');return;}}catch(e){}await new Promise(resolve=>setTimeout(resolve,attempt<4?180:320));}if(previewId===remotePhysicalPreviewId)setRemotePhysicalParityStatus('Pi verification pending — using the measured wall viewport','pending');
 }
 async function sendRemotePhysicalLayoutPreview({renew=false}={}){
-  if(!REMOTE_LIVE_PREVIEW_ENABLED)return false;
-  if(!remoteLayoutPreviewTarget?.physical||!remotePhysicalPreviewId)return false;
-  // Serialize commands: an older POST must not overtake a newer drag position.
-  if(remotePhysicalPreviewPostBusy){remotePhysicalPreviewQueued=true;return false;}
-  const state=remoteLayoutDraftState();if(!state)return false;
-  const signature=JSON.stringify(state);
-  if(!renew&&signature===remotePhysicalPreviewSignature)return false;
-  if(signature!==remotePhysicalPreviewSignature){remotePhysicalPreviewSignature=signature;remotePhysicalPreviewRevision++;}
-  const revision=remotePhysicalPreviewRevision,previewId=remotePhysicalPreviewId;
-  if(!renew){remotePhysicalConfirmedRevision=-1;remotePhysicalImageVerified=false;clearRemotePhysicalParityOverlay();setRemotePhysicalParityStatus('Updating Pi · screenshot is not yet confirmed','pending');}
-  remotePhysicalPreviewPostBusy=true;
-  try{
-    const res=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'preview-layout',endpoint:bootstrapApi.ACTIVE_ENDPOINT,previewId,previewRevision:revision,layoutPreview:state}),cache:'no-store'},{timeoutMs:8000,retry:false});
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    void pollRemotePhysicalParity(previewId,revision);
-    return true;
-  }catch(e){
-    if(previewId===remotePhysicalPreviewId&&revision===remotePhysicalPreviewRevision){remotePhysicalImageVerified=false;setRemotePhysicalParityStatus('NOT 1:1 · Pi live preview unavailable · editing remains available','warn');}
-    return false;
-  }finally{
-    remotePhysicalPreviewPostBusy=false;
-    if(remotePhysicalPreviewQueued){remotePhysicalPreviewQueued=false;setTimeout(()=>{if(remoteLayoutProxyActive)void sendRemotePhysicalLayoutPreview();},0);}
-  }
+  if(!remoteLayoutPreviewTarget?.physical||!remotePhysicalPreviewId)return false;const state=remoteLayoutDraftState();if(!state)return false;const signature=JSON.stringify(state);if(!renew&&signature===remotePhysicalPreviewSignature)return false;if(signature!==remotePhysicalPreviewSignature){remotePhysicalPreviewSignature=signature;remotePhysicalPreviewRevision++;}setRemotePhysicalParityStatus('Applying draft on Pi…','pending');try{const res=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'preview-layout',endpoint:bootstrapApi.ACTIVE_ENDPOINT,previewId:remotePhysicalPreviewId,previewRevision:remotePhysicalPreviewRevision,layoutPreview:state}),cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);pollRemotePhysicalParity(remotePhysicalPreviewId,remotePhysicalPreviewRevision);return true;}catch(e){setRemotePhysicalParityStatus('Pi live verification unavailable — using measured wall viewport','warn');return false;}
 }
-function maybeQueueRemotePhysicalLayoutPreview(){if(!REMOTE_LIVE_PREVIEW_ENABLED)return;if(remotePhysicalInitialCapturePending||!remoteLayoutProxyActive||!remotePhysicalPreviewId)return;const state=remoteLayoutDraftState();if(!state)return;let signature='';try{signature=JSON.stringify(state);}catch(e){return;}if(signature===remotePhysicalPreviewSeenSignature)return;remotePhysicalPreviewSeenSignature=signature;clearTimeout(remotePhysicalPreviewSendTimer);remotePhysicalPreviewSendTimer=setTimeout(()=>{remotePhysicalPreviewSendTimer=null;sendRemotePhysicalLayoutPreview();},220);}
-function startRemotePhysicalPreviewLease(){
-  if(!REMOTE_LIVE_PREVIEW_ENABLED)return;
-  clearInterval(remotePhysicalPreviewLeaseTimer);clearInterval(remotePhysicalImageRefreshTimer);
-  remotePhysicalPreviewLeaseTimer=setInterval(()=>{if(!remotePhysicalInitialCapturePending&&remotePhysicalPreviewSignature)void sendRemotePhysicalLayoutPreview({renew:true});},6500);
-  remotePhysicalImageRefreshTimer=setInterval(()=>{
-    if(remoteLayoutProxyActive&&remotePhysicalConfirmedRevision===remotePhysicalPreviewRevision&&remotePhysicalPreviewId&&!remotePhysicalImageBusy)showRemotePhysicalImage(remotePhysicalPreviewId,remotePhysicalPreviewRevision,{verified:true});
-  },9500);
-}
-function clearRemotePhysicalLayoutPreview(){remotePhysicalConfirmedRevision=-1;discardRemotePhysicalImage();const previewId=remotePhysicalPreviewId;if(!previewId)return;stopRemotePhysicalPreviewTimers();clearRemotePhysicalParityOverlay();remotePhysicalPreviewId='';remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';remotePhysicalPreviewRevision=0;try{resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'clear-layout-preview',endpoint:bootstrapApi.ACTIVE_ENDPOINT,previewId}),cache:'no-store',keepalive:true},{timeoutMs:2500,retry:false}).catch(()=>{});}catch(e){}}
+function maybeQueueRemotePhysicalLayoutPreview(){if(!remoteLayoutProxyActive||!remotePhysicalPreviewId)return;const state=remoteLayoutDraftState();if(!state)return;let signature='';try{signature=JSON.stringify(state);}catch(e){return;}if(signature===remotePhysicalPreviewSeenSignature)return;remotePhysicalPreviewSeenSignature=signature;clearTimeout(remotePhysicalPreviewSendTimer);remotePhysicalPreviewSendTimer=setTimeout(()=>{remotePhysicalPreviewSendTimer=null;sendRemotePhysicalLayoutPreview();},220);}
+function startRemotePhysicalPreviewLease(){clearInterval(remotePhysicalPreviewLeaseTimer);remotePhysicalPreviewLeaseTimer=setInterval(()=>sendRemotePhysicalLayoutPreview({renew:true}),6500);}
+function clearRemotePhysicalLayoutPreview(){const previewId=remotePhysicalPreviewId;if(!previewId)return;stopRemotePhysicalPreviewTimers();clearRemotePhysicalParityOverlay();remotePhysicalPreviewId='';remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';remotePhysicalPreviewRevision=0;try{resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'clear-layout-preview',endpoint:bootstrapApi.ACTIVE_ENDPOINT,previewId}),cache:'no-store',keepalive:true},{timeoutMs:2500,retry:false}).catch(()=>{});}catch(e){}}
 
 function targetViewportFromDevice(row){
   if(!row||!['local','viewer'].includes(String(row.mode||'')))return null;
@@ -1573,53 +1228,38 @@ function syncRemoteEditorHitTargets(scale){
   }catch(e){}
 }
 function fitRemoteLayoutPreview(){
-  const shell=document.getElementById('remote-layout-preview-shell'),stage=document.getElementById('remote-layout-preview-stage'),frame=remoteLayoutFrame(),reference=document.getElementById('remote-layout-reference'),photo=document.getElementById('remote-layout-reference-image');
-  if(!shell?.classList.contains('show')||!stage||!frame||!remoteLayoutPreviewTarget||remoteReferenceSavedView)return;
-  const tw=remoteLayoutPreviewTarget.width,th=remoteLayoutPreviewTarget.height,gutter=14,labelSpace=6;
-  const sw=Math.max(1,stage.clientWidth-gutter*2),sh=Math.max(1,stage.clientHeight-gutter*2-labelSpace);
-  const scale=Math.max(.1,Math.min(1,sw/tw,sh/th));
-  const left=gutter+Math.max(0,(sw-tw*scale)/2),top=gutter+labelSpace+Math.max(0,(sh-th*scale)/2);
-  primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
-  frame.style.left=left.toFixed(1)+'px';frame.style.top=top.toFixed(1)+'px';frame.style.transform=`scale(${scale})`;syncRemoteEditorHitTargets(scale);
-  if(reference)reference.hidden=true;if(photo){photo.style.left=left.toFixed(1)+'px';photo.style.top=top.toFixed(1)+'px';photo.style.width=(tw*scale).toFixed(1)+'px';photo.style.height=(th*scale).toFixed(1)+'px';}
-  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} Pi viewport${dpr} · ${Math.round(scale*100)}% zoom · unsaved handles until Save & Lock`;}
+  const shell=document.getElementById('remote-layout-preview-shell'),stage=document.getElementById('remote-layout-preview-stage'),frame=document.getElementById('remote-layout-preview-frame');
+  if(!shell?.classList.contains('show')||!stage||!frame||!remoteLayoutPreviewTarget)return;
+  const gutter=14,sw=Math.max(1,stage.clientWidth-gutter*2),sh=Math.max(1,stage.clientHeight-gutter*2),tw=remoteLayoutPreviewTarget.width,th=remoteLayoutPreviewTarget.height;
+  const scale=Math.max(.1,Math.min(1,sw/tw,sh/th)),left=gutter+Math.max(0,(sw-tw*scale)/2),top=gutter+Math.max(0,(sh-th*scale)/2);
+  primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);frame.style.left=left.toFixed(1)+'px';frame.style.top=top.toFixed(1)+'px';frame.style.transform=`scale(${scale})`;syncRemoteEditorHitTargets(scale);
+  const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'live physical display':(remoteLayoutPreviewTarget.persisted?'last physical kiosk heartbeat':'last reported physical display'),dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} physical CSS viewport${dpr} · ${state} · preview fit ${Math.round(scale*100)}% (geometry remains 1:1)`;}
 }
-
 async function openRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame'),meta=document.getElementById('remote-layout-preview-meta');if(!shell||!frame)return;
   const session=++remoteLayoutPreviewSession;
-  discardRemotePiReference();shell.classList.remove('post-save');document.getElementById('remote-layout-postsave').hidden=true;
-  setRemoteReferenceVisible();setRemoteReferenceStatus('Waiting for actual Pi screenshot…');
   if(meta)meta.textContent='Reading the wall display viewport…';shell.classList.add('show');shell.setAttribute('aria-hidden','false');
   const target=await fetchRemoteLayoutTarget();
   if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;
   remoteLayoutPreviewTarget=target;
   if(!remoteLayoutPreviewTarget){
-    discardRemotePhysicalImage();deactivateRemoteLayoutProxy();
+    deactivateRemoteLayoutProxy();
     frame.onload=null;frame.removeAttribute('src');frame.src='about:blank';
     frame.style.removeProperty('transform');frame.style.removeProperty('width');frame.style.removeProperty('height');frame.style.removeProperty('left');frame.style.removeProperty('top');
     if(meta)meta.textContent='Arrange unavailable · no physical kiosk viewport is available for this display. Open or reload the actual LibreDisplay wall screen, then choose Reload preview.';
     return;
   }
-  // Do not apply a single intermediate layout to the kiosk. Editing is local and instantaneous.
-  remotePhysicalPreviewId='';remotePhysicalPreviewRevision=0;remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';
-  setRemotePhysicalParityStatus('Local draft · Pi unchanged until Save & Lock','pending');
+  remotePhysicalPreviewId=newRemotePhysicalPreviewId();remotePhysicalPreviewRevision=0;remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';setRemotePhysicalParityStatus('Pi verification pending…','pending');startRemotePhysicalPreviewLease();
   primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
-  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;
-    // Keep the locally rendered dashboard and its handles in the SAME coordinate system.
-    // The ordinary remote owner dashboard already mirrors the actual Pi outside Arrange.
-    activateRemoteLayoutProxy();installPiReferenceIntoEditor();LibreDisplayRuntime.getModule('remote')?.startRemoteDraftSprites?.(remoteReferenceUrl);fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);
-  };
+  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
   frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
   fitRemoteLayoutPreview();requestAnimationFrame(fitRemoteLayoutPreview);
-  // An independent snapshot, never a draft overlay and never a Pi layout command.
-  void captureRemotePiReference();
 }
 function closeRemoteLayoutPreview({preservePhysical=false}={}){
-  remotePhysicalInitialCapturePending=false;remoteLayoutPreviewSession++;deactivateRemoteLayoutProxy();discardRemotePiReference();
-  if(preservePhysical){remotePhysicalConfirmedRevision=-1;stopRemotePhysicalPreviewTimers();discardRemotePhysicalImage();clearRemotePhysicalParityOverlay();remotePhysicalPreviewId='';remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';remotePhysicalPreviewRevision=0;}else clearRemotePhysicalLayoutPreview();
+  remoteLayoutPreviewSession++;deactivateRemoteLayoutProxy();
+  if(preservePhysical){stopRemotePhysicalPreviewTimers();clearRemotePhysicalParityOverlay();remotePhysicalPreviewId='';remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';remotePhysicalPreviewRevision=0;}else clearRemotePhysicalLayoutPreview();
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');
-  if(shell){shell.classList.remove('show','post-save');shell.setAttribute('aria-hidden','true');}document.getElementById('remote-layout-postsave').hidden=true;
+  if(shell){shell.classList.remove('show');shell.setAttribute('aria-hidden','true');}
   if(frame){frame.onload=null;frame.removeAttribute('src');frame.src='about:blank';frame.style.removeProperty('transform');frame.style.removeProperty('width');frame.style.removeProperty('height');frame.style.removeProperty('left');frame.style.removeProperty('top');}
   remoteLayoutPreviewTarget=null;document.body.classList.remove('remote-layout-proxy');
   document.getElementById('layout-toolbar')?.classList.remove('show');document.getElementById('layout-properties')?.classList.remove('show');document.getElementById('block-catalog')?.classList.remove('show');document.getElementById('block-config-modal')?.classList.remove('show');
@@ -1627,34 +1267,29 @@ function closeRemoteLayoutPreview({preservePhysical=false}={}){
 function reloadRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');if(!frame||!shell?.classList.contains('show'))return;
   if(!remoteLayoutPreviewTarget){openRemoteLayoutPreview();return;}
-  if(remoteReferenceSavedView){closeRemoteLayoutPreview();openSetup(false);return;}
-  const session=++remoteLayoutPreviewSession;remotePhysicalInitialCapturePending=false;deactivateRemoteLayoutProxy();remotePhysicalConfirmedRevision=-1;discardRemotePhysicalImage();discardRemotePiReference();setRemoteReferenceStatus('Capturing actual Pi pixels…');
+  const session=++remoteLayoutPreviewSession;deactivateRemoteLayoutProxy();
   primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
-  setRemotePhysicalParityStatus('Local draft · Pi unchanged until Save & Lock','pending');
-  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;
-    activateRemoteLayoutProxy();installPiReferenceIntoEditor();LibreDisplayRuntime.getModule('remote')?.startRemoteDraftSprites?.(remoteReferenceUrl);fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);
-  };
+  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);remotePhysicalPreviewSeenSignature='';setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
   frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
-  void captureRemotePiReference();
 }
-async function handleEmbeddedLayoutEditorAction(action,detail={}){
+async function handleEmbeddedLayoutEditorAction(action){
   if(action==='saved'){
-    showRemotePhysicalSaveResult(detail);
+    closeRemoteLayoutPreview({preservePhysical:true});
     await LibreDisplayRuntime.getModule('remote').pollServerConfig();
+    openSetup(false);
     return;
   }
   if(action==='cancelled'){closeRemoteLayoutPreview();openSetup(false);}
 }
-function notifyLayoutPreviewParent(action,detail={}){
+function notifyLayoutPreviewParent(action){
   if(!LAYOUT_PREVIEW_MODE||window.parent===window)return;
-  try{if(window.parent.location.origin===location.origin&&typeof window.parent.handleEmbeddedLayoutEditorAction==='function'){window.parent.handleEmbeddedLayoutEditorAction(action,detail);return;}}catch(e){}
-  window.parent.postMessage({type:'libredisplay-layout-editor',action,detail},location.origin);
+  try{if(window.parent.location.origin===location.origin&&typeof window.parent.handleEmbeddedLayoutEditorAction==='function'){window.parent.handleEmbeddedLayoutEditorAction(action);return;}}catch(e){}
+  window.parent.postMessage({type:'libredisplay-layout-editor',action},location.origin);
 }
-window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==document.getElementById('remote-layout-preview-frame')?.contentWindow)return;const msg=e.data||{};if(msg.type!=='libredisplay-layout-editor')return;handleEmbeddedLayoutEditorAction(msg.action,msg.detail);});
-document.getElementById('remote-layout-reference-refresh')?.addEventListener('click',()=>{if(!remoteReferenceBusy)void refreshRemotePiReference();});
+window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==document.getElementById('remote-layout-preview-frame')?.contentWindow)return;const msg=e.data||{};if(msg.type!=='libredisplay-layout-editor')return;handleEmbeddedLayoutEditorAction(msg.action);});
 function launchLayoutEditorFromSettings(){
   if(LibreDisplayRuntime.getModule('system').settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;
-  closeSetup(true);if(!bootstrapApi.LOCAL_CLIENT_MODE&&!bootstrapApi.READ_ONLY_DISPLAY_MODE){setTimeout(openRemoteLayoutPreview,80);return;}setTimeout(startLayoutEditor,80);
+  closeSetup(true);if(bootstrapApi.REMOTE_SETTINGS_MODE){setTimeout(openRemoteLayoutPreview,80);return;}setTimeout(startLayoutEditor,80);
 }
 function stopLayoutEditorUi(){
   toggleLayoutShortcuts(false);
@@ -1663,12 +1298,12 @@ function stopLayoutEditorUi(){
   const layer=document.getElementById('layout-editor-layer'),toolbar=document.getElementById('layout-toolbar'),props=document.getElementById('layout-properties');
   layer?.classList.remove('show','grid-on');toolbar?.classList.remove('show');props?.classList.remove('show');layer?.setAttribute('aria-hidden','true');toolbar?.setAttribute('aria-hidden','true');props?.setAttribute('aria-hidden','true');
   if(layer)layer.innerHTML='';closeBlockCatalog();document.getElementById('block-config-modal')?.classList.remove('show');layoutCustomBlocksDraft=[];layoutApi().layoutContentScaleDraft={};layoutApi().layoutElementStyleDraft={};layoutApi().layoutPartStyleDraft={};layoutApi().currentWeatherPartLayoutDraft={};layoutApi().currentWeatherLayoutDraft=cfg.currentWeatherLayout||'stacked';layoutApi().currentWeatherPartPointerState=null;layoutApi().layoutSelectedPart='whole';layoutApi().layoutSelectedPartKeys=[];layoutApi().layoutScaleEditActive=false;layoutApi().layoutStyleEditField='';layoutApi().layoutPartFineEditField='';layoutApi().layoutInspectorDragState=null;layoutApi().layoutSessionViewport=null;
-  document.removeEventListener('pointermove',moveLayoutPointer);document.removeEventListener('pointerup',endLayoutPointer);document.removeEventListener('pointercancel',endLayoutPointer);
+  document.removeEventListener('pointermove',moveLayoutPointer);document.removeEventListener('pointerup',endLayoutPointer);
 }
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("layout", {remoteLayoutFrame,remoteLayoutInnerDocument,remotePhysicalPreviewDiagnostics,remoteReferenceDiagnostics,setRemoteReferenceVisible,captureRemotePiReference,refreshRemotePiReference,verifySavedPhysicalReference,showRemotePhysicalSaveResult,remoteLayoutProxyRoot,remoteLayoutProxyCounterpart,remoteLayoutProxyMirrorElement,syncRemoteLayoutProxyUi,scheduleRemoteLayoutProxySync,activateRemoteLayoutProxy,deactivateRemoteLayoutProxy,handleRemoteLayoutProxyEvent,targetViewportFromDevice,bestLayoutTargetDevice,readDisplayDevices,requestFreshDisplayMetrics,fetchRemoteLayoutTarget,newRemotePhysicalPreviewId,setRemotePhysicalParityStatus,compareLayoutRenderSnapshots,pollRemotePhysicalParity,sendRemotePhysicalLayoutPreview,maybeQueueRemotePhysicalLayoutPreview,clearRemotePhysicalLayoutPreview,remoteLayoutPreviewUrl,primeRemoteLayoutFrameViewport,syncRemoteLayoutEditorAffordances,selectRemoteLayoutElement,syncRemoteEditorHitTargets,fitRemoteLayoutPreview,openRemoteLayoutPreview,closeRemoteLayoutPreview,reloadRemoteLayoutPreview,handleEmbeddedLayoutEditorAction,notifyLayoutPreviewParent,launchLayoutEditorFromSettings,stopLayoutEditorUi}, {
+LibreDisplayRuntime.exposeModule("layout", {remoteLayoutFrame,remoteLayoutInnerDocument,remoteLayoutProxyRoot,remoteLayoutProxyCounterpart,remoteLayoutProxyMirrorElement,syncRemoteLayoutProxyUi,scheduleRemoteLayoutProxySync,activateRemoteLayoutProxy,deactivateRemoteLayoutProxy,handleRemoteLayoutProxyEvent,targetViewportFromDevice,bestLayoutTargetDevice,readDisplayDevices,requestFreshDisplayMetrics,fetchRemoteLayoutTarget,newRemotePhysicalPreviewId,setRemotePhysicalParityStatus,compareLayoutRenderSnapshots,pollRemotePhysicalParity,sendRemotePhysicalLayoutPreview,maybeQueueRemotePhysicalLayoutPreview,clearRemotePhysicalLayoutPreview,remoteLayoutPreviewUrl,primeRemoteLayoutFrameViewport,syncRemoteLayoutEditorAffordances,selectRemoteLayoutElement,syncRemoteEditorHitTargets,fitRemoteLayoutPreview,openRemoteLayoutPreview,closeRemoteLayoutPreview,reloadRemoteLayoutPreview,handleEmbeddedLayoutEditorAction,notifyLayoutPreviewParent,launchLayoutEditorFromSettings,stopLayoutEditorUi}, {
   "remoteLayoutProxyActive": {configurable:true,get:()=>remoteLayoutProxyActive,set:(value)=>{remoteLayoutProxyActive=value;}},
   "remoteLayoutProxySyncTimer": {configurable:true,get:()=>remoteLayoutProxySyncTimer,set:(value)=>{remoteLayoutProxySyncTimer=value;}},
   "remoteLayoutPreviewTarget": {configurable:true,get:()=>remoteLayoutPreviewTarget,set:(value)=>{remoteLayoutPreviewTarget=value;}},
@@ -1748,18 +1383,9 @@ function resetSelectedLayoutBlock(){
   for(const [key,rect] of Object.entries(layoutApi().layoutEditorDraft))applyOneLayoutRect(key,rect);
   renderLayoutEditorBoxes();selectLayoutBlock(layoutSelectedKey);
 }
-async function resetSavedBlockLayout(){
-  if(!confirm('Reset the saved drag/resize block arrangement and return to the default dashboard geometry?'))return false;
-  const previous=JSON.parse(JSON.stringify(cfg)),localBefore=layoutApi().snapshotArrangeLocalStorage();
-  cfg.layoutMode='default';cfg.layoutBlocks={};
-  const result=await saveCfg({expectedSavedAt:Number(previous._savedAt||0)});
-  if(!result?.ok||result?.verified!==true){
-    layoutApi().restoreFailedArrangeSave(previous,localBefore);
-    alert('The previous layout has been restored locally because resetting could not be verified on the display. '+(result?.error||'Save verification failed.'));
-    return false;
-  }
-  applyUiCustomization(cfg);updateLayoutModeStatus(cfg);setAppearanceForm(cfg);
-  return true;
+function resetSavedBlockLayout(){
+  if(!confirm('Reset the saved drag/resize block arrangement and return to the default dashboard geometry?'))return;
+  cfg.layoutMode='default';cfg.layoutBlocks={};saveCfg();applyUiCustomization(cfg);updateLayoutModeStatus(cfg);setAppearanceForm(cfg);
 }
 function nudgeSelectedLayoutBlock(key,resize=false){
   const l=layoutApi(),selectedKey=l.layoutSelectedKey,selectedPart=l.layoutSelectedPart;
@@ -1778,7 +1404,7 @@ function nudgeSelectedLayoutBlock(key,resize=false){
   l.pushLayoutHistory();const vp=l.layoutViewportSize(),grid=Math.max(4,Number(document.getElementById('layout-toolbar-grid')?.value)||20),r=l.pxRectFromNormalized(selectedRect),selected=l.layoutSelectionMovableKeys?.()||[selectedKey];
   if(!resize&&selected.length>1){const bounds=l.layoutSelectionBounds?.(selected);if(!bounds)return false;let dx=key==='ArrowRight'?grid:key==='ArrowLeft'?-grid:0,dy=key==='ArrowDown'?grid:key==='ArrowUp'?-grid:0;dx=Math.max(-bounds.left,Math.min(vp.width-bounds.right,dx));dy=Math.max(-bounds.top,Math.min(vp.height-bounds.bottom,dy));for(const item of selected){const raw=l.layoutEditorRectForKey(item);if(!raw)continue;const px=l.pxRectFromNormalized(raw);l.setLayoutEditorRectForKey(item,l.normalizedRectFromPx({left:px.left+dx,top:px.top+dy,width:px.width,height:px.height}));}l.renderLayoutEditorBoxes();return true;}
   const currentWeatherScreenRects=resize&&selectedKey==='current'&&l.currentWeatherLayoutDraft==='free'?l.captureCurrentWeatherPartScreenRects?.():null,integrationFrameState=resize&&customKeyId(selectedKey)?l.captureIntegrationFreePartScreenRects?.(selectedKey):null;
-  if(resize){if(!customKeyId(selectedKey)&&l.LAYOUT_BLOCK_DEFS[selectedKey]){l.freezeBuiltInFrameFit?.(selectedKey);}if(key==='ArrowRight')r.width+=grid;if(key==='ArrowLeft')r.width-=grid;if(key==='ArrowDown')r.height+=grid;if(key==='ArrowUp')r.height-=grid;r.width=Math.max(def.minW,Math.min(vp.width-r.left,r.width));r.height=Math.max(def.minH,Math.min(vp.height-r.top,r.height));}
+  if(resize){if(!customKeyId(selectedKey)&&l.LAYOUT_BLOCK_DEFS[selectedKey]){l.layoutElementStyleDraft[selectedKey]={...(l.layoutElementStyleDraft[selectedKey]||{}),fitContent:false};l.resetBuiltInLayoutFitForKey?.(selectedKey);}if(key==='ArrowRight')r.width+=grid;if(key==='ArrowLeft')r.width-=grid;if(key==='ArrowDown')r.height+=grid;if(key==='ArrowUp')r.height-=grid;r.width=Math.max(def.minW,Math.min(vp.width-r.left,r.width));r.height=Math.max(def.minH,Math.min(vp.height-r.top,r.height));}
   else{if(key==='ArrowRight')r.left+=grid;if(key==='ArrowLeft')r.left-=grid;if(key==='ArrowDown')r.top+=grid;if(key==='ArrowUp')r.top-=grid;r.left=Math.max(0,Math.min(vp.width-r.width,r.left));r.top=Math.max(0,Math.min(vp.height-r.height,r.top));}
   l.setLayoutEditorRectForKey(selectedKey,l.normalizedRectFromPx(r));if(currentWeatherScreenRects)l.preserveCurrentWeatherPartsAcrossFrameResize?.(currentWeatherScreenRects);if(integrationFrameState)l.preserveIntegrationFreePartScreenRects?.(integrationFrameState);l.renderLayoutEditorBoxes();return true;
 }

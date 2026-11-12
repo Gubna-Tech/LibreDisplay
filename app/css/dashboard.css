@@ -757,47 +757,10 @@ body.layout-editing #calendar-legend {
 #remote-layout-preview-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}#remote-layout-preview-actions button,#remote-layout-preview-actions select{border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:11px;padding:7px 10px}#remote-layout-preview-actions button{cursor:pointer}.remote-layout-element-control{display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,.64)}.remote-layout-element-control select{min-width:150px;max-width:230px}.remote-layout-element-control option{background:#101410;color:#fff}
 #remote-layout-preview-stage{position:absolute;left:0;right:0;top:52px;bottom:0;overflow:hidden;background:#000}
 #remote-layout-preview-frame{position:absolute;left:0;top:0;border:0;background:#000;transform-origin:0 0;box-shadow:0 0 0 1px rgba(255,255,255,.12),0 22px 70px rgba(0,0,0,.55)}
-#remote-layout-preview-shell.post-save #remote-layout-preview-frame,
-#remote-layout-preview-shell.post-save #remote-layout-draft-label,
-#remote-layout-preview-shell.post-save #remote-layout-reference-toggle,
-#remote-layout-preview-shell.post-save #remote-layout-reference-refresh{display:none!important}
-/* Save-only physical-first editor: only the real Pi image is visible behind
-   the editable positions. It remains a frozen last-applied snapshot until Save & Lock. */
-#remote-layout-reference{position:absolute;inset:0 0 0 50%;background:#080c0d;border-left:1px solid rgba(255,255,255,.2);overflow:hidden}
-#remote-layout-reference[hidden],#remote-layout-postsave[hidden]{display:none!important}
-#remote-layout-reference-image{position:absolute;object-fit:fill;max-width:none;max-height:none;pointer-events:none;box-shadow:0 0 0 1px rgba(255,255,255,.18)}
-#remote-layout-reference-image[hidden],#remote-layout-before-image[hidden],#remote-layout-after-image[hidden]{display:none!important}
-.remote-layout-panel-label{position:absolute;left:12px;top:8px;z-index:2;font:700 10px/1.3 system-ui,sans-serif;letter-spacing:.035em;color:#e0ebe7;background:rgba(8,11,9,.88);border:1px solid rgba(255,255,255,.15);padding:5px 8px;border-radius:5px;pointer-events:none}
-#remote-layout-reference-label{left:12px}
-#remote-layout-reference-status{position:absolute;bottom:8px;left:12px;right:12px;z-index:2;font:600 10px/1.4 system-ui,sans-serif;color:#eee;background:rgba(0,0,0,.78);padding:6px 8px;max-width:max-content;border-radius:5px}
-#remote-layout-reference-status[data-state=warn]{color:#ffd49b}
-#remote-layout-postsave{position:absolute;inset:0;overflow:auto;padding:22px 24px 30px;background:#080c0d;color:#eee;font:12px/1.5 system-ui,sans-serif}
-.remote-layout-postsave-title{font-size:17px;font-weight:700;margin-bottom:7px}
-#remote-layout-postsave-status{color:#b5d5c7;margin-bottom:17px;overflow-wrap:anywhere}
-#remote-layout-postsave-status[data-state=warn]{color:#ffd49b}
-.remote-layout-postsave-pictures{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
-.remote-layout-postsave-pictures>div{min-width:0}
-.remote-layout-postsave-pictures b{display:block;font-size:11px;margin-bottom:8px}
-.remote-layout-postsave-pictures img{width:100%;height:auto;max-height:60vh;object-fit:contain;background:#000;border:1px solid rgba(255,255,255,.2)}
-/* Physical-first Arrange always uses the actual Pi capture as its one visual canvas. */
-#remote-layout-reference{display:none!important}
-#remote-layout-draft-label{display:none!important}
-#remote-layout-preview-shell:not(.pi-captured):not(.post-save) #remote-layout-preview-frame{visibility:hidden}
-#remote-layout-preview-shell.pi-captured #remote-layout-preview-frame{visibility:visible}
-#remote-layout-reference-status{pointer-events:none;z-index:4;max-width:calc(100% - 24px);font-size:10px}
-@media(max-width:1100px){#remote-layout-preview-title span{max-width:200px}#remote-layout-preview-actions{gap:3px}#remote-layout-preview-actions button{padding:6px}#remote-layout-reference-status{font-size:9px}}
-@media(max-width:650px){.remote-layout-postsave-pictures{grid-template-columns:1fr}#remote-layout-preview-title span{display:none}}
 body.layout-preview-embedded #cog,body.layout-preview-embedded #settings-preview-return{display:none!important}
 /* Remote Arrange uses two deliberately separate UI layers. The iframe contains only
    the target-display canvas and edit rectangles. Laptop editor chrome lives in the
    outer document and is never scaled with the TV/Pi viewport. */
-/* The real kiosk compositor image replaces the browser's approximation only when verified. */
-/* Never show an administrator-browser approximation as the physical Pi image. */
-/* When the compositor cannot be captured, retain the functional editor as an
-   explicitly unverified fallback. Never black out the editor or disable dragging. */
-html.ld-physical-image-active body > :not(#layout-editor-layer):not(#ld-actual-wall-image):not(#ld-physical-draft-layer):not(#ld-physical-parity-overlay){visibility:hidden!important}
-html.ld-physical-image-active body.layout-preview-embedded #ld-actual-wall-image{display:block}
-#ld-actual-wall-image{display:none;position:fixed;inset:0;width:100vw;height:100vh;object-fit:fill;z-index:1;pointer-events:none;user-select:none}
 body.layout-preview-embedded #layout-toolbar,
 body.layout-preview-embedded #layout-properties,
 body.layout-preview-embedded #block-catalog,
@@ -846,8 +809,6 @@ body.remote-layout-proxy #layout-editor-layer{display:none!important}
   touch-action:none;
 }
 .layout-edit-box.locked{cursor:not-allowed;border-style:dashed}.layout-edit-box.locked .layout-resize-handle{display:none}
-/* A visible focus ring distinguishes keyboard editing from pointer selection. */
-body.layout-editing .layout-edit-box:focus-visible{outline:3px solid #ffdf73;outline-offset:3px}
 .layout-edit-box.selected {
   z-index:2;
   border-color:#fff;
