@@ -456,8 +456,71 @@ function clearSettingsInitializationError(){
 }
 
 
+
+// Remote Owner view: show compositor pixels at the kiosk's native CSS geometry.
+// Do not render a scaled screenshot or a separate browser approximation as Pi.
+let nativePiViewTimer=null,nativePiViewUrl='',nativePiViewBusy=false,nativePiViewActive=false,nativePiViewDevice='',nativePiViewGeometry='';
+async function refreshNativeRemotePiView(){
+  if(!nativePiViewActive||nativePiViewBusy)return;
+  if(document.hidden||document.getElementById('remote-layout-preview-shell')?.classList.contains('show')){
+    nativePiViewTimer=setTimeout(refreshNativeRemotePiView,2500);return;
+  }
+  nativePiViewBusy=true;let candidateUrl='';
+  try{
+    const layout=LibreDisplayRuntime.getModule('layout');
+    const devices=await layout.readDisplayDevices();
+    const row=layout.bestLayoutTargetDevice(devices);
+    const target=layout.targetViewportFromDevice(row);
+    if(!target?.physical||!target.online||!target.deviceId)throw new Error('Physical Pi heartbeat unavailable');
+    const geometry=target.width+'x'+target.height+'@'+target.dpr;
+    if(nativePiViewUrl&&(nativePiViewDevice!==target.deviceId||nativePiViewGeometry!==geometry)){
+      URL.revokeObjectURL(nativePiViewUrl);nativePiViewUrl='';
+      const oldImage=document.getElementById('ld-native-pi-image'),oldLayer=document.getElementById('ld-native-pi-view');
+      if(oldImage)oldImage.removeAttribute('src');if(oldLayer)oldLayer.hidden=true;
+      document.documentElement.classList.remove('ld-native-pi-view');
+    }
+    const response=await resilientFetch(serverPath('/api/physical-screen'),{cache:'no-store',headers:{'X-LibreDisplay-Capture-Device':target.deviceId}},{timeoutMs:15000,retry:false});
+    if(!response.ok){const error=await response.json().catch(()=>({}));throw new Error(error.error||('HTTP '+response.status));}
+    if(response.headers.get('X-LibreDisplay-Device-Id')!==target.deviceId||response.headers.get('X-LibreDisplay-Endpoint')!==bootstrapApi.ACTIVE_ENDPOINT)throw new Error('Wrong physical Pi capture identity');
+    const blob=await response.blob();if(blob.type!=='image/png'||blob.size<64||blob.size>16000000)throw new Error('Invalid physical Pi PNG');
+    candidateUrl=URL.createObjectURL(blob);
+    const candidate=new Image();candidate.src=candidateUrl;await candidate.decode();
+    if(Math.abs(candidate.naturalWidth-Math.round(target.width*target.dpr))>2||Math.abs(candidate.naturalHeight-Math.round(target.height*target.dpr))>2)
+      throw new Error('Pi framebuffer size differs from kiosk viewport');
+    if(!nativePiViewActive)return;
+    const layer=document.getElementById('ld-native-pi-view'),image=document.getElementById('ld-native-pi-image'),status=document.getElementById('ld-native-pi-status');
+    if(!layer||!image||!status)return;
+    layer.style.width=target.width+'px';layer.style.height=target.height+'px';
+    image.style.width=target.width+'px';image.style.height=target.height+'px';
+    if(nativePiViewUrl)URL.revokeObjectURL(nativePiViewUrl);
+    nativePiViewUrl=candidateUrl;candidateUrl='';nativePiViewDevice=target.deviceId;nativePiViewGeometry=geometry;
+    image.src=nativePiViewUrl;layer.hidden=false;status.hidden=true;status.textContent='';
+    document.documentElement.style.setProperty('--ld-native-pi-width',target.width+'px');
+    document.documentElement.style.setProperty('--ld-native-pi-height',target.height+'px');
+    document.documentElement.classList.add('ld-native-pi-view');
+  }catch(e){
+    const status=document.getElementById('ld-native-pi-status');
+    if(status){status.textContent=nativePiViewUrl?'Pi image is stale · capture unavailable':'Pi capture unavailable · local browser view is unverified';status.hidden=false;}
+  }finally{
+    if(candidateUrl)URL.revokeObjectURL(candidateUrl);
+    nativePiViewBusy=false;
+    clearTimeout(nativePiViewTimer);
+    if(nativePiViewActive)nativePiViewTimer=setTimeout(refreshNativeRemotePiView,2500);
+  }
+}
+function startNativeRemotePiView(){
+  if(nativePiViewActive||bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LAYOUT_PREVIEW_MODE||bootstrapApi.SESSION_ROLE!=='owner')return;
+  nativePiViewActive=true;
+  const layer=document.createElement('div');layer.id='ld-native-pi-view';layer.hidden=true;layer.setAttribute('aria-label','Physical Raspberry Pi screen at native CSS size');
+  const image=document.createElement('img');image.id='ld-native-pi-image';image.alt='Captured pixels from the physical Raspberry Pi display';image.draggable=false;
+  const status=document.createElement('div');status.id='ld-native-pi-status';status.setAttribute('role','status');status.hidden=true;
+  layer.appendChild(image);document.body.append(layer,status);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&nativePiViewActive){clearTimeout(nativePiViewTimer);nativePiViewTimer=setTimeout(refreshNativeRemotePiView,30);}});
+  void refreshNativeRemotePiView();
+}
+
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
+LibreDisplayRuntime.exposeModule("remote", {startNativeRemotePiView,endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
   "displayEndpoints": {configurable:true,get:()=>displayEndpoints,set:(value)=>{displayEndpoints=value;}},
   "displayDevices": {configurable:true,get:()=>displayDevices,set:(value)=>{displayDevices=value;}},
   "endpointsRemoteEnabled": {configurable:true,get:()=>endpointsRemoteEnabled,set:(value)=>{endpointsRemoteEnabled=value;}},

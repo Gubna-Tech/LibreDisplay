@@ -4117,15 +4117,15 @@ PHYSICAL_SCREEN_LOCK = threading.Lock()
 # The remote wall mirror and Arrange may request the same compositor frame at
 # once. Serialize grim and let overlapping requests reuse a genuinely captured
 # recent frame; never synthesize pixels in the server or discard the last image.
-PHYSICAL_SCREEN_LAST = [0.0, b'']
+PHYSICAL_SCREEN_LAST = [0.0, b'', '']
 
 
-def capture_physical_screen_png():
+def capture_physical_screen_png(cache_identity='', force_fresh=False):
     if sys.platform != 'linux' or not shutil.which('grim'):
         raise RuntimeError('Physical screen capture requires grim on the Pi')
     with PHYSICAL_SCREEN_LOCK:
         now = time.monotonic()
-        if PHYSICAL_SCREEN_LAST[1] and now - PHYSICAL_SCREEN_LAST[0] <= 1.25:
+        if not force_fresh and PHYSICAL_SCREEN_LAST[1] and PHYSICAL_SCREEN_LAST[2] == cache_identity and now - PHYSICAL_SCREEN_LAST[0] <= 1.25:
             return PHYSICAL_SCREEN_LAST[1]
         env = os.environ.copy()
         runtime = Path(env.get('XDG_RUNTIME_DIR') or f'/run/user/{os.getuid()}')
@@ -4144,6 +4144,7 @@ def capture_physical_screen_png():
             raise RuntimeError('The physical compositor did not provide a valid screenshot')
         PHYSICAL_SCREEN_LAST[0] = time.monotonic()
         PHYSICAL_SCREEN_LAST[1] = data
+        PHYSICAL_SCREEN_LAST[2] = cache_identity
         return data
 
 
@@ -5831,19 +5832,36 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if not requested_device or len(requested_device)>160:
                 return self.json_response(400, {'ok': False, 'error': 'A physical kiosk device identity is required'})
             def matching_kiosk():
-                return [row for row in self.device_payload()
-                        if str(row.get('mode') or '') == 'local' and row.get('online')
-                        and row.get('endpoint') == endpoint
-                        and str(row.get('deviceId') or '') == requested_device
-                        and float(row.get('ageSeconds') or 999) < 75]
-            if len(matching_kiosk()) != 1:
-                return self.json_response(503, {'ok': False, 'error': 'Target physical kiosk is not uniquely connected'})
+                # The loopback kiosk heartbeat is the authoritative identity of
+                # the compositor we're about to capture. /api/devices can hold
+                # old browser registrations; those must not make a real Pi
+                # capture unavailable or relabel a different display's pixels.
+                row = load_json_path(KIOSK_HEARTBEAT_PATH, {})
+                if not isinstance(row, dict):
+                    return False
+                if (str(row.get('mode') or '') != 'local' or
+                        endpoint_slug(row.get('endpoint') or 'main') != endpoint or
+                        str(row.get('deviceId') or '') != requested_device or
+                        not 0 <= time.time() - float(row.get('lastSeen') or 0) < 75):
+                    return False
+                # If another local kiosk is actively registered for this
+                # endpoint, a host-level grim capture cannot disambiguate it.
+                with DEVICE_LOCK:
+                    others = [r for r in DEVICE_STATE.values()
+                              if str(r.get('mode') or '') == 'local'
+                              and str(r.get('endpoint') or '') == endpoint
+                              and str(r.get('deviceId') or '') != requested_device
+                              and time.time() - float(r.get('lastSeen') or 0) < 75]
+                return not others
+            if not matching_kiosk():
+                return self.json_response(503, {'ok': False, 'error': 'Physical Pi capture identity is unavailable or ambiguous'})
             try:
-                screenshot = capture_physical_screen_png()
+                screenshot = capture_physical_screen_png(endpoint + ':' + requested_device,
+                    force_fresh=self.headers.get('X-LibreDisplay-Capture-Fresh') == '1')
             except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
                 return self.json_response(503, {'ok': False, 'error': str(error)[:180]})
             # Prevent re-labeling a valid compositor PNG as a vanished/different kiosk.
-            if len(matching_kiosk()) != 1:
+            if not matching_kiosk():
                 return self.json_response(503, {'ok': False, 'error': 'Target physical kiosk changed during capture'})
             return self.bytes_response(200, screenshot, 'image/png',
                 {'Cache-Control': 'no-store, private',
