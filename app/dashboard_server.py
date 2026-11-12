@@ -4168,8 +4168,15 @@ class DashboardHandler(BaseHTTPRequestHandler):
         sys.stderr.write(f"{self.address_string()} - - [{self.log_date_time_string()}] {message}\n")
 
     def same_origin_layout_preview(self):
+        # Only these two first-party dashboard frames can be embedded. The
+        # nativeLive child is the existing live dashboard at the Pi viewport;
+        # do not relax framing protection for normal pages or API responses.
         try:
-            return urlparse(self.path).path == "/layout-preview"
+            parsed = urlparse(self.path)
+            if parsed.path == "/layout-preview":
+                return True
+            return (parsed.path == "/dashboard.html"
+                    and parse_qs(parsed.query).get("nativeLive") == ["1"])
         except Exception:
             return False
 
