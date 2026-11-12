@@ -1110,7 +1110,6 @@ LibreDisplayRuntime.exposeModule("settings", {updateSettingsPageHeader,settingsC
 
 // LibreDisplay source section: /js/settings/actions.js
 {
-const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 const configApi=LibreDisplayRuntime.getModule('config');
 const settingsApi=()=>LibreDisplayRuntime.getModule("settings");
 const {resilientFetch}=LibreDisplayRuntime.getModule('shared');
@@ -1147,27 +1146,8 @@ let quickAccessMenuOpen=false;
 function positionQuickAccessMenu(){const cog=document.getElementById('cog'),menu=document.getElementById('quick-access-menu');if(!cog||!menu)return;const r=cog.getBoundingClientRect(),gap=9;menu.style.left=menu.style.right=menu.style.top=menu.style.bottom='auto';if(r.left>window.innerWidth/2)menu.style.right=Math.max(10,window.innerWidth-r.right)+'px';else menu.style.left=Math.max(10,r.left)+'px';if(r.top>window.innerHeight/2)menu.style.bottom=Math.max(10,window.innerHeight-r.top+gap)+'px';else menu.style.top=Math.max(10,r.bottom+gap)+'px';}
 function closeQuickAccessMenu(){quickAccessMenuOpen=false;const menu=document.getElementById('quick-access-menu'),cog=document.getElementById('cog');menu?.classList.remove('show');menu?.setAttribute('aria-hidden','true');cog?.setAttribute('aria-expanded','false');}
 function toggleQuickAccessMenu(e){e?.stopPropagation?.();const menu=document.getElementById('quick-access-menu'),cog=document.getElementById('cog');if(!menu||!cog)return;if(quickAccessMenuOpen){closeQuickAccessMenu();return;}quickAccessMenuOpen=true;positionQuickAccessMenu();menu.classList.add('show');menu.setAttribute('aria-hidden','false');cog.setAttribute('aria-expanded','true');setTimeout(()=>menu.querySelector('button')?.focus({preventScroll:true}),0);}
-function quickAccessArrange(){
-  closeQuickAccessMenu();
-  if(!bootstrapApi.LOCAL_CLIENT_MODE&&!bootstrapApi.READ_ONLY_DISPLAY_MODE){void LibreDisplayRuntime.getModule('layout').openRemoteLayoutPreview();return;}
-  startLayoutEditor();
-}
-function quickAccessAddBlock(){
-  closeQuickAccessMenu();
-  if(!bootstrapApi.LOCAL_CLIENT_MODE&&!bootstrapApi.READ_ONLY_DISPLAY_MODE){
-    const layout=LibreDisplayRuntime.getModule('layout');
-    void layout.openRemoteLayoutPreview();
-    let attempts=0;
-    const openWhenReady=()=>{
-      const frame=layout.remoteLayoutFrame?.(),inner=frame?.contentWindow;
-      if(inner?.document?.body?.classList.contains('layout-editing')&&typeof inner.openBlockCatalog==='function'){inner.openBlockCatalog();return;}
-      if(++attempts<40&&document.getElementById('remote-layout-preview-shell')?.classList.contains('show'))setTimeout(openWhenReady,150);
-    };
-    setTimeout(openWhenReady,150);
-    return;
-  }
-  startLayoutEditor();setTimeout(()=>openBlockCatalog(),60);
-}
+function quickAccessArrange(){closeQuickAccessMenu();startLayoutEditor();}
+function quickAccessAddBlock(){closeQuickAccessMenu();startLayoutEditor();setTimeout(()=>openBlockCatalog(),60);}
 function quickAccessSettings(tab='overview'){closeQuickAccessMenu();openSetup();setTimeout(()=>switchSettingsTab(tab),20);}
 function quickAccessIntegrations(){quickAccessSettings('integrations');}
 function updateAnimationPerformanceUi(){

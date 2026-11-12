@@ -755,7 +755,7 @@ body.layout-editing #calendar-legend {
 #remote-layout-preview-title{min-width:0;display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,.72)}#remote-layout-preview-title b{font-size:13px;color:#fff}#remote-layout-preview-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #remote-layout-parity-status{flex:0 0 auto;font-style:normal;font-weight:800;font-size:10px;line-height:1;padding:6px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);color:rgba(255,255,255,.72);white-space:nowrap}#remote-layout-parity-status[data-state=good]{border-color:rgba(92,230,153,.42);background:rgba(36,151,91,.18);color:#aaf2ca}#remote-layout-parity-status[data-state=warn]{border-color:rgba(255,184,86,.5);background:rgba(183,105,17,.2);color:#ffd69c}
 #remote-layout-preview-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}#remote-layout-preview-actions button,#remote-layout-preview-actions select{border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:11px;padding:7px 10px}#remote-layout-preview-actions button{cursor:pointer}.remote-layout-element-control{display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,.64)}.remote-layout-element-control select{min-width:150px;max-width:230px}.remote-layout-element-control option{background:#101410;color:#fff}
-#remote-layout-preview-stage{position:absolute;left:0;right:0;top:52px;bottom:0;overflow:hidden;background:#000}
+#remote-layout-preview-stage{position:absolute;left:0;right:0;top:52px;bottom:0;overflow:auto;background:#000}
 #remote-layout-preview-frame{position:absolute;left:0;top:0;border:0;background:#000;transform-origin:0 0;box-shadow:0 0 0 1px rgba(255,255,255,.12),0 22px 70px rgba(0,0,0,.55)}
 body.layout-preview-embedded #cog,body.layout-preview-embedded #settings-preview-return{display:none!important}
 /* Remote Arrange uses two deliberately separate UI layers. The iframe contains only
@@ -846,23 +846,6 @@ body.remote-layout-proxy #layout-editor-layer{display:none!important}
   touch-action:none;
 }
 .layout-resize-handle.se{right:-7px;bottom:-7px;cursor:nwse-resize}.layout-resize-handle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.layout-resize-handle.ne{right:-7px;top:-7px;cursor:nesw-resize}.layout-resize-handle.nw{left:-7px;top:-7px;cursor:nwse-resize}
-/* Coarse pointers need a larger interactive corner, but not a larger visible marker.
-   Keep the 18px cue centered and leave geometry/saved rects unchanged. */
-@media (pointer:coarse){
-  body.layout-editing .layout-resize-handle{
-    width:32px;height:32px;border:0;background:transparent;box-shadow:none;
-  }
-  body.layout-editing .layout-resize-handle::before{
-    content:"";position:absolute;left:7px;top:7px;width:18px;height:18px;
-    box-sizing:border-box;border-radius:50%;border:2px solid var(--ld-accent);
-    background:var(--ld-surface);box-shadow:0 2px 8px rgba(0,0,0,.55);
-    pointer-events:none;
-  }
-  body.layout-editing .layout-resize-handle.se{right:-13px;bottom:-13px}
-  body.layout-editing .layout-resize-handle.sw{left:-13px;bottom:-13px}
-  body.layout-editing .layout-resize-handle.ne{right:-13px;top:-13px}
-  body.layout-editing .layout-resize-handle.nw{left:-13px;top:-13px}
-}
 #layout-toolbar {
   position:fixed;
   z-index:255;
@@ -924,16 +907,6 @@ body.layout-editing #alert-zone:not(.show) + .layout-edit-placeholder { display:
 @media (max-width:760px) {
   #layout-toolbar { flex-wrap:wrap;justify-content:center; }
   #layout-selected-info { display:none; }
-}
-/* On phones, keep the editing actions in one scrollable strip rather than
-   stacking them over the working canvas. Full toolbar contents remain available. */
-@media (max-width:600px) {
-  body.layout-editing:not(.remote-layout-proxy) #layout-toolbar{
-    top:8px;left:8px;right:8px;transform:none;max-width:none;width:auto;
-    flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;
-    white-space:nowrap;
-  }
-  body.layout-editing:not(.remote-layout-proxy) #layout-toolbar>*{flex-shrink:0;}
 }
 
 #custom-block-layer { position:fixed; inset:0; z-index:3; pointer-events:none; }
@@ -2005,14 +1978,6 @@ html.ld-reduce-motion #setup .update-now-btn{animation:none!important}
   #setup .settings-preview-button { display:none; }
 }
 
-
-/* The remote Owner view uses compositor pixels; it never claims a browser repaint is the Pi. */
-#ld-wall-mirror{position:fixed;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;background:#050505;pointer-events:none;overflow:hidden}
-#ld-wall-mirror-image{display:block;width:100%;height:100%;object-fit:contain;object-position:center}
-#ld-wall-mirror-image[hidden]{display:none}
-#ld-wall-mirror-status{position:absolute;left:12px;bottom:12px;max-width:calc(100vw - 24px);padding:7px 11px;border-radius:8px;border:1px solid rgba(255,255,255,.24);background:rgba(0,0,0,.84);color:#fff;font:600 11px/1.4 system-ui,sans-serif;overflow-wrap:anywhere}
-#ld-wall-mirror-status[data-state=error]{background:#360f11;border-color:#d36a6a;color:#fff}
-#ld-wall-mirror-status[data-state=live]{background:rgba(0,0,0,.68);border-color:rgba(255,255,255,.24)}
 /* Weather atmosphere and vector weather icons. Decorative only; content remains above it. */
 #weather-effects-overlay{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden;opacity:0;transition:opacity .6s ease;contain:strict}
 #weather-effects-overlay.show{opacity:var(--weather-fx-opacity,.34)}
@@ -4743,25 +4708,3 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
   white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal;
 }
 #top-strip .event-title-no-time .event-title-text{flex:1 1 0;width:auto}
-
-/* Historical Pi-crop draft CSS retained for compatibility; v1.16.24 uses live
-   local DOM drafts, not a frozen crop for updated alignment or content size. */
-#ld-physical-draft-layer{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:visible}
-.ld-physical-draft-tile{position:absolute;box-sizing:border-box;pointer-events:none;overflow:visible;isolation:isolate}
-.ld-physical-draft-pixels{display:block;width:100%;height:100%;object-fit:fill;box-shadow:0 0 0 1px #ffc078,0 8px 24px rgba(0,0,0,.5)}
-.ld-physical-draft-caption{position:absolute;top:0;right:0;transform:translateY(-100%);font:800 11px/1.4 system-ui,sans-serif;padding:2px 7px;background:#633b04;border:1px solid #ffc078;color:#ffe5b1;white-space:nowrap}
-.ld-physical-draft-origin{position:absolute;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:8px;text-align:center;font:700 12px/1.5 system-ui,sans-serif;color:#ffd9a4;background:rgba(0,0,0,.70);backdrop-filter:blur(3px);border:1px dashed #d59c61;white-space:normal}
-
-/* v1.16.24: never show stale PNG sprites as proof that inspector edits worked.
-   Only modified element DOM is visible locally, over the authoritative last-applied Pi screenshot.
-   This draft is explicitly unverified until Save & Lock. */
-html.ld-physical-image-active.ld-local-draft-active body.layout-preview-embedded #app{
-  position:relative;z-index:3;pointer-events:none!important;
-}
-html.ld-physical-image-active body.layout-preview-embedded .ld-live-draft-element,
-html.ld-physical-image-active body.layout-preview-embedded .ld-live-draft-element *{
-  visibility:visible!important;pointer-events:none!important;
-}
-html.ld-physical-image-active body.layout-preview-embedded .ld-live-draft-element{z-index:12!important;isolation:isolate}
-.ld-physical-draft-origin{background:rgba(0,0,0,.88)!important;color:#ffce91}
-.ld-physical-draft-caption{z-index:20;box-shadow:0 0 0 1px #111}
