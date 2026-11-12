@@ -1157,6 +1157,76 @@ let remotePiCaptureAttempt=0;
 let remotePiEditorInteracting=false;
 let remotePiDraftPending=false;
 let remotePiGestureDocument=null;
+// The most recent physically verified frame, not merely the most recent
+// heartbeat, is the baseline for asserting subsequent content-size changes.
+let remotePiVerifiedSizeSnapshot=null;
+const REMOTE_PI_SIZE_PROBES={calendar:'#top-strip .day-num',current:'.wx-main .wx-temp',clock:'#clock-block .clock-time',details:'.wx-details .wx-detail-value, .wx-details .wx-detail',daily:'#wx-forecast .fc-high, #wx-forecast .fc-temp',hourly:'#wx-hourly-block .hr-temp, #wx-hourly-block .hr-col',alerts:'#alert-zone .alert-title, #alert-zone .alert-content'};
+function remotePiSizeVerification(snapshot,state){
+  if(!snapshot||!state)return {ok:false,reason:'Pi has not reported its rendered sizing'};
+  const scales=state.layoutContentScale||{},reported=snapshot.contentScale||{},samples=snapshot.sizeSamples||{};
+  for(const [key,requested] of Object.entries(scales)){
+    const expected=Number(requested)||100,got=Number(reported[key]);
+    if(!Number.isFinite(got)||Math.abs(got-expected)>.05)
+      return {ok:false,reason:`Pi has not confirmed ${key} content size ${expected}%`};
+    const previous=remotePiVerifiedSizeSnapshot;
+    if(previous&&Number.isFinite(Number(previous.contentScale?.[key]))){
+      const base=Number(previous.contentScale[key]),prior=Number(previous.sizeSamples?.[key]?.fontPx),actual=Number(samples[key]?.fontPx);
+      if(Math.abs(expected-base)>=4){
+        if(!Number.isFinite(prior)||prior<=0||!Number.isFinite(actual)||actual<=0)
+          return {ok:false,reason:`Pi has not measured ${key} text at the new size`};
+        const targetRatio=expected/base,actualRatio=actual/prior;
+        // A fitting constraint, ignored preview, or stale heartbeat may leave
+        // the element unchanged. Do not call that screenshot a verified resize.
+        if((targetRatio>1&&actualRatio<1+Math.min(.08,(targetRatio-1)*.3))||
+           (targetRatio<1&&actualRatio>1-Math.min(.08,(1-targetRatio)*.3)))
+          return {ok:false,reason:`Pi ${key} text has not visibly responded to the size change`};
+      }
+    }
+    const local=remoteLayoutInnerDocument()?.querySelector(REMOTE_PI_SIZE_PROBES[key]);
+    if(local&&samples[key]){
+      const localFont=parseFloat(local.ownerDocument.defaultView.getComputedStyle(local).fontSize),actual=Number(samples[key].fontPx);
+      if(Number.isFinite(localFont)&&localFont>0&&Number.isFinite(actual)&&Math.abs(actual/localFont-1)>.20)
+        return {ok:false,reason:`Pi ${key} text size differs from the editable draft`};
+    }
+  }
+  // A compositor image is not accepted as a matching resize merely because
+  // its heartbeat revision is current. Check any changed saved frame against
+  // the Pi's measured DOM footprint in native CSS pixels.
+  const last=remotePiVerifiedSizeSnapshot;
+  if(last?.layoutBlocks){
+    const entities=new Map((snapshot.entities||[]).map(e=>[e.key,e.footprint]));
+    for(const [key,rect] of Object.entries(state.layoutBlocks||{})){
+      const before=last.layoutBlocks[key];if(!before||!rect)continue;
+      if(!['x','y','w','h'].some(k=>Math.abs(Number(before[k])-Number(rect[k]))>.002))continue;
+      const actual=entities.get(key),vw=Number(snapshot.width),vh=Number(snapshot.height);
+      if(!actual||!vw||!vh)return {ok:false,reason:`Pi has not measured the changed ${key} frame`};
+      for(const [k,measure,axis] of [['x','x','w'],['y','y','h'],['w','w','w'],['h','h','h']]){
+        if(Math.abs(Number(actual[measure])-Number(rect[k])*(axis==='w'?vw:vh))>5)
+          return {ok:false,reason:`Pi ${key} frame has not reached its requested dimensions`};
+      }
+    }
+  }
+  const partTree=state.layoutPartStyle||{},partScales=snapshot.partScale||{};
+  for(const [block,parts] of Object.entries(partTree))for(const [part,style] of Object.entries(parts||{})){
+    const expected=Number(style?.scale)||100,got=Number(partScales?.[block]?.[part]??100);
+    if(Math.abs(expected-got)>.05)return {ok:false,reason:`Pi has not confirmed ${block} / ${part} size ${expected}%`};
+    const last=remotePiVerifiedSizeSnapshot,base=Number(last?.partScale?.[block]?.[part]??100);
+    if(!last||Math.abs(base-expected)<4)continue;
+    const previous=last?.partSizeSamples?.[block]?.[part],actual=snapshot.partSizeSamples?.[block]?.[part];
+    if(!previous||!actual)return {ok:false,reason:`Pi has not measured ${block} / ${part} at the new size`};
+    const target=expected/base,threshold=Math.min(.08,Math.abs(target-1)*.3);
+    // Individual sections can use transform:scale, leaving computed font-size
+    // unchanged while their painted width and height grow. Check all three.
+    const ratios=['fontPx','widthPx','heightPx'].map(k=>{
+      const before=Number(previous[k]),after=Number(actual[k]);
+      return Number.isFinite(before)&&before>2&&Number.isFinite(after)?after/before:1;
+    });
+    if(!ratios.some(r=>target>1?r>=1+threshold:r<=1-threshold))
+      return {ok:false,reason:`Pi ${block} / ${part} has not visibly responded to the size change`};
+  }
+  return {ok:true,reason:''};
+}
+
 function remotePiImageElement(){return remoteLayoutInnerDocument()?.getElementById('ld-live-pi-pixels')||null;}
 function showRemotePiLocalDraft(){
   if(!remoteLayoutProxyActive)return;
@@ -1195,7 +1265,7 @@ function bindRemotePiArrangeGestures(){
 function clearRemotePiPixels(){
   clearInterval(remotePiCaptureTimer);remotePiCaptureTimer=null;
   remotePiAcknowledgedRevision=-1;remotePiCapturedRevision=-1;remotePiCaptureAttempt++;
-  remotePiEditorInteracting=false;remotePiDraftPending=false;remotePiGestureDocument=null;
+  remotePiEditorInteracting=false;remotePiDraftPending=false;remotePiGestureDocument=null;remotePiVerifiedSizeSnapshot=null;
   try{remotePiImageElement()?.remove();}catch(e){}
   if(remotePiImageUrl){URL.revokeObjectURL(remotePiImageUrl);remotePiImageUrl='';}
 }
@@ -1255,12 +1325,15 @@ function compareLayoutRenderSnapshots(pi,preview){
 }
 async function pollRemotePhysicalParity(previewId=remotePhysicalPreviewId,revision=remotePhysicalPreviewRevision){
   if(!previewId||!remoteLayoutPreviewTarget)return;
+  let unverifiedReason='';
   for(let attempt=0;attempt<16;attempt++){
     if(previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision)return;
     try{
       const rows=await readDisplayDevices(),row=bestLayoutTargetDevice(rows),snap=row?.layoutRenderSnapshot;
       if(row&&row.online&&String(row.deviceId||'')===String(remoteLayoutPreviewTarget.deviceId||'')&&
           String(row.layoutPreviewId||'')===previewId&&Number(snap?.revision||-1)===revision){
+        const sizeCheck=remotePiSizeVerification(snap,remoteLayoutDraftState());
+        if(!sizeCheck.ok){unverifiedReason=sizeCheck.reason;showRemotePiLocalDraft();setRemotePhysicalParityStatus(sizeCheck.reason+' · local editor remains usable','warn');continue;}
         remotePiAcknowledgedRevision=revision;
         // Physical pixels may replace the live local draft only when its exact
         // geometry/style revision is acknowledged and no pointer is active.
@@ -1269,14 +1342,14 @@ async function pollRemotePhysicalParity(previewId=remotePhysicalPreviewId,revisi
         remotePiDraftPending=false;
         await new Promise(resolve=>setTimeout(resolve,140));
         if(previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision)return;
-        await captureRemotePiPixels(previewId,revision);
+        if(await captureRemotePiPixels(previewId,revision))remotePiVerifiedSizeSnapshot={contentScale:{...(snap.contentScale||{})},sizeSamples:{...(snap.sizeSamples||{})},partScale:structuredClone(snap.partScale||{}),partSizeSamples:structuredClone(snap.partSizeSamples||{}),layoutBlocks:structuredClone(current.layoutBlocks||{})};
         return;
       }
     }catch(e){}
     await new Promise(resolve=>setTimeout(resolve,attempt<7?180:350));
   }
   if(previewId===remotePhysicalPreviewId&&revision===remotePhysicalPreviewRevision)
-    setRemotePhysicalParityStatus('Pi preview not acknowledged · local rendering only','warn');
+    setRemotePhysicalParityStatus((unverifiedReason||'Pi preview not acknowledged')+' · local rendering only','warn');
 }
 async function sendRemotePhysicalLayoutPreview({renew=false}={}){
   if(!remoteLayoutPreviewTarget?.physical||!remotePhysicalPreviewId)return false;const state=remoteLayoutDraftState();if(!state)return false;const signature=JSON.stringify(state);if(!renew&&signature===remotePhysicalPreviewSignature)return false;if(signature!==remotePhysicalPreviewSignature){showRemotePiLocalDraft();remotePhysicalPreviewSignature=signature;remotePhysicalPreviewRevision++;}remotePiAcknowledgedRevision=-1;setRemotePhysicalParityStatus('Updating physical Pi · waiting for pixels','pending');try{const res=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'preview-layout',endpoint:bootstrapApi.ACTIVE_ENDPOINT,previewId:remotePhysicalPreviewId,previewRevision:remotePhysicalPreviewRevision,layoutPreview:state}),cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);pollRemotePhysicalParity(remotePhysicalPreviewId,remotePhysicalPreviewRevision);return true;}catch(e){setRemotePhysicalParityStatus('Pi live verification unavailable — using measured wall viewport','warn');return false;}

@@ -3845,7 +3845,43 @@ def normalize_layout_render_snapshot(value):
         if a and b and a != b:
             overlaps.append({"a": a, "b": b, "w": _finite_float(row.get("w") or 0, 0.0, minimum=0.0, maximum=50000.0), "h": _finite_float(row.get("h") or 0, 0.0, minimum=0.0, maximum=50000.0), "area": _finite_float(row.get("area") or 0, 0.0, minimum=0.0, maximum=2500000000.0)})
     offscreen = [str(x)[:160] for x in (value.get("offscreen") if isinstance(value.get("offscreen"), list) else [])[:160] if str(x)]
-    return {"previewId": preview_id, "revision": max(0, min(1000000000, int(value.get("revision") or 0))), "width": max(0, min(20000, int(value.get("width") or 0))), "height": max(0, min(20000, int(value.get("height") or 0))), "entities": entities, "overlaps": overlaps, "offscreen": offscreen, "capturedAt": max(0, int(value.get("capturedAt") or 0))}
+    # Only finite, bounded layout measurements can cross the kiosk heartbeat
+    # boundary. These are used to prove that a Pi image shows the resized
+    # content, not just that it received a matching preview revision.
+    size_keys = {"calendar", "current", "clock", "details", "daily", "hourly", "alerts"}
+    def bounded_style_scalars(raw, minimum=25.0, maximum=300.0):
+        if not isinstance(raw, dict):
+            return {}
+        return {key: _finite_float(raw[key], 100.0, minimum=minimum, maximum=maximum)
+                for key in size_keys if key in raw}
+    def bounded_size_sample(row):
+        if not isinstance(row, dict):
+            return None
+        fields = {k: _finite_float(row.get(k), 0.0, minimum=0.0, maximum=20000.0)
+                  for k in ("fontPx", "widthPx", "heightPx") if k in row}
+        return fields if fields else None
+    def bounded_part_sizes(raw, metrics=False):
+        if not isinstance(raw, dict):
+            return {}
+        out = {}
+        for key in size_keys:
+            parts = raw.get(key)
+            if not isinstance(parts, dict):
+                continue
+            group = {}
+            for part, val in list(parts.items())[:48]:
+                if not isinstance(part, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,63}", part):
+                    continue
+                item = bounded_size_sample(val) if metrics else _finite_float(val, 100.0, minimum=25.0, maximum=300.0)
+                if item is not None:
+                    group[part] = item
+            if group:
+                out[key] = group
+        return out
+    sample_raw = value.get("sizeSamples") if isinstance(value.get("sizeSamples"), dict) else {}
+    samples = {k: bounded_size_sample(sample_raw[k]) for k in size_keys if k in sample_raw}
+    samples = {k: v for k, v in samples.items() if v is not None}
+    return {"previewId": preview_id, "revision": max(0, min(1000000000, int(value.get("revision") or 0))), "width": max(0, min(20000, int(value.get("width") or 0))), "height": max(0, min(20000, int(value.get("height") or 0))), "entities": entities, "overlaps": overlaps, "offscreen": offscreen, "contentScale": bounded_style_scalars(value.get("contentScale"), 50.0, 200.0), "sizeSamples": samples, "partScale": bounded_part_sizes(value.get("partScale")), "partSizeSamples": bounded_part_sizes(value.get("partSizeSamples"), metrics=True), "capturedAt": max(0, int(value.get("capturedAt") or 0))}
 
 def normalize_provider_cache_status(value):
     rows = []
