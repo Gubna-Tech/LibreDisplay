@@ -337,46 +337,16 @@ function displayViewportMetrics(force=false){
 }
 const refreshHeartbeatPerformanceCache=()=>{heartbeatPerformanceCache=LibreDisplayRuntime.getModule('performance').frontendPerformanceSnapshot();heartbeatPerformanceCacheAt=Date.now();heartbeatPerformanceRefreshPending=false;return heartbeatPerformanceCache;};
 const heartbeatPerformanceSnapshot=(force=false)=>{const performance=LibreDisplayRuntime.getModule('performance'),stale=!heartbeatPerformanceCache||Date.now()-heartbeatPerformanceCacheAt>=HEARTBEAT_PERFORMANCE_CACHE_MS;if(force||!heartbeatPerformanceCache)return refreshHeartbeatPerformanceCache();if(stale&&!heartbeatPerformanceRefreshPending){heartbeatPerformanceRefreshPending=true;performance.runWhenIdle(()=>{try{refreshHeartbeatPerformanceCache();}catch(_e){heartbeatPerformanceRefreshPending=false;}},1600);}return heartbeatPerformanceCache;};
-let physicalLayoutPreviewId='',physicalLayoutPreviewRevision=0,physicalLayoutPreviewPaintedRevision=-1,physicalLayoutPreviewLeaseTimer=null;
+let physicalLayoutPreviewId='',physicalLayoutPreviewRevision=0,physicalLayoutPreviewLeaseTimer=null;
 const PHYSICAL_LAYOUT_PREVIEW_LEASE_MS=16000;
 function roundedLayoutRenderRect(rect){return rect?{x:Number(rect.left.toFixed(2)),y:Number(rect.top.toFixed(2)),w:Number(rect.width.toFixed(2)),h:Number(rect.height.toFixed(2))}:null;}
 function layoutRenderElementVisible(el){if(!el||!el.isConnected)return false;const st=getComputedStyle(el);if(st.display==='none'||st.visibility==='hidden'||Number(st.opacity)===0)return false;const r=el.getBoundingClientRect();return r.width>.5&&r.height>.5;}
 function layoutRenderVisualRect(root){if(!layoutRenderElementVisible(root))return null;const rr=root.getBoundingClientRect();let left=rr.left,top=rr.top,right=rr.right,bottom=rr.bottom,count=0;for(const el of root.querySelectorAll('*')){if(++count>320)break;if(el.closest?.('#ld-physical-parity-overlay,#layout-editor-layer,#layout-toolbar,#layout-properties'))continue;if(!layoutRenderElementVisible(el))continue;const r=el.getBoundingClientRect();if(!Number.isFinite(r.left)||r.width<.5||r.height<.5)continue;left=Math.min(left,r.left);top=Math.min(top,r.top);right=Math.max(right,r.right);bottom=Math.max(bottom,r.bottom);}return roundedLayoutRenderRect({left,top,width:Math.max(0,right-left),height:Math.max(0,bottom-top)});}
-// A preview revision is only an application acknowledgement, not proof that
-// a requested text-size edit reached the rendered Pi DOM. Report observed
-// computed sizes for the built-in blocks so the remote editor can validate a
-// fresh capture instead of covering a correctly resized draft with stale pixels.
-const PHYSICAL_LAYOUT_SIZE_PROBES={
-  calendar:'#top-strip .day-num',current:'.wx-main .wx-temp',clock:'#clock-block .clock-time',
-  details:'.wx-details .wx-detail-value, .wx-details .wx-detail',
-  daily:'#wx-forecast .fc-high, #wx-forecast .fc-temp',
-  hourly:'#wx-hourly-block .hr-temp, #wx-hourly-block .hr-col',
-  alerts:'#alert-zone .alert-title, #alert-zone .alert-content'
-};
-function capturePhysicalLayoutSizeSamples(){
-  const out={};for(const [key,selector] of Object.entries(PHYSICAL_LAYOUT_SIZE_PROBES)){
-    const node=document.querySelector(selector);if(!node||!layoutRenderElementVisible(node))continue;
-    const fontPx=parseFloat(getComputedStyle(node).fontSize);
-    if(Number.isFinite(fontPx)&&fontPx>0)out[key]={fontPx:Number(fontPx.toFixed(3))};
-  }return out;
-}
-function capturePhysicalLayoutPartSamples(){
-  const defs=LibreDisplayRuntime.getModule('layout')?.LAYOUT_PART_DEFS||{},out={};
-  for(const [block,parts] of Object.entries(defs)){
-    const group={};for(const part of parts){if(!part.selector)continue;
-      const root=document.querySelector(PHYSICAL_LAYOUT_SIZE_PROBES[block]?.split(' ')[0]||'body');
-      const node=root?.querySelector(part.selector)||document.querySelector(part.selector);
-      if(!node||!layoutRenderElementVisible(node))continue;
-      const fontPx=parseFloat(getComputedStyle(node).fontSize);
-      if(Number.isFinite(fontPx)&&fontPx>0){const r=node.getBoundingClientRect();group[part.key]={fontPx:Number(fontPx.toFixed(3)),widthPx:Number(r.width.toFixed(3)),heightPx:Number(r.height.toFixed(3))};}
-    }if(Object.keys(group).length)out[block]=group;
-  }return out;
-}
-function captureLayoutRenderSnapshot(previewId=physicalLayoutPreviewId,revision=physicalLayoutPreviewRevision){const layout=LibreDisplayRuntime.getModule('layout'),defs=layout?.LAYOUT_BLOCK_DEFS||{},entities=[];for(const [key,def] of Object.entries(defs)){const el=document.querySelector(def.selector);if(!layoutRenderElementVisible(el))continue;entities.push({key,label:String(def.label||key).slice(0,80),footprint:roundedLayoutRenderRect(el.getBoundingClientRect()),visual:layoutRenderVisualRect(el)});}for(const el of document.querySelectorAll('.custom-block[data-block-id]')){if(!layoutRenderElementVisible(el))continue;const id=String(el.dataset.blockId||'').slice(0,120);if(!id)continue;const title=el.querySelector('.custom-block-title')?.textContent?.trim();entities.push({key:'custom:'+id,label:String(title||el.getAttribute('aria-label')||'Custom block').slice(0,80),footprint:roundedLayoutRenderRect(el.getBoundingClientRect()),visual:layoutRenderVisualRect(el)});}const overlaps=[];for(let i=0;i<entities.length;i++)for(let j=i+1;j<entities.length;j++){const a=entities[i].visual||entities[i].footprint,b=entities[j].visual||entities[j].footprint;if(!a||!b)continue;const w=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x),h=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y);if(w>2&&h>2&&w*h>=16)overlaps.push({a:entities[i].key,b:entities[j].key,w:Number(w.toFixed(2)),h:Number(h.toFixed(2)),area:Number((w*h).toFixed(1))});}const vp=displayViewportMetrics(),offscreen=[];for(const row of entities){const x=row.visual||row.footprint;if(x&&(x.x<-2||x.y<-2||x.x+x.w>vp.layoutWidth+2||x.y+x.h>vp.layoutHeight+2))offscreen.push(row.key);}return {previewId:String(previewId||'').slice(0,96),revision:Math.max(0,Math.round(Number(revision)||0)),width:vp.layoutWidth,height:vp.layoutHeight,contentScale:Object.fromEntries(Object.entries(cfg.layoutContentScale||{}).map(([k,v])=>[k,Number(v)||100])),sizeSamples:capturePhysicalLayoutSizeSamples(),partScale:Object.fromEntries(Object.entries(cfg.layoutPartStyle||{}).map(([k,parts])=>[k,Object.fromEntries(Object.entries(parts||{}).map(([part,style])=>[part,Number(style?.scale)||100]))])),partSizeSamples:capturePhysicalLayoutPartSamples(),entities:entities.slice(0,160),overlaps:overlaps.slice(0,320),offscreen:offscreen.slice(0,160),capturedAt:Date.now()};}
+function captureLayoutRenderSnapshot(previewId=physicalLayoutPreviewId,revision=physicalLayoutPreviewRevision){const layout=LibreDisplayRuntime.getModule('layout'),defs=layout?.LAYOUT_BLOCK_DEFS||{},entities=[];for(const [key,def] of Object.entries(defs)){const el=document.querySelector(def.selector);if(!layoutRenderElementVisible(el))continue;entities.push({key,label:String(def.label||key).slice(0,80),footprint:roundedLayoutRenderRect(el.getBoundingClientRect()),visual:layoutRenderVisualRect(el)});}for(const el of document.querySelectorAll('.custom-block[data-block-id]')){if(!layoutRenderElementVisible(el))continue;const id=String(el.dataset.blockId||'').slice(0,120);if(!id)continue;const title=el.querySelector('.custom-block-title')?.textContent?.trim();entities.push({key:'custom:'+id,label:String(title||el.getAttribute('aria-label')||'Custom block').slice(0,80),footprint:roundedLayoutRenderRect(el.getBoundingClientRect()),visual:layoutRenderVisualRect(el)});}const overlaps=[];for(let i=0;i<entities.length;i++)for(let j=i+1;j<entities.length;j++){const a=entities[i].visual||entities[i].footprint,b=entities[j].visual||entities[j].footprint;if(!a||!b)continue;const w=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x),h=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y);if(w>2&&h>2&&w*h>=16)overlaps.push({a:entities[i].key,b:entities[j].key,w:Number(w.toFixed(2)),h:Number(h.toFixed(2)),area:Number((w*h).toFixed(1))});}const vp=displayViewportMetrics(),offscreen=[];for(const row of entities){const x=row.visual||row.footprint;if(x&&(x.x<-2||x.y<-2||x.x+x.w>vp.layoutWidth+2||x.y+x.h>vp.layoutHeight+2))offscreen.push(row.key);}return {previewId:String(previewId||'').slice(0,96),revision:Math.max(0,Math.round(Number(revision)||0)),width:vp.layoutWidth,height:vp.layoutHeight,entities:entities.slice(0,160),overlaps:overlaps.slice(0,320),offscreen:offscreen.slice(0,160),capturedAt:Date.now()};}
 function armPhysicalLayoutPreviewLease(){clearTimeout(physicalLayoutPreviewLeaseTimer);physicalLayoutPreviewLeaseTimer=setTimeout(()=>{physicalLayoutPreviewLeaseTimer=null;clearPhysicalLayoutPreviewCommand({previewId:physicalLayoutPreviewId,expired:true});},PHYSICAL_LAYOUT_PREVIEW_LEASE_MS);}
 async function loadAuthoritativePhysicalConfig(){const res=await resilientFetch(serverPath('/api/config'),{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json(),remote=data?.config;if(!remote||typeof remote!=='object')throw new Error('Saved display configuration unavailable');const savedAt=Number(remote._savedAt||data?.savedAt||0),migrated=configApi.migrateConfigSnapshot(remote);cfg={...configApi.CFG_DEFAULTS,...migrated,_savedAt:savedAt};ensureCfgDefaults();try{localStorage.setItem(bootstrapApi.CFG_KEY,JSON.stringify(cfg));}catch(e){}return savedAt;}
-function applyPhysicalLayoutPreviewCommand(command={}){if(!bootstrapApi.LOCAL_CLIENT_MODE)return false;const previewId=String(command.previewId||'').replace(/[^A-Za-z0-9_-]+/g,'-').slice(0,96),revision=Math.max(0,Math.round(Number(command.previewRevision)||0)),preview=command.layoutPreview;if(!previewId||!preview||typeof preview!=='object')return false;if(physicalLayoutPreviewId===previewId&&physicalLayoutPreviewRevision===revision){armPhysicalLayoutPreviewLease();scheduleDisplayHeartbeat(40);return true;}const keys=['layoutMode','layoutBlocks','layoutContentScale','layoutElementStyle','layoutPartStyle','currentWeatherLayout','currentWeatherPartLayout','customBlocks','layoutGridPx','layoutSnap'];for(const key of keys)if(Object.prototype.hasOwnProperty.call(preview,key))cfg[key]=JSON.parse(JSON.stringify(preview[key]));ensureCfgDefaults();physicalLayoutPreviewId=previewId;physicalLayoutPreviewRevision=revision;physicalLayoutPreviewPaintedRevision=-1;armPhysicalLayoutPreviewLease();try{LibreDisplayRuntime.getModule('blocks').renderCustomBlocks(cfg.customBlocks||[]);}catch(e){}try{const effective=LibreDisplayRuntime.getModule('performance').effectiveVisualConfig(cfg);LibreDisplayRuntime.getModule('appearance').applyUiCustomization(effective);}catch(e){LibreDisplayRuntime.getModule('appearance').applyUiCustomization(cfg);}setTimeout(()=>{try{LibreDisplayRuntime.getModule('layout').applyBuiltInPartFlowOffsets?.(cfg);LibreDisplayRuntime.getModule('layout').scheduleBuiltInLayoutAutoFitDeferred?.();}catch(e){}requestAnimationFrame(()=>requestAnimationFrame(()=>{if(physicalLayoutPreviewId===previewId&&physicalLayoutPreviewRevision===revision){physicalLayoutPreviewPaintedRevision=revision;scheduleDisplayHeartbeat(0);}}));},80);return true;}
-async function clearPhysicalLayoutPreviewCommand(command={}){if(!bootstrapApi.LOCAL_CLIENT_MODE)return false;const requested=String(command.previewId||'');if(requested&&physicalLayoutPreviewId&&requested!==physicalLayoutPreviewId)return false;clearTimeout(physicalLayoutPreviewLeaseTimer);physicalLayoutPreviewLeaseTimer=null;physicalLayoutPreviewId='';physicalLayoutPreviewRevision=0;physicalLayoutPreviewPaintedRevision=-1;try{await loadAuthoritativePhysicalConfig();LibreDisplayRuntime.getModule('blocks').renderCustomBlocks(cfg.customBlocks||[]);LibreDisplayRuntime.getModule('settings').applySettings();setTimeout(()=>scheduleDisplayHeartbeat(0),80);return true;}catch(e){setTimeout(()=>location.reload(),0);return false;}}
+function applyPhysicalLayoutPreviewCommand(command={}){if(!bootstrapApi.LOCAL_CLIENT_MODE)return false;const previewId=String(command.previewId||'').replace(/[^A-Za-z0-9_-]+/g,'-').slice(0,96),revision=Math.max(0,Math.round(Number(command.previewRevision)||0)),preview=command.layoutPreview;if(!previewId||!preview||typeof preview!=='object')return false;if(physicalLayoutPreviewId===previewId&&physicalLayoutPreviewRevision===revision){armPhysicalLayoutPreviewLease();scheduleDisplayHeartbeat(40);return true;}const keys=['layoutMode','layoutBlocks','layoutContentScale','layoutElementStyle','layoutPartStyle','currentWeatherLayout','currentWeatherPartLayout','customBlocks','layoutGridPx','layoutSnap'];for(const key of keys)if(Object.prototype.hasOwnProperty.call(preview,key))cfg[key]=JSON.parse(JSON.stringify(preview[key]));ensureCfgDefaults();physicalLayoutPreviewId=previewId;physicalLayoutPreviewRevision=revision;armPhysicalLayoutPreviewLease();try{LibreDisplayRuntime.getModule('blocks').renderCustomBlocks(cfg.customBlocks||[]);}catch(e){}try{const effective=LibreDisplayRuntime.getModule('performance').effectiveVisualConfig(cfg);LibreDisplayRuntime.getModule('appearance').applyUiCustomization(effective);}catch(e){LibreDisplayRuntime.getModule('appearance').applyUiCustomization(cfg);}setTimeout(()=>{try{LibreDisplayRuntime.getModule('layout').applyBuiltInPartFlowOffsets?.(cfg);LibreDisplayRuntime.getModule('layout').scheduleBuiltInLayoutAutoFitDeferred?.();}catch(e){}scheduleDisplayHeartbeat(0);},80);return true;}
+async function clearPhysicalLayoutPreviewCommand(command={}){if(!bootstrapApi.LOCAL_CLIENT_MODE)return false;const requested=String(command.previewId||'');if(requested&&physicalLayoutPreviewId&&requested!==physicalLayoutPreviewId)return false;clearTimeout(physicalLayoutPreviewLeaseTimer);physicalLayoutPreviewLeaseTimer=null;physicalLayoutPreviewId='';physicalLayoutPreviewRevision=0;try{await loadAuthoritativePhysicalConfig();LibreDisplayRuntime.getModule('blocks').renderCustomBlocks(cfg.customBlocks||[]);LibreDisplayRuntime.getModule('settings').applySettings();setTimeout(()=>scheduleDisplayHeartbeat(0),80);return true;}catch(e){setTimeout(()=>location.reload(),0);return false;}}
 
 let physicalConfigApplyPromise=null,physicalConfigApplyTarget=0;
 const waitForPhysicalConfigApply=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -423,7 +393,7 @@ function dispatchPendingPhysicalDisplayCommand(command){
   if(currentId===requestId&&['running','complete','error'].includes(currentState))return false;
   const event={data:JSON.stringify(command)};setTimeout(()=>LibreDisplayRuntime.getModule('performance').runExclusiveTask('display-performance-benchmark',()=>runPhysicalDisplayBenchmarkRequest(event)),0);return true;
 }
-async function sendDisplayHeartbeat(connectivityRecovered=false,options={}){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;try{const force=options?.full===true,m=displayViewportMetrics(force),frontendPerformance={...heartbeatPerformanceSnapshot(force),connectivity:connectivitySnapshot()};const response=await resilientFetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:bootstrapApi.READ_ONLY_DISPLAY_MODE?'viewer':(bootstrapApi.LOCAL_CLIENT_MODE?'local':'admin'),version:bootstrapApi.DASHBOARD_BUILD,userAgent:navigator.userAgent,configSavedAt:Number(cfg?._savedAt||0),frontendPerformance,providerCache:staleCacheSnapshot(),displayPerformanceBenchmark:bootstrapApi.LOCAL_CLIENT_MODE?physicalDisplayBenchmarkState:undefined,layoutPreviewId:bootstrapApi.LOCAL_CLIENT_MODE?physicalLayoutPreviewId:'',layoutRenderSnapshot:bootstrapApi.LOCAL_CLIENT_MODE&&physicalLayoutPreviewId&&physicalLayoutPreviewPaintedRevision===physicalLayoutPreviewRevision?captureLayoutRenderSnapshot():undefined,connectivityRecovered:!!connectivityRecovered}),cache:'no-store'},{timeoutMs:5000,retry:false});if(response.ok&&bootstrapApi.LOCAL_CLIENT_MODE){const payload=await response.json().catch(()=>({}));dispatchPendingPhysicalDisplayCommand(payload?.pendingCommand);}}catch(e){}}
+async function sendDisplayHeartbeat(connectivityRecovered=false,options={}){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;try{const force=options?.full===true,m=displayViewportMetrics(force),frontendPerformance={...heartbeatPerformanceSnapshot(force),connectivity:connectivitySnapshot()};const response=await resilientFetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:bootstrapApi.READ_ONLY_DISPLAY_MODE?'viewer':(bootstrapApi.LOCAL_CLIENT_MODE?'local':'admin'),version:bootstrapApi.DASHBOARD_BUILD,userAgent:navigator.userAgent,configSavedAt:Number(cfg?._savedAt||0),frontendPerformance,providerCache:staleCacheSnapshot(),displayPerformanceBenchmark:bootstrapApi.LOCAL_CLIENT_MODE?physicalDisplayBenchmarkState:undefined,layoutPreviewId:bootstrapApi.LOCAL_CLIENT_MODE?physicalLayoutPreviewId:'',layoutRenderSnapshot:bootstrapApi.LOCAL_CLIENT_MODE&&physicalLayoutPreviewId?captureLayoutRenderSnapshot():undefined,connectivityRecovered:!!connectivityRecovered}),cache:'no-store'},{timeoutMs:5000,retry:false});if(response.ok&&bootstrapApi.LOCAL_CLIENT_MODE){const payload=await response.json().catch(()=>({}));dispatchPendingPhysicalDisplayCommand(payload?.pendingCommand);}}catch(e){}}
 function parseDisplayBenchmarkEvent(event){try{return JSON.parse(String(event?.data||'{}'))||{};}catch{return {};}}
 async function runPhysicalDisplayBenchmarkRequest(event){
   if(!bootstrapApi.LOCAL_CLIENT_MODE)return;
@@ -486,71 +456,8 @@ function clearSettingsInitializationError(){
 }
 
 
-
-// Remote Owner view: show compositor pixels at the kiosk's native CSS geometry.
-// Do not render a scaled screenshot or a separate browser approximation as Pi.
-let nativePiViewTimer=null,nativePiViewUrl='',nativePiViewBusy=false,nativePiViewActive=false,nativePiViewDevice='',nativePiViewGeometry='';
-async function refreshNativeRemotePiView(){
-  if(!nativePiViewActive||nativePiViewBusy)return;
-  if(document.hidden||document.getElementById('remote-layout-preview-shell')?.classList.contains('show')){
-    nativePiViewTimer=setTimeout(refreshNativeRemotePiView,2500);return;
-  }
-  nativePiViewBusy=true;let candidateUrl='';
-  try{
-    const layout=LibreDisplayRuntime.getModule('layout');
-    const devices=await layout.readDisplayDevices();
-    const row=layout.bestLayoutTargetDevice(devices);
-    const target=layout.targetViewportFromDevice(row);
-    if(!target?.physical||!target.online||!target.deviceId)throw new Error('Physical Pi heartbeat unavailable');
-    const geometry=target.width+'x'+target.height+'@'+target.dpr;
-    if(nativePiViewUrl&&(nativePiViewDevice!==target.deviceId||nativePiViewGeometry!==geometry)){
-      URL.revokeObjectURL(nativePiViewUrl);nativePiViewUrl='';
-      const oldImage=document.getElementById('ld-native-pi-image'),oldLayer=document.getElementById('ld-native-pi-view');
-      if(oldImage)oldImage.removeAttribute('src');if(oldLayer)oldLayer.hidden=true;
-      document.documentElement.classList.remove('ld-native-pi-view');
-    }
-    const response=await resilientFetch(serverPath('/api/physical-screen'),{cache:'no-store',headers:{'X-LibreDisplay-Capture-Device':target.deviceId}},{timeoutMs:15000,retry:false});
-    if(!response.ok){const error=await response.json().catch(()=>({}));throw new Error(error.error||('HTTP '+response.status));}
-    if(response.headers.get('X-LibreDisplay-Device-Id')!==target.deviceId||response.headers.get('X-LibreDisplay-Endpoint')!==bootstrapApi.ACTIVE_ENDPOINT)throw new Error('Wrong physical Pi capture identity');
-    const blob=await response.blob();if(blob.type!=='image/png'||blob.size<64||blob.size>16000000)throw new Error('Invalid physical Pi PNG');
-    candidateUrl=URL.createObjectURL(blob);
-    const candidate=new Image();candidate.src=candidateUrl;await candidate.decode();
-    if(Math.abs(candidate.naturalWidth-Math.round(target.width*target.dpr))>2||Math.abs(candidate.naturalHeight-Math.round(target.height*target.dpr))>2)
-      throw new Error('Pi framebuffer size differs from kiosk viewport');
-    if(!nativePiViewActive)return;
-    const layer=document.getElementById('ld-native-pi-view'),image=document.getElementById('ld-native-pi-image'),status=document.getElementById('ld-native-pi-status');
-    if(!layer||!image||!status)return;
-    layer.style.width=target.width+'px';layer.style.height=target.height+'px';
-    image.style.width=target.width+'px';image.style.height=target.height+'px';
-    if(nativePiViewUrl)URL.revokeObjectURL(nativePiViewUrl);
-    nativePiViewUrl=candidateUrl;candidateUrl='';nativePiViewDevice=target.deviceId;nativePiViewGeometry=geometry;
-    image.src=nativePiViewUrl;layer.hidden=false;status.hidden=true;status.textContent='';
-    document.documentElement.style.setProperty('--ld-native-pi-width',target.width+'px');
-    document.documentElement.style.setProperty('--ld-native-pi-height',target.height+'px');
-    document.documentElement.classList.add('ld-native-pi-view');
-  }catch(e){
-    const status=document.getElementById('ld-native-pi-status');
-    if(status){status.textContent=nativePiViewUrl?'Pi image is stale · capture unavailable':'Pi capture unavailable · local browser view is unverified';status.hidden=false;}
-  }finally{
-    if(candidateUrl)URL.revokeObjectURL(candidateUrl);
-    nativePiViewBusy=false;
-    clearTimeout(nativePiViewTimer);
-    if(nativePiViewActive)nativePiViewTimer=setTimeout(refreshNativeRemotePiView,2500);
-  }
-}
-function startNativeRemotePiView(){
-  if(nativePiViewActive||bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LAYOUT_PREVIEW_MODE||bootstrapApi.SESSION_ROLE!=='owner')return;
-  nativePiViewActive=true;
-  const layer=document.createElement('div');layer.id='ld-native-pi-view';layer.hidden=true;layer.setAttribute('aria-label','Physical Raspberry Pi screen at native CSS size');
-  const image=document.createElement('img');image.id='ld-native-pi-image';image.alt='Captured pixels from the physical Raspberry Pi display';image.draggable=false;
-  const status=document.createElement('div');status.id='ld-native-pi-status';status.setAttribute('role','status');status.hidden=true;
-  layer.appendChild(image);document.body.append(layer,status);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&nativePiViewActive){clearTimeout(nativePiViewTimer);nativePiViewTimer=setTimeout(refreshNativeRemotePiView,30);}});
-  void refreshNativeRemotePiView();
-}
-
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("remote", {startNativeRemotePiView,endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
+LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
   "displayEndpoints": {configurable:true,get:()=>displayEndpoints,set:(value)=>{displayEndpoints=value;}},
   "displayDevices": {configurable:true,get:()=>displayDevices,set:(value)=>{displayDevices=value;}},
   "endpointsRemoteEnabled": {configurable:true,get:()=>endpointsRemoteEnabled,set:(value)=>{endpointsRemoteEnabled=value;}},

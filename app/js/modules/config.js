@@ -472,30 +472,15 @@ function persistedConfigMatches(snapshot,stored){
   if(Number(stored._savedAt||0)!==Number(snapshot._savedAt||0))return false;
   return stableConfigJson(stored)===stableConfigJson(snapshot);
 }
-async function persistCfgToServer(snapshot, options={}){
+async function persistCfgToServer(snapshot){
   try{
-    const payload={config:snapshot};
-    if(Object.prototype.hasOwnProperty.call(options,'expectedSavedAt'))payload.expectedSavedAt=options.expectedSavedAt;
-    let data={},postError=null;
-    try{
-      const res=await resilientFetch(serverPath('/api/config'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'},{timeoutMs:12000,attempts:Object.prototype.hasOwnProperty.call(options,'expectedSavedAt')?1:2});
-      if(!res.ok){
-        const detail=await res.json().catch(()=>({}));
-        const error=new Error(detail?.error||`Could not save display settings (HTTP ${res.status}).`);
-        error.status=res.status;
-        throw error;
-      }
-      data=await res.json().catch(()=>({}));
-    }catch(error){
-      // A timeout can mean the reply was lost after the server committed.
-      // A definite conflict (409) must never be converted into a success.
-      if(error?.status===409)throw error;
-      postError=error;
-    }
+    const res=await resilientFetch(serverPath('/api/config'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:snapshot}),cache:'no-store'},{timeoutMs:12000,attempts:2});
+    if(!res.ok)throw new Error(await res.text());
+    const data=await res.json().catch(()=>({}));
     const verify=await resilientFetch(serverPath('/api/config'),{cache:'no-store'},{timeoutMs:12000,attempts:2});
-    if(!verify.ok)throw new Error(postError?'The save request could not be confirmed and the stored configuration could not be read back. '+String(postError?.message||postError):'The display accepted the save but the stored configuration could not be read back for verification.');
+    if(!verify.ok)throw new Error('The display accepted the save but the stored configuration could not be read back for verification.');
     const verified=await verify.json().catch(()=>({})),stored=verified?.config;
-    if(!verified?.exists||!persistedConfigMatches(snapshot,stored))throw new Error(postError?'The save request failed or its reply was lost, and the current server configuration does not match your changes. '+String(postError?.message||postError):'The display did not return the same configuration after saving. Your changes were not locked because persistence could not be verified.');
+    if(!verified?.exists||!persistedConfigMatches(snapshot,stored))throw new Error('The display did not return the same configuration after saving. Your changes were not locked because persistence could not be verified.');
     serverConfigAvailable=true;serverConfigLastError='';
     updateSettingsOverview?.();
     return {ok:true,verified:true,savedAt:Number(data?.savedAt||snapshot?._savedAt||0),endpoint:String(data?.endpoint||bootstrapApi.ACTIVE_ENDPOINT)};
@@ -506,17 +491,17 @@ async function persistCfgToServer(snapshot, options={}){
   }
 }
 
-function saveCfg(options={}){
+function saveCfg(){
   if(configSchemaVersion(cfg)>CONFIG_SCHEMA_VERSION)return Promise.resolve({ok:false,error:`This configuration uses schema ${configSchemaVersion(cfg)}, but this LibreDisplay build supports schema ${CONFIG_SCHEMA_VERSION}. Upgrade LibreDisplay before saving changes.`});
   ensureCfgDefaults();
-  cfg._savedAt=Math.max(Date.now(),(Number(cfg._savedAt)||0)+1);
+  cfg._savedAt=Date.now();
   try{
     const next=JSON.stringify(cfg);
     const prev=localStorage.getItem(bootstrapApi.CFG_KEY);
     if(prev&&prev!==next)localStorage.setItem(bootstrapApi.CFG_BACKUP_KEY,prev);
     localStorage.setItem(bootstrapApi.CFG_KEY,next);
   }catch(e){}
-  return persistCfgToServer(JSON.parse(JSON.stringify(cfg)),options);
+  return persistCfgToServer(JSON.parse(JSON.stringify(cfg)));
 }
 
 function normalizeProfileStore(raw){

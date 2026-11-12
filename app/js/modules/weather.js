@@ -1569,11 +1569,6 @@ function randomTestAlerts(count=10){
   }));
 }
 
-function validNwsAlertsPayload(data){
-  // A failed/malformed GeoJSON response must never be displayed as an all-clear.
-  // An empty features array IS a valid 'no active alerts' response.
-  return !!data&&typeof data==='object'&&!Array.isArray(data)&&Array.isArray(data.features)&&data.features.every(feature=>feature&&typeof feature==='object'&&!Array.isArray(feature)&&feature.properties&&typeof feature.properties==='object'&&!Array.isArray(feature.properties));
-}
 function normalizeNwsAlerts(data){
   const rank={Extreme:0,Severe:1,Moderate:2,Minor:3,Unknown:4};
   return (Array.isArray(data?.features)?data.features:[]).map((feature,i)=>{
@@ -1778,7 +1773,6 @@ async function fetchWeatherAlerts(forceTest=false){
     const text=await fetchRemoteText(url,(cfg.alertRefreshMin||5)*60);
     if(requestId!==configApi.alertFetchSerial)return;
     const data=JSON.parse(text);
-    if(!validNwsAlertsPayload(data))throw new Error('Invalid weather alert response');
     const alerts=normalizeNwsAlerts(data);
     if(requestId!==configApi.alertFetchSerial)return;
     renderWeatherAlerts(alerts);
@@ -1793,7 +1787,7 @@ async function fetchWeatherAlerts(forceTest=false){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("weather", {previewAlertSize,savedAlertRuntimeState,settingsOverlayOpen,effectiveAlertRuntimeState,syncAlertRuntimeStateFromForm,currentAlertMotionSpeed,previewAlertMotionSpeed,handleAlertMotionChange,previewAlertTestFullScreen,ensureAlertMotionRunning,setAlertStatus,formatAlertTime,randomTestAlerts,normalizeNwsAlerts,alertCardHtml,stopAlertScroller,getAlertScrollPositions,startContinuousAlertScroll,restartAlertScroller,renderWeatherAlerts,currentAlertFormState,handleAlertTestModeChange,handleAlertsEnabledChange,validNwsAlertsPayload,fetchWeatherAlerts}, {
+LibreDisplayRuntime.exposeModule("weather", {previewAlertSize,savedAlertRuntimeState,settingsOverlayOpen,effectiveAlertRuntimeState,syncAlertRuntimeStateFromForm,currentAlertMotionSpeed,previewAlertMotionSpeed,handleAlertMotionChange,previewAlertTestFullScreen,ensureAlertMotionRunning,setAlertStatus,formatAlertTime,randomTestAlerts,normalizeNwsAlerts,alertCardHtml,stopAlertScroller,getAlertScrollPositions,startContinuousAlertScroll,restartAlertScroller,renderWeatherAlerts,currentAlertFormState,handleAlertTestModeChange,handleAlertsEnabledChange,fetchWeatherAlerts}, {
   "TEST_ALERT_TEMPLATES": {configurable:true,get:()=>TEST_ALERT_TEMPLATES}
 }, {globalFunctions:['previewAlertSize','previewAlertMotionSpeed','handleAlertMotionChange','previewAlertTestFullScreen','handleAlertTestModeChange','handleAlertsEnabledChange'],globalStates:[]});
 }

@@ -116,7 +116,7 @@ sudo -v
 sudo apt update
 sudo DEBIAN_FRONTEND=noninteractive apt install -y \
   python3 chromium curl ca-certificates unzip labwc raspi-config \
-  swayidle wtype grim qrencode cifs-utils nfs-common \
+  swayidle wtype qrencode cifs-utils nfs-common \
   fonts-liberation2 fonts-noto-core fonts-noto-color-emoji fonts-dejavu-core
 
 if [ "$SRC_DIR" != "$INSTALL_DIR" ]; then
@@ -201,7 +201,7 @@ SUDOERS_NAME=$(id -un | tr -cd 'A-Za-z0-9_.-')
 sudo install -d -m 755 /usr/local/libexec
 sudo install -o root -g root -m 755 "$INSTALL_DIR/scripts/libredisplay-privileged" "$PRIV_HELPER"
 sudoers_tmp=$(mktemp)
-printf '%s ALL=(root) NOPASSWD: %s probe, %s install-cli, %s install-grim, %s reboot\n' "$(id -un)" "$PRIV_HELPER" "$PRIV_HELPER" "$PRIV_HELPER" "$PRIV_HELPER" > "$sudoers_tmp"
+printf '%s ALL=(root) NOPASSWD: %s probe, %s install-cli, %s reboot\n' "$(id -un)" "$PRIV_HELPER" "$PRIV_HELPER" "$PRIV_HELPER" > "$sudoers_tmp"
 chmod 600 "$sudoers_tmp"
 if command -v visudo >/dev/null 2>&1; then sudo visudo -cf "$sudoers_tmp" >/dev/null; fi
 sudo install -o root -g root -m 440 "$sudoers_tmp" "/etc/sudoers.d/libredisplay-$SUDOERS_NAME"

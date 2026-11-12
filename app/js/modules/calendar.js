@@ -673,8 +673,7 @@ function updateCalStatusUI(){
       if(s.timezones)extras.push(`${s.timezones} timezone${s.timezones===1?'':'s'}`);
       const detail=extras.length?' · '+extras.join(' · '):'';
       const warning=s.warning?` <span style="color:#fde68a">· ${esc(s.warning)}</span>`:'';
-      const fallback=s.stale?` <span style="color:#fde68a">· using last known events; refresh failed: ${esc(s.error||'unavailable')}</span>`:'';
-      return `${name}: ${s.stale?'cached':'loaded'} ${s.upcoming} upcoming event${s.upcoming===1?'':'s'} (${s.raw} VEVENT${s.raw===1?'':'s'}${detail})${warning}${fallback}`;
+      return `${name}: loaded ${s.upcoming} upcoming event${s.upcoming===1?'':'s'} (${s.raw} VEVENT${s.raw===1?'':'s'}${detail})${warning}`;
     }
     return `${name}: <span style="color:#fca5a5">${esc(s.error||'could not load')}</span>`;
   }).join('<br>');
@@ -706,7 +705,7 @@ async function fetchCal(cal,calIdx,{preferFormUrl=false}={}){
       if(!res.ok){const msg=await res.text().catch(()=>res.statusText);throw new Error('Calendar source HTTP '+res.status+(msg?' — '+msg:''));}
       revision=String(res.headers.get('X-LibreDisplay-Calendar-Revision')||'');
       const cached=calendarFeedCache.get(cacheKey);
-      if(revision&&cached?.revision===revision&&cached?.rangeKey===rangeKey&&cached?.sourceUrl===url){calendarRuntime.cacheHits++;calendarRuntime.lastFeedRevision=revision;calStatuses[calIdx]={...cached.status,label,checkedAt:Date.now(),cached:true};updateCalStatusUI();return cached.events;}
+      if(revision&&cached?.revision===revision&&cached?.rangeKey===rangeKey){calendarRuntime.cacheHits++;calendarRuntime.lastFeedRevision=revision;calStatuses[calIdx]={...cached.status,label,checkedAt:Date.now(),cached:true};updateCalStatusUI();return cached.events;}
       calendarRuntime.lastFeedRevision=revision;
       text=await res.text();
     }else{
@@ -725,20 +724,14 @@ async function fetchCal(cal,calIdx,{preferFormUrl=false}={}){
       recurring:st.recurring,overrides:st.overrides,multiDay:st.multiDay,
       timezones:st.timezones.size,warning:st.warnings.join('; '),checkedAt:Date.now(),parseMs:Number(parseMs.toFixed(1)),expandMs:Number(expandMs.toFixed(1))
     };
-    calendarFeedCache.set(cacheKey,{revision,rangeKey,sourceUrl:url,fetchedAt:Date.now(),events:expanded.events,status:{...calStatuses[calIdx],cached:false}});
+    calendarFeedCache.set(cacheKey,{revision,rangeKey,events:expanded.events,status:{...calStatuses[calIdx],cached:false}});
     updateCalStatusUI();
     return expanded.events;
   }catch(ex){
-    const error=String(ex?.message||ex),cached=calendarFeedCache.get(cacheKey),checkedAt=Date.now();
-    // Preserve only recently confirmed events for the same feed and visible date window.
-    // Do not borrow data from a different calendar, changed URL, or previous day.
-    const usable=Array.isArray(cached?.events)&&cached?.sourceUrl===url&&cached?.rangeKey===rangeKey
-      &&Number.isFinite(cached?.fetchedAt)&&checkedAt-cached.fetchedAt>=0&&checkedAt-cached.fetchedAt<=24*60*60*1000;
-    calStatuses[calIdx]=usable?{...cached.status,label,ok:true,stale:true,cached:true,error,checkedAt,lastSuccessAt:cached.fetchedAt}
-      :{label,ok:false,error,checkedAt};
+    calStatuses[calIdx]={label,ok:false,error:String(ex?.message||ex),checkedAt:Date.now()};
     updateCalStatusUI();
     console.warn('calendar error',label,ex);
-    return usable?cached.events:[];
+    return [];
   }
 }
 

@@ -20,16 +20,6 @@ case "${1:-}" in
     [ -f "$CLI_SRC" ] && [ ! -L "$CLI_SRC" ] || { printf 'LibreDisplay CLI source is missing or unsafe.\n' >&2; exit 1; }
     install -o root -g root -m 755 "$CLI_SRC" /usr/local/bin/libredisplay
     ;;
-  install-grim)
-    [ "$#" -eq 1 ] || { printf 'Unexpected arguments to install-grim.\n' >&2; exit 2; }
-    [ -f "$INSTALL_DIR/VERSION" ] || { printf 'LibreDisplay installation was not found.\n' >&2; exit 1; }
-    if ! command -v grim >/dev/null 2>&1; then
-      command -v apt-get >/dev/null 2>&1 || { printf 'apt-get is required to install grim.\n' >&2; exit 1; }
-      DEBIAN_FRONTEND=noninteractive apt-get update
-      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends grim
-    fi
-    command -v grim >/dev/null 2>&1 || { printf 'grim was not installed.\n' >&2; exit 1; }
-    ;;
   reboot)
     [ -f "$INSTALL_DIR/VERSION" ] || { printf 'LibreDisplay installation was not found.\n' >&2; exit 1; }
     if command -v systemctl >/dev/null 2>&1; then
@@ -38,7 +28,7 @@ case "${1:-}" in
     exec /sbin/reboot
     ;;
   *)
-    printf 'Usage: libredisplay-privileged {probe|install-cli|install-grim|reboot}\n' >&2
+    printf 'Usage: libredisplay-privileged {probe|install-cli|reboot}\n' >&2
     exit 2
     ;;
 esac
