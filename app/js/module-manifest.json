@@ -152,7 +152,7 @@
     "module": "remote",
     "part": "bundle",
     "path": "/js/modules/remote.js",
-    "lines": 474,
+    "lines": 540,
     "functions": 54,
     "bindings": 10,
     "sections": [
@@ -218,7 +218,7 @@
     "module": "lifecycle",
     "part": "bundle",
     "path": "/js/modules/lifecycle.js",
-    "lines": 122,
+    "lines": 123,
     "functions": 5,
     "bindings": 3,
     "sections": [

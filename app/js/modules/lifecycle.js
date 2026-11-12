@@ -81,6 +81,7 @@ async function init(){
   }
   remote.startLiveDisplayConnection();
   remote.startRemoteConfigPolling();
+  remote.startNativeRemotePiView();
 
   const finishSecondaryHydration=async()=>{
     const jobs=[];

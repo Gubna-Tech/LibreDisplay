@@ -4708,3 +4708,17 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
   white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal;
 }
 #top-strip .event-title-no-time .event-title-text{flex:1 1 0;width:auto}
+
+/* Physical pixels in the remote Owner view use native kiosk CSS size.
+   Never scale to fit the controlling browser; overflow scrolls instead. */
+html.ld-native-pi-view,html.ld-native-pi-view body{overflow:auto!important}
+html.ld-native-pi-view body{min-width:var(--ld-native-pi-width,100vw);min-height:var(--ld-native-pi-height,100vh)}
+#ld-native-pi-view{position:absolute;left:0;top:0;z-index:8;pointer-events:none;background:#000}
+#ld-native-pi-view[hidden]{display:none!important}
+#ld-native-pi-image{position:absolute;inset:0;display:block;max-width:none;max-height:none;object-fit:fill;pointer-events:none}
+#ld-native-pi-status{position:fixed;top:12px;right:12px;z-index:9;max-width:300px;padding:5px 9px;border-radius:5px;background:rgba(32,22,8,.92);border:1px solid #ad8545;color:#ffdda3;font:600 11px/1.3 system-ui,sans-serif;pointer-events:none}
+#ld-native-pi-status[hidden]{display:none}
+
+/* The exact 1.16.12 Arrange editor must never be covered by a compositor PNG. */
+body.layout-editing #ld-native-pi-view,body.remote-layout-proxy #ld-native-pi-view,body:has(#remote-layout-preview-shell.show) #ld-native-pi-view{display:none!important}
+body.layout-editing #ld-native-pi-status,body.remote-layout-proxy #ld-native-pi-status,body:has(#remote-layout-preview-shell.show) #ld-native-pi-status{display:none!important}
