@@ -542,8 +542,68 @@ function startRemoteWallMirror(){
   void refreshRemoteWallMirror();
 }
 
+// The Pi capture is a flattened image. A moved rectangle therefore needs an
+// explicitly labelled LOCAL sprite of captured Pi pixels: otherwise the handles
+// move without any visible content. Original Pi pixels remain the last-applied
+// reference; compositing an unsaved edit cannot reveal occluded background.
+let remoteDraftBaseline=new Map(),remoteDraftObserver=null,remoteDraftLayer=null,remoteDraftPending=0,remoteDraftCaptureUrl='';
+const draftBoxGeometry=box=>({left:box.offsetLeft,top:box.offsetTop,width:box.offsetWidth,height:box.offsetHeight});
+function releaseRemoteDraftLayer({resetBaseline=true}={}){
+  if(remoteDraftObserver){remoteDraftObserver.disconnect();remoteDraftObserver=null;}
+  if(remoteDraftPending){cancelAnimationFrame(remoteDraftPending);remoteDraftPending=0;}
+  remoteDraftLayer?.remove();remoteDraftLayer=null;
+  if(resetBaseline){remoteDraftBaseline.clear();remoteDraftCaptureUrl='';}
+}
+function scheduleRemoteDraftSprites(){if(remoteDraftPending)return;remoteDraftPending=requestAnimationFrame(()=>{remoteDraftPending=0;updateRemoteDraftSprites();});}
+function startRemoteDraftSprites(url){
+  if(url)remoteDraftCaptureUrl=url;
+  const doc=LibreDisplayRuntime.getModule('layout').remoteLayoutInnerDocument(),layer=doc?.getElementById('layout-editor-layer');
+  if(!doc||!layer)return false;
+  if(remoteDraftLayer&&remoteDraftLayer.ownerDocument!==doc)releaseRemoteDraftLayer();
+  if(!remoteDraftLayer){remoteDraftLayer=doc.createElement('div');remoteDraftLayer.id='ld-physical-draft-layer';remoteDraftLayer.setAttribute('aria-hidden','true');doc.body.appendChild(remoteDraftLayer);}
+  if(!remoteDraftBaseline.size){
+    for(const box of layer.querySelectorAll('.layout-edit-box[data-layout-key]'))remoteDraftBaseline.set(box.dataset.layoutKey,draftBoxGeometry(box));
+  }
+  if(!remoteDraftObserver){remoteDraftObserver=new MutationObserver(scheduleRemoteDraftSprites);
+    remoteDraftObserver.observe(layer,{attributes:true,attributeFilter:['style'],subtree:true,childList:true});}
+  scheduleRemoteDraftSprites();return true;
+}
+function updateRemoteDraftSprites(){
+  if(!remoteDraftLayer||document.getElementById('remote-layout-preview-shell')?.classList.contains('post-save'))return;
+  const doc=LibreDisplayRuntime.getModule('layout').remoteLayoutInnerDocument(),img=doc?.getElementById('ld-actual-wall-image'),layer=doc?.getElementById('layout-editor-layer');
+  if(!img?.complete||img.naturalWidth<2||!layer||!remoteDraftCaptureUrl)return;
+  const ratioX=img.naturalWidth/Math.max(1,doc.documentElement.clientWidth),ratioY=img.naturalHeight/Math.max(1,doc.documentElement.clientHeight);
+  const live=new Set();
+  for(const box of layer.querySelectorAll('.layout-edit-box[data-layout-key]')){
+    const key=box.dataset.layoutKey,initial=remoteDraftBaseline.get(key),now=draftBoxGeometry(box);
+    if(!initial){remoteDraftBaseline.set(key,now);continue;}
+    const changed=Math.abs(now.left-initial.left)>1||Math.abs(now.top-initial.top)>1||Math.abs(now.width-initial.width)>1||Math.abs(now.height-initial.height)>1;
+    if(!changed)continue;
+    live.add(key);
+    let tile=[...remoteDraftLayer.children].find(x=>x.dataset.layoutKey===key);
+    if(!tile){tile=doc.createElement('div');tile.className='ld-physical-draft-tile';tile.dataset.layoutKey=key;
+      const old=doc.createElement('span');old.className='ld-physical-draft-origin';old.textContent='Applied Pi location';
+      const canvas=doc.createElement('canvas');canvas.className='ld-physical-draft-pixels';
+      const caption=doc.createElement('span');caption.className='ld-physical-draft-caption';caption.textContent='UNSAVED MOVE';
+      tile.append(old,canvas,caption);remoteDraftLayer.appendChild(tile);}
+    const origin=tile.querySelector('.ld-physical-draft-origin'),canvas=tile.querySelector('canvas');
+    if(origin){origin.style.left=(initial.left-now.left)+'px';origin.style.top=(initial.top-now.top)+'px';origin.style.width=initial.width+'px';origin.style.height=initial.height+'px';}
+    tile.style.left=now.left+'px';tile.style.top=now.top+'px';tile.style.width=now.width+'px';tile.style.height=now.height+'px';
+    const srcW=Math.max(1,Math.round(initial.width*ratioX)),srcH=Math.max(1,Math.round(initial.height*ratioY));
+    const cacheKey=`${remoteDraftCaptureUrl}|${initial.left}|${initial.top}|${srcW}|${srcH}`;
+    if(canvas.dataset.captureKey!==cacheKey){canvas.width=srcW;canvas.height=srcH;
+      canvas.getContext('2d')?.drawImage(img,initial.left*ratioX,initial.top*ratioY,initial.width*ratioX,initial.height*ratioY,0,0,srcW,srcH);
+      canvas.dataset.captureKey=cacheKey;}
+  }
+  for(const tile of [...remoteDraftLayer.children])if(!live.has(tile.dataset.layoutKey))tile.remove();
+  const changed=live.size;
+  if(changed)LibreDisplayRuntime.getModule('layout').setRemotePhysicalParityStatus(`${changed} unsaved element${changed===1?'':'s'} · Pi pixels moved locally, background unverified`,'warn');
+  else if(remoteDraftCaptureUrl)LibreDisplayRuntime.getModule('layout').setRemotePhysicalParityStatus('Actual Pi pixels · edits apply on Save & Lock','good');
+}
+function remoteDraftDiagnostics(){return {tracked:remoteDraftBaseline.size,moved:remoteDraftLayer?.children.length||0,source:'actual-pi-png',unsaved:true};}
+
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError,startRemoteWallMirror,remoteWallMirrorDiagnostics}, {
+LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError,startRemoteWallMirror,remoteWallMirrorDiagnostics,releaseRemoteDraftLayer,startRemoteDraftSprites,scheduleRemoteDraftSprites,updateRemoteDraftSprites,remoteDraftDiagnostics}, {
   "displayEndpoints": {configurable:true,get:()=>displayEndpoints,set:(value)=>{displayEndpoints=value;}},
   "displayDevices": {configurable:true,get:()=>displayDevices,set:(value)=>{displayDevices=value;}},
   "endpointsRemoteEnabled": {configurable:true,get:()=>endpointsRemoteEnabled,set:(value)=>{endpointsRemoteEnabled=value;}},

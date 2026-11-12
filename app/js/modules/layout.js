@@ -322,12 +322,13 @@ function currentWeatherFitScale(el){
   const needH=Math.max(1,el.scrollHeight);
   return clampLayoutFit(Math.min((el.clientWidth-2)/needW,(el.clientHeight-2)/needH));
 }
+// Keep 165% clock text within its frame without changing the saved content scale.
 function clockFitScale(el){
   if(!el||el.clientWidth<2||el.clientHeight<2)return 1;
-  const kids=[...el.children].filter(x=>x instanceof HTMLElement);if(!kids.length)return 1;
-  const needW=Math.max(1,...kids.map(x=>{const zoom=parseFloat(getComputedStyle(x).zoom)||1;return Math.max(x.scrollWidth*zoom,x.getBoundingClientRect().width);}));
-  const needH=Math.max(1,el.scrollHeight);
-  return clampLayoutFit(Math.min((el.clientWidth-2)/needW,(el.clientHeight-2)/needH));
+  const kids=[...el.children].filter(x=>x instanceof HTMLElement&&getComputedStyle(x).display!=='none');if(!kids.length)return 1;
+  const width=Math.max(1,...kids.map(x=>{const zoom=parseFloat(getComputedStyle(x).zoom)||1;return Math.max(x.scrollWidth*zoom,x.getBoundingClientRect().width);}));
+  const limit=Math.min(1,(el.clientWidth-8)/width,(el.clientHeight-8)/Math.max(1,el.scrollHeight));
+  return Math.max(.12,Number.isFinite(limit)?limit:1);
 }
 function syncWeatherDetailsArrangeGrid(el){
   if(!el)return 0;
@@ -369,9 +370,9 @@ function ensureWeatherDetailsContentBoundary(el=document.querySelector('.wx-deta
   return {left:r.left,width:r.width,right:r.right,required,changed:false,constrained:required>r.width+.5,hasFreeParts};
 }
 function resetBuiltInLayoutFitForKey(key){const el=builtInLayoutAutoFitElement(key);if(!el)return null;if(key==='calendar'){el.style.setProperty('--ld-layout-fit-calendar','1');el.style.removeProperty('--ld-layout-calendar-row');}else el.style.setProperty(`--ld-layout-fit-${key}`,'1');return el;}
-function builtInLayoutFitFastPath(key,el){if(!el||key==='calendar'||layoutEditorActive||!layoutFrameFitContentEnabled(key))return false;const raw=parseFloat(el.style.getPropertyValue(`--ld-layout-fit-${key}`)||'1');if(!Number.isFinite(raw)||raw<.999)return false;const fits=(node)=>!node||((node.scrollWidth||0)<=Math.ceil((node.clientWidth||0)+1)&&(node.scrollHeight||0)<=Math.ceil((node.clientHeight||0)+1));if(!fits(el))return false;if(key==='daily')return [...el.querySelectorAll(':scope > .fc-col')].every(fits);if(key==='hourly')return [...el.querySelectorAll('.wx-hourly > .hr-col')].every(fits);if(key==='details')return [...el.querySelectorAll(':scope > .wx-detail')].every(fits);return true;}
+function builtInLayoutFitFastPath(key,el){if(!el||key==='calendar'||key==='clock'||layoutEditorActive||!layoutFrameFitContentEnabled(key))return false;const raw=parseFloat(el.style.getPropertyValue(`--ld-layout-fit-${key}`)||'1');if(!Number.isFinite(raw)||raw<.999)return false;const fits=(node)=>!node||((node.scrollWidth||0)<=Math.ceil((node.clientWidth||0)+1)&&(node.scrollHeight||0)<=Math.ceil((node.clientHeight||0)+1));if(!fits(el))return false;if(key==='daily')return [...el.querySelectorAll(':scope > .fc-col')].every(fits);if(key==='hourly')return [...el.querySelectorAll('.wx-hourly > .hr-col')].every(fits);if(key==='details')return [...el.querySelectorAll(':scope > .wx-detail')].every(fits);return true;}
 function builtInPartFreeModeActive(key,source=cfg){const rows=source?.layoutPartStyle?.[key];if(!rows||typeof rows!=='object')return false;return (LAYOUT_PART_DEFS[key]||[]).some(def=>def.movable!==false&&normalizePartStyleValue(rows?.[def.key]||{}).mode==='free');}
-function measureBuiltInLayoutFitForKey(key,el){if(!el)return 1;if(!layoutFrameFitContentEnabled(key))return 1;if(builtInPartFreeModeActive(key))return 1;if(key==='current'&&(cfg.currentWeatherLayout==='free'||el.dataset?.weatherLayout==='free'))return 1;const measure=()=>{if(key==='calendar')return calendarFitScale(el);if(key==='current')return currentWeatherFitScale(el);if(key==='clock')return clockFitScale(el);if(key==='details')return weatherDetailsFitScale(el);if(key==='daily')return forecastFitScale(el,null,':scope > .fc-col');if(key==='hourly')return forecastFitScale(el,'.wx-hourly',':scope > .hr-col');return 1;};return withNeutralizedBuiltInPartScale(key,measure);}
+function measureBuiltInLayoutFitForKey(key,el){if(!el)return 1;if(!layoutFrameFitContentEnabled(key)&&key!=='clock')return 1;if(builtInPartFreeModeActive(key)&&key!=='clock')return 1;if(key==='current'&&(cfg.currentWeatherLayout==='free'||el.dataset?.weatherLayout==='free'))return 1;const measure=()=>{if(key==='calendar')return calendarFitScale(el);if(key==='current')return currentWeatherFitScale(el);if(key==='clock')return clockFitScale(el);if(key==='details')return weatherDetailsFitScale(el);if(key==='daily')return forecastFitScale(el,null,':scope > .fc-col');if(key==='hourly')return forecastFitScale(el,'.wx-hourly',':scope > .hr-col');return 1;};return withNeutralizedBuiltInPartScale(key,measure);}
 function updateBuiltInLayoutAutoFit(){
   builtInLayoutAutoFitRaf=0;if(builtInLayoutAutoFitProcessing)return;builtInLayoutAutoFitProcessing=true;
   try{
@@ -379,9 +380,9 @@ function updateBuiltInLayoutAutoFit(){
     if(builtInLayoutAutoFitSuspended)return;
     if(!builtInLayoutAutoFitQueue.length){const keys=builtInLayoutAutoFitPending.size?[...builtInLayoutAutoFitPending]:BUILTIN_LAYOUT_AUTOFIT_KEYS.slice();builtInLayoutAutoFitPending.clear();const details=keys.includes('details')?builtInLayoutAutoFitElement('details'):null;if(details)syncWeatherDetailsArrangeGrid(details);builtInLayoutAutoFitQueue.push(...keys);builtInLayoutAutoFitBatchWorkMs=0;}
     const key=builtInLayoutAutoFitQueue.shift();if(!key)return;
-    const started=performance.now(),existing=builtInLayoutAutoFitElement(key);if(existing&&!layoutFrameFitContentEnabled(key)){const frozen=layoutEditorActive?layoutElementStyleDraft?.[key]?.frozenFit:cfg.layoutElementStyle?.[key]?.frozenFit;if(Number.isFinite(Number(frozen)))existing.style.setProperty(`--ld-layout-fit-${key}`,Math.min(1,Math.max(.15,Number(frozen))).toFixed(4));builtInLayoutAutoFitStats.fastSkips++;return;}const fast=builtInLayoutFitFastPath(key,existing),el=fast?existing:resetBuiltInLayoutFitForKey(key);
+    const started=performance.now(),existing=builtInLayoutAutoFitElement(key);if(existing&&!layoutFrameFitContentEnabled(key)&&key!=='clock'){const frozen=layoutEditorActive?layoutElementStyleDraft?.[key]?.frozenFit:cfg.layoutElementStyle?.[key]?.frozenFit;if(Number.isFinite(Number(frozen)))existing.style.setProperty(`--ld-layout-fit-${key}`,Math.min(1,Math.max(.15,Number(frozen))).toFixed(4));builtInLayoutAutoFitStats.fastSkips++;return;}const fast=builtInLayoutFitFastPath(key,existing),el=fast?existing:resetBuiltInLayoutFitForKey(key);
     if(fast){builtInLayoutAutoFitStats.fastSkips++;const stats=builtInLayoutAutoFitStats.keys[key]||(builtInLayoutAutoFitStats.keys[key]={runs:0,totalMs:0,maxMs:0});stats.runs++;}
-    else if(el){const keyStarted=performance.now(),scale=measureBuiltInLayoutFitForKey(key,el),prop=`--ld-layout-fit-${key}`,next=scale.toFixed(4);if(el.style.getPropertyValue(prop)!==next)el.style.setProperty(prop,next);const elapsed=performance.now()-keyStarted,stats=builtInLayoutAutoFitStats.keys[key]||(builtInLayoutAutoFitStats.keys[key]={runs:0,totalMs:0,maxMs:0});stats.runs++;stats.totalMs+=elapsed;stats.maxMs=Math.max(stats.maxMs,elapsed);}
+    else if(el){const keyStarted=performance.now(),measured=measureBuiltInLayoutFitForKey(key,el),frozen=(layoutEditorActive?layoutElementStyleDraft:cfg.layoutElementStyle)?.[key]?.frozenFit,ceiling=key==='clock'&&!layoutFrameFitContentEnabled(key)&&Number.isFinite(Number(frozen))?Math.max(.12,Math.min(1,Number(frozen))):1,scale=Math.min(measured,ceiling),prop=`--ld-layout-fit-${key}`,next=scale.toFixed(4);if(el.style.getPropertyValue(prop)!==next)el.style.setProperty(prop,next);const elapsed=performance.now()-keyStarted,stats=builtInLayoutAutoFitStats.keys[key]||(builtInLayoutAutoFitStats.keys[key]={runs:0,totalMs:0,maxMs:0});stats.runs++;stats.totalMs+=elapsed;stats.maxMs=Math.max(stats.maxMs,elapsed);}
     builtInLayoutAutoFitBatchWorkMs+=performance.now()-started;
     if(!builtInLayoutAutoFitQueue.length){const elapsed=builtInLayoutAutoFitBatchWorkMs;builtInLayoutAutoFitStats.runs++;builtInLayoutAutoFitStats.totalMs+=elapsed;builtInLayoutAutoFitStats.maxMs=Math.max(builtInLayoutAutoFitStats.maxMs,elapsed);builtInLayoutAutoFitStats.lastMs=elapsed;builtInLayoutAutoFitStats.lastAt=Date.now();builtInLayoutAutoFitBatchWorkMs=0;}
   }finally{builtInLayoutAutoFitProcessing=false;if(!builtInLayoutAutoFitSuspended&&(builtInLayoutAutoFitQueue.length||builtInLayoutAutoFitPending.size))startBuiltInLayoutAutoFit();}
@@ -394,9 +395,9 @@ function scheduleBuiltInLayoutAutoFit(keys){
 function scheduleBuiltInLayoutAutoFitDeferred(keys,delay=96){
   queueBuiltInLayoutAutoFitKeys(keys);if(builtInLayoutAutoFitSuspended)return;if(builtInLayoutAutoFitDeferredTimer)clearTimeout(builtInLayoutAutoFitDeferredTimer);builtInLayoutAutoFitDeferredTimer=setTimeout(()=>{builtInLayoutAutoFitDeferredTimer=0;startBuiltInLayoutAutoFit();},Math.max(40,Number(delay)||96));
 }
-function bindBuiltInLayoutAutoFitObserver(){
+let builtInLayoutAutoFitClockGuardAt=0;function bindBuiltInLayoutAutoFitObserver(){
   const targets=BUILTIN_LAYOUT_AUTOFIT_KEYS.map(key=>builtInLayoutAutoFitElement(key)).filter(Boolean);
-  if(!builtInLayoutAutoFitObserver){builtInLayoutAutoFitObserver=new MutationObserver(records=>{const keys=new Set();for(const record of records){const key=builtInLayoutAutoFitKeyForNode(record.target);if(!key)continue;const el=record.target instanceof Element?record.target:record.target?.parentElement;if(key==='clock'&&el?.closest('#clock-sec'))continue;if(key==='clock'&&!layoutEditorActive&&el?.closest('.clock-time')){builtInLayoutAutoFitStats.skippedClockText++;continue;}keys.add(key);}if(keys.size){scheduleBuiltInPartFlowOffsets();scheduleBuiltInLayoutAutoFitDeferred([...keys],layoutEditorActive?96:(performanceApi.frontendCapabilities().pi4Class?700:220));}});for(const el of targets)builtInLayoutAutoFitObserver.observe(el,{subtree:true,childList:true,characterData:true});}
+  if(!builtInLayoutAutoFitObserver){builtInLayoutAutoFitObserver=new MutationObserver(records=>{const keys=new Set();for(const record of records){const key=builtInLayoutAutoFitKeyForNode(record.target);if(!key)continue;const el=record.target instanceof Element?record.target:record.target?.parentElement;if(key==='clock'&&el?.closest('#clock-sec'))continue;if(key==='clock'&&!layoutEditorActive&&el?.closest('.clock-time')){builtInLayoutAutoFitStats.skippedClockText++;if(Date.now()-(builtInLayoutAutoFitClockGuardAt||0)>30000){builtInLayoutAutoFitClockGuardAt=Date.now();keys.add('clock');}continue;}keys.add(key);}if(keys.size){scheduleBuiltInPartFlowOffsets();scheduleBuiltInLayoutAutoFitDeferred([...keys],layoutEditorActive?96:(performanceApi.frontendCapabilities().pi4Class?700:220));}});for(const el of targets)builtInLayoutAutoFitObserver.observe(el,{subtree:true,childList:true,characterData:true});}
   if(!builtInLayoutAutoFitResizeObserver&&typeof ResizeObserver==='function'){builtInLayoutAutoFitResizeObserver=new ResizeObserver(entries=>{const keys=new Set();for(const entry of entries){const key=builtInLayoutAutoFitKeyForNode(entry.target);if(!key)continue;const box=entry.contentRect||entry.target.getBoundingClientRect(),sig=`${Math.round((box.width||0)*2)/2}x${Math.round((box.height||0)*2)/2}`,prior=builtInLayoutObservedBoxes.get(key);if(prior===sig){builtInLayoutAutoFitStats.resizeSkips++;continue;}builtInLayoutObservedBoxes.set(key,sig);keys.add(key);}if(keys.size){scheduleBuiltInPartFlowOffsets();scheduleBuiltInLayoutAutoFitDeferred([...keys],layoutEditorActive?120:(performanceApi.frontendCapabilities().pi4Class?900:360));}});for(const el of targets)builtInLayoutAutoFitResizeObserver.observe(el);}
 }
 
@@ -1205,7 +1206,7 @@ let remoteReferenceSavedView=false,remoteReferencePostUrl='',remoteReferenceSave
 function setRemoteReferenceStatus(message,state='pending'){const el=document.getElementById('remote-layout-reference-status');if(el){el.textContent=message;el.dataset.state=state;}}
 function setRemotePostSaveStatus(message,state='pending'){const el=document.getElementById('remote-layout-postsave-status');if(el){el.textContent=message;el.dataset.state=state;}}
 function discardRemotePiReference(){
-  remoteReferenceCaptureId++;remoteReferenceSize=null;remoteReferenceCapturedAt=0;remoteReferenceError='';remoteReferenceSavedView=false;remoteReferenceSaveMeta=null;
+  LibreDisplayRuntime.getModule('remote')?.releaseRemoteDraftLayer?.();remoteReferenceCaptureId++;remoteReferenceSize=null;remoteReferenceCapturedAt=0;remoteReferenceError='';remoteReferenceSavedView=false;remoteReferenceSaveMeta=null;
   const doc=remoteLayoutInnerDocument();doc?.documentElement?.classList.remove('ld-physical-image-active');doc?.getElementById('ld-actual-wall-image')?.remove();
   for(const id of ['remote-layout-reference-image','remote-layout-before-image','remote-layout-after-image']){const el=document.getElementById(id);if(el){el.hidden=true;el.removeAttribute('src');}}
   if(remoteReferenceUrl){URL.revokeObjectURL(remoteReferenceUrl);remoteReferenceUrl='';}
@@ -1219,7 +1220,7 @@ function installPiReferenceIntoEditor(){
   const doc=remoteLayoutInnerDocument(),target=remoteLayoutPreviewTarget;if(!doc?.body||!target)return false;
   const expectedW=Math.round(target.width*target.dpr),expectedH=Math.round(target.height*target.dpr);if(Math.abs(remoteReferenceSize.width-expectedW)>1||Math.abs(remoteReferenceSize.height-expectedH)>1)return false;
   let img=doc.getElementById('ld-actual-wall-image');if(!img){img=doc.createElement('img');img.id='ld-actual-wall-image';img.alt='';img.setAttribute('aria-hidden','true');doc.body.appendChild(img);}
-  img.src=remoteReferenceUrl;doc.documentElement.classList.add('ld-physical-image-active');document.getElementById('remote-layout-preview-shell')?.classList.add('pi-captured');return true;
+  img.src=remoteReferenceUrl;doc.documentElement.classList.add('ld-physical-image-active');document.getElementById('remote-layout-preview-shell')?.classList.add('pi-captured');LibreDisplayRuntime.getModule('remote')?.startRemoteDraftSprites?.(remoteReferenceUrl);return true;
 }
 function remoteReferenceDiagnostics(){return {visible:!!remoteLayoutInnerDocument()?.documentElement?.classList.contains('ld-physical-image-active'),postSave:remoteReferenceSavedView,received:!!remoteReferenceUrl,size:remoteReferenceSize,capturedAt:remoteReferenceCapturedAt,error:remoteReferenceError};}
 async function captureRemotePiReference({postSave=false}={}){
@@ -1250,7 +1251,7 @@ async function captureRemotePiReference({postSave=false}={}){
       const prior=remoteReferenceUrl;remoteReferenceUrl=url;remoteReferenceSize={width:img.naturalWidth,height:img.naturalHeight};remoteReferenceCapturedAt=Date.now();
       const timestamp=new Date(remoteReferenceCapturedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
       installPiReferenceIntoEditor();if(prior)URL.revokeObjectURL(prior);
-      setRemoteReferenceStatus(`Actual Pi capture ${timestamp} · edit handles are a local unsaved draft`,'good');setRemotePhysicalParityStatus('Actual Pi pixels · edits apply on Save & Lock','good');fitRemoteLayoutPreview();
+      setRemoteReferenceStatus(`Actual Pi capture ${timestamp} · unsaved moves are local captured-pixel drafts`,'good');LibreDisplayRuntime.getModule('remote')?.scheduleRemoteDraftSprites?.();fitRemoteLayoutPreview();
     }
     remoteReferenceError='';return true;
   }catch(error){
@@ -1295,7 +1296,7 @@ async function verifySavedPhysicalReference(savedAt,deviceId){
 }
 function showRemotePhysicalSaveResult({savedAt=0,applyRequested=false}={}){
   // Freeze the pre-save image: any in-flight capture can no longer be labeled 'before'.
-  remoteReferenceCaptureId++;remoteReferenceSavedView=true;deactivateRemoteLayoutProxy();
+  remoteReferenceCaptureId++;remoteReferenceSavedView=true;LibreDisplayRuntime.getModule('remote')?.releaseRemoteDraftLayer?.();deactivateRemoteLayoutProxy();
   remoteReferenceSaveMeta={savedAt:Number(savedAt)||0,deviceId:String(remoteLayoutPreviewTarget?.deviceId||''),applyRequested:!!applyRequested};
   setRemotePhysicalParityStatus('Saved draft · verifying physical Pi result','pending');
   document.getElementById('remote-layout-preview-shell')?.classList.add('post-save');
@@ -1607,7 +1608,7 @@ async function openRemoteLayoutPreview(){
   frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;
     // Keep the locally rendered dashboard and its handles in the SAME coordinate system.
     // The ordinary remote owner dashboard already mirrors the actual Pi outside Arrange.
-    activateRemoteLayoutProxy();installPiReferenceIntoEditor();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);
+    activateRemoteLayoutProxy();installPiReferenceIntoEditor();LibreDisplayRuntime.getModule('remote')?.startRemoteDraftSprites?.(remoteReferenceUrl);fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);
   };
   frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
   fitRemoteLayoutPreview();requestAnimationFrame(fitRemoteLayoutPreview);
@@ -1631,7 +1632,7 @@ function reloadRemoteLayoutPreview(){
   primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
   setRemotePhysicalParityStatus('Local draft · Pi unchanged until Save & Lock','pending');
   frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;
-    activateRemoteLayoutProxy();installPiReferenceIntoEditor();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);
+    activateRemoteLayoutProxy();installPiReferenceIntoEditor();LibreDisplayRuntime.getModule('remote')?.startRemoteDraftSprites?.(remoteReferenceUrl);fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);
   };
   frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
   void captureRemotePiReference();
