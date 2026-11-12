@@ -152,7 +152,7 @@
     "module": "remote",
     "part": "bundle",
     "path": "/js/modules/remote.js",
-    "lines": 620,
+    "lines": 656,
     "functions": 60,
     "bindings": 10,
     "sections": [

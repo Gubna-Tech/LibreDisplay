@@ -4783,10 +4783,24 @@ html.ld-reduce-motion body.ld-weather-respect-reduced-motion #weather-effects-ov
 }
 #top-strip .event-title-no-time .event-title-text{flex:1 1 0;width:auto}
 
-/* v1.16.23: local pixel sprites follow the edit handles. These use cropped
-   real Pi pixels, but are expressly NOT an applied physical screenshot. */
+/* Historical Pi-crop draft CSS retained for compatibility; v1.16.24 uses live
+   local DOM drafts, not a frozen crop for updated alignment or content size. */
 #ld-physical-draft-layer{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:visible}
 .ld-physical-draft-tile{position:absolute;box-sizing:border-box;pointer-events:none;overflow:visible;isolation:isolate}
 .ld-physical-draft-pixels{display:block;width:100%;height:100%;object-fit:fill;box-shadow:0 0 0 1px #ffc078,0 8px 24px rgba(0,0,0,.5)}
 .ld-physical-draft-caption{position:absolute;top:0;right:0;transform:translateY(-100%);font:800 11px/1.4 system-ui,sans-serif;padding:2px 7px;background:#633b04;border:1px solid #ffc078;color:#ffe5b1;white-space:nowrap}
 .ld-physical-draft-origin{position:absolute;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:8px;text-align:center;font:700 12px/1.5 system-ui,sans-serif;color:#ffd9a4;background:rgba(0,0,0,.70);backdrop-filter:blur(3px);border:1px dashed #d59c61;white-space:normal}
+
+/* v1.16.24: never show stale PNG sprites as proof that inspector edits worked.
+   Only modified element DOM is visible locally, over the authoritative last-applied Pi screenshot.
+   This draft is explicitly unverified until Save & Lock. */
+html.ld-physical-image-active.ld-local-draft-active body.layout-preview-embedded #app{
+  position:relative;z-index:3;pointer-events:none!important;
+}
+html.ld-physical-image-active body.layout-preview-embedded .ld-live-draft-element,
+html.ld-physical-image-active body.layout-preview-embedded .ld-live-draft-element *{
+  visibility:visible!important;pointer-events:none!important;
+}
+html.ld-physical-image-active body.layout-preview-embedded .ld-live-draft-element{z-index:12!important;isolation:isolate}
+.ld-physical-draft-origin{background:rgba(0,0,0,.88)!important;color:#ffce91}
+.ld-physical-draft-caption{z-index:20;box-shadow:0 0 0 1px #111}

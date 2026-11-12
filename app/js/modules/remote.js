@@ -481,11 +481,13 @@ function remoteWallMirrorStatusMessage(message,kind='pending'){
 }
 function remoteWallMirrorFail(reason){
   remoteWallMirrorError=String(reason||'Physical screen capture unavailable').slice(0,180);
-  remoteWallMirrorSize=null;
-  document.documentElement.classList.remove('ld-wall-mirror-live');
-  const image=document.getElementById('ld-wall-mirror-image');if(image){image.hidden=true;image.removeAttribute('src');}
-  if(remoteWallMirrorUrl){URL.revokeObjectURL(remoteWallMirrorUrl);remoteWallMirrorUrl='';}
-  remoteWallMirrorStatusMessage('NOT 1:1 · '+remoteWallMirrorError,'error');
+  // Never discard a previously verified capture on a transient capture failure.
+  // It is a STALE reference, not a new live frame or a locally rendered dashboard.
+  const image=document.getElementById('ld-wall-mirror-image');
+  const preserved=!!remoteWallMirrorUrl&&!!image?.getAttribute('src')&&!!remoteWallMirrorLastSuccess;
+  document.documentElement.classList.toggle('ld-wall-mirror-live',preserved);
+  if(!preserved&&image){image.hidden=true;image.removeAttribute('src');}
+  remoteWallMirrorStatusMessage(preserved?'STALE Pi capture · refresh failed · '+remoteWallMirrorError:'Pi capture unavailable · '+remoteWallMirrorError,'error');
 }
 function remoteWallMirrorSchedule(delay=4500){
   clearTimeout(remoteWallMirrorTimer);
@@ -506,16 +508,23 @@ async function refreshRemoteWallMirror(){
     if(!device)throw new Error('No live physical Pi display for this endpoint');
     const width=Math.round(Number(device.layoutWidth||device.viewportWidth||device.width)||0),height=Math.round(Number(device.layoutHeight||device.viewportHeight||device.height)||0),dpr=Number(device.dpr)||1;
     if(width<1||height<1||dpr<=0)throw new Error('Physical kiosk viewport is invalid');
+    if(remoteWallMirrorTarget&&(remoteWallMirrorTarget.deviceId!==String(device.deviceId||'')||remoteWallMirrorTarget.width!==width||remoteWallMirrorTarget.height!==height||Math.abs(remoteWallMirrorTarget.dpr-dpr)>.001)){
+      const image=document.getElementById('ld-wall-mirror-image');if(image){image.hidden=true;image.removeAttribute('src');}
+      if(remoteWallMirrorUrl){URL.revokeObjectURL(remoteWallMirrorUrl);remoteWallMirrorUrl='';}
+      remoteWallMirrorLastSuccess=0;remoteWallMirrorSize=null;document.documentElement.classList.remove('ld-wall-mirror-live');
+    }
     remoteWallMirrorTarget={width,height,dpr,deviceId:String(device.deviceId||'')};
-    const response=await resilientFetch(serverPath('/api/physical-screen'),{cache:'no-store'},{timeoutMs:17000,retry:false});
+    const response=await resilientFetch(serverPath('/api/physical-screen'),{cache:'no-store',headers:{'X-LibreDisplay-Capture-Device':remoteWallMirrorTarget.deviceId}},{timeoutMs:17000,retry:false});
     if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(String(data?.error||`Capture HTTP ${response.status}`));}
+    const capturedDevice=response.headers.get('X-LibreDisplay-Device-Id');
+    if(!capturedDevice||capturedDevice!==remoteWallMirrorTarget.deviceId)throw new Error('Physical capture identity did not match the target Pi');
     const blob=await response.blob();
     if(blob.size<64||blob.type!=='image/png')throw new Error('The Pi returned an invalid screen image');
     const url=URL.createObjectURL(blob),probe=new Image();
     try{
       probe.src=url;await probe.decode();
-      remoteWallMirrorSize={width:probe.naturalWidth,height:probe.naturalHeight};
       if(probe.naturalWidth!==Math.round(width*dpr)||probe.naturalHeight!==Math.round(height*dpr))throw new Error(`Pi screenshot ${probe.naturalWidth}×${probe.naturalHeight} differs from reported ${Math.round(width*dpr)}×${Math.round(height*dpr)}`);
+      remoteWallMirrorSize={width:probe.naturalWidth,height:probe.naturalHeight};
       const image=document.getElementById('ld-wall-mirror-image');
       if(!remoteWallMirrorStarted||!image)throw new Error('Remote mirror closed during capture');
       const oldUrl=remoteWallMirrorUrl;
@@ -542,27 +551,45 @@ function startRemoteWallMirror(){
   void refreshRemoteWallMirror();
 }
 
-// The Pi capture is a flattened image. A moved rectangle therefore needs an
-// explicitly labelled LOCAL sprite of captured Pi pixels: otherwise the handles
-// move without any visible content. Original Pi pixels remain the last-applied
-// reference; compositing an unsaved edit cannot reveal occluded background.
-let remoteDraftBaseline=new Map(),remoteDraftObserver=null,remoteDraftLayer=null,remoteDraftPending=0,remoteDraftCaptureUrl='';
+// v1.16.24: the Pi image is authoritative only for the LAST APPLIED layout.
+// A changed element must show a responsive local draft, not frozen screenshot
+// pixels that ignore inspector alignment, size, color and typography controls.
+// This is deliberately NOT described as an exact Pi render before Save & Lock.
+let remoteDraftBaseline=new Map(),remoteDraftStyleBaseline=new Map(),remoteDraftObserver=null;
+let remoteDraftLayer=null,remoteDraftPending=0,remoteDraftCaptureUrl='',remoteDraftLiveCount=0,remoteDraftAddedKeys=new Set();
 const draftBoxGeometry=box=>({left:box.offsetLeft,top:box.offsetTop,width:box.offsetWidth,height:box.offsetHeight});
+function remoteDraftStyleState(api,key){
+  if(!api||!key)return null;
+  if(key.startsWith('custom:'))return null;
+  return JSON.stringify({scale:api.layoutContentScaleDraft?.[key]??100,
+    style:api.layoutElementStyleDraft?.[key]||{},parts:api.layoutPartStyleDraft?.[key]||{},
+    weather:key==='current'?{layout:api.currentWeatherLayoutDraft,parts:api.currentWeatherPartLayoutDraft}:null});
+}
 function releaseRemoteDraftLayer({resetBaseline=true}={}){
   if(remoteDraftObserver){remoteDraftObserver.disconnect();remoteDraftObserver=null;}
   if(remoteDraftPending){cancelAnimationFrame(remoteDraftPending);remoteDraftPending=0;}
-  remoteDraftLayer?.remove();remoteDraftLayer=null;
-  if(resetBaseline){remoteDraftBaseline.clear();remoteDraftCaptureUrl='';}
+  const doc=remoteDraftLayer?.ownerDocument;
+  for(const el of doc?.querySelectorAll?.('.ld-live-draft-element')||[])el.classList.remove('ld-live-draft-element');
+  doc?.documentElement?.classList.remove('ld-local-draft-active');
+  remoteDraftLayer?.remove();remoteDraftLayer=null;remoteDraftLiveCount=0;
+  if(resetBaseline){remoteDraftBaseline.clear();remoteDraftStyleBaseline.clear();remoteDraftAddedKeys.clear();remoteDraftCaptureUrl='';}
 }
-function scheduleRemoteDraftSprites(){if(remoteDraftPending)return;remoteDraftPending=requestAnimationFrame(()=>{remoteDraftPending=0;updateRemoteDraftSprites();});}
+function scheduleRemoteDraftSprites(){
+  if(remoteDraftPending)return;
+  remoteDraftPending=requestAnimationFrame(()=>{remoteDraftPending=0;updateRemoteDraftSprites();});
+}
 function startRemoteDraftSprites(url){
   if(url)remoteDraftCaptureUrl=url;
   const doc=LibreDisplayRuntime.getModule('layout').remoteLayoutInnerDocument(),layer=doc?.getElementById('layout-editor-layer');
   if(!doc||!layer)return false;
   if(remoteDraftLayer&&remoteDraftLayer.ownerDocument!==doc)releaseRemoteDraftLayer();
   if(!remoteDraftLayer){remoteDraftLayer=doc.createElement('div');remoteDraftLayer.id='ld-physical-draft-layer';remoteDraftLayer.setAttribute('aria-hidden','true');doc.body.appendChild(remoteDraftLayer);}
+  const api=doc.defaultView?.LibreDisplayRuntime?.getModule('layout');
   if(!remoteDraftBaseline.size){
-    for(const box of layer.querySelectorAll('.layout-edit-box[data-layout-key]'))remoteDraftBaseline.set(box.dataset.layoutKey,draftBoxGeometry(box));
+    for(const box of layer.querySelectorAll('.layout-edit-box[data-layout-key]')){
+      const key=box.dataset.layoutKey;remoteDraftBaseline.set(key,draftBoxGeometry(box));
+      remoteDraftStyleBaseline.set(key,remoteDraftStyleState(api,key));
+    }
   }
   if(!remoteDraftObserver){remoteDraftObserver=new MutationObserver(scheduleRemoteDraftSprites);
     remoteDraftObserver.observe(layer,{attributes:true,attributeFilter:['style'],subtree:true,childList:true});}
@@ -572,35 +599,44 @@ function updateRemoteDraftSprites(){
   if(!remoteDraftLayer||document.getElementById('remote-layout-preview-shell')?.classList.contains('post-save'))return;
   const doc=LibreDisplayRuntime.getModule('layout').remoteLayoutInnerDocument(),img=doc?.getElementById('ld-actual-wall-image'),layer=doc?.getElementById('layout-editor-layer');
   if(!img?.complete||img.naturalWidth<2||!layer||!remoteDraftCaptureUrl)return;
-  const ratioX=img.naturalWidth/Math.max(1,doc.documentElement.clientWidth),ratioY=img.naturalHeight/Math.max(1,doc.documentElement.clientHeight);
-  const live=new Set();
+  const api=doc.defaultView?.LibreDisplayRuntime?.getModule('layout'),defs=api?.LAYOUT_BLOCK_DEFS||{};
+  const live=new Set();let rendered=0,changed=0;
   for(const box of layer.querySelectorAll('.layout-edit-box[data-layout-key]')){
     const key=box.dataset.layoutKey,initial=remoteDraftBaseline.get(key),now=draftBoxGeometry(box);
-    if(!initial){remoteDraftBaseline.set(key,now);continue;}
-    const changed=Math.abs(now.left-initial.left)>1||Math.abs(now.top-initial.top)>1||Math.abs(now.width-initial.width)>1||Math.abs(now.height-initial.height)>1;
-    if(!changed)continue;
-    live.add(key);
+    const original=initial||now;
+    if(!initial){remoteDraftAddedKeys.add(key);remoteDraftBaseline.set(key,now);remoteDraftStyleBaseline.set(key,remoteDraftStyleState(api,key));}
+    const geometryChanged=remoteDraftAddedKeys.has(key)||Math.abs(now.left-initial.left)>1||Math.abs(now.top-initial.top)>1||Math.abs(now.width-initial.width)>1||Math.abs(now.height-initial.height)>1;
+    const state=remoteDraftStyleState(api,key),styleChanged=state!==remoteDraftStyleBaseline.get(key);
+    if(!geometryChanged&&!styleChanged)continue;
+    changed++;live.add(key);
     let tile=[...remoteDraftLayer.children].find(x=>x.dataset.layoutKey===key);
     if(!tile){tile=doc.createElement('div');tile.className='ld-physical-draft-tile';tile.dataset.layoutKey=key;
       const old=doc.createElement('span');old.className='ld-physical-draft-origin';old.textContent='Applied Pi location';
-      const canvas=doc.createElement('canvas');canvas.className='ld-physical-draft-pixels';
-      const caption=doc.createElement('span');caption.className='ld-physical-draft-caption';caption.textContent='UNSAVED MOVE';
-      tile.append(old,canvas,caption);remoteDraftLayer.appendChild(tile);}
-    const origin=tile.querySelector('.ld-physical-draft-origin'),canvas=tile.querySelector('canvas');
-    if(origin){origin.style.left=(initial.left-now.left)+'px';origin.style.top=(initial.top-now.top)+'px';origin.style.width=initial.width+'px';origin.style.height=initial.height+'px';}
+      const caption=doc.createElement('span');caption.className='ld-physical-draft-caption';caption.textContent='UNSAVED LOCAL DRAFT';
+      tile.append(old,caption);remoteDraftLayer.appendChild(tile);}
+    const origin=tile.querySelector('.ld-physical-draft-origin');
+    if(origin){origin.hidden=remoteDraftAddedKeys.has(key);origin.style.left=(original.left-now.left)+'px';origin.style.top=(original.top-now.top)+'px';origin.style.width=original.width+'px';origin.style.height=original.height+'px';}
     tile.style.left=now.left+'px';tile.style.top=now.top+'px';tile.style.width=now.width+'px';tile.style.height=now.height+'px';
-    const srcW=Math.max(1,Math.round(initial.width*ratioX)),srcH=Math.max(1,Math.round(initial.height*ratioY));
-    const cacheKey=`${remoteDraftCaptureUrl}|${initial.left}|${initial.top}|${srcW}|${srcH}`;
-    if(canvas.dataset.captureKey!==cacheKey){canvas.width=srcW;canvas.height=srcH;
-      canvas.getContext('2d')?.drawImage(img,initial.left*ratioX,initial.top*ratioY,initial.width*ratioX,initial.height*ratioY,0,0,srcW,srcH);
-      canvas.dataset.captureKey=cacheKey;}
+    // Show the genuine editable DOM element (whose styles were just updated)
+    // above the last-applied Pi image. A static image crop cannot show font,
+    // alignment, part layout, or scale changes. Never call this a Pi render.
+    let source=null;
+    if(defs[key]?.selector)source=doc.querySelector(defs[key].selector);
+    else if(key.startsWith('custom:'))source=Array.from(doc.querySelectorAll('.custom-block[data-block-id]')).find(el=>el.dataset.blockId===key.slice(7));
+    if(source){source.classList.add('ld-live-draft-element');rendered++;}
   }
   for(const tile of [...remoteDraftLayer.children])if(!live.has(tile.dataset.layoutKey))tile.remove();
-  const changed=live.size;
-  if(changed)LibreDisplayRuntime.getModule('layout').setRemotePhysicalParityStatus(`${changed} unsaved element${changed===1?'':'s'} · Pi pixels moved locally, background unverified`,'warn');
-  else if(remoteDraftCaptureUrl)LibreDisplayRuntime.getModule('layout').setRemotePhysicalParityStatus('Actual Pi pixels · edits apply on Save & Lock','good');
+  for(const el of doc.querySelectorAll('.ld-live-draft-element')){
+    const key=Object.entries(defs).find(([,def])=>doc.querySelector(def.selector)===el)?.[0]||
+      (el.matches?.('.custom-block[data-block-id]')?'custom:'+el.dataset.blockId:'');
+    if(!live.has(key))el.classList.remove('ld-live-draft-element');
+  }
+  remoteDraftLiveCount=rendered;
+  doc.documentElement.classList.toggle('ld-local-draft-active',rendered>0);
+  if(changed)LibreDisplayRuntime.getModule('layout').setRemotePhysicalParityStatus(`${changed} unsaved edit${changed===1?'':'s'} · locally rendered drafts, NOT Pi pixels until Save & Lock`,'warn');
+  else LibreDisplayRuntime.getModule('layout').setRemotePhysicalParityStatus('Actual applied Pi pixels · no local visual changes','good');
 }
-function remoteDraftDiagnostics(){return {tracked:remoteDraftBaseline.size,moved:remoteDraftLayer?.children.length||0,source:'actual-pi-png',unsaved:true};}
+function remoteDraftDiagnostics(){return {tracked:remoteDraftBaseline.size,changed:remoteDraftLayer?.children.length||0,locallyRendered:remoteDraftLiveCount,source:'Pi applied PNG + marked local DOM drafts',unsaved:true};}
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
 LibreDisplayRuntime.exposeModule("remote", {endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError,startRemoteWallMirror,remoteWallMirrorDiagnostics,releaseRemoteDraftLayer,startRemoteDraftSprites,scheduleRemoteDraftSprites,updateRemoteDraftSprites,remoteDraftDiagnostics}, {

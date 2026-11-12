@@ -1189,11 +1189,11 @@ function handleRemoteLayoutProxyEvent(e){
   if(t.id==='layout-properties-collapse'||t.id==='layout-properties-reset-position')return;
   const src=remoteLayoutProxyCounterpart(t);if(!src)return;
   if(e.type==='click'){
-    if(t.tagName!=='BUTTON')return;e.preventDefault();e.stopImmediatePropagation();src.click();scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(40);return;
+    if(t.tagName!=='BUTTON')return;e.preventDefault();e.stopImmediatePropagation();src.click();scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(40);LibreDisplayRuntime.getModule('remote')?.scheduleRemoteDraftSprites?.();setTimeout(()=>LibreDisplayRuntime.getModule('remote')?.scheduleRemoteDraftSprites?.(),70);return;
   }
   if(!['INPUT','SELECT','TEXTAREA'].includes(t.tagName))return;e.stopImmediatePropagation();
   if(t.type==='checkbox'||t.type==='radio')src.checked=t.checked;else src.value=t.value;
-  src.dispatchEvent(new Event(e.type,{bubbles:true}));scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(35);
+  src.dispatchEvent(new Event(e.type,{bubbles:true}));scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(35);LibreDisplayRuntime.getModule('remote')?.scheduleRemoteDraftSprites?.();setTimeout(()=>LibreDisplayRuntime.getModule('remote')?.scheduleRemoteDraftSprites?.(),70);
 }
 document.addEventListener('click',handleRemoteLayoutProxyEvent,true);
 document.addEventListener('input',handleRemoteLayoutProxyEvent,true);
@@ -1232,12 +1232,12 @@ async function captureRemotePiReference({postSave=false}={}){
   try{
     // Retry transient screenshot lock contention without masking genuine capture failure.
     let response;for(let attempt=0;attempt<4;attempt++){
-      response=await resilientFetch(serverPath('/api/physical-screen'),{cache:'no-store'},{timeoutMs:17000,retry:false});if(response.ok)break;
+      response=await resilientFetch(serverPath('/api/physical-screen'),{cache:'no-store',headers:{'X-LibreDisplay-Capture-Device':String(target.deviceId||'')}},{timeoutMs:17000,retry:false});if(response.ok)break;
       const data=await response.json().catch(()=>({})),reason=String(data?.error||`Pi capture HTTP ${response.status}`);
       if(!/capture is busy|capture rate limited/i.test(reason)||attempt===3)throw new Error(reason);
       if(session!==remoteLayoutPreviewSession||captureId!==remoteReferenceCaptureId)return false;await new Promise(resolve=>setTimeout(resolve,900+attempt*350));
     }
-    const blob=await response.blob();if(blob.size<64||blob.size>16000000||blob.type!=='image/png')throw new Error('Pi returned an invalid PNG');
+    if(response.headers.get('X-LibreDisplay-Device-Id')!==String(target.deviceId||''))throw new Error('Pi screenshot identity mismatch');const blob=await response.blob();if(blob.size<64||blob.size>16000000||blob.type!=='image/png')throw new Error('Pi returned an invalid PNG');
     const url=URL.createObjectURL(blob),img=new Image();
     try{img.src=url;await img.decode();}catch(error){URL.revokeObjectURL(url);throw error;}
     if(captureId!==remoteReferenceCaptureId||session!==remoteLayoutPreviewSession){URL.revokeObjectURL(url);return false;}
