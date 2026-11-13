@@ -122,7 +122,7 @@
     "module": "layout",
     "part": "bundle",
     "path": "/js/modules/layout.js",
-    "lines": 1427,
+    "lines": 1435,
     "functions": 223,
     "bindings": 35,
     "sections": [
@@ -152,8 +152,8 @@
     "module": "remote",
     "part": "bundle",
     "path": "/js/modules/remote.js",
-    "lines": 685,
-    "functions": 56,
+    "lines": 734,
+    "functions": 60,
     "bindings": 10,
     "sections": [
       "/js/remote/index.js"

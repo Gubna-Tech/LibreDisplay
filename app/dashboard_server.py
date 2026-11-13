@@ -3836,7 +3836,14 @@ def normalize_layout_fit_metrics(value):
     for key in permitted:
         if key in raw:
             values[key] = _finite_float(raw[key], 1.0, minimum=0.15, maximum=1.0)
-    return {"width": width, "height": height, "values": values, "capturedAt": captured_at}
+    preview_id = re.sub(r"[^A-Za-z0-9_-]+", "-", str(value.get("previewId") or "").strip())[:96]
+    try:
+        preview_revision = max(0, min(10000000, int(value.get("previewRevision") or 0)))
+    except (TypeError, ValueError, OverflowError):
+        preview_revision = 0
+    return {"width": width, "height": height, "values": values, "capturedAt": captured_at,
+            "previewId": preview_id, "previewRevision": preview_revision,
+            "previewSettled": bool(value.get("previewSettled")) if preview_id else False}
 
 def normalize_layout_render_snapshot(value):
     if not isinstance(value, dict):
