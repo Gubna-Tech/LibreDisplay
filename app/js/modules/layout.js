@@ -1110,6 +1110,56 @@ let remotePhysicalPreviewSignature='';
 let remotePhysicalPreviewSeenSignature='';
 let remotePhysicalPreviewSendTimer=null;
 let remotePhysicalPreviewLeaseTimer=null;
+let remoteArrangeLiveMatchTimer=null;
+let remoteArrangeMatchedBackground='';
+let remoteArrangeLiveSeedKey='';
+function syncRemoteArrangeWithLive(){
+  if(!remoteLayoutProxyActive||!remoteLayoutPreviewTarget?.physical||!remotePhysicalPreviewId)return;
+  const frame=remoteLayoutFrame(),live=document.getElementById('ld-native-live-frame');
+  if(!frame?.contentWindow||!live?.contentWindow)return;
+  // Borrow an already verified visual fit only while the draft is identical
+  // to the saved configuration. Pi revision proof remains authoritative.
+  const status=frame.contentWindow.__ldPhysicalParityStatus;
+  const seedKey=remotePhysicalPreviewId+':'+remotePhysicalPreviewRevision;
+  // Seed once per unchanged revision. Repeating the message on every poll
+  // would cancel an in-flight authoritative Pi message in the child iframe.
+  if(remoteArrangeLiveSeedKey!==seedKey&&(!status||status.previewSeed||
+     status.previewId!==remotePhysicalPreviewId||Number(status.previewRevision)!==remotePhysicalPreviewRevision)){
+    const seeded=LibreDisplayRuntime.getModule('remote')?.seedArrangePhysicalFitFromLive?.(remotePhysicalPreviewId,remotePhysicalPreviewRevision,remoteLayoutPreviewTarget.deviceId);
+    if(seeded){remoteArrangeLiveSeedKey=seedKey;setRemotePhysicalParityStatus('Matching live fit · Pi draft verification pending…','pending');}
+  }
+  // The live Owner dashboard and editor are separate iframe sessions. Keep
+  // their visible still photo aligned if they loaded the same saved source;
+  // otherwise a shuffled album makes two equivalent layouts look different.
+  try{
+    const liveBg=live.contentWindow.LibreDisplayRuntime?.getModule('backgrounds');
+    const editorBg=frame.contentWindow.LibreDisplayRuntime?.getModule('backgrounds');
+    const liveCfg=live.contentWindow.LibreDisplayRuntime?.getModule('config')?.cfg;
+    const editorConfig=frame.contentWindow.LibreDisplayRuntime?.getModule('config');
+    if(!liveBg||!editorBg||!liveCfg||!editorConfig?.cfg||
+       Number(liveCfg._savedAt)!==Number(editorConfig.cfg._savedAt)||
+       liveBg.backgroundSourceFingerprint(liveCfg)!==editorBg.backgroundSourceFingerprint(editorConfig.cfg))return;
+    // A separate iframe's independent slideshow timer must not replace the
+    // photo between visual-reference checks. Leave the live frame unchanged.
+    if(editorBg.bgTimer!=null){clearTimeout(editorBg.bgTimer);clearInterval(editorBg.bgTimer);editorBg.bgTimer=null;}
+    const active=liveBg.activeBackgroundLayer?.(),url=active?.classList?.contains('show')?active.dataset.remoteUrl:'';
+    if(!url||(url===remoteArrangeMatchedBackground&&editorConfig.bgLastUrl===url))return;
+    const index=(editorConfig.bgImages||[]).indexOf(url);
+    if(index<0)return; // Never inject a media URL outside the editor's source.
+    if(editorConfig.bgLastUrl===url){remoteArrangeMatchedBackground=url;return;}
+    const result=editorBg.showBg(index);
+    Promise.resolve(result).then(ok=>{if(ok)remoteArrangeMatchedBackground=url;}).catch(()=>{});
+  }catch(_e){}
+}
+function startRemoteArrangeLiveMatch(){
+  clearInterval(remoteArrangeLiveMatchTimer);remoteArrangeMatchedBackground='';remoteArrangeLiveSeedKey='';
+  remoteArrangeLiveMatchTimer=setInterval(syncRemoteArrangeWithLive,1700);
+  setTimeout(syncRemoteArrangeWithLive,180);
+}
+function stopRemoteArrangeLiveMatch(){
+  clearInterval(remoteArrangeLiveMatchTimer);remoteArrangeLiveMatchTimer=null;remoteArrangeMatchedBackground='';remoteArrangeLiveSeedKey='';
+}
+
 function newRemotePhysicalPreviewId(){const rand=globalThis.crypto?.getRandomValues?Array.from(globalThis.crypto.getRandomValues(new Uint32Array(2))).map(n=>n.toString(36)).join(''):Math.random().toString(36).slice(2);return `arrange-${Date.now().toString(36)}-${rand}`.slice(0,90);}
 function setRemotePhysicalParityStatus(text,state='pending'){const el=document.getElementById('remote-layout-parity-status');if(el){el.textContent=String(text||'');el.dataset.state=state;}}
 function remoteLayoutDraftState(){try{return remoteLayoutFrame()?.contentWindow?.LibreDisplayRuntime?.getModule?.('layout')?.layoutEditorPreviewState?.()||null;}catch(e){return null;}}
@@ -1144,7 +1194,7 @@ async function pollRemotePhysicalParity(previewId=remotePhysicalPreviewId,revisi
             for(let tick=0;tick<20;tick++){
               if(previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision)return;
               const applied=frame?.contentWindow?.__ldPhysicalParityStatus;
-              if(applied?.previewId===previewId&&Number(applied?.previewRevision)===revision&&
+              if(applied?.previewSeed!==true&&applied?.previewId===previewId&&Number(applied?.previewRevision)===revision&&
                  Number(applied?.capturedAt)===Number(fit?.capturedAt)){
                 await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
                 let local={};try{local=frame?.contentWindow?.LibreDisplayRuntime?.getModule?.('remote')?.captureLayoutRenderSnapshot?.(previewId,revision)||{};}catch(e){}
@@ -1295,12 +1345,12 @@ async function openRemoteLayoutPreview(){
   }
   remotePhysicalPreviewId=newRemotePhysicalPreviewId();remotePhysicalPreviewRevision=0;remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';setRemotePhysicalParityStatus('Pi verification pending…','pending');startRemotePhysicalPreviewLease();
   primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
-  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
+  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);startRemoteArrangeLiveMatch();setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
   frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
   fitRemoteLayoutPreview();requestAnimationFrame(fitRemoteLayoutPreview);
 }
 function closeRemoteLayoutPreview({preservePhysical=false}={}){
-  remoteLayoutPreviewSession++;deactivateRemoteLayoutProxy();
+  remoteLayoutPreviewSession++;stopRemoteArrangeLiveMatch();deactivateRemoteLayoutProxy();
   if(preservePhysical){stopRemotePhysicalPreviewTimers();clearRemotePhysicalParityOverlay();remotePhysicalPreviewId='';remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';remotePhysicalPreviewRevision=0;}else clearRemotePhysicalLayoutPreview();
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');
   if(shell){shell.classList.remove('show');shell.setAttribute('aria-hidden','true');}
@@ -1311,9 +1361,9 @@ function closeRemoteLayoutPreview({preservePhysical=false}={}){
 function reloadRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');if(!frame||!shell?.classList.contains('show'))return;
   if(!remoteLayoutPreviewTarget){openRemoteLayoutPreview();return;}
-  const session=++remoteLayoutPreviewSession;deactivateRemoteLayoutProxy();
+  const session=++remoteLayoutPreviewSession;stopRemoteArrangeLiveMatch();deactivateRemoteLayoutProxy();
   primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
-  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);remotePhysicalPreviewSeenSignature='';setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
+  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);startRemoteArrangeLiveMatch();remotePhysicalPreviewSeenSignature='';setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
   frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
 }
 async function handleEmbeddedLayoutEditorAction(action){

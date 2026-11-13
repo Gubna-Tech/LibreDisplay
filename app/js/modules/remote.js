@@ -655,6 +655,38 @@ function postPhysicalParityToFrame(frame,row,arrangeRevision=null){
   if(frame.contentWindow&&frame.contentDocument?.readyState==='complete')frame.contentWindow.postMessage(payload,location.origin);
   return true;
 }
+// A saved-layout Arrange draft may borrow the *already applied* fit from the
+// matching Owner live child while the Pi's draft-specific proof is pending.
+// This is a visual seed only, never physical verification or a config write.
+function seedArrangePhysicalFitFromLive(previewId,previewRevision,deviceId){
+  const live=document.getElementById('ld-native-live-frame'),frame=document.getElementById('remote-layout-preview-frame');
+  if(!live?.contentWindow||!frame?.contentWindow||!previewId||!deviceId)return false;
+  const payload=physicalParityFrameState.get(live),applied=live.contentWindow.__ldPhysicalParityStatus;
+  if(!payload||payload.deviceId!==deviceId||!applied||applied.capturedAt!==payload.capturedAt||
+     Date.now()-Number(payload.capturedAt)>45000)return false;
+  const width=Math.round(Number(frame.width)||0),height=Math.round(Number(frame.height)||0);
+  if(payload.width!==width||payload.height!==height||
+     Math.abs(frame.contentDocument?.documentElement?.clientWidth-width)>2||
+     Math.abs(frame.contentDocument?.documentElement?.clientHeight-height)>2)return false;
+  try{
+    const liveCfg=live.contentWindow.LibreDisplayRuntime?.getModule('config')?.cfg;
+    const innerCfg=frame.contentWindow.LibreDisplayRuntime?.getModule('config')?.cfg;
+    const draft=frame.contentWindow.LibreDisplayRuntime?.getModule('layout')?.layoutEditorPreviewState?.();
+    if(!liveCfg||!innerCfg||!draft||Number(liveCfg._savedAt)!==Number(innerCfg._savedAt))return false;
+    // Never reuse saved-fit factors for a changed rectangle or style draft.
+    // Normalize object key order; imported configs can have equivalent values
+    // in a different property order from the editor's canonical block order.
+    const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?
+      Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
+    for(const key of ['layoutMode','layoutBlocks','layoutContentScale','layoutElementStyle','layoutPartStyle','currentWeatherLayout','currentWeatherPartLayout','customBlocks']){
+      if(JSON.stringify(canonical(draft[key]))!==JSON.stringify(canonical(liveCfg[key])))return false;
+    }
+  }catch(_e){return false;}
+  const current=frame.contentWindow.__ldPhysicalParityStatus;
+  if(current?.previewId===previewId&&Number(current.previewRevision)===previewRevision&&!current.previewSeed)return false;
+  frame.contentWindow.postMessage({...payload,sentAt:Date.now(),previewId,previewRevision,previewSeed:true},location.origin);
+  return true;
+}
 function postPhysicalParityToArrangeRevision(row,previewId,previewRevision){
   const frame=document.getElementById('remote-layout-preview-frame'),snapshot=row?.layoutRenderSnapshot,fit=row?.layoutFitMetrics;
   if(!frame||!frame.isConnected||!frame.contentWindow||String(row?.layoutPreviewId||'')!==previewId||String(snapshot?.previewId||'')!==previewId)return false;
@@ -721,7 +753,7 @@ function applyPendingPhysicalParity(){
   }
   applyPhysicalFontMatch(data);
   physicalParityLastAt=Date.now();
-  window.__ldPhysicalParityStatus={deviceId:data.deviceId,at:physicalParityLastAt,piSize:[data.width,data.height],piFit:{...data.values},capturedAt:data.capturedAt,previewId:data.previewId||'',previewRevision:Number(data.previewRevision)||0};
+  window.__ldPhysicalParityStatus={deviceId:data.deviceId,at:physicalParityLastAt,piSize:[data.width,data.height],piFit:{...data.values},capturedAt:data.capturedAt,previewId:data.previewId||'',previewRevision:Number(data.previewRevision)||0,previewSeed:data.previewSeed===true};
   physicalParityPending=null;
   return true;
 }
@@ -764,7 +796,7 @@ if(bootstrapApi.PAGE_PARAMS.get('nativeLive')==='1'||bootstrapApi.LAYOUT_PREVIEW
   LibreDisplayRuntime.getModule('layout')?.scheduleBuiltInLayoutAutoFitDeferred?.();
 },10000);
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("remote", {capturePhysicalFitMetrics,postPhysicalParityToArrangeRevision,clearPhysicalParityArrangeFrame,startNativeOwnerLiveViewport,refreshNativeOwnerLiveViewport,startNativeRemotePiView,endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
+LibreDisplayRuntime.exposeModule("remote", {capturePhysicalFitMetrics,postPhysicalParityToArrangeRevision,clearPhysicalParityArrangeFrame,startNativeOwnerLiveViewport,seedArrangePhysicalFitFromLive,refreshNativeOwnerLiveViewport,startNativeRemotePiView,endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
   "displayEndpoints": {configurable:true,get:()=>displayEndpoints,set:(value)=>{displayEndpoints=value;}},
   "displayDevices": {configurable:true,get:()=>displayDevices,set:(value)=>{displayDevices=value;}},
   "endpointsRemoteEnabled": {configurable:true,get:()=>endpointsRemoteEnabled,set:(value)=>{endpointsRemoteEnabled=value;}},
