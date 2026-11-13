@@ -774,7 +774,10 @@ async function saveLayoutEditor(){
     stopLayoutEditorUi();layoutEditorOriginal=null;layoutCustomBlocksOriginal=[];applyUiCustomization(cfg);updateLayoutModeStatus(cfg);
     requestAnimationFrame(()=>{applyUiCustomization(cfg);updateLayoutModeStatus(cfg);LibreDisplayRuntime.getModule('layout').scheduleBuiltInLayoutAutoFitDeferred?.();});
     const displayApply=await LibreDisplayRuntime.getModule('layout').requestSavedLayoutDisplayApply();
-    if(LAYOUT_PREVIEW_MODE&&window.parent!==window){if(!displayApply.ok)console.warn('Arrange layout saved, but the target display reload request could not be delivered immediately.',displayApply.error||'');notifyLayoutPreviewParent('saved');}
+    if((LAYOUT_PREVIEW_MODE||LibreDisplayRuntime.getModule('bootstrap').PAGE_PARAMS.get('nativeLive')==='1')&&window.parent!==window){
+      if(LAYOUT_PREVIEW_MODE&&!displayApply.ok)console.warn('Arrange layout saved, but the target display reload request could not be delivered immediately.',displayApply.error||'');
+      notifyLayoutPreviewParent('saved');
+    }
   }finally{
     layoutSaveInFlight=false;
     if(saveButton){saveButton.disabled=false;saveButton.textContent='Save & Lock';}
@@ -1038,7 +1041,35 @@ const {escHtml,resilientFetch}=LibreDisplayRuntime.getModule('shared');
 
 let remoteLayoutProxyActive=false;
 let remoteLayoutProxySyncTimer=null;
-function remoteLayoutFrame(){return document.getElementById('remote-layout-preview-frame');}
+let remoteLayoutLiveSaveInFlight=false;
+let remoteLayoutLiveCancelInFlight=false;
+// Arrange edits the *existing* continuously rendered Owner native-live frame.
+// Never move, reparent, reload, clone or replace that iframe: any such operation
+// can destroy the browser scene and independently reroll media/integrations.
+let remoteLayoutLiveEditing=false;
+function remoteLayoutFrame(){
+  return remoteLayoutLiveEditing?document.getElementById('ld-native-live-frame'):document.getElementById('remote-layout-preview-frame');
+}
+function remoteLayoutLiveCandidate(target){
+  const frame=document.getElementById('ld-native-live-frame');
+  if(!frame||!frame.isConnected||!target?.physical||!target.online||!target.deviceId)return null;
+  if(Math.abs(Number(frame.width)-Number(target.width))>2||Math.abs(Number(frame.height)-Number(target.height))>2)return null;
+  try{
+    const child=frame.contentWindow,doc=frame.contentDocument;
+    if(!child||!doc||doc.readyState!=='complete'||!doc.getElementById('app'))return null;
+    const params=new URLSearchParams(child.location.search);
+    if(child.location.origin!==location.origin||params.get('nativeLive')!=='1'||params.get('endpoint')!==bootstrapApi.ACTIVE_ENDPOINT)return null;
+    if(!child.LibreDisplayRuntime?.getModule?.('layout')?.startLayoutEditor)return null;
+    if(!child.LibreDisplayRuntime?.getModule?.('layout')?.layoutEditorPreviewState)return null;
+    if(!Number(child.LibreDisplayRuntime?.getModule?.('config')?.cfg?._savedAt))return null;
+    return frame;
+  }catch(_e){return null;}
+}
+function remoteLayoutLiveEditorActive(){
+  try{return remoteLayoutLiveEditing&&remoteLayoutFrame()?.contentWindow?.LibreDisplayRuntime?.getModule?.('layout')?.layoutEditorActive===true;}
+  catch(_e){return false;}
+}
+
 function remoteLayoutInnerDocument(){try{return remoteLayoutFrame()?.contentDocument||null;}catch(e){return null;}}
 function remoteLayoutProxyRoot(el){return el?.closest?.('#layout-toolbar,#layout-properties,#block-catalog,#block-config-modal')||null;}
 function remoteLayoutProxyCounterpart(el){
@@ -1224,6 +1255,13 @@ function clearRemoteLiveScene(){
 }
 function syncRemoteLayoutProxyUi(){
   if(!remoteLayoutProxyActive)return;
+  if(remoteLayoutLiveEditing&&!remoteLayoutLiveEditorActive()){
+    // An asynchronous successful save closes the live child editor. It is never
+    // permitted to switch into a distinct, independently randomized iframe.
+    if(remoteLayoutLiveCancelInFlight)void handleEmbeddedLayoutEditorAction('cancelled');
+    else if(!remoteLayoutLiveSaveInFlight)void handleEmbeddedLayoutEditorAction('saved');
+    return;
+  }
   const doc=remoteLayoutInnerDocument();if(!doc)return;
   const toolbar=document.getElementById('layout-toolbar'),props=document.getElementById('layout-properties');
   toolbar?.classList.add('show');props?.classList.add('show');toolbar?.setAttribute('aria-hidden','false');props?.setAttribute('aria-hidden','false');
@@ -1238,7 +1276,7 @@ function syncRemoteLayoutProxyUi(){
   const innerConfig=doc.getElementById('block-config-modal'),outerConfig=document.getElementById('block-config-modal');
   if(innerConfig&&outerConfig){const show=innerConfig.classList.contains('show');outerConfig.classList.toggle('show',show);outerConfig.setAttribute('aria-hidden',show?'false':'true');if(show){for(const id of ['block-config-title','block-config-sub']){const a=doc.getElementById(id),b=document.getElementById(id);if(a&&b)b.textContent=a.textContent;}const inf=doc.getElementById('block-config-fields'),outf=document.getElementById('block-config-fields');if(inf&&outf&&outf.innerHTML!==inf.innerHTML)outf.innerHTML=inf.innerHTML;for(const dst of outf?.querySelectorAll?.('[id]')||[]){const src=doc.getElementById(dst.id);if(src)remoteLayoutProxyMirrorElement(dst,src);}}}
   maybeQueueRemotePhysicalLayoutPreview();
-  syncRemoteLiveScene();
+  if(!remoteLayoutLiveEditing)syncRemoteLiveScene();
 }
 function scheduleRemoteLayoutProxySync(delay=0){if(!remoteLayoutProxyActive)return;if(delay){setTimeout(()=>remoteLayoutProxyActive&&syncRemoteLayoutProxyUi(),delay);return;}requestAnimationFrame(()=>remoteLayoutProxyActive&&syncRemoteLayoutProxyUi());}
 function activateRemoteLayoutProxy(){
@@ -1259,7 +1297,17 @@ function handleRemoteLayoutProxyEvent(e){
   if(t.id==='layout-properties-collapse'||t.id==='layout-properties-reset-position')return;
   const src=remoteLayoutProxyCounterpart(t);if(!src)return;
   if(e.type==='click'){
-    if(t.tagName!=='BUTTON')return;e.preventDefault();e.stopImmediatePropagation();src.click();scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(40);return;
+    if(t.tagName!=='BUTTON')return;e.preventDefault();e.stopImmediatePropagation();
+    if(remoteLayoutLiveEditing&&t.id==='layout-save')remoteLayoutLiveSaveInFlight=true;
+    if(remoteLayoutLiveEditing&&t.id==='layout-cancel')remoteLayoutLiveCancelInFlight=true;
+    src.click();
+    // A failed save keeps the live editor open. It must never silently close
+    // or assert that the layout was saved.
+    if(remoteLayoutLiveEditing&&t.id==='layout-save')setTimeout(()=>{
+      if(remoteLayoutLiveEditing&&remoteLayoutLiveEditorActive())remoteLayoutLiveSaveInFlight=false;
+      else if(remoteLayoutLiveEditing)void handleEmbeddedLayoutEditorAction('saved');
+    },900);
+    scheduleRemoteLayoutProxySync();scheduleRemoteLayoutProxySync(40);return;
   }
   if(!['INPUT','SELECT','TEXTAREA'].includes(t.tagName))return;e.stopImmediatePropagation();
   if(t.type==='checkbox'||t.type==='radio')src.checked=t.checked;else src.value=t.value;
@@ -1301,8 +1349,20 @@ async function pollRemotePhysicalParity(previewId=remotePhysicalPreviewId,revisi
         const rows=await readDisplayDevices(),row=bestLayoutTargetDevice(rows),snap=row?.layoutRenderSnapshot;
         if(row&&String(row.deviceId||'')===String(remoteLayoutPreviewTarget.deviceId||'')&&
            String(row.layoutPreviewId||'')===previewId&&Number(snap?.revision||0)===revision){
-          const synced=LibreDisplayRuntime.getModule('remote')?.postPhysicalParityToArrangeRevision?.(row,previewId,revision)===true;
+          const synced=remoteLayoutLiveEditing?true:LibreDisplayRuntime.getModule('remote')?.postPhysicalParityToArrangeRevision?.(row,previewId,revision)===true;
           if(synced){
+            if(remoteLayoutLiveEditing){
+              const frame=remoteLayoutFrame();let local={};
+              try{local=frame?.contentWindow?.LibreDisplayRuntime?.getModule?.('remote')?.captureLayoutRenderSnapshot?.(previewId,revision)||{};}catch(_e){}
+              if(!Array.isArray(local.entities)||!Array.isArray(snap.entities))continue;
+              const cmp=compareLayoutRenderSnapshots(snap,local);
+              renderRemotePhysicalParityOverlay(snap,cmp);
+              const delta=Math.round(cmp.maxDelta*10)/10;
+              if(cmp.piOverlaps||cmp.piOffscreen)setRemotePhysicalParityStatus(`Pi reports ${cmp.piOverlaps} overlap${cmp.piOverlaps===1?'':'s'}${cmp.piOffscreen?` · ${cmp.piOffscreen} off-screen`:''}`,'warn');
+              else if(cmp.maxDelta>2.5||cmp.collisionDiff)setRemotePhysicalParityStatus(`Pi differs · max render shift ${delta}px`,'warn');
+              else setRemotePhysicalParityStatus(`Pi geometry matches live session${delta?` within ${delta}px`:''}`,'good');
+              return;
+            }
             // Wait until the SAME-ORIGIN preview actually applied this draft's
             // measurements. postMessage sent does not mean style applied; the
             // iframe may still be loading its saved config and editor DOM.
@@ -1408,7 +1468,7 @@ function primeRemoteLayoutFrameViewport(frame,target=remoteLayoutPreviewTarget){
   frame.width=String(width);frame.height=String(height);frame.style.width=width+'px';frame.style.height=height+'px';
 }
 function syncRemoteLayoutEditorAffordances(attempt=0){
-  const frame=document.getElementById('remote-layout-preview-frame'),picker=document.getElementById('remote-layout-element-picker');if(!frame||!picker)return;
+  const frame=remoteLayoutFrame(),picker=document.getElementById('remote-layout-element-picker');if(!frame||!picker)return;
   try{
     const doc=frame.contentDocument,innerPicker=doc?.getElementById('layout-toolbar-block');
     if(!doc||!innerPicker||innerPicker.options.length<2){if(attempt<14)setTimeout(()=>syncRemoteLayoutEditorAffordances(attempt+1),100);return;}
@@ -1418,7 +1478,7 @@ function syncRemoteLayoutEditorAffordances(attempt=0){
   }catch(e){if(attempt<14)setTimeout(()=>syncRemoteLayoutEditorAffordances(attempt+1),100);}
 }
 function selectRemoteLayoutElement(key){
-  if(!key)return;const frame=document.getElementById('remote-layout-preview-frame');
+  if(!key)return;const frame=remoteLayoutFrame();
   try{frame?.contentWindow?.selectLayoutBlock?.(key);const inner=frame?.contentDocument?.getElementById('layout-toolbar-block');if(inner)inner.value=key;scheduleRemoteLayoutProxySync();}catch(e){}
 }
 function syncRemoteEditorHitTargets(scale){
@@ -1437,6 +1497,7 @@ function syncRemoteEditorHitTargets(scale){
   }catch(e){}
 }
 function fitRemoteLayoutPreview(){
+  if(remoteLayoutLiveEditing)return; // The live iframe keeps its existing 100%-size viewport and position.
   const shell=document.getElementById('remote-layout-preview-shell'),stage=document.getElementById('remote-layout-preview-stage'),frame=document.getElementById('remote-layout-preview-frame');
   if(!shell?.classList.contains('show')||!stage||!frame||!remoteLayoutPreviewTarget)return;
   // Physical CSS coordinates are never scaled to fit the remote browser.
@@ -1459,14 +1520,47 @@ async function openRemoteLayoutPreview(){
     if(meta)meta.textContent='Arrange unavailable · no physical kiosk viewport is available for this display. Open or reload the actual LibreDisplay wall screen, then choose Reload preview.';
     return;
   }
-  remotePhysicalPreviewId=newRemotePhysicalPreviewId();remotePhysicalPreviewRevision=0;remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';setRemotePhysicalParityStatus('Pi verification pending…','pending');startRemotePhysicalPreviewLease();
-  primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
-  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
-  frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
-  fitRemoteLayoutPreview();requestAnimationFrame(fitRemoteLayoutPreview);
+  // Never offer a misleading second-dashboard preview when the live source is
+  // unavailable or has the wrong geometry. The user must reload the actual live
+  // Owner view first instead of dragging against unrelated random content.
+  const live=remoteLayoutLiveCandidate(remoteLayoutPreviewTarget);
+  if(!live){
+    if(meta)meta.textContent='Arrange unavailable: matching live dashboard is not ready. Close, reload the normal view, and reopen Arrange.';
+    setRemotePhysicalParityStatus('No matching live frame · no editing', 'warn');
+    return;
+  }
+  remoteLayoutLiveEditing=true;
+  document.body.classList.add('remote-layout-live-edit');
+  // This is the SAME frame as normal view. CSS makes only the editor controls
+  // float above it; it does not change the iframe's position or viewport.
+  try{live.contentWindow.LibreDisplayRuntime.getModule('layout').startLayoutEditor();}
+  catch(_e){
+    remoteLayoutLiveEditing=false;document.body.classList.remove('remote-layout-live-edit');
+    if(meta)meta.textContent='Could not activate editing in the existing live dashboard; no replacement scene was opened.';
+    setRemotePhysicalParityStatus('Live editor unavailable', 'warn');return;
+  }
+  if(!remoteLayoutLiveEditorActive()){
+    remoteLayoutLiveEditing=false;document.body.classList.remove('remote-layout-live-edit');
+    if(meta)meta.textContent='Live layout editor did not start. No independent Arrange iframe was opened.';
+    setRemotePhysicalParityStatus('Live editor unavailable', 'warn');return;
+  }
+  remotePhysicalPreviewId=newRemotePhysicalPreviewId();remotePhysicalPreviewRevision=0;remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';
+  setRemotePhysicalParityStatus('Editing live session · Pi draft verification pending','pending');startRemotePhysicalPreviewLease();
+  if(meta)meta.textContent=`${remoteLayoutPreviewTarget.width}×${remoteLayoutPreviewTarget.height} · SAME live dashboard · no second session`;
+  activateRemoteLayoutProxy();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);
+  return;
 }
 function closeRemoteLayoutPreview({preservePhysical=false}={}){
-  remoteLayoutPreviewSession++;deactivateRemoteLayoutProxy();
+  remoteLayoutPreviewSession++;
+  if(remoteLayoutLiveEditing){
+    if(remoteLayoutLiveEditorActive()){
+      // The Close action is Cancel, not a hidden save or a destructive reload.
+      try{remoteLayoutFrame()?.contentWindow?.LibreDisplayRuntime?.getModule?.('layout')?.cancelLayoutEditor?.();}catch(_e){}
+    }
+    remoteLayoutLiveEditing=false;remoteLayoutLiveSaveInFlight=false;remoteLayoutLiveCancelInFlight=false;
+    document.body.classList.remove('remote-layout-live-edit');
+  }
+  deactivateRemoteLayoutProxy();
   if(preservePhysical){stopRemotePhysicalPreviewTimers();clearRemotePhysicalParityOverlay();remotePhysicalPreviewId='';remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';remotePhysicalPreviewRevision=0;}else clearRemotePhysicalLayoutPreview();
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');
   if(shell){shell.classList.remove('show');shell.setAttribute('aria-hidden','true');}
@@ -1475,6 +1569,12 @@ function closeRemoteLayoutPreview({preservePhysical=false}={}){
   document.getElementById('layout-toolbar')?.classList.remove('show');document.getElementById('layout-properties')?.classList.remove('show');document.getElementById('block-catalog')?.classList.remove('show');document.getElementById('block-config-modal')?.classList.remove('show');
 }
 function reloadRemoteLayoutPreview(){
+  if(remoteLayoutLiveEditing){
+    if(!confirm('Discard unsaved Arrange changes and reopen editing on the same live display?'))return;
+    closeRemoteLayoutPreview();
+    void openRemoteLayoutPreview();
+    return;
+  }
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');if(!frame||!shell?.classList.contains('show'))return;
   if(!remoteLayoutPreviewTarget){openRemoteLayoutPreview();return;}
   const session=++remoteLayoutPreviewSession;deactivateRemoteLayoutProxy();
@@ -1484,7 +1584,10 @@ function reloadRemoteLayoutPreview(){
 }
 async function handleEmbeddedLayoutEditorAction(action){
   if(action==='saved'){
+    const wasLive=remoteLayoutLiveEditing;
+    remoteLayoutLiveSaveInFlight=false;
     closeRemoteLayoutPreview({preservePhysical:true});
+    if(wasLive)await LibreDisplayRuntime.getModule('layout')?.requestSavedLayoutDisplayApply?.(true);
     await LibreDisplayRuntime.getModule('remote').pollServerConfig();
     openSetup(false);
     return;
@@ -1492,11 +1595,19 @@ async function handleEmbeddedLayoutEditorAction(action){
   if(action==='cancelled'){closeRemoteLayoutPreview();openSetup(false);}
 }
 function notifyLayoutPreviewParent(action){
-  if(!LAYOUT_PREVIEW_MODE||window.parent===window)return;
+  // The native Owner child can report an edit transaction, but only when its
+  // parent has explicitly entered live-scene Arrange. Never interfere with
+  // normal viewing, normal settings, or unrelated embedded dashboards.
+  const nativeChild=bootstrapApi.PAGE_PARAMS.get('nativeLive')==='1';
+  if(window.parent===window||(!LAYOUT_PREVIEW_MODE&&!nativeChild))return;
+  if(nativeChild){
+    try{if(!window.parent.document.body.classList.contains('remote-layout-live-edit'))return;}
+    catch(_e){return;}
+  }
   try{if(window.parent.location.origin===location.origin&&typeof window.parent.handleEmbeddedLayoutEditorAction==='function'){window.parent.handleEmbeddedLayoutEditorAction(action);return;}}catch(e){}
   window.parent.postMessage({type:'libredisplay-layout-editor',action},location.origin);
 }
-window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==document.getElementById('remote-layout-preview-frame')?.contentWindow)return;const msg=e.data||{};if(msg.type!=='libredisplay-layout-editor')return;handleEmbeddedLayoutEditorAction(msg.action);});
+window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==remoteLayoutFrame()?.contentWindow)return;const msg=e.data||{};if(msg.type!=='libredisplay-layout-editor')return;handleEmbeddedLayoutEditorAction(msg.action);});
 function launchLayoutEditorFromSettings(){
   if(LibreDisplayRuntime.getModule('system').settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;
   closeSetup(true);if(bootstrapApi.REMOTE_SETTINGS_MODE){setTimeout(openRemoteLayoutPreview,80);return;}setTimeout(startLayoutEditor,80);
@@ -1513,8 +1624,9 @@ function stopLayoutEditorUi(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("layout", {remoteLayoutFrame,remoteLayoutInnerDocument,remoteLayoutProxyRoot,remoteLayoutProxyCounterpart,remoteLayoutProxyMirrorElement,syncRemoteLayoutProxyUi,scheduleRemoteLayoutProxySync,activateRemoteLayoutProxy,deactivateRemoteLayoutProxy,handleRemoteLayoutProxyEvent,targetViewportFromDevice,bestLayoutTargetDevice,readDisplayDevices,requestFreshDisplayMetrics,fetchRemoteLayoutTarget,newRemotePhysicalPreviewId,setRemotePhysicalParityStatus,compareLayoutRenderSnapshots,pollRemotePhysicalParity,sendRemotePhysicalLayoutPreview,maybeQueueRemotePhysicalLayoutPreview,clearRemotePhysicalLayoutPreview,remoteLayoutPreviewUrl,primeRemoteLayoutFrameViewport,syncRemoteLayoutEditorAffordances,selectRemoteLayoutElement,syncRemoteEditorHitTargets,fitRemoteLayoutPreview,openRemoteLayoutPreview,closeRemoteLayoutPreview,reloadRemoteLayoutPreview,handleEmbeddedLayoutEditorAction,notifyLayoutPreviewParent,launchLayoutEditorFromSettings,stopLayoutEditorUi}, {
+LibreDisplayRuntime.exposeModule("layout", {remoteLayoutFrame,remoteLayoutLiveCandidate,remoteLayoutLiveEditorActive,remoteLayoutInnerDocument,remoteLayoutProxyRoot,remoteLayoutProxyCounterpart,remoteLayoutProxyMirrorElement,syncRemoteLayoutProxyUi,scheduleRemoteLayoutProxySync,activateRemoteLayoutProxy,deactivateRemoteLayoutProxy,handleRemoteLayoutProxyEvent,targetViewportFromDevice,bestLayoutTargetDevice,readDisplayDevices,requestFreshDisplayMetrics,fetchRemoteLayoutTarget,newRemotePhysicalPreviewId,setRemotePhysicalParityStatus,compareLayoutRenderSnapshots,pollRemotePhysicalParity,sendRemotePhysicalLayoutPreview,maybeQueueRemotePhysicalLayoutPreview,clearRemotePhysicalLayoutPreview,remoteLayoutPreviewUrl,primeRemoteLayoutFrameViewport,syncRemoteLayoutEditorAffordances,selectRemoteLayoutElement,syncRemoteEditorHitTargets,fitRemoteLayoutPreview,openRemoteLayoutPreview,closeRemoteLayoutPreview,reloadRemoteLayoutPreview,handleEmbeddedLayoutEditorAction,notifyLayoutPreviewParent,launchLayoutEditorFromSettings,stopLayoutEditorUi}, {
   "remoteLayoutProxyActive": {configurable:true,get:()=>remoteLayoutProxyActive,set:(value)=>{remoteLayoutProxyActive=value;}},
+  "remoteLayoutLiveEditing": {configurable:true,get:()=>remoteLayoutLiveEditing},
   "remoteLayoutProxySyncTimer": {configurable:true,get:()=>remoteLayoutProxySyncTimer,set:(value)=>{remoteLayoutProxySyncTimer=value;}},
   "remoteLayoutPreviewTarget": {configurable:true,get:()=>remoteLayoutPreviewTarget,set:(value)=>{remoteLayoutPreviewTarget=value;}},
   "remoteLayoutPreviewSession": {configurable:true,get:()=>remoteLayoutPreviewSession,set:(value)=>{remoteLayoutPreviewSession=value;}}
@@ -1550,7 +1662,7 @@ function cancelLayoutEditor(){
   stopLayoutEditorUi();
   if(hadSession){renderCustomBlocks(cfg.customBlocks);applyUiCustomization(cfg);}else document.body.classList.remove('layout-editing');
   layoutApi().layoutEditorOriginal=null;layoutCustomBlocksOriginal=[];
-  if(LAYOUT_PREVIEW_MODE&&window.parent!==window)setTimeout(()=>notifyLayoutPreviewParent('cancelled'),0);
+  if((LAYOUT_PREVIEW_MODE||bootstrapApi.PAGE_PARAMS.get('nativeLive')==='1')&&window.parent!==window)setTimeout(()=>notifyLayoutPreviewParent('cancelled'),0);
 }
 function resetLayoutEditorDraft(){
   if(!layoutEditorActive)return;pushLayoutHistory();

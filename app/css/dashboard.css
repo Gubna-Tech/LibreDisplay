@@ -4731,3 +4731,18 @@ html.ld-native-live-parent body{min-width:var(--ld-live-width,100vw);min-height:
 #ld-native-live-frame{position:absolute;left:0;top:0;z-index:6;border:0;display:block;max-width:none;max-height:none;transform:none!important;background:var(--ld-canvas)}
 #ld-native-live-frame[hidden],body.remote-layout-proxy #ld-native-live-frame,body.layout-editing #ld-native-live-frame,body:has(#remote-layout-preview-shell.show) #ld-native-live-frame,body:has(#setup:not(.hidden)) #ld-native-live-frame{display:none!important}
 html.ld-native-live-child #cog{display:none!important}
+
+/* v1.16.42: edit the Owner's already-rendered live frame itself. No second
+   iframe, no stock photo reroll, no duplicated integration or weather scene.
+   The editor shell is transparent and only its controls capture pointer input;
+   drag/resize targets remain on the real live canvas at their original pixels. */
+body.remote-layout-live-edit #remote-layout-preview-shell{background:transparent!important;pointer-events:none!important}
+body.remote-layout-live-edit #remote-layout-preview-stage{display:none!important}
+body.remote-layout-live-edit #remote-layout-preview-topbar,
+body.remote-layout-live-edit #remote-layout-preview-topbar *{pointer-events:auto!important}
+body.remote-layout-live-edit:has(#remote-layout-preview-shell.show) #ld-native-live-frame{display:block!important;pointer-events:auto!important}
+html.ld-native-live-child body.layout-editing #layout-toolbar,
+html.ld-native-live-child body.layout-editing #layout-properties,
+html.ld-native-live-child body.layout-editing #block-catalog,
+html.ld-native-live-child body.layout-editing #block-config-modal,
+html.ld-native-live-child body.layout-editing #context-help-popover{display:none!important}

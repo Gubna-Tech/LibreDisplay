@@ -599,6 +599,10 @@ function startNativeRemotePiView(){
 // dashboard in a fixed-size frame, not a screenshot or a Pi-video stream.
 let ownerLiveViewportTimer=null,ownerLiveViewportBusy=false,ownerLiveViewportDevice='';
 async function refreshNativeOwnerLiveViewport(){
+  // The same live child is temporarily being edited in place. Do not resize
+  // it or replay Pi fit messages while its draft is active. Normal viewing
+  // resumes automatically when Arrange closes.
+  if(document.body.classList.contains('remote-layout-live-edit'))return;
   if(ownerLiveViewportBusy||bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LAYOUT_PREVIEW_MODE||bootstrapApi.PAGE_PARAMS.get('nativeLive')==='1'||bootstrapApi.SESSION_ROLE!=='owner')return;
   ownerLiveViewportBusy=true;
   try{
