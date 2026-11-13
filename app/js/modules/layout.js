@@ -1344,9 +1344,12 @@ function newRemotePhysicalPreviewId(){const rand=globalThis.crypto?.getRandomVal
 function setRemotePhysicalParityStatus(text,state='pending'){const el=document.getElementById('remote-layout-parity-status');if(el){el.textContent=String(text||'');el.dataset.state=state;}}
 function remoteLayoutDraftState(){try{return remoteLayoutFrame()?.contentWindow?.LibreDisplayRuntime?.getModule?.('layout')?.layoutEditorPreviewState?.()||null;}catch(e){return null;}}
 function stopRemotePhysicalPreviewTimers(){clearTimeout(remotePhysicalPreviewSendTimer);remotePhysicalPreviewSendTimer=null;clearInterval(remotePhysicalPreviewLeaseTimer);remotePhysicalPreviewLeaseTimer=null;}
-function clearRemotePhysicalParityOverlay(){try{remoteLayoutInnerDocument()?.getElementById('ld-physical-parity-overlay')?.remove();}catch(e){}}
-function renderRemotePhysicalParityOverlay(snapshot,comparison){
-  const doc=remoteLayoutInnerDocument();if(!doc)return;clearRemotePhysicalParityOverlay();const collisionKeys=new Set();for(const row of snapshot?.overlaps||[]){collisionKeys.add(String(row.a||''));collisionKeys.add(String(row.b||''));}const mismatchKeys=new Set(comparison?.mismatchKeys||[]);if(!collisionKeys.size&&!mismatchKeys.size)return;const layer=doc.createElement('div');layer.id='ld-physical-parity-overlay';layer.setAttribute('aria-hidden','true');for(const row of snapshot?.entities||[]){const key=String(row?.key||'');if(!collisionKeys.has(key)&&!mismatchKeys.has(key))continue;const r=row?.visual||row?.footprint;if(!r)continue;const box=doc.createElement('div');box.className='ld-physical-parity-box';box.dataset.state=collisionKeys.has(key)?'overlap':'mismatch';box.title=(collisionKeys.has(key)?'Overlaps on physical display: ':'Physical display differs: ')+(row.label||key);Object.assign(box.style,{left:`${Number(r.x)||0}px`,top:`${Number(r.y)||0}px`,width:`${Math.max(1,Number(r.w)||1)}px`,height:`${Math.max(1,Number(r.h)||1)}px`});layer.appendChild(box);}doc.body.appendChild(layer);
+function clearRemotePhysicalParityOverlay(){
+  // Remove leftovers from either document, regardless of which frame the
+  // editor currently considers active. This function never creates visuals.
+  for(const id of ['ld-native-live-frame','remote-layout-preview-frame']){
+    try{document.getElementById(id)?.contentDocument?.getElementById('ld-physical-parity-overlay')?.remove();}catch(_e){}
+  }
 }
 function compareLayoutRenderSnapshots(pi,preview){
   const a=new Map((pi?.entities||[]).map(x=>[String(x.key||''),x])),b=new Map((preview?.entities||[]).map(x=>[String(x.key||''),x]));let maxDelta=0;const mismatchKeys=[];for(const [key,row] of a){const other=b.get(key);if(!other)continue;let delta=0;for(const scope of ['footprint','visual'])for(const field of ['x','y','w','h'])delta=Math.max(delta,Math.abs((Number(row?.[scope]?.[field])||0)-(Number(other?.[scope]?.[field])||0)));maxDelta=Math.max(maxDelta,delta);if(delta>2.5)mismatchKeys.push(key);}const sig=s=>new Set((s?.overlaps||[]).map(x=>[String(x.a||''),String(x.b||'')].sort().join('|'))),pa=sig(pi),pb=sig(preview);let collisionDiff=0;for(const key of pa)if(!pb.has(key))collisionDiff++;for(const key of pb)if(!pa.has(key))collisionDiff++;return {maxDelta,mismatchKeys,collisionDiff,piOverlaps:pa.size,piOffscreen:(pi?.offscreen||[]).length};
@@ -1372,7 +1375,6 @@ async function pollRemotePhysicalParity(previewId=remotePhysicalPreviewId,revisi
               try{local=frame?.contentWindow?.LibreDisplayRuntime?.getModule?.('remote')?.captureLayoutRenderSnapshot?.(previewId,revision)||{};}catch(_e){}
               if(!Array.isArray(local.entities)||!Array.isArray(snap.entities))continue;
               const cmp=compareLayoutRenderSnapshots(snap,local);
-              renderRemotePhysicalParityOverlay(snap,cmp);
               const delta=Math.round(cmp.maxDelta*10)/10;
               if(cmp.piOverlaps||cmp.piOffscreen)setRemotePhysicalParityStatus(`Pi reports ${cmp.piOverlaps} overlap${cmp.piOverlaps===1?'':'s'}${cmp.piOffscreen?` · ${cmp.piOffscreen} off-screen`:''}`,'warn');
               else if(cmp.maxDelta>2.5||cmp.collisionDiff)setRemotePhysicalParityStatus(`Pi differs · max render shift ${delta}px`,'warn');
@@ -1391,8 +1393,7 @@ async function pollRemotePhysicalParity(previewId=remotePhysicalPreviewId,revisi
                 await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
                 let local={};try{local=frame?.contentWindow?.LibreDisplayRuntime?.getModule?.('remote')?.captureLayoutRenderSnapshot?.(previewId,revision)||{};}catch(e){}
                 const cmp=compareLayoutRenderSnapshots(snap,local);
-                renderRemotePhysicalParityOverlay(snap,cmp);
-                const delta=Math.round(cmp.maxDelta*10)/10;
+                  const delta=Math.round(cmp.maxDelta*10)/10;
                 if(cmp.piOverlaps||cmp.piOffscreen)setRemotePhysicalParityStatus(`Pi reports ${cmp.piOverlaps} overlap${cmp.piOverlaps===1?'':'s'}${cmp.piOffscreen?` · ${cmp.piOffscreen} off-screen`:''}`,'warn');
                 else if(cmp.maxDelta>2.5||cmp.collisionDiff)setRemotePhysicalParityStatus(`Pi differs · max render shift ${delta}px`,'warn');
                 else setRemotePhysicalParityStatus(`Pi verified · rendered geometry matches${delta?` within ${delta}px`:''}`,'good');
@@ -1414,7 +1415,7 @@ async function sendRemotePhysicalLayoutPreview({renew=false}={}){
 }
 function maybeQueueRemotePhysicalLayoutPreview(){if(!remoteLayoutProxyActive||!remotePhysicalPreviewId)return;const state=remoteLayoutDraftState();if(!state)return;let signature='';try{signature=JSON.stringify(state);}catch(e){return;}if(signature===remotePhysicalPreviewSeenSignature)return;remotePhysicalPreviewSeenSignature=signature;clearTimeout(remotePhysicalPreviewSendTimer);remotePhysicalPreviewSendTimer=setTimeout(()=>{remotePhysicalPreviewSendTimer=null;sendRemotePhysicalLayoutPreview();},220);}
 function startRemotePhysicalPreviewLease(){clearInterval(remotePhysicalPreviewLeaseTimer);remotePhysicalPreviewLeaseTimer=setInterval(()=>sendRemotePhysicalLayoutPreview({renew:true}),6500);}
-function clearRemotePhysicalLayoutPreview(){const previewId=remotePhysicalPreviewId;if(!previewId)return;stopRemotePhysicalPreviewTimers();clearRemotePhysicalParityOverlay();remotePhysicalPreviewId='';remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';remotePhysicalPreviewRevision=0;try{resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'clear-layout-preview',endpoint:bootstrapApi.ACTIVE_ENDPOINT,previewId}),cache:'no-store',keepalive:true},{timeoutMs:2500,retry:false}).catch(()=>{});}catch(e){}}
+function clearRemotePhysicalLayoutPreview(){clearRemotePhysicalParityOverlay();const previewId=remotePhysicalPreviewId;if(!previewId)return;stopRemotePhysicalPreviewTimers();remotePhysicalPreviewId='';remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';remotePhysicalPreviewRevision=0;try{resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'clear-layout-preview',endpoint:bootstrapApi.ACTIVE_ENDPOINT,previewId}),cache:'no-store',keepalive:true},{timeoutMs:2500,retry:false}).catch(()=>{});}catch(e){}}
 
 function targetViewportFromDevice(row){
   if(!row||!['local','viewer'].includes(String(row.mode||'')))return null;
@@ -1599,6 +1600,7 @@ async function verifyLiveArrangePhysicalTarget(session,liveTarget){
   setTimeout(()=>{if(session===remoteLayoutPreviewSession)maybeQueueRemotePhysicalLayoutPreview();},90);
 }
 function closeRemoteLayoutPreview({preservePhysical=false}={}){
+  clearRemotePhysicalParityOverlay();
   remoteLayoutPreviewSession++;
   if(remoteLayoutLiveEditing){
     if(remoteLayoutLiveEditorActive()){
