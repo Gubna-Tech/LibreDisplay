@@ -1110,6 +1110,7 @@ LibreDisplayRuntime.exposeModule("settings", {updateSettingsPageHeader,settingsC
 
 // LibreDisplay source section: /js/settings/actions.js
 {
+const bootstrapApi=LibreDisplayRuntime.getModule('bootstrap');
 const configApi=LibreDisplayRuntime.getModule('config');
 const settingsApi=()=>LibreDisplayRuntime.getModule("settings");
 const {resilientFetch}=LibreDisplayRuntime.getModule('shared');
