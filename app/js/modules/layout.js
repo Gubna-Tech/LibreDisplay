@@ -1058,6 +1058,170 @@ function remoteLayoutProxyMirrorElement(dst,src){
   dst.className=src.className;
   if(!src.querySelector('button,input,select,textarea'))dst.textContent=src.textContent;
 }
+// A live-scene reference is *read only*: never cancel a timer, mutate a DOM node,
+// or change layout/font/fit state in the already-working Owner live iframe.
+// The Arrange iframe is a separate JS realm and would otherwise draw unrelated
+// stock photos and independently shuffled integration quotes.  A visual mirror
+// must stay in the editor document, behind the editable dashboard elements.
+let remoteLiveSceneLastSync=0;
+let remoteLiveSceneImageUrl='';
+let remoteLiveSceneImageGeneration=0;
+let remoteLiveSceneLinked=false;
+function remoteLiveSceneSource(){
+  const liveFrame=document.getElementById('ld-native-live-frame');
+  if(!liveFrame||!remoteLayoutPreviewTarget)return null;
+  const width=Math.round(Number(remoteLayoutPreviewTarget.width)||0),height=Math.round(Number(remoteLayoutPreviewTarget.height)||0);
+  if(Math.abs(Number(liveFrame.width)-width)>2||Math.abs(Number(liveFrame.height)-height)>2)return null;
+  try{
+    const win=liveFrame.contentWindow,doc=liveFrame.contentDocument;
+    if(!win||!doc||doc.readyState!=='complete'||!doc.getElementById('app'))return null;
+    if(win.location.origin!==location.origin||new URLSearchParams(win.location.search).get('endpoint')!==bootstrapApi.ACTIVE_ENDPOINT)return null;
+    const ownerParity=win.__ldPhysicalParityStatus;
+    if(ownerParity?.deviceId&&remoteLayoutPreviewTarget.deviceId&&ownerParity.deviceId!==remoteLayoutPreviewTarget.deviceId)return null;
+    const sourceSaved=Number(win.LibreDisplayRuntime?.getModule?.('config')?.cfg?._savedAt)||0;
+    const editorSaved=Number(remoteLayoutFrame()?.contentWindow?.LibreDisplayRuntime?.getModule?.('config')?.cfg?._savedAt)||0;
+    if(!sourceSaved||!editorSaved||sourceSaved!==editorSaved)return null;
+    return {doc,win};
+  }catch(_e){return null;}
+}
+function remoteLiveSceneStatus(message,linked=false){
+  remoteLiveSceneLinked=linked;
+  const head=document.getElementById('remote-layout-preview-title');if(!head)return;
+  let status=document.getElementById('remote-layout-scene-status');
+  if(!status){status=document.createElement('em');status.id='remote-layout-scene-status';head.appendChild(status);}
+  status.textContent=message;status.dataset.state=linked?'good':'pending';
+}
+function remoteLiveSceneVisibleMedia(source){
+  const doc=source.doc,cfgApi=source.win.LibreDisplayRuntime?.getModule?.('config');
+  const active=doc.getElementById(String(cfgApi?.bgActiveLayerId||''));
+  const layers=[active,...doc.querySelectorAll('.bg-layer.show')].filter((layer,index,arr)=>layer&&arr.indexOf(layer)===index);
+  for(const layer of layers){
+    const video=layer.querySelector(':scope > video');
+    if(video&&!video.hidden&&video.readyState>=2&&video.currentSrc)return {type:'video',url:video.currentSrc,media:video};
+    const photo=layer.querySelector(':scope > img');
+    if(photo&&photo.complete&&photo.naturalWidth>0&&(photo.currentSrc||photo.src))return {type:'image',url:photo.currentSrc||photo.src,media:photo};
+  }
+  return null;
+}
+function remoteLiveScenePhoto(editorDoc,source){
+  const media=remoteLiveSceneVisibleMedia(source);if(!media||media.type!=='image')return false;
+  const app=editorDoc.getElementById('app');if(!app)return false;
+  let layer=editorDoc.getElementById('ld-arrange-live-scene-photo');
+  if(!layer){
+    layer=editorDoc.createElement('div');layer.id='ld-arrange-live-scene-photo';layer.className='bg-layer';
+    layer.style.zIndex='1';layer.style.pointerEvents='none';
+    const img=editorDoc.createElement('img');img.alt='';img.decoding='async';layer.appendChild(img);
+    app.parentNode.insertBefore(layer,app);
+  }
+  const photo=layer.querySelector('img');
+  const style=source.win.getComputedStyle(media.media);
+  photo.style.objectFit=style.objectFit;photo.style.objectPosition=style.objectPosition;
+  const url=media.url;
+  if(url!==remoteLiveSceneImageUrl||photo.src!==url){
+    remoteLiveSceneImageUrl=url;
+    const generation=++remoteLiveSceneImageGeneration;
+    // Keep the previous scene visible until the replacement has decoded.
+    const candidate=new editorDoc.defaultView.Image();candidate.decoding='async';
+    candidate.onload=()=>{
+      if(generation!==remoteLiveSceneImageGeneration||!layer.isConnected)return;
+      photo.src=url;layer.classList.add('show');
+    };
+    candidate.onerror=()=>{if(generation===remoteLiveSceneImageGeneration)remoteLiveSceneImageUrl='';};
+    candidate.src=url;
+    if(candidate.complete&&candidate.naturalWidth>0)candidate.onload();
+  }
+  return layer.classList.contains('show');
+}
+function remoteLiveSceneQuote(editorDoc,source){
+  const liveBlocks=source.doc.querySelectorAll('.custom-block[data-block-id][data-block-type="integration"]');
+  let mirrored=0;
+  const sourceCfg=source.win.LibreDisplayRuntime?.getModule?.('config')?.cfg;
+  const draft=remoteLayoutDraftState();
+  for(const srcBlock of liveBlocks){
+    const id=srcBlock.dataset.blockId;
+    const savedBlock=(sourceCfg?.customBlocks||[]).find(block=>block?.id===id);
+    const draftBlock=(draft?.customBlocks||[]).find(block=>block?.id===id);
+    if(!savedBlock||!draftBlock||savedBlock.config?.plugin!=='grateful-dead'||draftBlock.config?.plugin!=='grateful-dead')continue;
+    // Keep editing a changed integration independent. Only content from the
+    // *same saved provider configuration* is suitable to mirror.
+    const saved=JSON.stringify(savedBlock.config?.settings||{}),edited=JSON.stringify(draftBlock.config?.settings||{});
+    if(saved!==edited)continue;
+    const dstBlock=[...editorDoc.querySelectorAll('.custom-block[data-block-id][data-block-type="integration"]')].find(el=>el.dataset.blockId===id);
+    if(!dstBlock)continue;
+    const from=srcBlock.querySelector('.deadhead-quote'),to=dstBlock.querySelector('.deadhead-quote');
+    if(!from||!to)continue;
+    // Do not replace the element: Arrange may attach positioning, selection,
+    // and per-part style to its existing node. Change only its content.
+    if(to.innerHTML!==from.innerHTML)to.innerHTML=from.innerHTML;
+    mirrored++;
+  }
+  return mirrored;
+}
+const REMOTE_LIVE_FIT_TARGETS={calendar:'#top-strip',current:'.wx-main',clock:'#clock-block',details:'.wx-details',daily:'#wx-forecast',hourly:'#wx-hourly-block'};
+const remoteLiveSeededFits=new Map();
+function remoteLiveSceneStable(value){
+  if(Array.isArray(value))return value.map(remoteLiveSceneStable);
+  if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(key=>[key,remoteLiveSceneStable(value[key])]));
+  return value;
+}
+function clearRemoteLiveSceneFits(doc=remoteLayoutInnerDocument()){
+  for(const [key,fit] of remoteLiveSeededFits){
+    const element=doc?.querySelector(REMOTE_LIVE_FIT_TARGETS[key]);
+    if(element?.style.getPropertyValue('--ld-physical-fit-'+key)===fit)element.style.removeProperty('--ld-physical-fit-'+key);
+  }
+  remoteLiveSeededFits.clear();
+}
+function remoteLiveSceneFit(editorDoc,source){
+  const liveStatus=source.win.__ldPhysicalParityStatus;
+  const editorStatus=editorDoc.defaultView.__ldPhysicalParityStatus;
+  // Never override the Pi's acknowledged draft-specific fit; the live factor
+  // below is only a first-frame visual reference for an *unchanged* draft.
+  if(editorStatus?.previewId===remotePhysicalPreviewId&&Number(editorStatus?.previewRevision)===remotePhysicalPreviewRevision){
+    remoteLiveSeededFits.clear();return false;
+  }
+  const size=liveStatus?.piSize||[],target=remoteLayoutPreviewTarget;
+  const physical=!!liveStatus&&!liveStatus.previewId&&liveStatus.deviceId===target?.deviceId&&
+    Math.abs(Number(size[0])-Number(target.width))<=2&&Math.abs(Number(size[1])-Number(target.height))<=2&&
+    Number.isFinite(Number(liveStatus.at))&&Date.now()-Number(liveStatus.at)<46000;
+  const saved=source.win.LibreDisplayRuntime?.getModule?.('config')?.cfg;
+  const draft=remoteLayoutDraftState();
+  const fields=['layoutMode','layoutBlocks','layoutContentScale','layoutElementStyle','layoutPartStyle','currentWeatherLayout','currentWeatherPartLayout','customBlocks'];
+  const unchanged=!!saved&&!!draft&&fields.every(key=>JSON.stringify(remoteLiveSceneStable(saved[key]))===JSON.stringify(remoteLiveSceneStable(draft[key])));
+  if(!physical||!unchanged){clearRemoteLiveSceneFits(editorDoc);return false;}
+  let matched=0;
+  for(const [key,selector] of Object.entries(REMOTE_LIVE_FIT_TARGETS)){
+    const live=source.doc.querySelector(selector),editor=editorDoc.querySelector(selector);
+    if(!live||!editor)continue;
+    const value=live.style.getPropertyValue('--ld-physical-fit-'+key);
+    if(!value||!Number.isFinite(Number.parseFloat(value)))continue;
+    // Copy only a fit that was already applied by the working live child.
+    if(editor.style.getPropertyValue('--ld-physical-fit-'+key)!==value)editor.style.setProperty('--ld-physical-fit-'+key,value);
+    remoteLiveSeededFits.set(key,value);matched++;
+  }
+  return matched>0;
+}
+function syncRemoteLiveScene(force=false){
+  if(!remoteLayoutProxyActive)return false;
+  const now=Date.now();if(!force&&now-remoteLiveSceneLastSync<400)return remoteLiveSceneLinked;
+  remoteLiveSceneLastSync=now;
+  const source=remoteLiveSceneSource(),editorDoc=remoteLayoutInnerDocument();
+  if(!source||!editorDoc?.getElementById('app')){
+    clearRemoteLiveSceneFits(editorDoc);
+    editorDoc?.getElementById('ld-arrange-live-scene-photo')?.remove();
+    remoteLiveSceneImageUrl='';remoteLiveSceneImageGeneration++;
+    remoteLiveSceneStatus('Waiting for matching live scene',false);
+    return false;
+  }
+  const photo=remoteLiveScenePhoto(editorDoc,source),quotes=remoteLiveSceneQuote(editorDoc,source),fit=remoteLiveSceneFit(editorDoc,source);
+  remoteLiveSceneStatus(photo?`Live scene linked${quotes?' · integrations linked':''}${fit?' · provisional fit':''}`:'Waiting for live photo',photo);
+  return photo;
+}
+function clearRemoteLiveScene(){
+  clearRemoteLiveSceneFits();
+  remoteLiveSceneLastSync=0;remoteLiveSceneImageUrl='';remoteLiveSceneImageGeneration++;remoteLiveSceneLinked=false;
+  try{remoteLayoutInnerDocument()?.getElementById('ld-arrange-live-scene-photo')?.remove();}catch(_e){}
+  document.getElementById('remote-layout-scene-status')?.remove();
+}
 function syncRemoteLayoutProxyUi(){
   if(!remoteLayoutProxyActive)return;
   const doc=remoteLayoutInnerDocument();if(!doc)return;
@@ -1074,6 +1238,7 @@ function syncRemoteLayoutProxyUi(){
   const innerConfig=doc.getElementById('block-config-modal'),outerConfig=document.getElementById('block-config-modal');
   if(innerConfig&&outerConfig){const show=innerConfig.classList.contains('show');outerConfig.classList.toggle('show',show);outerConfig.setAttribute('aria-hidden',show?'false':'true');if(show){for(const id of ['block-config-title','block-config-sub']){const a=doc.getElementById(id),b=document.getElementById(id);if(a&&b)b.textContent=a.textContent;}const inf=doc.getElementById('block-config-fields'),outf=document.getElementById('block-config-fields');if(inf&&outf&&outf.innerHTML!==inf.innerHTML)outf.innerHTML=inf.innerHTML;for(const dst of outf?.querySelectorAll?.('[id]')||[]){const src=doc.getElementById(dst.id);if(src)remoteLayoutProxyMirrorElement(dst,src);}}}
   maybeQueueRemotePhysicalLayoutPreview();
+  syncRemoteLiveScene();
 }
 function scheduleRemoteLayoutProxySync(delay=0){if(!remoteLayoutProxyActive)return;if(delay){setTimeout(()=>remoteLayoutProxyActive&&syncRemoteLayoutProxyUi(),delay);return;}requestAnimationFrame(()=>remoteLayoutProxyActive&&syncRemoteLayoutProxyUi());}
 function activateRemoteLayoutProxy(){
@@ -1083,6 +1248,7 @@ function activateRemoteLayoutProxy(){
   clearInterval(remoteLayoutProxySyncTimer);remoteLayoutProxySyncTimer=setInterval(syncRemoteLayoutProxyUi,140);
 }
 function deactivateRemoteLayoutProxy(){
+  clearRemoteLiveScene();
   remoteLayoutProxyActive=false;clearInterval(remoteLayoutProxySyncTimer);remoteLayoutProxySyncTimer=null;document.body.classList.remove('remote-layout-proxy');
   const toolbar=document.getElementById('layout-toolbar'),props=document.getElementById('layout-properties');toolbar?.classList.remove('show');props?.classList.remove('show');toolbar?.setAttribute('aria-hidden','true');props?.setAttribute('aria-hidden','true');
   document.getElementById('block-catalog')?.classList.remove('show');document.getElementById('block-config-modal')?.classList.remove('show');layoutApi().layoutInspectorDragState=null;
@@ -1110,56 +1276,6 @@ let remotePhysicalPreviewSignature='';
 let remotePhysicalPreviewSeenSignature='';
 let remotePhysicalPreviewSendTimer=null;
 let remotePhysicalPreviewLeaseTimer=null;
-let remoteArrangeLiveMatchTimer=null;
-let remoteArrangeMatchedBackground='';
-let remoteArrangeLiveSeedKey='';
-function syncRemoteArrangeWithLive(){
-  if(!remoteLayoutProxyActive||!remoteLayoutPreviewTarget?.physical||!remotePhysicalPreviewId)return;
-  const frame=remoteLayoutFrame(),live=document.getElementById('ld-native-live-frame');
-  if(!frame?.contentWindow||!live?.contentWindow)return;
-  // Borrow an already verified visual fit only while the draft is identical
-  // to the saved configuration. Pi revision proof remains authoritative.
-  const status=frame.contentWindow.__ldPhysicalParityStatus;
-  const seedKey=remotePhysicalPreviewId+':'+remotePhysicalPreviewRevision;
-  // Seed once per unchanged revision. Repeating the message on every poll
-  // would cancel an in-flight authoritative Pi message in the child iframe.
-  if(remoteArrangeLiveSeedKey!==seedKey&&(!status||status.previewSeed||
-     status.previewId!==remotePhysicalPreviewId||Number(status.previewRevision)!==remotePhysicalPreviewRevision)){
-    const seeded=LibreDisplayRuntime.getModule('remote')?.seedArrangePhysicalFitFromLive?.(remotePhysicalPreviewId,remotePhysicalPreviewRevision,remoteLayoutPreviewTarget.deviceId);
-    if(seeded){remoteArrangeLiveSeedKey=seedKey;setRemotePhysicalParityStatus('Matching live fit · Pi draft verification pending…','pending');}
-  }
-  // The live Owner dashboard and editor are separate iframe sessions. Keep
-  // their visible still photo aligned if they loaded the same saved source;
-  // otherwise a shuffled album makes two equivalent layouts look different.
-  try{
-    const liveBg=live.contentWindow.LibreDisplayRuntime?.getModule('backgrounds');
-    const editorBg=frame.contentWindow.LibreDisplayRuntime?.getModule('backgrounds');
-    const liveCfg=live.contentWindow.LibreDisplayRuntime?.getModule('config')?.cfg;
-    const editorConfig=frame.contentWindow.LibreDisplayRuntime?.getModule('config');
-    if(!liveBg||!editorBg||!liveCfg||!editorConfig?.cfg||
-       Number(liveCfg._savedAt)!==Number(editorConfig.cfg._savedAt)||
-       liveBg.backgroundSourceFingerprint(liveCfg)!==editorBg.backgroundSourceFingerprint(editorConfig.cfg))return;
-    // A separate iframe's independent slideshow timer must not replace the
-    // photo between visual-reference checks. Leave the live frame unchanged.
-    if(editorBg.bgTimer!=null){clearTimeout(editorBg.bgTimer);clearInterval(editorBg.bgTimer);editorBg.bgTimer=null;}
-    const active=liveBg.activeBackgroundLayer?.(),url=active?.classList?.contains('show')?active.dataset.remoteUrl:'';
-    if(!url||(url===remoteArrangeMatchedBackground&&editorConfig.bgLastUrl===url))return;
-    const index=(editorConfig.bgImages||[]).indexOf(url);
-    if(index<0)return; // Never inject a media URL outside the editor's source.
-    if(editorConfig.bgLastUrl===url){remoteArrangeMatchedBackground=url;return;}
-    const result=editorBg.showBg(index);
-    Promise.resolve(result).then(ok=>{if(ok)remoteArrangeMatchedBackground=url;}).catch(()=>{});
-  }catch(_e){}
-}
-function startRemoteArrangeLiveMatch(){
-  clearInterval(remoteArrangeLiveMatchTimer);remoteArrangeMatchedBackground='';remoteArrangeLiveSeedKey='';
-  remoteArrangeLiveMatchTimer=setInterval(syncRemoteArrangeWithLive,1700);
-  setTimeout(syncRemoteArrangeWithLive,180);
-}
-function stopRemoteArrangeLiveMatch(){
-  clearInterval(remoteArrangeLiveMatchTimer);remoteArrangeLiveMatchTimer=null;remoteArrangeMatchedBackground='';remoteArrangeLiveSeedKey='';
-}
-
 function newRemotePhysicalPreviewId(){const rand=globalThis.crypto?.getRandomValues?Array.from(globalThis.crypto.getRandomValues(new Uint32Array(2))).map(n=>n.toString(36)).join(''):Math.random().toString(36).slice(2);return `arrange-${Date.now().toString(36)}-${rand}`.slice(0,90);}
 function setRemotePhysicalParityStatus(text,state='pending'){const el=document.getElementById('remote-layout-parity-status');if(el){el.textContent=String(text||'');el.dataset.state=state;}}
 function remoteLayoutDraftState(){try{return remoteLayoutFrame()?.contentWindow?.LibreDisplayRuntime?.getModule?.('layout')?.layoutEditorPreviewState?.()||null;}catch(e){return null;}}
@@ -1194,7 +1310,7 @@ async function pollRemotePhysicalParity(previewId=remotePhysicalPreviewId,revisi
             for(let tick=0;tick<20;tick++){
               if(previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision)return;
               const applied=frame?.contentWindow?.__ldPhysicalParityStatus;
-              if(applied?.previewSeed!==true&&applied?.previewId===previewId&&Number(applied?.previewRevision)===revision&&
+              if(applied?.previewId===previewId&&Number(applied?.previewRevision)===revision&&
                  Number(applied?.capturedAt)===Number(fit?.capturedAt)){
                 await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
                 let local={};try{local=frame?.contentWindow?.LibreDisplayRuntime?.getModule?.('remote')?.captureLayoutRenderSnapshot?.(previewId,revision)||{};}catch(e){}
@@ -1345,12 +1461,12 @@ async function openRemoteLayoutPreview(){
   }
   remotePhysicalPreviewId=newRemotePhysicalPreviewId();remotePhysicalPreviewRevision=0;remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';setRemotePhysicalParityStatus('Pi verification pending…','pending');startRemotePhysicalPreviewLease();
   primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
-  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);startRemoteArrangeLiveMatch();setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
+  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
   frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
   fitRemoteLayoutPreview();requestAnimationFrame(fitRemoteLayoutPreview);
 }
 function closeRemoteLayoutPreview({preservePhysical=false}={}){
-  remoteLayoutPreviewSession++;stopRemoteArrangeLiveMatch();deactivateRemoteLayoutProxy();
+  remoteLayoutPreviewSession++;deactivateRemoteLayoutProxy();
   if(preservePhysical){stopRemotePhysicalPreviewTimers();clearRemotePhysicalParityOverlay();remotePhysicalPreviewId='';remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';remotePhysicalPreviewRevision=0;}else clearRemotePhysicalLayoutPreview();
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');
   if(shell){shell.classList.remove('show');shell.setAttribute('aria-hidden','true');}
@@ -1361,9 +1477,9 @@ function closeRemoteLayoutPreview({preservePhysical=false}={}){
 function reloadRemoteLayoutPreview(){
   const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame');if(!frame||!shell?.classList.contains('show'))return;
   if(!remoteLayoutPreviewTarget){openRemoteLayoutPreview();return;}
-  const session=++remoteLayoutPreviewSession;stopRemoteArrangeLiveMatch();deactivateRemoteLayoutProxy();
+  const session=++remoteLayoutPreviewSession;deactivateRemoteLayoutProxy();
   primeRemoteLayoutFrameViewport(frame,remoteLayoutPreviewTarget);
-  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);startRemoteArrangeLiveMatch();remotePhysicalPreviewSeenSignature='';setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
+  frame.onload=()=>{if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;activateRemoteLayoutProxy();fitRemoteLayoutPreview();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);remotePhysicalPreviewSeenSignature='';setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);};
   frame.src=remoteLayoutPreviewUrl(remoteLayoutPreviewTarget);
 }
 async function handleEmbeddedLayoutEditorAction(action){
