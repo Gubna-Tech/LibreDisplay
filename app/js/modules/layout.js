@@ -1121,16 +1121,51 @@ function renderRemotePhysicalParityOverlay(snapshot,comparison){
 function compareLayoutRenderSnapshots(pi,preview){
   const a=new Map((pi?.entities||[]).map(x=>[String(x.key||''),x])),b=new Map((preview?.entities||[]).map(x=>[String(x.key||''),x]));let maxDelta=0;const mismatchKeys=[];for(const [key,row] of a){const other=b.get(key);if(!other)continue;let delta=0;for(const scope of ['footprint','visual'])for(const field of ['x','y','w','h'])delta=Math.max(delta,Math.abs((Number(row?.[scope]?.[field])||0)-(Number(other?.[scope]?.[field])||0)));maxDelta=Math.max(maxDelta,delta);if(delta>2.5)mismatchKeys.push(key);}const sig=s=>new Set((s?.overlaps||[]).map(x=>[String(x.a||''),String(x.b||'')].sort().join('|'))),pa=sig(pi),pb=sig(preview);let collisionDiff=0;for(const key of pa)if(!pb.has(key))collisionDiff++;for(const key of pb)if(!pa.has(key))collisionDiff++;return {maxDelta,mismatchKeys,collisionDiff,piOverlaps:pa.size,piOffscreen:(pi?.offscreen||[]).length};
 }
+let remotePhysicalParityPollKey='';
 async function pollRemotePhysicalParity(previewId=remotePhysicalPreviewId,revision=remotePhysicalPreviewRevision){
-  if(!previewId||!remoteLayoutPreviewTarget)return;for(let attempt=0;attempt<10;attempt++){if(previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision)return;try{const rows=await readDisplayDevices(),row=bestLayoutTargetDevice(rows),snap=row?.layoutRenderSnapshot;if(row&&String(row.deviceId||'')===String(remoteLayoutPreviewTarget.deviceId||'')&&String(row.layoutPreviewId||'')===previewId&&Number(snap?.revision||0)===revision){// Only a settled Pi fit captured for this exact draft can drive Arrange content sizes.
+  if(!previewId||!remoteLayoutPreviewTarget)return;
+  const key=previewId+':'+revision;
+  if(remotePhysicalParityPollKey===key)return;
+  remotePhysicalParityPollKey=key;
+  const until=Date.now()+30000;
+  try{
+    while(Date.now()<until){
+      if(previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision)return;
+      try{
+        const rows=await readDisplayDevices(),row=bestLayoutTargetDevice(rows),snap=row?.layoutRenderSnapshot;
+        if(row&&String(row.deviceId||'')===String(remoteLayoutPreviewTarget.deviceId||'')&&
+           String(row.layoutPreviewId||'')===previewId&&Number(snap?.revision||0)===revision){
           const synced=LibreDisplayRuntime.getModule('remote')?.postPhysicalParityToArrangeRevision?.(row,previewId,revision)===true;
-          if(!synced){await new Promise(resolve=>setTimeout(resolve,260));continue;}
-          // Allow the remote iframe to apply the Pi font/fit before comparing footprints.
-          await new Promise(resolve=>setTimeout(resolve,260));
-          if(previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision)return;
-          let local={};try{local=remoteLayoutFrame()?.contentWindow?.LibreDisplayRuntime?.getModule?.('remote')?.captureLayoutRenderSnapshot?.(previewId,revision)||{};}catch(e){}
-          const cmp=compareLayoutRenderSnapshots(snap,local);
-          renderRemotePhysicalParityOverlay(snap,cmp);const delta=Math.round(cmp.maxDelta*10)/10;if(cmp.piOverlaps||cmp.piOffscreen)setRemotePhysicalParityStatus(`Pi reports ${cmp.piOverlaps} overlap${cmp.piOverlaps===1?'':'s'}${cmp.piOffscreen?` · ${cmp.piOffscreen} off-screen`:''}`,'warn');else if(cmp.maxDelta>2.5||cmp.collisionDiff)setRemotePhysicalParityStatus(`Pi differs · max render shift ${delta}px`,'warn');else setRemotePhysicalParityStatus(`Pi verified · rendered geometry matches${delta?` within ${delta}px`:''}`,'good');return;}}catch(e){}await new Promise(resolve=>setTimeout(resolve,attempt<4?180:320));}if(previewId===remotePhysicalPreviewId)setRemotePhysicalParityStatus('Pi verification pending — using the measured wall viewport','pending');
+          if(synced){
+            // Wait until the SAME-ORIGIN preview actually applied this draft's
+            // measurements. postMessage sent does not mean style applied; the
+            // iframe may still be loading its saved config and editor DOM.
+            const fit=row.layoutFitMetrics,frame=remoteLayoutFrame();
+            for(let tick=0;tick<20;tick++){
+              if(previewId!==remotePhysicalPreviewId||revision!==remotePhysicalPreviewRevision)return;
+              const applied=frame?.contentWindow?.__ldPhysicalParityStatus;
+              if(applied?.previewId===previewId&&Number(applied?.previewRevision)===revision&&
+                 Number(applied?.capturedAt)===Number(fit?.capturedAt)){
+                await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+                let local={};try{local=frame?.contentWindow?.LibreDisplayRuntime?.getModule?.('remote')?.captureLayoutRenderSnapshot?.(previewId,revision)||{};}catch(e){}
+                const cmp=compareLayoutRenderSnapshots(snap,local);
+                renderRemotePhysicalParityOverlay(snap,cmp);
+                const delta=Math.round(cmp.maxDelta*10)/10;
+                if(cmp.piOverlaps||cmp.piOffscreen)setRemotePhysicalParityStatus(`Pi reports ${cmp.piOverlaps} overlap${cmp.piOverlaps===1?'':'s'}${cmp.piOffscreen?` · ${cmp.piOffscreen} off-screen`:''}`,'warn');
+                else if(cmp.maxDelta>2.5||cmp.collisionDiff)setRemotePhysicalParityStatus(`Pi differs · max render shift ${delta}px`,'warn');
+                else setRemotePhysicalParityStatus(`Pi verified · rendered geometry matches${delta?` within ${delta}px`:''}`,'good');
+                return;
+              }
+              await new Promise(resolve=>setTimeout(resolve,150));
+            }
+          }
+        }
+      }catch(e){/* Do not assert parity without both device and iframe acknowledgement. */}
+      await new Promise(resolve=>setTimeout(resolve,350));
+    }
+    if(previewId===remotePhysicalPreviewId&&revision===remotePhysicalPreviewRevision)
+      setRemotePhysicalParityStatus('Pi fit verification unavailable — editing remains unverified','warn');
+  }finally{if(remotePhysicalParityPollKey===key)remotePhysicalParityPollKey='';}
 }
 async function sendRemotePhysicalLayoutPreview({renew=false}={}){
   if(!remoteLayoutPreviewTarget?.physical||!remotePhysicalPreviewId)return false;const state=remoteLayoutDraftState();if(!state)return false;const signature=JSON.stringify(state);if(!renew&&signature===remotePhysicalPreviewSignature)return false;if(signature!==remotePhysicalPreviewSignature){remotePhysicalPreviewSignature=signature;remotePhysicalPreviewRevision++;LibreDisplayRuntime.getModule('remote')?.clearPhysicalParityArrangeFrame?.();}setRemotePhysicalParityStatus('Applying draft on Pi…','pending');try{const res=await resilientFetch(serverPath('/api/devices'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'preview-layout',endpoint:bootstrapApi.ACTIVE_ENDPOINT,previewId:remotePhysicalPreviewId,previewRevision:remotePhysicalPreviewRevision,layoutPreview:state}),cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);pollRemotePhysicalParity(remotePhysicalPreviewId,remotePhysicalPreviewRevision);return true;}catch(e){setRemotePhysicalParityStatus('Pi live verification unavailable — using measured wall viewport','warn');return false;}

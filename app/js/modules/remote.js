@@ -344,6 +344,30 @@ function capturePhysicalFitMetrics(){
   }:{};
   return {width:Math.round(document.documentElement.clientWidth),height:Math.round(document.documentElement.clientHeight),values,capturedAt:Date.now(),...preview};
 }
+// Send a new kiosk fit report as soon as the six lightweight CSS fit metrics
+// settle. The former 30-second heartbeat alone could keep the remote on an
+// incorrect first frame for more than a minute (30s Pi + 10s Owner + hydration).
+// This monitor makes *no layout edits*; it only schedules the existing heartbeat
+// when measurements change and become stable. Nothing is sent on idle ticks.
+let physicalFitHeartbeatTimer=null,physicalFitObservedSignature='',physicalFitObservedAt=0,physicalFitSentSignature='';
+function pollPhysicalFitHeartbeat(){
+  if(!bootstrapApi.LOCAL_CLIENT_MODE)return;
+  const layout=LibreDisplayRuntime.getModule('layout'),state=layout?.builtInLayoutAutoFitSnapshot?.();
+  if(state&&(state.suspended||state.processing||state.deferredPending||state.idlePending||state.pending?.length))return;
+  const fit=capturePhysicalFitMetrics();
+  const signature=JSON.stringify([fit.width,fit.height,fit.values,String(cfg?.fontFamily||''),Number(cfg?._savedAt)||0]);
+  const now=Date.now();
+  if(signature!==physicalFitObservedSignature){physicalFitObservedSignature=signature;physicalFitObservedAt=now;return;}
+  if(signature!==physicalFitSentSignature&&now-physicalFitObservedAt>=650){
+    physicalFitSentSignature=signature;
+    scheduleDisplayHeartbeat(80);
+  }
+}
+function startPhysicalFitHeartbeatMonitor(){
+  if(!bootstrapApi.LOCAL_CLIENT_MODE||physicalFitHeartbeatTimer)return;
+  physicalFitHeartbeatTimer=setInterval(pollPhysicalFitHeartbeat,800);
+  setTimeout(pollPhysicalFitHeartbeat,100);
+}
 function displayDeviceId(){let id='';try{id=localStorage.getItem('libredisplay_device_id')||'';}catch(e){}if(!/^[A-Za-z0-9_-]{12,80}$/.test(id)){id='d'+Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem('libredisplay_device_id',id);}catch(e){}}return id;}
 function displayViewportMetrics(force=false){
   if(!force&&!heartbeatMetricsDirty&&heartbeatMetricsCache)return heartbeatMetricsCache;
@@ -361,19 +385,29 @@ function clearPhysicalLayoutPreviewFitTimers(){for(const timer of physicalLayout
 function schedulePhysicalLayoutPreviewFitTelemetry(previewId,revision){
   clearPhysicalLayoutPreviewFitTimers();
   const requestedAt=Date.now();
+  let stableSignature='',stableSamples=0;
   const check=attempt=>{
     if(physicalLayoutPreviewId!==previewId||physicalLayoutPreviewRevision!==revision)return;
     const state=LibreDisplayRuntime.getModule('layout')?.builtInLayoutAutoFitSnapshot?.();
-    const settled=state&&!state.suspended&&!state.processing&&!state.deferredPending&&!state.idlePending&&
-      Array.isArray(state.pending)&&state.pending.length===0&&Number(state.lastAt)>=requestedAt;
+    const idle=state&&!state.suspended&&!state.processing&&!state.deferredPending&&!state.idlePending&&
+      Array.isArray(state.pending)&&state.pending.length===0;
+    // When every block has fitContent disabled, the original auto-fit worker
+    // takes an early-return path without updating lastAt. It can be idle and
+    // correctly rendered forever, yet the old gate never marked it ready.
+    const signature=idle?JSON.stringify(capturePhysicalFitMetrics().values):'';
+    if(idle&&signature===stableSignature)stableSamples++;else{stableSignature=signature;stableSamples=idle?1:0;}
+    const settled=idle&&(Number(state.lastAt)>=requestedAt||
+      (Date.now()-requestedAt>=800&&stableSamples>=3));
     if(settled){
+      clearPhysicalLayoutPreviewFitTimers();
       physicalLayoutPreviewFitReadyRevision=revision;
       scheduleDisplayHeartbeat(0);
       return;
     }
     // Do not mark an unfinished Pi layout as authoritative. On a heavily
     // loaded kiosk the editor stays pending rather than accepting stale fit.
-    if(attempt<25)physicalLayoutPreviewFitTimers.push(setTimeout(()=>check(attempt+1),attempt<5?160:300));
+    if(attempt<74)physicalLayoutPreviewFitTimers.push(setTimeout(()=>check(attempt+1),attempt<5?160:300));
+    else clearPhysicalLayoutPreviewFitTimers();
   };
   physicalLayoutPreviewFitTimers.push(setTimeout(()=>check(0),160));
 }
@@ -384,7 +418,7 @@ function layoutRenderVisualRect(root){if(!layoutRenderElementVisible(root))retur
 function captureLayoutRenderSnapshot(previewId=physicalLayoutPreviewId,revision=physicalLayoutPreviewRevision){const layout=LibreDisplayRuntime.getModule('layout'),defs=layout?.LAYOUT_BLOCK_DEFS||{},entities=[];for(const [key,def] of Object.entries(defs)){const el=document.querySelector(def.selector);if(!layoutRenderElementVisible(el))continue;entities.push({key,label:String(def.label||key).slice(0,80),footprint:roundedLayoutRenderRect(el.getBoundingClientRect()),visual:layoutRenderVisualRect(el)});}for(const el of document.querySelectorAll('.custom-block[data-block-id]')){if(!layoutRenderElementVisible(el))continue;const id=String(el.dataset.blockId||'').slice(0,120);if(!id)continue;const title=el.querySelector('.custom-block-title')?.textContent?.trim();entities.push({key:'custom:'+id,label:String(title||el.getAttribute('aria-label')||'Custom block').slice(0,80),footprint:roundedLayoutRenderRect(el.getBoundingClientRect()),visual:layoutRenderVisualRect(el)});}const overlaps=[];for(let i=0;i<entities.length;i++)for(let j=i+1;j<entities.length;j++){const a=entities[i].visual||entities[i].footprint,b=entities[j].visual||entities[j].footprint;if(!a||!b)continue;const w=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x),h=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y);if(w>2&&h>2&&w*h>=16)overlaps.push({a:entities[i].key,b:entities[j].key,w:Number(w.toFixed(2)),h:Number(h.toFixed(2)),area:Number((w*h).toFixed(1))});}const vp=displayViewportMetrics(),offscreen=[];for(const row of entities){const x=row.visual||row.footprint;if(x&&(x.x<-2||x.y<-2||x.x+x.w>vp.layoutWidth+2||x.y+x.h>vp.layoutHeight+2))offscreen.push(row.key);}return {previewId:String(previewId||'').slice(0,96),revision:Math.max(0,Math.round(Number(revision)||0)),width:vp.layoutWidth,height:vp.layoutHeight,entities:entities.slice(0,160),overlaps:overlaps.slice(0,320),offscreen:offscreen.slice(0,160),capturedAt:Date.now()};}
 function armPhysicalLayoutPreviewLease(){clearTimeout(physicalLayoutPreviewLeaseTimer);physicalLayoutPreviewLeaseTimer=setTimeout(()=>{physicalLayoutPreviewLeaseTimer=null;clearPhysicalLayoutPreviewCommand({previewId:physicalLayoutPreviewId,expired:true});},PHYSICAL_LAYOUT_PREVIEW_LEASE_MS);}
 async function loadAuthoritativePhysicalConfig(){const res=await resilientFetch(serverPath('/api/config'),{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json(),remote=data?.config;if(!remote||typeof remote!=='object')throw new Error('Saved display configuration unavailable');const savedAt=Number(remote._savedAt||data?.savedAt||0),migrated=configApi.migrateConfigSnapshot(remote);cfg={...configApi.CFG_DEFAULTS,...migrated,_savedAt:savedAt};ensureCfgDefaults();try{localStorage.setItem(bootstrapApi.CFG_KEY,JSON.stringify(cfg));}catch(e){}return savedAt;}
-function applyPhysicalLayoutPreviewCommand(command={}){if(!bootstrapApi.LOCAL_CLIENT_MODE)return false;const previewId=String(command.previewId||'').replace(/[^A-Za-z0-9_-]+/g,'-').slice(0,96),revision=Math.max(0,Math.round(Number(command.previewRevision)||0)),preview=command.layoutPreview;if(!previewId||!preview||typeof preview!=='object')return false;if(physicalLayoutPreviewId===previewId&&physicalLayoutPreviewRevision===revision){armPhysicalLayoutPreviewLease();scheduleDisplayHeartbeat(40);return true;}clearPhysicalLayoutPreviewFitTimers();physicalLayoutPreviewFitReadyRevision=-1;const keys=['layoutMode','layoutBlocks','layoutContentScale','layoutElementStyle','layoutPartStyle','currentWeatherLayout','currentWeatherPartLayout','customBlocks','layoutGridPx','layoutSnap'];for(const key of keys)if(Object.prototype.hasOwnProperty.call(preview,key))cfg[key]=JSON.parse(JSON.stringify(preview[key]));ensureCfgDefaults();physicalLayoutPreviewId=previewId;physicalLayoutPreviewRevision=revision;armPhysicalLayoutPreviewLease();try{LibreDisplayRuntime.getModule('blocks').renderCustomBlocks(cfg.customBlocks||[]);}catch(e){}try{const effective=LibreDisplayRuntime.getModule('performance').effectiveVisualConfig(cfg);LibreDisplayRuntime.getModule('appearance').applyUiCustomization(effective);}catch(e){LibreDisplayRuntime.getModule('appearance').applyUiCustomization(cfg);}setTimeout(()=>{try{LibreDisplayRuntime.getModule('layout').applyBuiltInPartFlowOffsets?.(cfg);LibreDisplayRuntime.getModule('layout').scheduleBuiltInLayoutAutoFitDeferred?.();}catch(e){}scheduleDisplayHeartbeat(0);schedulePhysicalLayoutPreviewFitTelemetry(previewId,revision);},80);return true;}
+function applyPhysicalLayoutPreviewCommand(command={}){if(!bootstrapApi.LOCAL_CLIENT_MODE)return false;const previewId=String(command.previewId||'').replace(/[^A-Za-z0-9_-]+/g,'-').slice(0,96),revision=Math.max(0,Math.round(Number(command.previewRevision)||0)),preview=command.layoutPreview;if(!previewId||!preview||typeof preview!=='object')return false;if(physicalLayoutPreviewId===previewId&&physicalLayoutPreviewRevision===revision){armPhysicalLayoutPreviewLease();if(physicalLayoutPreviewFitReadyRevision!==revision&&!physicalLayoutPreviewFitTimers.length)schedulePhysicalLayoutPreviewFitTelemetry(previewId,revision);scheduleDisplayHeartbeat(40);return true;}clearPhysicalLayoutPreviewFitTimers();physicalLayoutPreviewFitReadyRevision=-1;const keys=['layoutMode','layoutBlocks','layoutContentScale','layoutElementStyle','layoutPartStyle','currentWeatherLayout','currentWeatherPartLayout','customBlocks','layoutGridPx','layoutSnap'];for(const key of keys)if(Object.prototype.hasOwnProperty.call(preview,key))cfg[key]=JSON.parse(JSON.stringify(preview[key]));ensureCfgDefaults();physicalLayoutPreviewId=previewId;physicalLayoutPreviewRevision=revision;armPhysicalLayoutPreviewLease();try{LibreDisplayRuntime.getModule('blocks').renderCustomBlocks(cfg.customBlocks||[]);}catch(e){}try{const effective=LibreDisplayRuntime.getModule('performance').effectiveVisualConfig(cfg);LibreDisplayRuntime.getModule('appearance').applyUiCustomization(effective);}catch(e){LibreDisplayRuntime.getModule('appearance').applyUiCustomization(cfg);}setTimeout(()=>{try{LibreDisplayRuntime.getModule('layout').applyBuiltInPartFlowOffsets?.(cfg);LibreDisplayRuntime.getModule('layout').scheduleBuiltInLayoutAutoFitDeferred?.();}catch(e){}scheduleDisplayHeartbeat(0);schedulePhysicalLayoutPreviewFitTelemetry(previewId,revision);},80);return true;}
 async function clearPhysicalLayoutPreviewCommand(command={}){if(!bootstrapApi.LOCAL_CLIENT_MODE)return false;const requested=String(command.previewId||'');if(requested&&physicalLayoutPreviewId&&requested!==physicalLayoutPreviewId)return false;clearTimeout(physicalLayoutPreviewLeaseTimer);physicalLayoutPreviewLeaseTimer=null;clearPhysicalLayoutPreviewFitTimers();physicalLayoutPreviewFitReadyRevision=-1;physicalLayoutPreviewId='';physicalLayoutPreviewRevision=0;try{await loadAuthoritativePhysicalConfig();LibreDisplayRuntime.getModule('blocks').renderCustomBlocks(cfg.customBlocks||[]);LibreDisplayRuntime.getModule('settings').applySettings();setTimeout(()=>scheduleDisplayHeartbeat(0),80);return true;}catch(e){setTimeout(()=>location.reload(),0);return false;}}
 
 let physicalConfigApplyPromise=null,physicalConfigApplyTarget=0;
@@ -466,7 +500,7 @@ function startLiveDisplayConnection(){
     liveEventSource.addEventListener('config',()=>LibreDisplayRuntime.getModule('performance').runExclusiveTask('remote-config-poll',pollServerConfig));liveEventSource.addEventListener('household',async()=>{await loadHousehold(false);refreshFamilyBlocks();});liveEventSource.addEventListener('refresh',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE){LibreDisplayRuntime.getModule('settings').refreshDataNow();scheduleDisplayHeartbeat(40);}});liveEventSource.addEventListener('heartbeat',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)scheduleDisplayHeartbeat(0);});liveEventSource.addEventListener('apply-config',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'apply-config',...command});}});liveEventSource.addEventListener('preview-layout',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'preview-layout',...command});}});liveEventSource.addEventListener('clear-layout-preview',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'clear-layout-preview',...command});}});liveEventSource.addEventListener('performance-benchmark',event=>{if(bootstrapApi.LOCAL_CLIENT_MODE){const command=parseDisplayBenchmarkEvent(event);dispatchPendingPhysicalDisplayCommand({action:'performance-benchmark',...command});}});liveEventSource.addEventListener('reload',()=>{if(bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LOCAL_CLIENT_MODE)location.reload();});liveEventSource.addEventListener('reauth',()=>location.reload());
   }catch(e){noteServerTransportError();}
   const performance=LibreDisplayRuntime.getModule('performance');
-  bindDisplayViewportHeartbeat();performance.runExclusiveTask('display-heartbeat',()=>sendDisplayHeartbeat(false,{full:true}));
+  bindDisplayViewportHeartbeat();startPhysicalFitHeartbeatMonitor();performance.runExclusiveTask('display-heartbeat',()=>sendDisplayHeartbeat(false,{full:true}));
   performance.stopManagedInterval('display-heartbeat');
   heartbeatTimer=performance.startManagedInterval('display-heartbeat',sendDisplayHeartbeat,30000,{skipWhenHidden:false,resumeOnVisible:false,initialDelayMs:30000,idle:true,idleTimeoutMs:bootstrapApi.LOCAL_CLIENT_MODE?6000:2200});
   updateOfflinePill();
@@ -577,6 +611,7 @@ async function refreshNativeOwnerLiveViewport(){
     if(!frame){
       frame=document.createElement('iframe');frame.id='ld-native-live-frame';frame.title='Live LibreDisplay dashboard at physical Pi viewport';
       frame.setAttribute('scrolling','no');frame.setAttribute('aria-label','Live LibreDisplay at native Pi display dimensions');
+      frame.addEventListener('load',()=>{void refreshNativeOwnerLiveViewport();});
       document.body.appendChild(frame);
     }
     frame.width=String(w);frame.height=String(h);frame.style.width=w+'px';frame.style.height=h+'px';
@@ -594,7 +629,9 @@ async function refreshNativeOwnerLiveViewport(){
 function startNativeOwnerLiveViewport(){
   if(bootstrapApi.LOCAL_CLIENT_MODE||bootstrapApi.READ_ONLY_DISPLAY_MODE||bootstrapApi.LAYOUT_PREVIEW_MODE||bootstrapApi.PAGE_PARAMS.get('nativeLive')==='1'||bootstrapApi.SESSION_ROLE!=='owner')return;
   void refreshNativeOwnerLiveViewport();
-  if(!ownerLiveViewportTimer)ownerLiveViewportTimer=setInterval(()=>{if(!document.hidden)void refreshNativeOwnerLiveViewport();},10000);
+  // Receive the Pi's newly settled measurements within a few seconds, not the
+  // old 10s Owner polling window on top of a 30s physical heartbeat.
+  if(!ownerLiveViewportTimer)ownerLiveViewportTimer=setInterval(()=>{if(!document.hidden)void refreshNativeOwnerLiveViewport();},2500);
 }
 
 // The nested live dashboard and Arrange iframe run in another browser engine.
@@ -630,7 +667,7 @@ function clearPhysicalParityArrangeFrame(){
   physicalParityFrameState.delete(frame);
   frame.contentWindow.postMessage({type:'libredisplay-physical-fit-clear-v1',endpoint:bootstrapApi.ACTIVE_ENDPOINT,sentAt:Date.now()},location.origin);
 }
-let physicalParityLastAt=0;
+let physicalParityLastAt=0,physicalParityPending=null,physicalParityReplayTimer=null,physicalParityReplayGeneration=0;
 function applyPhysicalFontMatch(payload){
   const app=document.getElementById('app'),appearance=LibreDisplayRuntime.getModule('appearance');
   if(!app||!appearance?.measureDashboardFontProbe)return;
@@ -657,8 +694,6 @@ function applyPhysicalFontMatch(payload){
   if(!errors.length)return;
   errors.sort((a,b)=>a.score-b.score);
   const original=errors.find(x=>x.family===source)||errors[0],best=errors[0];
-  // Only choose an actually closer compatible installed face, never make a
-  // speculative text-wide zoom adjustment or modify the user's font setting.
   const accepted=best.score<.045&&best.score+0.008<original.score?best:original;
   const css=appearance.fontCssValue(accepted.family);
   app.style.fontFamily=css;
@@ -669,6 +704,33 @@ function applyPhysicalFontMatch(payload){
     LibreDisplayRuntime.getModule('layout')?.scheduleBuiltInLayoutAutoFitDeferred?.(undefined,140);
   }
 }
+function applyPendingPhysicalParity(){
+  const data=physicalParityPending;
+  if(!data)return true;
+  // Do not acknowledge while initial custom layout / element hydration is
+  // incomplete. The old one-shot 1300ms retry often fired too early.
+  if(String(cfg?.layoutMode||'')==='custom'&&!document.body.classList.contains('custom-layout'))return false;
+  for(const [key,selector] of Object.entries(PHYSICAL_FIT_BLOCKS)){
+    if(Object.prototype.hasOwnProperty.call(data.values||{},key)&&!document.querySelector(selector))return false;
+  }
+  for(const [key,selector] of Object.entries(PHYSICAL_FIT_BLOCKS)){
+    const el=document.querySelector(selector);if(!el)continue;
+    const fit=Number(data.values?.[key]);
+    if(document.body.classList.contains('custom-layout')&&Number.isFinite(fit)&&fit>=.15&&fit<=1)el.style.setProperty('--ld-physical-fit-'+key,fit.toFixed(4));
+    else el.style.removeProperty('--ld-physical-fit-'+key);
+  }
+  applyPhysicalFontMatch(data);
+  physicalParityLastAt=Date.now();
+  window.__ldPhysicalParityStatus={deviceId:data.deviceId,at:physicalParityLastAt,piSize:[data.width,data.height],piFit:{...data.values},capturedAt:data.capturedAt,previewId:data.previewId||'',previewRevision:Number(data.previewRevision)||0};
+  physicalParityPending=null;
+  return true;
+}
+function attemptPhysicalParityHydration(generation,attempt=0){
+  if(generation!==physicalParityReplayGeneration||!physicalParityPending)return;
+  if(applyPendingPhysicalParity())return;
+  if(attempt>=49||Date.now()-Number(physicalParityPending.sentAt)>15000){physicalParityPending=null;return;}
+  physicalParityReplayTimer=setTimeout(()=>attemptPhysicalParityHydration(generation,attempt+1),200);
+}
 function acceptPhysicalParityMessage(event){
   if(!(bootstrapApi.PAGE_PARAMS.get('nativeLive')==='1'||bootstrapApi.LAYOUT_PREVIEW_MODE))return;
   if(event.origin!==location.origin||event.source!==window.parent)return;
@@ -678,30 +740,15 @@ function acceptPhysicalParityMessage(event){
   if(!Number.isFinite(data.capturedAt)||data.capturedAt<=0||!Number.isFinite(data.sentAt)||Math.abs(Date.now()-data.sentAt)>15000)return;
   const w=document.documentElement.clientWidth,h=document.documentElement.clientHeight;
   if(Math.abs(Number(data.width)-w)>2||Math.abs(Number(data.height)-h)>2)return;
-  physicalParityLastAt=Date.now();
-  const keys=PHYSICAL_FIT_BLOCKS;
-  for(const [key,selector] of Object.entries(keys)){
-    const el=document.querySelector(selector);if(!el)continue;
-    const fit=Number(data.values?.[key]);
-    if(document.body.classList.contains('custom-layout')&&Number.isFinite(fit)&&fit>=.15&&fit<=1){el.style.setProperty('--ld-physical-fit-'+key,fit.toFixed(4));}
-    else el.style.removeProperty('--ld-physical-fit-'+key);
-  }
-  applyPhysicalFontMatch(data);
-  // Iframe 'load' can precede asynchronous dashboard hydration; replay only
-  // the same trusted Pi report after the initial config and layout settle.
-  if(!document.body.classList.contains('custom-layout')&&Object.keys(data.values||{}).length){
-    setTimeout(()=>{if(physicalParityLastAt&&Date.now()-physicalParityLastAt<3000){
-      for(const [key,selector] of Object.entries(PHYSICAL_FIT_BLOCKS)){const fit=Number(data.values?.[key]),el=document.querySelector(selector);if(document.body.classList.contains('custom-layout')&&el&&Number.isFinite(fit)&&fit>=.15&&fit<=1)el.style.setProperty('--ld-physical-fit-'+key,fit.toFixed(4));}
-      applyPhysicalFontMatch(data);
-    }},1300);
-  }
-  window.__ldPhysicalParityStatus={deviceId:data.deviceId,at:physicalParityLastAt,piSize:[data.width,data.height],piFit:{...data.values}};
+  clearTimeout(physicalParityReplayTimer);physicalParityPending=data;
+  attemptPhysicalParityHydration(++physicalParityReplayGeneration);
 }
 window.addEventListener('message',acceptPhysicalParityMessage);
 window.addEventListener('message',event=>{
   if(!bootstrapApi.LAYOUT_PREVIEW_MODE||event.origin!==location.origin||event.source!==window.parent)return;
   const data=event.data;if(!data||data.type!=='libredisplay-physical-fit-clear-v1'||data.endpoint!==bootstrapApi.ACTIVE_ENDPOINT)return;
-  physicalParityLastAt=0;
+  clearTimeout(physicalParityReplayTimer);physicalParityPending=null;physicalParityReplayGeneration++;
+  physicalParityLastAt=0;window.__ldPhysicalParityStatus=null;
   for(const [key,selector] of Object.entries(PHYSICAL_FIT_BLOCKS))document.querySelector(selector)?.style.removeProperty('--ld-physical-fit-'+key);
   document.getElementById('app')?.style.removeProperty('font-family');
   document.getElementById('alert-zone')?.style.removeProperty('font-family');
@@ -710,7 +757,7 @@ window.addEventListener('message',event=>{
 // Stale Pi readings must not override future dashboard/Arrange edits.
 if(bootstrapApi.PAGE_PARAMS.get('nativeLive')==='1'||bootstrapApi.LAYOUT_PREVIEW_MODE)setInterval(()=>{
   if(!physicalParityLastAt||Date.now()-physicalParityLastAt<46000)return;
-  physicalParityLastAt=0;
+  physicalParityLastAt=0;window.__ldPhysicalParityStatus=null;
   for(const [key,selector] of Object.entries(PHYSICAL_FIT_BLOCKS))document.querySelector(selector)?.style.removeProperty('--ld-physical-fit-'+key);
   document.getElementById('app')?.style.removeProperty('font-family');
   document.getElementById('alert-zone')?.style.removeProperty('font-family');
