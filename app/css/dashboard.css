@@ -4732,7 +4732,7 @@ html.ld-native-live-parent body{min-width:var(--ld-live-width,100vw);min-height:
 #ld-native-live-frame[hidden],body.remote-layout-proxy #ld-native-live-frame,body.layout-editing #ld-native-live-frame,body:has(#remote-layout-preview-shell.show) #ld-native-live-frame,body:has(#setup:not(.hidden)) #ld-native-live-frame{display:none!important}
 html.ld-native-live-child #cog{display:none!important}
 
-/* v1.16.42: edit the Owner's already-rendered live frame itself. No second
+/* Remote Arrange edits the Owner's already-rendered live frame itself. No second
    iframe, no stock photo reroll, no duplicated integration or weather scene.
    The editor shell is transparent and only its controls capture pointer input;
    drag/resize targets remain on the real live canvas at their original pixels. */

@@ -1050,20 +1050,36 @@ let remoteLayoutLiveEditing=false;
 function remoteLayoutFrame(){
   return remoteLayoutLiveEditing?document.getElementById('ld-native-live-frame'):document.getElementById('remote-layout-preview-frame');
 }
-function remoteLayoutLiveCandidate(target){
+function remoteLayoutLiveCandidate(target=null){
   const frame=document.getElementById('ld-native-live-frame');
-  if(!frame||!frame.isConnected||!target?.physical||!target.online||!target.deviceId)return null;
-  if(Math.abs(Number(frame.width)-Number(target.width))>2||Math.abs(Number(frame.height)-Number(target.height))>2)return null;
+  if(!frame||!frame.isConnected||!(frame.getAttribute('src')||frame.hasAttribute('srcdoc')))return null;
+  // A live Pi-sized frame was already established by the normal Owner view.
+  // Its loaded document is the visual authority; a delayed device heartbeat or
+  // missing savedAt timestamp must not make the Arrange button unresponsive.
+  if(target&&(Math.abs(Number(frame.width)-Number(target.width))>2||Math.abs(Number(frame.height)-Number(target.height))>2))return null;
   try{
     const child=frame.contentWindow,doc=frame.contentDocument;
-    if(!child||!doc||doc.readyState!=='complete'||!doc.getElementById('app'))return null;
+    if(!child||!doc||doc.readyState==='loading'||!doc.getElementById('app'))return null;
     const params=new URLSearchParams(child.location.search);
     if(child.location.origin!==location.origin||params.get('nativeLive')!=='1'||params.get('endpoint')!==bootstrapApi.ACTIVE_ENDPOINT)return null;
-    if(!child.LibreDisplayRuntime?.getModule?.('layout')?.startLayoutEditor)return null;
-    if(!child.LibreDisplayRuntime?.getModule?.('layout')?.layoutEditorPreviewState)return null;
-    if(!Number(child.LibreDisplayRuntime?.getModule?.('config')?.cfg?._savedAt))return null;
+    const runtime=child.LibreDisplayRuntime,layout=runtime?.getModule?.('layout');
+    if(typeof layout?.startLayoutEditor!=='function'||typeof layout?.layoutEditorPreviewState!=='function')return null;
+    const saved=Number(runtime.getModule('config')?.cfg?._savedAt)||0;
+    const ownerSaved=Number(LibreDisplayRuntime.getModule('config')?.cfg?._savedAt)||0;
+    // Reject clearly mismatched saved revisions, not an absent timestamp.
+    if(saved&&ownerSaved&&saved!==ownerSaved)return null;
     return frame;
   }catch(_e){return null;}
+}
+function remoteLayoutTargetFromLiveFrame(){
+  const frame=remoteLayoutLiveCandidate();if(!frame)return null;
+  const width=Math.round(Number(frame.width)||0),height=Math.round(Number(frame.height)||0);
+  if(width<480||height<270||width>7680||height>4320)return null;
+  const child=frame.contentWindow,parity=child?.__ldPhysicalParityStatus;
+  if(Array.isArray(parity?.piSize)&&parity.piSize.length===2&&
+     (Math.abs(Number(parity.piSize[0])-width)>2||Math.abs(Number(parity.piSize[1])-height)>2))return null;
+  return {width,height,physical:true,online:true,deviceId:String(parity?.deviceId||''),
+    dpr:Number(child.devicePixelRatio)||1,persisted:false,fromLiveFrame:true};
 }
 function remoteLayoutLiveEditorActive(){
   try{return remoteLayoutLiveEditing&&remoteLayoutFrame()?.contentWindow?.LibreDisplayRuntime?.getModule?.('layout')?.layoutEditorActive===true;}
@@ -1507,48 +1523,80 @@ function fitRemoteLayoutPreview(){
   const meta=document.getElementById('remote-layout-preview-meta');if(meta){const state=remoteLayoutPreviewTarget.online?'live physical display':(remoteLayoutPreviewTarget.persisted?'last physical kiosk heartbeat':'last reported physical display'),dpr=remoteLayoutPreviewTarget.dpr&&Math.abs(remoteLayoutPreviewTarget.dpr-1)>.01?` · DPR ${remoteLayoutPreviewTarget.dpr.toFixed(2)}`:'';meta.textContent=`${tw}×${th} physical CSS viewport${dpr} · ${state} · native 100% viewport · scroll to navigate`;}
 }
 async function openRemoteLayoutPreview(){
-  const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame'),meta=document.getElementById('remote-layout-preview-meta');if(!shell||!frame)return;
+  const shell=document.getElementById('remote-layout-preview-shell'),frame=document.getElementById('remote-layout-preview-frame'),meta=document.getElementById('remote-layout-preview-meta');
+  if(!shell||!frame){
+    alert('Arrange cannot open: its editor controls are missing from the dashboard. Reload the page after updating LibreDisplay.');
+    return;
+  }
+  if(remoteLayoutLiveEditing&&remoteLayoutLiveEditorActive())return;
   const session=++remoteLayoutPreviewSession;
-  if(meta)meta.textContent='Reading the wall display viewport…';shell.classList.add('show');shell.setAttribute('aria-hidden','false');
-  const target=await fetchRemoteLayoutTarget();
-  if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;
-  remoteLayoutPreviewTarget=target;
-  if(!remoteLayoutPreviewTarget){
-    deactivateRemoteLayoutProxy();
-    frame.onload=null;frame.removeAttribute('src');frame.src='about:blank';
-    frame.style.removeProperty('transform');frame.style.removeProperty('width');frame.style.removeProperty('height');frame.style.removeProperty('left');frame.style.removeProperty('top');
-    if(meta)meta.textContent='Arrange unavailable · no physical kiosk viewport is available for this display. Open or reload the actual LibreDisplay wall screen, then choose Reload preview.';
-    return;
+  // A click must produce a visible UI immediately. Device discovery is *not*
+  // a prerequisite for editing the existing, already-rendered live document.
+  shell.classList.add('show');shell.setAttribute('aria-hidden','false');
+  if(meta)meta.textContent='Opening the current live dashboard for editing…';
+  setRemotePhysicalParityStatus('Checking live frame','pending');
+  remoteLayoutPreviewTarget=null;
+  const activate=(live,target)=>{
+    if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return false;
+    remoteLayoutPreviewTarget=target;
+    remoteLayoutLiveEditing=true;document.body.classList.add('remote-layout-live-edit');
+    try{live.contentWindow.LibreDisplayRuntime.getModule('layout').startLayoutEditor();}
+    catch(error){
+      remoteLayoutLiveEditing=false;document.body.classList.remove('remote-layout-live-edit');
+      if(meta)meta.textContent='The live dashboard could not enter editing mode. Reload the live view and retry.';
+      setRemotePhysicalParityStatus('Editor startup failed','warn');
+      console.error('Arrange live editor startup failed',error);return false;
+    }
+    if(!remoteLayoutLiveEditorActive()){
+      remoteLayoutLiveEditing=false;document.body.classList.remove('remote-layout-live-edit');
+      if(meta)meta.textContent='The live dashboard did not enter editing mode. Reload the live view and retry.';
+      setRemotePhysicalParityStatus('Editor not ready','warn');return false;
+    }
+    remotePhysicalPreviewId=newRemotePhysicalPreviewId();remotePhysicalPreviewRevision=0;
+    remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';
+    if(meta)meta.textContent=`${target.width}×${target.height} · editing this exact live dashboard`;
+    setRemotePhysicalParityStatus('Editing live scene · checking Pi','pending');
+    activateRemoteLayoutProxy();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);
+    // Start the Pi verification only once an authoritative device identity has
+    // been matched. Editing remains usable if the Pi is temporarily offline.
+    void verifyLiveArrangePhysicalTarget(session,target);
+    return true;
+  };
+  let target=remoteLayoutTargetFromLiveFrame();
+  if(target){
+    const live=remoteLayoutLiveCandidate(target);
+    if(live&&activate(live,target))return;
   }
-  // Never offer a misleading second-dashboard preview when the live source is
-  // unavailable or has the wrong geometry. The user must reload the actual live
-  // Owner view first instead of dragging against unrelated random content.
-  const live=remoteLayoutLiveCandidate(remoteLayoutPreviewTarget);
-  if(!live){
-    if(meta)meta.textContent='Arrange unavailable: matching live dashboard is not ready. Close, reload the normal view, and reopen Arrange.';
-    setRemotePhysicalParityStatus('No matching live frame · no editing', 'warn');
-    return;
+  // The owner frame may still be loading after a cold start. Retry briefly,
+  // making the reason visible rather than falling through to a black preview.
+  if(meta)meta.textContent='Waiting for the live dashboard to finish loading…';
+  for(let attempt=0;attempt<16;attempt++){
+    await new Promise(resolve=>setTimeout(resolve,200));
+    if(session!==remoteLayoutPreviewSession||!shell.classList.contains('show'))return;
+    target=remoteLayoutTargetFromLiveFrame();
+    const live=target&&remoteLayoutLiveCandidate(target);
+    if(live&&activate(live,target))return;
   }
-  remoteLayoutLiveEditing=true;
-  document.body.classList.add('remote-layout-live-edit');
-  // This is the SAME frame as normal view. CSS makes only the editor controls
-  // float above it; it does not change the iframe's position or viewport.
-  try{live.contentWindow.LibreDisplayRuntime.getModule('layout').startLayoutEditor();}
-  catch(_e){
-    remoteLayoutLiveEditing=false;document.body.classList.remove('remote-layout-live-edit');
-    if(meta)meta.textContent='Could not activate editing in the existing live dashboard; no replacement scene was opened.';
-    setRemotePhysicalParityStatus('Live editor unavailable', 'warn');return;
+  if(meta)meta.textContent='Arrange cannot start because the native live dashboard is not ready or its saved configuration differs. Reload the normal view, then retry. No separate scene was created.';
+  setRemotePhysicalParityStatus('Live frame unavailable · Close or Reload preview','warn');
+}
+async function verifyLiveArrangePhysicalTarget(session,liveTarget){
+  // The physical heartbeat is a verification task, never the Arrange entry gate.
+  let authoritative=null;
+  try{const rows=await readDisplayDevices();authoritative=targetViewportFromDevice(bestLayoutTargetDevice(rows));}
+  catch(_e){/* Keep the editor responsive during a server/heartbeat outage. */}
+  if(session!==remoteLayoutPreviewSession||!remoteLayoutLiveEditing)return;
+  if(!authoritative||!authoritative.online||!authoritative.deviceId){
+    setRemotePhysicalParityStatus('Pi unavailable · visual editing only · unverified','warn');return;
   }
-  if(!remoteLayoutLiveEditorActive()){
-    remoteLayoutLiveEditing=false;document.body.classList.remove('remote-layout-live-edit');
-    if(meta)meta.textContent='Live layout editor did not start. No independent Arrange iframe was opened.';
-    setRemotePhysicalParityStatus('Live editor unavailable', 'warn');return;
+  if(Math.abs(authoritative.width-liveTarget.width)>2||Math.abs(authoritative.height-liveTarget.height)>2||
+     (liveTarget.deviceId&&authoritative.deviceId!==liveTarget.deviceId)){
+    setRemotePhysicalParityStatus('Pi viewport changed · editing not physically verified','warn');return;
   }
-  remotePhysicalPreviewId=newRemotePhysicalPreviewId();remotePhysicalPreviewRevision=0;remotePhysicalPreviewSignature='';remotePhysicalPreviewSeenSignature='';
-  setRemotePhysicalParityStatus('Editing live session · Pi draft verification pending','pending');startRemotePhysicalPreviewLease();
-  if(meta)meta.textContent=`${remoteLayoutPreviewTarget.width}×${remoteLayoutPreviewTarget.height} · SAME live dashboard · no second session`;
-  activateRemoteLayoutProxy();syncRemoteLayoutEditorAffordances();scheduleRemoteLayoutProxySync(60);setTimeout(maybeQueueRemotePhysicalLayoutPreview,90);
-  return;
+  remoteLayoutPreviewTarget=authoritative;
+  setRemotePhysicalParityStatus('Editing live scene · Pi draft verification pending','pending');
+  startRemotePhysicalPreviewLease();
+  setTimeout(()=>{if(session===remoteLayoutPreviewSession)maybeQueueRemotePhysicalLayoutPreview();},90);
 }
 function closeRemoteLayoutPreview({preservePhysical=false}={}){
   remoteLayoutPreviewSession++;
@@ -1610,7 +1658,8 @@ function notifyLayoutPreviewParent(action){
 window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==remoteLayoutFrame()?.contentWindow)return;const msg=e.data||{};if(msg.type!=='libredisplay-layout-editor')return;handleEmbeddedLayoutEditorAction(msg.action);});
 function launchLayoutEditorFromSettings(){
   if(LibreDisplayRuntime.getModule('system').settingsDirty&&!confirm('You have unsaved Settings changes. The layout editor uses the currently saved dashboard settings. Continue without saving those other changes?'))return;
-  closeSetup(true);if(bootstrapApi.REMOTE_SETTINGS_MODE){setTimeout(openRemoteLayoutPreview,80);return;}setTimeout(startLayoutEditor,80);
+  try{closeSetup(true);}catch(error){console.error('Could not close Settings for Arrange',error);alert('Arrange could not close Settings. Reload the page and retry.');return;}
+  if(bootstrapApi.REMOTE_SETTINGS_MODE){void openRemoteLayoutPreview();return;}setTimeout(startLayoutEditor,80);
 }
 function stopLayoutEditorUi(){
   toggleLayoutShortcuts(false);
@@ -1624,7 +1673,7 @@ function stopLayoutEditorUi(){
 
 
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("layout", {remoteLayoutFrame,remoteLayoutLiveCandidate,remoteLayoutLiveEditorActive,remoteLayoutInnerDocument,remoteLayoutProxyRoot,remoteLayoutProxyCounterpart,remoteLayoutProxyMirrorElement,syncRemoteLayoutProxyUi,scheduleRemoteLayoutProxySync,activateRemoteLayoutProxy,deactivateRemoteLayoutProxy,handleRemoteLayoutProxyEvent,targetViewportFromDevice,bestLayoutTargetDevice,readDisplayDevices,requestFreshDisplayMetrics,fetchRemoteLayoutTarget,newRemotePhysicalPreviewId,setRemotePhysicalParityStatus,compareLayoutRenderSnapshots,pollRemotePhysicalParity,sendRemotePhysicalLayoutPreview,maybeQueueRemotePhysicalLayoutPreview,clearRemotePhysicalLayoutPreview,remoteLayoutPreviewUrl,primeRemoteLayoutFrameViewport,syncRemoteLayoutEditorAffordances,selectRemoteLayoutElement,syncRemoteEditorHitTargets,fitRemoteLayoutPreview,openRemoteLayoutPreview,closeRemoteLayoutPreview,reloadRemoteLayoutPreview,handleEmbeddedLayoutEditorAction,notifyLayoutPreviewParent,launchLayoutEditorFromSettings,stopLayoutEditorUi}, {
+LibreDisplayRuntime.exposeModule("layout", {remoteLayoutFrame,remoteLayoutLiveCandidate,remoteLayoutTargetFromLiveFrame,verifyLiveArrangePhysicalTarget,remoteLayoutLiveEditorActive,remoteLayoutInnerDocument,remoteLayoutProxyRoot,remoteLayoutProxyCounterpart,remoteLayoutProxyMirrorElement,syncRemoteLayoutProxyUi,scheduleRemoteLayoutProxySync,activateRemoteLayoutProxy,deactivateRemoteLayoutProxy,handleRemoteLayoutProxyEvent,targetViewportFromDevice,bestLayoutTargetDevice,readDisplayDevices,requestFreshDisplayMetrics,fetchRemoteLayoutTarget,newRemotePhysicalPreviewId,setRemotePhysicalParityStatus,compareLayoutRenderSnapshots,pollRemotePhysicalParity,sendRemotePhysicalLayoutPreview,maybeQueueRemotePhysicalLayoutPreview,clearRemotePhysicalLayoutPreview,remoteLayoutPreviewUrl,primeRemoteLayoutFrameViewport,syncRemoteLayoutEditorAffordances,selectRemoteLayoutElement,syncRemoteEditorHitTargets,fitRemoteLayoutPreview,openRemoteLayoutPreview,closeRemoteLayoutPreview,reloadRemoteLayoutPreview,handleEmbeddedLayoutEditorAction,notifyLayoutPreviewParent,launchLayoutEditorFromSettings,stopLayoutEditorUi}, {
   "remoteLayoutProxyActive": {configurable:true,get:()=>remoteLayoutProxyActive,set:(value)=>{remoteLayoutProxyActive=value;}},
   "remoteLayoutLiveEditing": {configurable:true,get:()=>remoteLayoutLiveEditing},
   "remoteLayoutProxySyncTimer": {configurable:true,get:()=>remoteLayoutProxySyncTimer,set:(value)=>{remoteLayoutProxySyncTimer=value;}},
