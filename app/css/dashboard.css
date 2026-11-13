@@ -710,12 +710,12 @@ body.custom-layout #calendar-legend { position:fixed; }
 body.custom-layout .wx-main > .wx-current,
 body.custom-layout .wx-main > .wx-feels,
 body.custom-layout .wx-main > .wx-cond,
-body.custom-layout .wx-main > .wx-moon-info { zoom:var(--ld-layout-fit-current,1); }
+body.custom-layout .wx-main > .wx-moon-info { zoom:var(--ld-physical-fit-current,var(--ld-layout-fit-current,1)); }
 body.custom-layout #clock-block > .clock-time,
-body.custom-layout #clock-block > .clock-date { zoom:var(--ld-layout-fit-clock,1); }
-body.custom-layout .wx-details > .wx-detail { zoom:var(--ld-layout-fit-details,1); }
-body.custom-layout #wx-forecast > .fc-col { zoom:var(--ld-layout-fit-daily,1); }
-body.custom-layout #wx-hourly-block .wx-hourly > .hr-col { zoom:var(--ld-layout-fit-hourly,1); }
+body.custom-layout #clock-block > .clock-date { zoom:var(--ld-physical-fit-clock,var(--ld-layout-fit-clock,1)); }
+body.custom-layout .wx-details > .wx-detail { zoom:var(--ld-physical-fit-details,var(--ld-layout-fit-details,1)); }
+body.custom-layout #wx-forecast > .fc-col { zoom:var(--ld-physical-fit-daily,var(--ld-layout-fit-daily,1)); }
+body.custom-layout #wx-hourly-block .wx-hourly > .hr-col { zoom:var(--ld-physical-fit-hourly,var(--ld-layout-fit-hourly,1)); }
 
 body.custom-layout #top-strip[data-ld-v-align="top"]{align-content:start}body.custom-layout #top-strip[data-ld-v-align="middle"]{align-content:center}body.custom-layout #top-strip[data-ld-v-align="bottom"]{align-content:end}
 body.custom-layout #top-strip[data-ld-h-align="left"] .day-col{text-align:left}body.custom-layout #top-strip[data-ld-h-align="center"] .day-col{text-align:center}body.custom-layout #top-strip[data-ld-h-align="right"] .day-col{text-align:right}

@@ -3818,6 +3818,26 @@ def safe_response_header_value(value, limit=512):
     return text[:limit]
 
 
+def normalize_layout_fit_metrics(value):
+    """Bounded, non-persistent geometry metadata from the physical kiosk."""
+    if not isinstance(value, dict):
+        return {}
+    try:
+        width = max(0, min(20000, int(value.get("width") or 0)))
+        height = max(0, min(20000, int(value.get("height") or 0)))
+        captured_at = max(0, min(99999999999999, int(value.get("capturedAt") or 0)))
+    except (TypeError, ValueError, OverflowError):
+        return {}
+    if not width or not height or not captured_at:
+        return {}
+    permitted = ("calendar", "current", "clock", "details", "daily", "hourly")
+    values = {}
+    raw = value.get("values") if isinstance(value.get("values"), dict) else {}
+    for key in permitted:
+        if key in raw:
+            values[key] = _finite_float(raw[key], 1.0, minimum=0.15, maximum=1.0)
+    return {"width": width, "height": height, "values": values, "capturedAt": captured_at}
+
 def normalize_layout_render_snapshot(value):
     if not isinstance(value, dict):
         return {}
@@ -5363,6 +5383,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     "displayPerformanceBenchmark": normalize_display_performance_benchmark((body or {}).get("displayPerformanceBenchmark")),
                     "layoutPreviewId": re.sub(r"[^A-Za-z0-9_-]+", "-", str((body or {}).get("layoutPreviewId") or "").strip())[:96],
                     "layoutRenderSnapshot": normalize_layout_render_snapshot((body or {}).get("layoutRenderSnapshot")),
+                    "layoutFitMetrics": normalize_layout_fit_metrics((body or {}).get("layoutFitMetrics")) if str((body or {}).get("mode") or "") == "local" and self.client_is_loopback() else {},
                     "lastSeen": time.time(),
                 }
                 with DEVICE_LOCK:
@@ -5407,6 +5428,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         "displayPerformanceBenchmark": benchmark,
                         "layoutPreviewId": row["layoutPreviewId"],
                         "layoutRenderSnapshot": row["layoutRenderSnapshot"],
+                        "layoutFitMetrics": row["layoutFitMetrics"],
                     })
                 response_payload = {"ok": True}
                 if pending_command:

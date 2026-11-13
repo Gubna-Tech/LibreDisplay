@@ -326,6 +326,19 @@ let liveEventSource=null,heartbeatTimer=null,heartbeatResizeTimer=null;
 let physicalDisplayBenchmarkState=null;
 let heartbeatMetricsCache=null,heartbeatMetricsDirty=true,heartbeatPerformanceCache=null,heartbeatPerformanceCacheAt=0,heartbeatPerformanceRefreshPending=false;
 const HEARTBEAT_PERFORMANCE_CACHE_MS=60000;
+// Read the Pi's existing automatic-fit result rather than recomputing it in
+// Firefox. The physical kiosk is authoritative; this is read-only telemetry.
+const PHYSICAL_FIT_BLOCKS={calendar:'#top-strip',current:'.wx-main',clock:'#clock-block',details:'.wx-details',daily:'#wx-forecast',hourly:'#wx-hourly-block'};
+function capturePhysicalFitMetrics(){
+  const values={};
+  if(!document.body.classList.contains('custom-layout'))return {width:Math.round(document.documentElement.clientWidth),height:Math.round(document.documentElement.clientHeight),values,capturedAt:Date.now()};
+  for(const [key,selector] of Object.entries(PHYSICAL_FIT_BLOCKS)){
+    const el=document.querySelector(selector);if(!el)continue;
+    const fit=Number.parseFloat(el.style.getPropertyValue('--ld-layout-fit-'+key)||'1');
+    values[key]=Number.isFinite(fit)?Math.max(.15,Math.min(1,fit)):1;
+  }
+  return {width:Math.round(document.documentElement.clientWidth),height:Math.round(document.documentElement.clientHeight),values,capturedAt:Date.now()};
+}
 function displayDeviceId(){let id='';try{id=localStorage.getItem('libredisplay_device_id')||'';}catch(e){}if(!/^[A-Za-z0-9_-]{12,80}$/.test(id)){id='d'+Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem('libredisplay_device_id',id);}catch(e){}}return id;}
 function displayViewportMetrics(force=false){
   if(!force&&!heartbeatMetricsDirty&&heartbeatMetricsCache)return heartbeatMetricsCache;
@@ -393,7 +406,7 @@ function dispatchPendingPhysicalDisplayCommand(command){
   if(currentId===requestId&&['running','complete','error'].includes(currentState))return false;
   const event={data:JSON.stringify(command)};setTimeout(()=>LibreDisplayRuntime.getModule('performance').runExclusiveTask('display-performance-benchmark',()=>runPhysicalDisplayBenchmarkRequest(event)),0);return true;
 }
-async function sendDisplayHeartbeat(connectivityRecovered=false,options={}){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;try{const force=options?.full===true,m=displayViewportMetrics(force),frontendPerformance={...heartbeatPerformanceSnapshot(force),connectivity:connectivitySnapshot()};const response=await resilientFetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:bootstrapApi.READ_ONLY_DISPLAY_MODE?'viewer':(bootstrapApi.LOCAL_CLIENT_MODE?'local':'admin'),version:bootstrapApi.DASHBOARD_BUILD,userAgent:navigator.userAgent,configSavedAt:Number(cfg?._savedAt||0),frontendPerformance,providerCache:staleCacheSnapshot(),displayPerformanceBenchmark:bootstrapApi.LOCAL_CLIENT_MODE?physicalDisplayBenchmarkState:undefined,layoutPreviewId:bootstrapApi.LOCAL_CLIENT_MODE?physicalLayoutPreviewId:'',layoutRenderSnapshot:bootstrapApi.LOCAL_CLIENT_MODE&&physicalLayoutPreviewId?captureLayoutRenderSnapshot():undefined,connectivityRecovered:!!connectivityRecovered}),cache:'no-store'},{timeoutMs:5000,retry:false});if(response.ok&&bootstrapApi.LOCAL_CLIENT_MODE){const payload=await response.json().catch(()=>({}));dispatchPendingPhysicalDisplayCommand(payload?.pendingCommand);}}catch(e){}}
+async function sendDisplayHeartbeat(connectivityRecovered=false,options={}){if(!bootstrapApi.READ_ONLY_DISPLAY_MODE&&!bootstrapApi.LOCAL_CLIENT_MODE)return;try{const force=options?.full===true,m=displayViewportMetrics(force),frontendPerformance={...heartbeatPerformanceSnapshot(force),connectivity:connectivitySnapshot()};const response=await resilientFetch(serverPath('/api/device-heartbeat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:displayDeviceId(),...m,mode:bootstrapApi.READ_ONLY_DISPLAY_MODE?'viewer':(bootstrapApi.LOCAL_CLIENT_MODE?'local':'admin'),version:bootstrapApi.DASHBOARD_BUILD,userAgent:navigator.userAgent,configSavedAt:Number(cfg?._savedAt||0),frontendPerformance,providerCache:staleCacheSnapshot(),displayPerformanceBenchmark:bootstrapApi.LOCAL_CLIENT_MODE?physicalDisplayBenchmarkState:undefined,layoutPreviewId:bootstrapApi.LOCAL_CLIENT_MODE?physicalLayoutPreviewId:'',layoutRenderSnapshot:bootstrapApi.LOCAL_CLIENT_MODE&&physicalLayoutPreviewId?captureLayoutRenderSnapshot():undefined,layoutFitMetrics:bootstrapApi.LOCAL_CLIENT_MODE?capturePhysicalFitMetrics():undefined,connectivityRecovered:!!connectivityRecovered}),cache:'no-store'},{timeoutMs:5000,retry:false});if(response.ok&&bootstrapApi.LOCAL_CLIENT_MODE){const payload=await response.json().catch(()=>({}));dispatchPendingPhysicalDisplayCommand(payload?.pendingCommand);}}catch(e){}}
 function parseDisplayBenchmarkEvent(event){try{return JSON.parse(String(event?.data||'{}'))||{};}catch{return {};}}
 async function runPhysicalDisplayBenchmarkRequest(event){
   if(!bootstrapApi.LOCAL_CLIENT_MODE)return;
@@ -473,6 +486,7 @@ async function refreshNativeRemotePiView(){
     const devices=await layout.readDisplayDevices();
     const row=layout.bestLayoutTargetDevice(devices);
     const target=layout.targetViewportFromDevice(row);
+    if(row?.online&&row.mode==='local')postPhysicalParityToFrame(document.getElementById('remote-layout-preview-frame'),row);
     if(!target?.physical||!target.online||!target.deviceId)throw new Error('Physical Pi heartbeat unavailable');
     const geometry=target.width+'x'+target.height+'@'+target.dpr;
     if(nativePiViewUrl&&(nativePiViewDevice!==target.deviceId||nativePiViewGeometry!==geometry)){
@@ -532,6 +546,7 @@ async function refreshNativeOwnerLiveViewport(){
     const layout=LibreDisplayRuntime.getModule('layout');
     const row=layout.bestLayoutTargetDevice(await layout.readDisplayDevices());
     const target=layout.targetViewportFromDevice(row);
+    if(row?.online&&row.mode==='local')postPhysicalParityToFrame(document.getElementById('remote-layout-preview-frame'),row);
     if(!target?.physical||!target.online||!target.deviceId)return;
     const w=target.width,h=target.height;
     let frame=document.getElementById('ld-native-live-frame');
@@ -544,6 +559,7 @@ async function refreshNativeOwnerLiveViewport(){
     document.documentElement.style.setProperty('--ld-live-width',w+'px');
     document.documentElement.style.setProperty('--ld-live-height',h+'px');
     document.documentElement.classList.add('ld-native-live-parent');
+    postPhysicalParityToFrame(frame,row);
     if(ownerLiveViewportDevice!==target.deviceId||!frame.getAttribute('src')){
       ownerLiveViewportDevice=target.deviceId;
       frame.src='/dashboard.html?'+new URLSearchParams({endpoint:bootstrapApi.ACTIVE_ENDPOINT,nativeLive:'1'}).toString();
@@ -557,8 +573,102 @@ function startNativeOwnerLiveViewport(){
   if(!ownerLiveViewportTimer)ownerLiveViewportTimer=setInterval(()=>{if(!document.hidden)void refreshNativeOwnerLiveViewport();},10000);
 }
 
+// The nested live dashboard and Arrange iframe run in another browser engine.
+// Authoritative Pi fit factors belong to the DISPLAY CONTENT only: never scale
+// its outer iframe or change the stored normalized Arrange rectangles.
+const PHYSICAL_PARITY_MESSAGE='libredisplay-physical-fit-v1';
+const physicalParityFrameState=new WeakMap();
+function postPhysicalParityToFrame(frame,row){
+  if(!frame||!row||!row.online||row.mode!=='local')return;
+  const metrics=row.layoutFitMetrics;
+  const width=Math.round(Number(row.layoutWidth||row.width)||0),height=Math.round(Number(row.layoutHeight||row.height)||0);
+  if(width<320||height<200||Number(row.ageSeconds)>45||!metrics||Math.abs(Number(metrics.width)-width)>2||Math.abs(Number(metrics.height)-height)>2)return;
+  const payload={type:PHYSICAL_PARITY_MESSAGE,endpoint:bootstrapApi.ACTIVE_ENDPOINT,width,height,deviceId:String(row.deviceId||''),sentAt:Date.now(),capturedAt:Number(metrics.capturedAt)||0,values:metrics.values||{},fontName:String(row.fontName||''),fontProbeWidth:Number(row.fontProbeWidth)||0,fontProbeHeight:Number(row.fontProbeHeight)||0};
+  physicalParityFrameState.set(frame,payload);
+  if(!frame.__ldPhysicalParityLoadBound){
+    frame.__ldPhysicalParityLoadBound=true;
+    frame.addEventListener('load',()=>{const next=physicalParityFrameState.get(frame);if(next)frame.contentWindow?.postMessage(next,location.origin);});
+  }
+  if(frame.contentWindow&&frame.contentDocument?.readyState==='complete')frame.contentWindow.postMessage(payload,location.origin);
+}
+let physicalParityLastAt=0;
+function applyPhysicalFontMatch(payload){
+  const app=document.getElementById('app'),appearance=LibreDisplayRuntime.getModule('appearance');
+  if(!app||!appearance?.measureDashboardFontProbe)return;
+  const requested=String(payload.fontName||'Inter'),source=String(cfg?.fontFamily||'Inter');
+  if(requested!==source){
+    app.style.removeProperty('font-family');
+    document.getElementById('alert-zone')?.style.removeProperty('font-family');
+    window.__ldLastPhysicalParityFont='';
+    return;
+  }
+  const pw=Number(payload.fontProbeWidth),ph=Number(payload.fontProbeHeight);
+  if(!(pw>50&&ph>1))return;
+  const families=source==='Inter'?['Inter','Noto Sans','DejaVu Sans','Liberation Sans','system']:
+    source==='Noto Sans'?['Noto Sans','DejaVu Sans','Liberation Sans','system']:
+    source==='DejaVu Sans'?['DejaVu Sans','Liberation Sans','system']:
+    source==='system'?['system','Noto Sans','DejaVu Sans','Liberation Sans']:[source];
+  const errors=[];
+  for(const family of families){
+    const m=appearance.measureDashboardFontProbe(family),w=Number(m.width),h=Number(m.height);
+    if(!(w>0&&h>0))continue;
+    const widthError=Math.abs(w/pw-1),heightError=Math.abs(h/ph-1);
+    errors.push({family,widthError,heightError,score:widthError*.85+heightError*.15});
+  }
+  if(!errors.length)return;
+  errors.sort((a,b)=>a.score-b.score);
+  const original=errors.find(x=>x.family===source)||errors[0],best=errors[0];
+  // Only choose an actually closer compatible installed face, never make a
+  // speculative text-wide zoom adjustment or modify the user's font setting.
+  const accepted=best.score<.045&&best.score+0.008<original.score?best:original;
+  const css=appearance.fontCssValue(accepted.family);
+  app.style.fontFamily=css;
+  const alerts=document.getElementById('alert-zone');if(alerts)alerts.style.fontFamily=css;
+  window.__ldPhysicalParityFont={requested,chosen:accepted.family,piWidth:pw,piHeight:ph,remoteWidth:appearance.measureDashboardFontProbe(accepted.family).width,error:accepted.score,candidates:errors};
+  if(accepted.family!==window.__ldLastPhysicalParityFont){
+    window.__ldLastPhysicalParityFont=accepted.family;
+    LibreDisplayRuntime.getModule('layout')?.scheduleBuiltInLayoutAutoFitDeferred?.(undefined,140);
+  }
+}
+function acceptPhysicalParityMessage(event){
+  if(!(bootstrapApi.PAGE_PARAMS.get('nativeLive')==='1'||bootstrapApi.LAYOUT_PREVIEW_MODE))return;
+  if(event.origin!==location.origin||event.source!==window.parent)return;
+  const data=event.data;
+  if(!data||data.type!==PHYSICAL_PARITY_MESSAGE||data.endpoint!==bootstrapApi.ACTIVE_ENDPOINT)return;
+  if(!Number.isFinite(data.capturedAt)||data.capturedAt<=0||!Number.isFinite(data.sentAt)||Math.abs(Date.now()-data.sentAt)>15000)return;
+  const w=document.documentElement.clientWidth,h=document.documentElement.clientHeight;
+  if(Math.abs(Number(data.width)-w)>2||Math.abs(Number(data.height)-h)>2)return;
+  physicalParityLastAt=Date.now();
+  const keys=PHYSICAL_FIT_BLOCKS;
+  for(const [key,selector] of Object.entries(keys)){
+    const el=document.querySelector(selector);if(!el)continue;
+    const fit=Number(data.values?.[key]);
+    if(document.body.classList.contains('custom-layout')&&Number.isFinite(fit)&&fit>=.15&&fit<=1){el.style.setProperty('--ld-physical-fit-'+key,fit.toFixed(4));}
+    else el.style.removeProperty('--ld-physical-fit-'+key);
+  }
+  applyPhysicalFontMatch(data);
+  // Iframe 'load' can precede asynchronous dashboard hydration; replay only
+  // the same trusted Pi report after the initial config and layout settle.
+  if(!document.body.classList.contains('custom-layout')&&Object.keys(data.values||{}).length){
+    setTimeout(()=>{if(physicalParityLastAt&&Date.now()-physicalParityLastAt<3000){
+      for(const [key,selector] of Object.entries(PHYSICAL_FIT_BLOCKS)){const fit=Number(data.values?.[key]),el=document.querySelector(selector);if(document.body.classList.contains('custom-layout')&&el&&Number.isFinite(fit)&&fit>=.15&&fit<=1)el.style.setProperty('--ld-physical-fit-'+key,fit.toFixed(4));}
+      applyPhysicalFontMatch(data);
+    }},1300);
+  }
+  window.__ldPhysicalParityStatus={deviceId:data.deviceId,at:physicalParityLastAt,piSize:[data.width,data.height],piFit:{...data.values}};
+}
+window.addEventListener('message',acceptPhysicalParityMessage);
+// Stale Pi readings must not override future dashboard/Arrange edits.
+if(bootstrapApi.PAGE_PARAMS.get('nativeLive')==='1'||bootstrapApi.LAYOUT_PREVIEW_MODE)setInterval(()=>{
+  if(!physicalParityLastAt||Date.now()-physicalParityLastAt<46000)return;
+  physicalParityLastAt=0;
+  for(const [key,selector] of Object.entries(PHYSICAL_FIT_BLOCKS))document.querySelector(selector)?.style.removeProperty('--ld-physical-fit-'+key);
+  document.getElementById('app')?.style.removeProperty('font-family');
+  document.getElementById('alert-zone')?.style.removeProperty('font-family');
+  LibreDisplayRuntime.getModule('layout')?.scheduleBuiltInLayoutAutoFitDeferred?.();
+},10000);
 // Preserve the compatibility bridge for legacy bare-identifier callers.
-LibreDisplayRuntime.exposeModule("remote", {startNativeOwnerLiveViewport,refreshNativeOwnerLiveViewport,startNativeRemotePiView,endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
+LibreDisplayRuntime.exposeModule("remote", {capturePhysicalFitMetrics,startNativeOwnerLiveViewport,refreshNativeOwnerLiveViewport,startNativeRemotePiView,endpointDeviceSummary,currentDisplayReadinessDevice,displayReadinessAssessment,renderDisplayReadiness,refreshDisplayReadiness,loadDisplayEndpoints,endpointAction,sendDisplayCommand,createDisplayEndpoint,editDisplayEndpoint,copyDisplayEndpointLink,renameDisplayEndpoint,rotateDisplayEndpoint,deleteDisplayEndpoint,cacheSourceName,updateOfflinePill,setServerConnectionState,clearServerReconnectNotice,clearServerRecoveryTimer,markServerTransportOpen,scheduleServerRecovery,recoverServerConnection,noteServerTransportError,noteCacheResponse,loadRemoteInfo,loadOwnerDevices,renderOwnerDevices,beginOwnerEnrollment,cancelOwnerEnrollment,selectOwnerConnectOption,copyOwnerConnectUrl,copyOwnerConnectCode,renameOwnerDevice,revokeOwnerDevice,toggleRemoteAccess,copyTextValue,copyRemoteInputValue,copyRemoteReconnectUrl,copyRemoteDisplayUrl,rotateRemoteAccessKey,loadCacheStatus,clearOfflineCache,pollServerConfig,displayDeviceId,displayViewportMetrics,captureLayoutRenderSnapshot,applyPhysicalLayoutPreviewCommand,clearPhysicalLayoutPreviewCommand,loadAuthoritativePhysicalConfig,applyPhysicalDisplayConfigCommand,dispatchPendingPhysicalDisplayCommand,sendDisplayHeartbeat,parseDisplayBenchmarkEvent,runPhysicalDisplayBenchmarkRequest,scheduleDisplayHeartbeat,bindDisplayViewportHeartbeat,startLiveDisplayConnection,startRemoteConfigPolling,staleCacheSnapshot,pruneStaleCacheSources,settingsRecoveryMessage,showSettingsInitializationError,clearSettingsInitializationError}, {
   "displayEndpoints": {configurable:true,get:()=>displayEndpoints,set:(value)=>{displayEndpoints=value;}},
   "displayDevices": {configurable:true,get:()=>displayDevices,set:(value)=>{displayDevices=value;}},
   "endpointsRemoteEnabled": {configurable:true,get:()=>endpointsRemoteEnabled,set:(value)=>{endpointsRemoteEnabled=value;}},
